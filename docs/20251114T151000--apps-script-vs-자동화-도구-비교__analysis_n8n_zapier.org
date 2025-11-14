@@ -1,0 +1,663 @@
+#+title:      Apps Script vs 자동화 도구 비교 (n8n, Zapier)
+#+date:       [2025-11-14 Thu 15:10]
+#+filetags:   :analysis:automation:comparison:
+#+identifier: 20251114T151000
+
+* Apps Script vs n8n/Zapier: Workspace 중심이면 오히려 쉽다
+
+** 🎯 핵심 발견
+
+#+begin_quote
+"Google Workspace에 집중되어 있다면,
+Apps Script가 n8n, Zapier보다 오히려 쉽다.
+
+그리고 훨씬 강력하다."
+#+end_quote
+
+** 📊 비교표
+
+| 항목 | Apps Script | n8n | Zapier |
+|------|-------------|-----|--------|
+| **설정 복잡도** | ⭐ 매우 쉬움 | ⭐⭐⭐ 중간 | ⭐⭐⭐⭐ 복잡 |
+| **배포** | 1분 (복붙) | 5분 (설정) | 10분 (UI 클릭) |
+| **비용** | 무료 | 무료 (제한) | 유료 ($19+/월) |
+| **Workspace 통합** | ✅ 네이티브 | ⚠️ API만 | ⚠️ API만 |
+| **코드 제어** | ✅ 완전 | ✅ 부분 | ❌ GUI만 |
+| **Custom Functions** | ✅ 가능 | ❌ 불가 | ❌ 불가 |
+| **UI 확장** | ✅ Menu/Sidebar | ❌ 없음 | ❌ 없음 |
+| **실행 환경** | Google 인프라 | Self-hosted/Cloud | Zapier 클라우드 |
+| **확장성** | 중간 (6분 제한) | 높음 | 높음 |
+| **학습 곡선** | JavaScript | 노드 기반 | GUI 기반 |
+
+** 🎨 각 도구의 강점
+
+*** Apps Script: Workspace Native
+
+*최고의 선택 조건*:
+- ✅ Google Workspace 중심 (90%+)
+- ✅ 코드 제어 선호
+- ✅ 무료 원함
+- ✅ Custom Functions 필요
+- ✅ UI 확장 필요 (Sidebar, Menu)
+
+*예시 워크플로우*:
+#+begin_src javascript
+// 모든 것이 Google 내부
+function weeklyReport() {
+  // 1. Calendar (네이티브 접근)
+  var events = CalendarApp.getEventsForWeek(new Date());
+
+  // 2. Gmail (네이티브 접근)
+  var emails = GmailApp.search('is:important');
+
+  // 3. Sheets (네이티브 접근)
+  var sheet = SpreadsheetApp.openById('...');
+  sheet.appendRow([...]);
+
+  // 4. Gmail 발송 (네이티브 접근)
+  GmailApp.sendEmail(...);
+
+  // 5. Chat 알림 (Chat API)
+  // ... 모두 한 곳에서!
+}
+#+end_src
+
+*** n8n: 멀티 서비스 통합
+
+*최고의 선택 조건*:
+- ✅ 여러 서비스 연결 (Notion + Slack + GitHub)
+- ✅ Self-hosted 선호
+- ✅ GUI + 코드 혼용
+- ✅ 복잡한 워크플로우 (분기, 루프)
+
+*예시*:
+#+begin_src yaml
+Trigger: GitHub 이슈 생성
+  ↓
+Filter: 라벨이 "urgent"
+  ↓
+Action 1: Notion 페이지 생성
+Action 2: Slack 알림
+Action 3: Google Calendar 이벤트
+  ↓
+조건부: 마감 3일 이내?
+  ↓ YES
+Action 4: Gmail 발송
+#+end_src
+
+*** Zapier: 빠른 프로토타입
+
+*최고의 선택 조건*:
+- ✅ 비개발자
+- ✅ 빠른 설정 (GUI)
+- ✅ 유료 OK
+- ✅ 단순 워크플로우
+
+** 🔍 Workspace 중심이면 Apps Script가 쉬운 이유
+
+*** 1. 인증 불필요
+
+#+begin_src yaml
+n8n/Zapier:
+  1. OAuth 설정
+  2. API 키 발급
+  3. Scopes 설정
+  4. 토큰 관리
+  → 서비스마다 반복
+
+Apps Script:
+  - 그냥 코드 작성
+  - 자동으로 인증됨
+  - Workspace 내부니까!
+#+end_src
+
+*** 2. 네이티브 접근 = 빠름
+
+#+begin_src text
+n8n/Zapier:
+  Service → API 호출 → Rate limit → 느림
+
+Apps Script:
+  Service → 내부 메서드 → 제한 없음 → 빠름
+
+예시:
+CalendarApp.getEvents()  ← 직접 접근
+vs
+Calendar API v3 → HTTP → 파싱 → 객체
+#+end_src
+
+*** 3. 코드 한 곳에 모두
+
+#+begin_src javascript
+// Apps Script: 한 함수에 모든 것
+function processProject() {
+  var cal = CalendarApp...;
+  var gmail = GmailApp...;
+  var sheet = SpreadsheetApp...;
+  var drive = DriveApp...;
+  var tasks = TasksApp...;
+
+  // 모두 JavaScript로 제어
+}
+
+// n8n: 노드 여러 개 연결
+[Gmail] → [Filter] → [Sheets] → [Calendar] → [Slack]
+  ↓         ↓          ↓           ↓           ↓
+ 설정      설정       설정        설정        설정
+#+end_src
+
+*** 4. Custom Functions (독보적)
+
+#+begin_src text
+Apps Script:
+  =PROJECT_HOURS("SKS", 7)  ← Sheets 셀에서 바로 사용!
+  실시간 계산
+
+n8n/Zapier:
+  불가능 ❌
+  별도 워크플로우 트리거 필요
+#+end_src
+
+*** 5. UI 확장 (Sidebar, Menu)
+
+#+begin_src javascript
+// Apps Script: Sheets가 앱이 됨
+function showDashboard() {
+  var html = HtmlService.createHtmlOutputFromFile('Dashboard');
+  SpreadsheetApp.getUi().showSidebar(html);
+}
+
+// Sheets 열면 자동으로 대시보드 사이드바!
+#+end_src
+
+n8n/Zapier: UI 없음 ❌
+
+** 💡 Apps Script의 자율 실행 (MCP와 무관)
+
+*** 핵심 개념
+
+#+begin_quote
+"Apps Script는 MCP가 '호출'하는 게 아니다.
+Apps Script는 '자율적으로 실행'된다.
+
+MCP는 그 결과를 나중에 읽을 뿐이다."
+#+end_quote
+
+*** 자율 실행 패턴
+
+*Pattern 1: Time-driven (완전 자율)*
+#+begin_src javascript
+// 설정: 매일 09:00 자동 실행
+function dailyMorningBrief() {
+  // 1. 오늘 일정
+  var today = CalendarApp.getEventsForDay(new Date());
+
+  // 2. 긴급 메일
+  var urgent = GmailApp.search('is:important is:unread');
+
+  // 3. Tasks
+  var tasks = TasksApp.getDefaultTaskList().getTasks();
+
+  // 4. 요약 생성
+  var summary = `오늘: ${today.length}개 일정, ${urgent.length}개 긴급 메일`;
+
+  // 5. Sheets에 저장
+  var sheet = SpreadsheetApp.openById('daily-brief');
+  sheet.getRange('A1').setValue(summary);
+
+  // 6. Gmail 발송
+  GmailApp.sendEmail('user@example.com', '오늘 브리핑', summary);
+}
+
+// 토큰: 0 (Claude/MCP 개입 없음!)
+#+end_src
+
+*Pattern 2: Event-driven (반응형)*
+#+begin_src javascript
+// Sheets 편집 시 자동
+function onEdit(e) {
+  var col = e.range.getColumn();
+
+  // Progress 열 변경 감지
+  if (col === 5) {
+    var progress = e.range.getValue();
+
+    // 100% 완료 시
+    if (progress >= 100) {
+      // 자동으로 완료 처리
+      markProjectComplete(e.range.getRow());
+
+      // Chat 알림
+      sendChatMessage('완료!');
+
+      // tracking 파일 업데이트 (향후)
+    }
+  }
+}
+#+end_src
+
+*Pattern 3: User-triggered (메뉴/버튼)*
+#+begin_src javascript
+// 사용자가 메뉴 클릭
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('분석')
+    .addItem('지금 분석 실행', 'runAnalysisNow')
+    .addToUi();
+}
+
+function runAnalysisNow() {
+  // 즉시 실행
+  var result = performAnalysis();
+
+  // 결과 표시
+  SpreadsheetApp.getUi().alert('완료: ' + result);
+}
+#+end_src
+
+*** MCP의 역할 재정의
+
+#+begin_example
+기존 생각:
+  Claude → MCP → Apps Script 호출
+  (Apps Script를 도구로 사용)
+
+올바른 생각:
+  Apps Script (24시간 자율 실행)
+       ↓ 결과 저장
+  Sheets/Docs 업데이트
+       ↓
+  Claude → MCP → 결과 읽기
+  (Apps Script는 독립적)
+#+end_example
+
+** 🚀 Workspace 중심 자동화 전략
+
+*** Apps Script가 압도적인 경우
+
+#+begin_src yaml
+시나리오: PM 주간 리포트 자동화
+
+Apps Script (5분 설정):
+  1. Code.gs 작성 (50줄)
+  2. 배포 (1클릭)
+  3. Time-driven trigger (3클릭)
+  4. 완료!
+
+  기능:
+    - Calendar 자동 조회
+    - Gmail 자동 검색
+    - Sheets 자동 업데이트
+    - Docs 리포트 생성
+    - Gmail 자동 발송
+    - Chat 알림
+
+  모두 한 스크립트에서!
+
+n8n (30분 설정):
+  1. Google Calendar 노드 설정
+  2. OAuth 인증
+  3. Gmail 노드 설정
+  4. OAuth 인증 (또)
+  5. Sheets 노드 설정
+  6. 노드 연결 (5개)
+  7. 테스트
+  8. 스케줄 설정
+
+  복잡도: 노드 10개+
+  관리: 여러 곳에 분산
+
+Zapier (빠르지만 비쌈):
+  - GUI 클릭 20번
+  - 매달 $19-49
+  - 실행 횟수 제한
+#+end_src
+
+*** 결정 기준
+
+#+begin_src yaml
+Apps Script 선택:
+  조건:
+    - Google Workspace 중심 (80%+)
+    - 코드 작성 가능
+    - 무료 선호
+    - Custom Functions 필요
+    - UI 확장 필요
+
+n8n 선택:
+  조건:
+    - 멀티 서비스 (Notion + Slack + Airtable + ...)
+    - GUI + 코드 혼용
+    - Self-hosted 가능
+    - 복잡한 분기/루프
+
+Zapier 선택:
+  조건:
+    - 비개발자
+    - 빠른 프로토타입
+    - 유료 OK
+    - 단순 워크플로우
+#+end_src
+
+** 💡 Apps Script의 독보적 기능
+
+*** 1. Custom Functions (Zapier/n8n 불가)
+
+#+begin_src javascript
+function PROJECT_HOURS(name, days) {
+  var cal = CalendarApp.getDefaultCalendar();
+  var events = cal.getEvents(
+    new Date(Date.now() - days * 24 * 60 * 60 * 1000),
+    new Date()
+  );
+
+  return events
+    .filter(e => e.getTitle().includes(name))
+    .reduce((sum, e) =>
+      sum + (e.getEndTime() - e.getStartTime()) / 3600000, 0
+    );
+}
+#+end_src
+
+*사용*:
+#+begin_src text
+Sheets:
+| 프로젝트 | 투입시간 (7일) |
+|----------|---------------|
+| SKS Gateway | =PROJECT_HOURS(A2, 7) |  ← 자동 계산!
+| PM Agent | =PROJECT_HOURS(A3, 7) |
+#+end_src
+
+*n8n/Zapier로는*:
+- 별도 워크플로우 필요
+- 트리거 설정
+- API 호출
+- Sheets 업데이트
+- 복잡함 ❌
+
+*Apps Script로는*:
+- 함수 작성
+- Sheets 셀에 입력
+- 끝! ✅
+
+*** 2. Sidebar/Menu (독보적 UI)
+
+#+begin_src javascript
+// Sheets를 앱으로 만들기
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('프로젝트 관리')
+    .addItem('대시보드', 'showDashboard')
+    .addItem('동기화', 'syncAll')
+    .addToUi();
+}
+
+function showDashboard() {
+  var html = HtmlService.createHtmlOutput(`
+    <h3>프로젝트 현황</h3>
+    <div id="status"></div>
+    <button onclick="refresh()">새로고침</button>
+  `);
+  SpreadsheetApp.getUi().showSidebar(html);
+}
+#+end_src
+
+*효과*:
+- Sheets가 전문 앱처럼 작동
+- 팀원들이 익숙한 환경
+- 추가 도구 설치 불필요
+
+*n8n/Zapier*: UI 없음 ❌
+
+*** 3. Event Triggers (즉각 반응)
+
+#+begin_src javascript
+// Sheets 편집 즉시 반응
+function onEdit(e) {
+  if (e.range.getColumn() === 5) {  // Progress 열
+    var progress = e.range.getValue();
+
+    if (progress >= 100) {
+      // 즉시 Chat 알림
+      sendChatMessage('완료!');
+    }
+  }
+}
+
+// Form 제출 즉시
+function onFormSubmit(e) {
+  // 즉시 Task 생성
+  createTaskFromForm(e.response);
+}
+#+end_src
+
+*n8n/Zapier*:
+- Polling (1-15분 간격)
+- 즉시 반응 어려움
+- Webhook 설정 필요
+
+*Apps Script*:
+- 즉시 반응 ✅
+- 설정 간단
+
+*** 4. 네이티브 성능
+
+#+begin_src yaml
+Apps Script (Google 내부):
+  CalendarApp.getEvents()
+    → 직접 메모리 접근
+    → 밀리초 단위
+    → Rate limit 없음
+
+n8n/Zapier (외부 API):
+  Calendar API v3
+    → HTTP 요청
+    → 파싱
+    → Rate limit (초당 10개)
+    → 느림
+#+end_src
+
+** 🎯 실전 비교: 주간 리포트 자동화
+
+*** Apps Script 방식
+
+#+begin_src javascript
+// 1개 파일, 50줄
+function weeklyReport() {
+  var cal = CalendarApp.getEventsForWeek(new Date());
+  var emails = GmailApp.search('is:important newer_than:7d');
+  var sheet = SpreadsheetApp.openById('...');
+
+  var hours = calculateHours(cal);
+  sheet.appendRow([new Date(), hours, emails.length]);
+
+  var doc = DocumentApp.create('주간 리포트 ' + new Date());
+  doc.getBody().appendParagraph('시간: ' + hours);
+
+  GmailApp.sendEmail('team@example.com', '주간 리포트', doc.getUrl());
+}
+
+// Time-driven: 매주 금요일 17:00
+// 설정: 3클릭
+#+end_src
+
+*시간*: 5분 (코드 작성)
+*복잡도*: 낮음
+*비용*: 무료
+*유지보수*: 쉬움 (코드 한 곳)
+
+*** n8n 방식
+
+#+begin_src yaml
+노드 구성:
+  1. Schedule Trigger (매주 금요일)
+  2. Google Calendar 노드
+     - OAuth 설정
+     - 이벤트 조회
+  3. Function 노드 (시간 계산)
+  4. Gmail 노드
+     - OAuth 설정
+     - 검색
+  5. Sheets 노드
+     - OAuth 설정
+     - 행 추가
+  6. Docs 노드
+     - OAuth 설정
+     - 문서 생성
+  7. Gmail 발송 노드
+     - 리포트 발송
+
+총: 7개 노드 + 4번 OAuth
+#+end_src
+
+*시간*: 30분
+*복잡도*: 중간
+*비용*: 무료 (제한) 또는 유료
+*유지보수*: 중간 (노드 여러 개)
+
+*** Zapier 방식
+
+#+begin_src yaml
+Zap 구성:
+  1. Schedule (유료 기능)
+  2. Google Calendar
+  3. Filter
+  4. Google Sheets
+  5. Google Docs (Premium)
+  6. Gmail
+
+Zapier 제약:
+  - 멀티 액션은 유료
+  - 복잡한 로직 어려움
+  - JavaScript 제한적
+#+end_src
+
+*시간*: 15분 (GUI 빠름)
+*복잡도*: 낮음 (GUI)
+*비용*: $19-49/월
+*유지보수*: 쉬움 (GUI)
+
+** 🔥 Apps Script + MCP 조합의 위력
+
+*** 최고의 시나리오
+
+#+begin_example
+Apps Script:
+  - Workspace 내부 자동화 (95%)
+  - Time-driven 자율 실행
+  - Custom Functions
+  - UI 확장
+
+MCP:
+  - GitHub 통합
+  - 외부 서비스 연결
+  - Claude 분석 필요 시
+
+조합:
+  Apps Script가 대부분 처리 (자동)
+  + MCP가 외부 연결
+  + Claude가 판단 필요 시 개입
+
+결과:
+  토큰 최소
+  + 완전 자동화
+  + 강력한 통합
+#+end_example
+
+*** 실제 PM 워크플로우
+
+#+begin_src text
+[자율 실행 - Apps Script]
+  매일 09:00: 오늘 일정 요약 → Sheet
+  매일 18:00: 오늘 작업 집계 → Sheet
+  매주 금요일 17:00: 주간 리포트 → Docs + Gmail
+
+[반응형 - Apps Script]
+  Sheets Progress 100% → Chat 알림
+  Form 제출 → Task 생성
+  Calendar 미팅 종료 → 노트 생성
+
+[Claude 개입 - MCP]
+  필요시: "이번주 분석해줘"
+    → Sheet 읽기 (이미 계산됨)
+    → 분석
+    → 권장사항 제시
+
+토큰: 최소 (대부분 자동)
+효율: 최고
+#+end_src
+
+** 📊 비용 비교 (월간)
+
+| 도구 | 비용 | Workspace 통합 | 자동화 수준 |
+|------|------|---------------|------------|
+| **Apps Script** | $0 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **n8n (cloud)** | $20+ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **n8n (self)** | $0 (서버비만) | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Zapier** | $19-49 | ⭐⭐⭐ | ⭐⭐⭐ |
+| **Make** | $9-29 | ⭐⭐⭐ | ⭐⭐⭐ |
+
+** 🎓 결론
+
+#+begin_quote
+"Google Workspace에 집중되어 있다면,
+Apps Script가 답이다.
+
+n8n, Zapier보다:
+- 더 쉽고 (코드 한 곳)
+- 더 빠르고 (네이티브)
+- 더 강력하고 (Custom Functions, UI)
+- 더 싸다 (무료)
+
+그리고 MCP와 조합하면:
+Apps Script가 대부분 처리하고,
+Claude는 판단만 한다.
+
+토큰 절약 + 완전 자동화의 완벽한 조합."
+#+end_quote
+
+** 📋 agent-config 구현 우선순위
+
+*** 최우선: Apps Script 프로젝트
+
+1. **PM Dashboard**
+   - Custom Functions (시간/수익 계산)
+   - Custom Menus (동기화, 분석)
+   - Sidebar (프로젝트 현황)
+   - Event Triggers (Progress 감지)
+   - Time-driven (일일/주간 리포트)
+
+2. **Repo Sync**
+   - Git 커밋 감지
+   - Sheets 자동 업데이트
+   - tracking 파일 동기화
+
+3. **Team Automation**
+   - 미팅 노트 자동 생성
+   - 팀 리포트 발송
+   - Chat 알림
+
+*** 보조: MCP 통합
+
+- GitHub 연동
+- 외부 API 호출
+- Claude 분석 트리거
+
+*** 선택: n8n (필요시)
+
+- Workspace 외부 서비스
+- Notion, Slack, Airtable 등
+- 복잡한 분기 로직
+
+** 🔗 참고
+
+- Apps Script 공식: https://developers.google.com/apps-script
+- n8n: https://n8n.io
+- Zapier: https://zapier.com
+- Make: https://make.com
+
+---
+
+*작성*: 2025-11-14T15:10
+*상태*: 🔥 자동화 전략 확정
+*결론*: Workspace 중심이면 Apps Script가 최고의 선택
