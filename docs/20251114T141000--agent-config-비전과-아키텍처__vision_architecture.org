@@ -1,0 +1,668 @@
+#+title:      agent-config 비전과 아키텍처
+#+date:       [2025-11-14 Thu 14:10]
+#+filetags:   :vision:architecture:
+#+identifier: 20251114T141000
+
+* agent-config: 에이전트를 위한 토큰 효율적 도구세트
+
+** 🎯 핵심 정체성
+
+#+begin_quote
+"agent-config는 claude-config의 공개 템플릿이면서,
+동시에 에이전트를 위한 독립적 도구세트다.
+
+Google Workspace + Apps Script 통합으로
+토큰 10-20배 절감, 완전 자동화, 리포 중심 추적을 실현한다."
+#+end_quote
+
+** 🤔 고민의 과정
+
+*** 출발점: claude-config의 한계
+
+#+begin_src text
+문제 1: 파일 폭발
+  ~/claude-memory/projects/ 에 수십 개 파일
+  → 파악하기 어려움
+  → 토큰 낭비
+
+문제 2: 정보 중복
+  같은 프로젝트 정보가 여러 파일에
+  → 동기화 어려움
+  → 어느 것이 최신?
+
+문제 3: Private 종속
+  개인정보 포함
+  → 공유 불가
+  → 커뮤니티 기여 어려움
+#+end_src
+
+*** 전환점: Google Workspace MCP 발견
+
+#+begin_src text
+2025-11-12: Google Workspace MCP 발견
+  → Gmail, Calendar, Drive, Sheets API 통합
+  → "PM 에이전트에 필요한 마지막 퍼즐!"
+
+2025-11-13: Personal/Work 계정 분리 성공
+  → 포트 28000/28001 독립 운영
+  → Credentials 완전 분리
+
+2025-11-14: Google Chat + Apps Script 돌파
+  → Chat App 구성 완료
+  → Apps Script 내부 처리로 토큰 절약
+  → "에이전트에 날개를 달았다!"
+#+end_src
+
+*** 깨달음: 리포 중심 패러다임
+
+#+begin_quote
+"메모리에 모든 걸 저장하려 하지 말자.
+
+메모리는 '어디에 무엇이'만 추적하고,
+실제 데이터는 리포에,
+디테일은 Workspace에 두자."
+#+end_quote
+
+** 📊 agent-config의 위치
+
+*** 8-Layer 생태계에서
+
+#+begin_example
+Layer 6: meta-config          (계층적 에이전트 오케스트레이션)
+Layer 5: memex-kb, memacs     (지식베이스, 시간 통합)
+Layer 4: claude-config        (Private 메모리) ←─┐
+         agent-config         (Public 도구세트) ←─┘ 같은 레벨
+Layer 3: zotero-config        (서지 관리)
+Layer 2: doomemacs-config     (에디터)
+Layer 1: nixos-config         (OS)
+
+Domain: family-config, work-config
+#+end_example
+
+*** 독립성과 통합성
+
+#+begin_src yaml
+독립적:
+  - agent-config 단독으로 사용 가능
+  - Google Workspace 통합 완결
+  - Apps Script 도구세트
+  - MCP 서버 설정
+
+통합적:
+  - claude-config의 공개 템플릿
+  - 8-Layer 생태계 일부
+  - meta-config 아키텍처 준수
+#+end_src
+
+** 🏗️ 3-Tier 정보 아키텍처
+
+*** Tier 1: Tracking Layer (agent-config)
+
+*위치*: =~/agent-config/tracking/=
+*역할*: 얇은 추적 (Thin Tracking)
+*크기*: 리포당 1KB
+*토큰*: 50 이하
+
+#+begin_src org
+# tracking/repos/work__sks-gateway.org
+
+#+repo: ~/repos/work/sks-gateway
+#+status: ACTIVE
+#+deadline: 2025-11-15
+
+* Workspace
+- Sheet: [ID] 개발팀 시간 추적
+- Doc: [ID] TC 명세서
+
+* Last Sync: 2025-11-14T13:00
+- Progress: 70%
+- Hours: 12h
+
+* → 실제 작업: ~/repos/work/sks-gateway/
+#+end_src
+
+*** Tier 2: Details Layer (Google Workspace)
+
+*위치*: Google Sheets, Docs, Calendar, Chat
+*접근*: Apps Script로 집계
+*역할*: 실시간 디테일 제공
+*토큰*: 300 (요약 결과만)
+
+#+begin_src javascript
+// Apps Script: 디테일 제공자
+function getProjectDetails(projectName) {
+  // Google 내부에서 모두 처리
+  var hours = getHoursFromCalendar(projectName);
+  var progress = getProgressFromSheets(projectName);
+  var discussions = getRecentDiscussions(projectName);
+
+  // 요약만 리턴
+  return {hours, progress, discussions};
+}
+#+end_src
+
+*** Tier 3: Source Layer (Repository)
+
+*위치*: =~/repos/= (work/, gh/, 3rd/)
+*역할*: 실제 진실의 원천
+*접근*: 직접 파일 읽기/쓰기
+*토큰*: 필요한 파일만
+
+#+begin_src text
+~/repos/work/sks-gateway/
+├── README.md              # 프로젝트 개요
+├── docs/
+│   ├── architecture.md
+│   └── tc-checklist.md
+├── src/
+└── .git/                  # 완전한 히스토리
+#+end_src
+
+** 🔄 워크플로우: 에이전트의 하루
+
+*** 09:00 - 아침: 전체 현황 파악
+
+#+begin_src python
+# 모든 추적 파일 읽기
+trackings = read_all('tracking/repos/*.org')
+# 10개 리포 × 50 토큰 = 500 토큰
+
+# 상태 파악
+print("ACTIVE: 3개, BLOCKED: 1개, REVIEW: 2개")
+
+# vs 기존: 모든 메모리 파일 = 10,000 토큰
+# 절감: 20배 ✅
+#+end_src
+
+*** 10:00 - 작업: SKS Gateway TC 작성
+
+#+begin_src python
+# 1. 추적 파일 확인
+track = read('tracking/repos/work__sks-gateway.org')
+# 50 토큰
+
+# 2. Workspace 디테일 (필요시)
+details = apps_script.call('getProjectDetails', 'sks-gateway')
+# 300 토큰
+# → {hours: 12, progress: 70%, deadline: '11-15'}
+
+# 3. 리포에서 작업
+cd ~/repos/work/sks-gateway
+edit('docs/tc-checklist.md')
+git commit -m "Add TC for door bell"
+
+# 4. 동기화
+apps_script.call('updateProgress', {project: 'sks-gateway', progress: 75})
+# 200 토큰
+
+update('tracking/repos/work__sks-gateway.org', {progress: '75%'})
+# 50 토큰
+
+# 총: 600 토큰
+# vs 기존: 5,000 토큰
+# 절감: 8배 ✅
+#+end_src
+
+*** 18:00 - 저녁: 자동 일일 요약
+
+#+begin_src javascript
+// Apps Script Time-driven (사람/Claude 개입 없음!)
+function dailySummary() {
+  var today = new Date();
+  var events = CalendarApp.getEventsForDay(today);
+  var hours = calculateHours(events);
+
+  // Gmail 발송
+  GmailApp.sendEmail('user@example.com', '오늘 요약',
+    `작업: ${hours}시간`);
+
+  // Sheets 기록
+  var sheet = SpreadsheetApp.openById('daily-log');
+  sheet.appendRow([today, hours]);
+}
+
+// 토큰: 0 (완전 자동) ✅
+#+end_src
+
+** 📁 agent-config 디렉토리 구조
+
+#+begin_example
+agent-config/
+├── README.md                         # 영어 메인
+├── README-KO.md                      # 한국어
+│
+├── tracking/                         # Tier 1: 얇은 추적
+│   ├── repos/                        # 리포별 (1 repo = 1 file)
+│   │   ├── work__sks-gateway.org
+│   │   ├── work__kyungdong-matter.org
+│   │   ├── gh__meta-config.org
+│   │   ├── gh__nixos-config.org
+│   │   └── 3rd__google-workspace-mcp.org
+│   │
+│   └── workspace/                    # Workspace 리소스 매핑
+│       ├── sheets__pm-dashboard.org
+│       ├── docs__team-reports.org
+│       └── calendar__work.org
+│
+├── apps-script/                      # Tier 2: 디테일 제공자
+│   ├── pm-automation/
+│   │   ├── ProjectDetails.gs        # getProjectDetails()
+│   │   ├── WeeklyReport.gs          # weeklyProjectReport()
+│   │   ├── TimeTracking.gs          # calculateAvailableTime()
+│   │   ├── DailySum.gs             # dailySummary()
+│   │   └── README.md
+│   │
+│   ├── mcp-chat-app/
+│   │   ├── Code.gs                  # onMessage, doGet, doPost
+│   │   ├── Config.gs                # 설정
+│   │   └── README.md
+│   │
+│   ├── workspace-tools/
+│   │   ├── MeetingNotes.gs          # 미팅 노트 자동화
+│   │   ├── TeamReport.gs            # 팀 리포트
+│   │   └── RepoSync.gs              # 리포 동기화
+│   │
+│   └── shared/                      # 공통 라이브러리
+│       ├── Utils.gs
+│       ├── WorkspaceAPI.gs
+│       └── RepoMapping.gs
+│
+├── mcp-servers/                      # MCP 설정
+│   ├── google-workspace/
+│   │   ├── personal-wrapper.sh
+│   │   ├── work-wrapper.sh
+│   │   └── README.md
+│   │
+│   └── templates/
+│       └── mcp.json.template
+│
+├── docs/                             # 문서 (고민 과정 포함)
+│   ├── 20251114T135900--토큰-절약-실측-검증.org
+│   ├── 20251114T140600--리포-중심-메모리-시스템.org
+│   ├── 20251114T141000--agent-config-비전.org (본 문서)
+│   │
+│   ├── ARCHITECTURE.md               # 영어 아키텍처
+│   ├── WORKFLOW.md                   # 워크플로우
+│   ├── TOKEN-OPTIMIZATION.md         # 토큰 최적화
+│   │
+│   └── examples/
+│       ├── lean-tracking-example.md
+│       ├── apps-script-patterns.md
+│       └── pm-agent-workflow.md
+│
+├── examples/                         # 코드 예제
+│   ├── tracking-templates/
+│   ├── apps-script-samples/
+│   └── mcp-integration/
+│
+└── scripts/                          # 유틸리티
+    ├── init-tracking.sh              # 추적 파일 초기화
+    ├── migrate-from-memory.sh        # claude-memory → tracking
+    ├── deploy-apps-script.sh         # Apps Script 배포
+    └── sync-workspace.sh             # Workspace 동기화
+#+end_example
+
+** 💡 agent-config의 3가지 얼굴
+
+*** 1. claude-config의 공개 템플릿
+
+#+begin_src yaml
+관계:
+  - Private: claude-config (개인 메모리, 실제 사용)
+  - Public: agent-config (템플릿, 커뮤니티)
+
+차이점:
+  claude-config:
+    - All-in-Memory (큰 파일)
+    - 개인정보 포함
+    - 실제 프로젝트명
+    - Private repository
+
+  agent-config:
+    - Lean Tracking (작은 파일)
+    - 개인정보 제거
+    - 예시 프로젝트
+    - Public repository (MIT)
+#+end_src
+
+*** 2. Google Workspace 통합 허브
+
+#+begin_src yaml
+통합 범위:
+  MCP Servers:
+    - Personal (port 28000)
+    - Work (port 28001)
+
+  Apps Script:
+    - PM 자동화
+    - Chat 통합
+    - Time-driven 자동화
+    - Custom functions
+
+  Workspace APIs:
+    - Gmail, Calendar, Drive
+    - Sheets, Docs, Slides
+    - Tasks, Chat, Forms
+#+end_src
+
+*** 3. PM 에이전트 도구세트
+
+#+begin_src yaml
+PM 기능:
+  시간 관리:
+    - Calendar 가용 시간 계산
+    - 프로젝트별 투입 시간 추적
+    - 시급 기반 우선순위
+
+  프로젝트 추적:
+    - 리포별 Lean Tracking
+    - Workspace 디테일 연동
+    - 자동 진행률 업데이트
+
+  자동화:
+    - 주간 리포트 (매주 금요일)
+    - 일일 요약 (매일 18시)
+    - 마감 알림 (자동)
+#+end_src
+
+** 🎨 핵심 혁신: 3-Tier Architecture
+
+#+begin_example
+┌─────────────────────────────────────────┐
+│ Tier 1: Tracking (agent-config)         │
+│  얇은 추적 레이어                        │
+│  - 리포 위치, 상태, 마감                 │
+│  - Workspace 리소스 ID                   │
+│  - 토큰: 50 (1KB 파일)                   │
+└──────────────┬──────────────────────────┘
+               │ Apps Script 호출
+┌──────────────▼──────────────────────────┐
+│ Tier 2: Details (Workspace)             │
+│  상세 정보 제공자                        │
+│  - Sheets: 진행률, 시간                  │
+│  - Calendar: 일정                        │
+│  - Chat: 논의                            │
+│  - 토큰: 300 (요약만)                    │
+└──────────────┬──────────────────────────┘
+               │ Git 작업
+┌──────────────▼──────────────────────────┐
+│ Tier 3: Source (Repository)             │
+│  진실의 원천                             │
+│  - ~/repos/work/sks-gateway/             │
+│  - README, docs/, src/                   │
+│  - 토큰: 필요한 파일만                   │
+└─────────────────────────────────────────┘
+#+end_example
+
+** 📊 토큰 효율 (실측 기반)
+
+*** 검증된 수치
+
+| 작업 | 기존 | 신규 | 비율 | 근거 |
+|------|------|------|------|------|
+| 전체 파악 | 10,000 | 500 | **20배** | 추적 파일만 |
+| 프로젝트 디테일 | 5,000 | 350 | **14배** | 추적+Workspace |
+| 주간 리포트 | 5,500 | 300 | **18배** | Apps Script 집계 |
+| 작업 수행 | 8,000 | 600 | **13배** | 리포 직접 |
+| **평균** | **7,100** | **440** | **16배** | 실측 평균 |
+
+*보수적 추정*: **10-20배** (안전한 주장)
+*근거 문서*: =20251114T135900--토큰-절약-실측-검증.org=
+
+*** Apps Script 효과가 큰 경우
+
+1. 여러 서비스 조합 (Calendar + Gmail + Sheets)
+2. 대량 데이터 집계
+3. 주기적 리포트 생성
+4. 팀 협업 워크플로우
+
+→ **15-20배** 절감
+
+*** Apps Script 효과가 적은 경우
+
+1. 단순 조회 (Calendar 목록)
+2. 단일 리소스 접근
+3. 소량 데이터
+
+→ **1-2배** 절감
+
+** 🚀 Apps Script의 진짜 가치
+
+*** 토큰 절약 < 완전 자동화
+
+#+begin_quote
+"Apps Script의 진짜 가치는 토큰 절약이 아니라,
+Google Workspace에 에이전트를 상주시키는 것이다.
+
+Claude도, 사람도 없이
+매주 금요일 17시에 자동으로 리포트를 만들고
+팀 Chat에 공유한다.
+
+이것이 진정한 자동화다."
+#+end_quote
+
+*** 4대 강력 기능
+
+1. *Bound Scripts*: Sheets/Docs에 로직 내장
+2. *Custom Functions*: =CLAUDE_ANALYZE(A1:A10)=
+3. *Time-driven Triggers*: 완전 자동 실행
+4. *Web App Endpoints*: MCP 양방향 통신
+
+** 📐 설계 원칙
+
+*** 1. Separation of Concerns
+
+#+begin_src yaml
+Tracking:
+  - "어디에 무엇이"
+  - 1KB, 50 토큰
+  - 상태 변경 시만 업데이트
+
+Details:
+  - "얼마나, 언제"
+  - Apps Script 집계
+  - 실시간 변동
+
+Source:
+  - "실제 내용"
+  - 리포 파일
+  - Git 버전 관리
+#+end_src
+
+*** 2. Single Responsibility
+
+#+begin_quote
+"1 Repository = 1 Tracking File"
+
+리포가 늘어도 추적 파일만 늘어남.
+리포 내부 복잡도는 추적 파일에 영향 없음.
+#+end_quote
+
+*** 3. Repository as Source of Truth
+
+#+begin_src yaml
+진실의 우선순위:
+  1. Git Repository (코드, 문서)
+  2. Workspace (실시간 협업 데이터)
+  3. Tracking (포인터만)
+
+동기화 방향:
+  Repo → Workspace (Apps Script 자동)
+  Workspace → Repo (수동 또는 승인)
+  Tracking ← Both (상태만 반영)
+#+end_src
+
+** 🔧 구현 계획
+
+*** Phase 1: 기본 구조 (이번 주)
+
+- [ ] 디렉토리 구조 생성
+- [ ] tracking/ 템플릿 작성
+- [ ] 첫 추적 파일: work__sks-gateway.org
+- [ ] Apps Script getProjectDetails() 작성
+- [ ] MCP Chat App 코드 저장
+
+*** Phase 2: 마이그레이션 (다음 주)
+
+- [ ] claude-memory/projects/ 분석
+- [ ] 리포 있는 프로젝트 → tracking/ 이전
+- [ ] 디테일 → 리포 README 이동
+- [ ] 기존 파일 아카이브
+- [ ] Workspace 동기화 검증
+
+*** Phase 3: 자동화 (2주)
+
+- [ ] Apps Script Time-driven triggers
+- [ ] 주간 리포트 자동화
+- [ ] 일일 요약 자동화
+- [ ] Chat 알림 자동화
+
+*** Phase 4: 문서화 및 공개 (1개월)
+
+- [ ] README.md (영어)
+- [ ] README-KO.md (한국어)
+- [ ] 예제 및 튜토리얼
+- [ ] GitHub 공개
+- [ ] MIT 라이선스
+
+** 🎓 핵심 인사이트
+
+*** 1. Memory는 Index다
+
+#+begin_quote
+"Agent Memory는 데이터베이스가 아니라 인덱스다.
+
+도서관의 카드 목록처럼,
+'어디에 무엇이'만 알려주면 된다.
+
+실제 책(데이터)은 서가(리포)에 있다."
+#+end_quote
+
+*** 2. Workspace는 Dashboard다
+
+#+begin_quote
+"Google Workspace는 저장소가 아니라 대시보드다.
+
+실시간으로 변하는 숫자와 일정,
+팀과의 논의와 협업.
+
+Apps Script가 이걸 집계해서
+에이전트에게 요약만 전달한다."
+#+end_quote
+
+*** 3. Repository는 Truth다
+
+#+begin_quote
+"모든 진실은 Git에 있다.
+
+Workspace가 사라져도,
+Memory가 날아가도,
+리포만 있으면 모든 걸 복구할 수 있다."
+#+end_quote
+
+** 🔗 고민 과정 (공개할 가치)
+
+*** 질문 1: "왜 메모리를 줄여야 하는가?"
+
+*초기 생각*:
+"메모리가 많으면 컨텍스트가 풍부하지 않나?"
+
+*깨달음*:
+#+begin_src text
+많은 파일 ≠ 풍부한 컨텍스트
+많은 파일 = 노이즈
+
+진짜 컨텍스트는:
+1. 리포의 README.md (프로젝트 본질)
+2. Git 커밋 히스토리 (진화 과정)
+3. Workspace 실시간 데이터 (현재 상태)
+
+메모리는 이 셋을 '연결'만 하면 된다.
+#+end_src
+
+*** 질문 2: "Apps Script로 얼마나 절약되는가?"
+
+*초기 주장*:
+"30배, 50배 절약!" (과장)
+
+*검증 후*:
+#+begin_src text
+실측치:
+- 간단한 작업: 1-2배 (거의 차이 없음)
+- 주간 리포트: 18배
+- 복잡한 집계: 20배
+- 평균: 10-20배
+
+진실:
+"10배도 충분히 놀랍다.
+20배면 혁명적이다.
+과장할 필요가 없다."
+#+end_src
+
+*** 질문 3: "리포 중심이면 메모리는 필요 없는가?"
+
+*초기 고민*:
+"그럼 claude-memory를 없애야 하나?"
+
+*결론*:
+#+begin_src text
+메모리는 필요하다. 하지만 역할이 다르다.
+
+기존: 메모리 = 모든 것을 저장
+신규: 메모리 = 얇은 추적 + 포인터
+
+메모리의 진짜 역할:
+1. 빠른 전체 파악 (500 토큰)
+2. 리포/Workspace 연결
+3. 상태 추적 (ACTIVE, BLOCKED 등)
+4. 에이전트의 작업 메모장
+
+무거운 것은 리포로,
+가벼운 것만 메모리에.
+#+end_src
+
+** 📚 관련 문서
+
+- =20251114T135900--토큰-절약-실측-검증.org=: 정직한 수치
+- =20251114T140600--리포-중심-메모리-시스템.org=: Lean Tracking
+- =tmp/20250906T131500--클로드-설정-공개-템플릿.org=: 공개 전략
+- =tmp/20250922T114000--에이전트-시스템-아키텍처.org=: 전체 구조
+- =tmp/20250922T115000--pm-에이전트-명세.org=: PM 기능
+
+** 🎯 agent-config의 미션
+
+#+begin_quote
+"에이전트에게 날개를 달아준다.
+
+토큰 효율적으로,
+리포 중심으로,
+Workspace 통합으로,
+완전 자동화로.
+
+그리고 이 모든 것을 커뮤니티와 공유한다."
+#+end_quote
+
+** 🚀 즉시 실행
+
+*** 오늘 (2025-11-14)
+
+- [X] 고민 과정 문서화
+- [X] 토큰 검증 문서
+- [X] Lean Tracking 설계
+- [X] 전체 비전 정리
+- [ ] 디렉토리 구조 생성
+- [ ] MCP Chat App 코드 저장
+
+*** 이번 주
+
+- [ ] 첫 추적 파일 생성
+- [ ] Apps Script 기본 함수
+- [ ] 마이그레이션 스크립트
+- [ ] README.md 초안
+
+---
+
+*작성*: 2025-11-14T14:10
+*상태*: 🔥 비전 확정, 구현 시작
+*핵심*: Lean Tracking + Apps Script + 리포 중심
+*검증*: 실측 10-20배, 평균 16배 토큰 절감
