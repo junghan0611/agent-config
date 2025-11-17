@@ -1,0 +1,998 @@
+#+TITLE: Cursor CLI & Qwen Code: 개발자 도구 상세 분석
+#+DATE: 2025-11-17T10:45:00
+#+FILETAGS: :tools:cursor_cli:qwen_code:acp:comparison:
+
+* 개요
+
+Cursor CLI와 Qwen Code는 agent-shell과 함께 사용할 수 있는 터미널 기반 AI 코딩 도구입니다.
+각각 고유한 특징과 강점을 가지고 있으며, ACP/A2A 프로토콜을 통해 Emacs에서 통합 가능합니다.
+
+** 비교 요약
+
+| 항목 | Cursor CLI | Qwen Code |
+|------|-----------|-----------|
+| **개발사** | Cursor (Anysphere) | Alibaba Qwen Team |
+| **출시** | 2025년 8월 (베타) | 2025년 7월 |
+| **기반** | Claude Code 대안 | Gemini CLI 포크 |
+| **주 모델** | GPT-5, Claude Sonnet | Qwen3-Coder 480B |
+| **무료 옵션** | IDE 플랜 필요 | 2,000 요청/일 (OAuth) |
+| **ACP 지원** | cursor-acp 어댑터 | @qwen-code/qwen-code |
+| **특화** | IDE 통합, 다중 모델 | 대규모 코드베이스, 에이전트 |
+| **컨텍스트** | IDE 설정 재사용 | 256K-1M 토큰 |
+
+* Cursor CLI
+
+** 개요
+
+Cursor CLI는 "AI coding agent you interact with via the terminal"로 설명되는 도구입니다.
+2025년 8월 7일 베타 출시되었으며, Cursor IDE의 터미널 확장판입니다.
+
+- **공식 사이트**: https://cursor.com/cli
+- **상태**: 베타 (활발히 개발 중)
+- **라이선스**: 독점 (Cursor 플랜 필요)
+
+** Cursor IDE vs Cursor CLI
+
+*** 핵심 차이점
+
+**** 인터페이스
+- **IDE**: VS Code 기반 완전한 IDE
+  - 시각적 코드 편집
+  - 인덱싱 및 컨텍스트 검색 강력
+  - 빠른 네비게이션
+
+- **CLI**: 터미널 네이티브
+  - 명령줄 중심 워크플로우
+  - 원격 서버에서 사용 가능
+  - 컨텍스트 전환 없음
+
+**** 사용 사례
+- **IDE**:
+  - 일상적 코드 편집
+  - 프로젝트 전체 리팩토링
+  - 시각적 디버깅
+
+- **CLI**:
+  - 터미널 기반 워크플로우
+  - 원격 서버 작업
+  - CI/CD 파이프라인
+  - 스크립팅 자동화
+
+**** 설정 공유
+- **공통점**: 동일한 보안 정책 (ask-to-apply)
+- **재사용**: IDE 설정을 CLI가 활용
+- **멘탈 모델**: 동일 (채팅 → 승인 → 실행)
+
+*** 장점
+
+**** 1. 다중 모델 지원
+슬래시 명령으로 즉시 전환:
+- GPT-5, GPT-5 Codex
+- Claude Sonnet 4.5, 4
+- Gemini 2.5 Pro
+- 기타 Cursor 지원 모델
+
+명령어:
+#+begin_src bash
+/model
+#+end_src
+
+**** 2. 명령어 생성 (Ctrl+K)
+터미널에서 Ctrl+K 누르면:
+1. 프롬프트 바 열림
+2. 원하는 작업 설명
+3. AI가 명령어 생성
+4. 승인 후 실행
+
+예시:
+#+begin_src
+Ctrl+K > "find all large files over 100MB"
+→ find . -type f -size +100M -exec ls -lh {} \;
+#+end_src
+
+**** 3. 배경 에이전트
+- 장시간 작업을 백그라운드로
+- 터미널 블로킹 방지
+- 다중 작업 병렬 실행
+
+**** 4. MCP 통합
+- Model Context Protocol 지원
+- 외부 도구, 데이터 소스 연결
+- 더 많은 정보 기반 응답
+
+**** 5. 크로스 플랫폼
+- VS Code
+- JetBrains
+- Android Studio
+- 모든 터미널 환경
+
+*** 단점 (베타 한계)
+
+**** 1. MCP 서버 호환성 부족
+현재 문제:
+- Obsidian 노트 조회 실패
+- GitHub 이슈 생성 실패
+- IDE에서는 작동하는 MCP가 CLI에서 안 됨
+
+원인: 베타 단계로 안정성 부족
+
+**** 2. 컨텍스트 첨부 미흡
+IDE의 ~@~ 기호 기능:
+- ~@file~: 파일 첨부
+- ~@folder~: 폴더 첨부
+
+CLI에서는 동작이 다름:
+- 동일한 방식으로 작동 안 함
+- 수동 컨텍스트 제공 필요
+
+**** 3. 기능 제한
+현재 미지원:
+- 커스텀 슬래시 명령
+- ~/hooks~ 같은 고급 기능
+- 일부 IDE 전용 기능
+
+**** 4. 비용
+- Cursor 플랜 필요 (무료 아님)
+- IDE 라이선스 연동
+
+*** 설치 및 사용
+
+**** 설치
+공식 문서 참조: https://cursor.com/cli
+
+**** 기본 사용
+#+begin_src bash
+# 에이전트 시작
+cursor-agent
+
+# 모델 선택
+/model
+
+# 명령어 생성
+Ctrl+K
+
+# 배경 작업
+(자동으로 처리)
+#+end_src
+
+*** ACP 통합: cursor-acp
+
+Cursor CLI는 기본적으로 ACP를 지원하지 않지만, 커뮤니티 어댑터가 있습니다.
+
+**** cursor-acp 어댑터
+
+**개발**: roshan-c
+**GitHub**: https://github.com/roshan-c/cursor-acp
+**용도**: Cursor CLI를 ACP로 브리징
+
+**주요 기능**:
+- Cursor ↔ ACP 실시간 스트리밍
+- 도구 호출 매핑:
+  - grep/glob 검색
+  - bash 실행
+  - 파일 읽기/쓰기
+- default/plan 모드 지원
+- 취소 처리
+- 인증 안내
+
+**설치**:
+#+begin_src bash
+npm install -g cursor-acp
+#+end_src
+
+**사용**:
+#+begin_src bash
+cursor-acp
+#+end_src
+
+**Zed 통합**:
+설정 파일에 "agent_servers"로 등록
+
+**환경 변수**:
+- ~CURSOR_AGENT_EXECUTABLE~: 특정 바이너리 지정
+
+**인증**:
+#+begin_src bash
+cursor-agent login
+#+end_src
+
+**** agent-shell에서 사용
+
+agent-shell 문서에서 언급된 설치 방법:
+#+begin_src bash
+npm install -g @blowmage/cursor-agent-acp
+#+end_src
+
+**주의**:
+- 실제로는 roshan-c/cursor-acp가 메인 프로젝트
+- @blowmage 버전은 확인 불가
+- roshan-c 버전 사용 권장
+
+*** 평가
+
+**** "Promising, Familiar, and Evolving"
+
+**Promising** (유망함):
+- Cursor IDE의 강력함을 터미널로
+- 다중 모델 지원 편리
+- 배경 에이전트 유용
+
+**Familiar** (익숙함):
+- 다른 AI CLI와 유사한 UX
+- 학습 곡선 낮음
+- IDE 설정 재사용
+
+**Evolving** (진화 중):
+- 베타 단계
+- MCP 안정성 개선 필요
+- CI/CD 비대화형 모드 추가 예정
+
+**** 언제 사용?
+
+**적합**:
+- Cursor IDE 사용자
+- 터미널 워크플로우 선호
+- 원격 서버 작업
+- 다중 모델 실험
+
+**부적합**:
+- 안정적인 MCP 필요
+- 무료 도구 찾는 경우
+- 베타 리스크 회피
+
+**** Claude Code와 비교
+
+일부 사용자는 Cursor CLI를:
+- "Claude Code 대안"이 아닌
+- "Cursor IDE 대체"로 봄
+
+이유:
+- IDE에서 터미널로의 확장
+- Claude Code와 다른 포지셔닝
+- 보완적 도구
+
+* Qwen Code
+
+** 개요
+
+Qwen Code는 Alibaba Qwen Team이 개발한 "AI-powered command-line workflow tool"입니다.
+Qwen3-Coder 모델에 최적화되어 있으며, Gemini CLI를 기반으로 개발되었습니다.
+
+- **GitHub**: https://github.com/QwenLM/qwen-code
+- **출시**: 2025년 7월
+- **라이선스**: Apache 2.0 (완전 오픈소스)
+- **모델**: Qwen3-Coder 480B-A35B-Instruct
+
+** Qwen3-Coder 모델
+
+*** 사양
+
+**** 아키텍처
+- **파라미터**: 480B (총), 35B (활성)
+- **타입**: Mixture-of-Experts (MoE)
+- **컨텍스트**: 256K 토큰 (기본), 1M 토큰 (YaRN 확장)
+
+**** 학습 규모
+- **토큰**: 7.5조 (70% 코드)
+- **목표**: 코딩 능력 + 일반/수학 능력 균형
+
+*** 핵심 혁신
+
+**** 1. Agent RL (장기 강화학습)
+**전통적 RL**:
+- 단일 턴 작업
+- 즉시 보상
+
+**Agent RL**:
+- 다중 턴 상호작용
+- 환경 도구 사용
+- 실제 작업 해결
+
+**확장성**:
+- 20,000개 독립 환경 병렬 실행
+- 대규모 학습 가능
+
+**** 2. Execution-Driven RL
+코드 실행 결과로 학습:
+- 정적 분석이 아닌 동적 실행
+- 실제 작동 여부 확인
+- 광범위한 실제 작업 적용
+
+**** 3. 합성 데이터
+Qwen2.5-Coder로 데이터 품질 향상:
+- 고품질 학습 데이터 생성
+- 다양한 코딩 시나리오
+
+*** 성능
+
+**** SWE-Bench Verified
+"State-of-the-art performance among open-source models"
+- 테스트 시간 스케일링 없이 달성
+- Claude Sonnet 4와 비교 가능
+
+**** 에이전트 능력
+다음 영역에서 Claude Sonnet 4 수준:
+1. **Agentic Coding**: 자율적 코드 작성
+2. **Agentic Browser-Use**: 웹 브라우징 자동화
+3. **Agentic Tool-Use**: 도구 사용 능력
+
+**** Terminal-Bench
+Qwen Code CLI 정확도:
+- Qwen3-Coder-480A35: **37.5%**
+- Qwen3-Coder-30BA3B: **31.3%**
+
+** Qwen Code CLI 기능
+
+*** 핵심 기능
+
+**** 1. 대규모 코드베이스 처리
+전통적 컨텍스트 윈도우 초과:
+- 256K-1M 토큰 활용
+- 저장소 전체 분석
+- 동적 데이터 처리 (PR 등)
+
+예시:
+#+begin_src
+qwen
+> 이 프로젝트의 아키텍처 주요 구성 요소 설명
+> 모든 API 엔드포인트 및 인증 방법 찾기
+#+end_src
+
+**** 2. 워크플로우 자동화
+복잡한 운영 작업:
+- Pull Request 처리
+- 복잡한 리베이스
+- 의존성 업데이트
+- 코드 마이그레이션
+
+**** 3. 향상된 파서
+Qwen-Coder 모델 특화:
+- 최적화된 파싱
+- 더 나은 코드 이해
+- 정확한 수정 제안
+
+**** 4. 비전 모델 지원
+멀티모달 기능:
+- 이미지 자동 감지
+- 비전 모델로 자동 전환
+- 스크린샷, 다이어그램 분석
+
+*** 설치
+
+**** NPM (권장)
+#+begin_src bash
+npm install -g @qwen-code/qwen-code@latest
+qwen --version
+#+end_src
+
+**** 소스에서 설치
+#+begin_src bash
+git clone https://github.com/QwenLM/qwen-code.git
+cd qwen-code
+npm install
+npm install -g .
+#+end_src
+
+**** Homebrew (macOS/Linux)
+#+begin_src bash
+brew install qwen-code
+#+end_src
+
+**요구사항**: Node.js 20+
+
+*** 무료 사용 옵션
+
+Qwen Code의 가장 큰 장점은 **관대한 무료 티어**입니다.
+
+**** Qwen OAuth (최고 추천)
+#+begin_src bash
+qwen
+# 브라우저 자동 인증
+#+end_src
+
+**제한**:
+- 2,000 요청/일
+- 60 요청/분
+
+**특징**:
+- 30초 내 시작
+- 자동 자격증명 관리
+- 브라우저 인증
+
+**** 지역별 무료 API
+
+**중국**:
+- **제공자**: ModelScope
+- **제한**: 2,000 무료 호출/일
+
+**국제**:
+- **제공자**: OpenRouter
+- **제한**: 1,000 무료 호출/일
+
+**** 자체 API 키
+
+환경변수 설정:
+#+begin_src bash
+export OPENAI_API_KEY="your-key"
+export OPENAI_BASE_URL="https://api.openai.com/v1"
+export OPENAI_MODEL="gpt-4"
+#+end_src
+
+호환 제공자:
+- OpenAI
+- Anthropic
+- Google
+- OpenRouter
+- 기타 OpenAI 호환 API
+
+*** 사용법
+
+**** 기본 사용
+#+begin_src bash
+cd your-project/
+qwen
+
+> 핵심 의존성과 상호작용 방식 분석
+> 테스트 커버리지가 낮은 모듈 찾기
+> 보안 취약점 체크
+#+end_src
+
+**** 세션 관리
+
+**주요 명령어**:
+| 명령어 | 기능 |
+|--------|------|
+| ~/compress~ | 히스토리 압축 (토큰 절약) |
+| ~/clear~ | 대화 기록 삭제 |
+| ~/stats~ | 토큰 사용량 확인 |
+| ~/help~ | 도움말 |
+| ~/model~ | 모델 전환 |
+
+**설정 파일**:
+~/.qwen/settings.json
+
+**** 컨텍스트 제공
+#+begin_src
+> @file src/main.js를 분석해줘
+> @folder tests/에 있는 모든 테스트 검토
+#+end_src
+
+*** ACP/A2A 통합
+
+Qwen Code는 npm 패키지로 제공되므로:
+#+begin_src bash
+npm install -g @qwen-code/qwen-code@latest
+#+end_src
+
+agent-shell에서 지원:
+- 공식 지원 에이전트 목록에 포함
+- Qwen Code 직접 호출 가능
+
+** Cursor CLI vs Qwen Code 상세 비교
+
+*** 비용
+
+| 항목 | Cursor CLI | Qwen Code |
+|------|-----------|-----------|
+| **무료 옵션** | 없음 | 2,000 요청/일 (OAuth) |
+| **요금제** | Cursor 플랜 필요 | 완전 무료 또는 자체 API |
+| **월 비용** | $20+ (Cursor Pro) | $0 (무료 티어) |
+
+**승자**: Qwen Code (완전 무료 가능)
+
+*** 모델
+
+| 항목 | Cursor CLI | Qwen Code |
+|------|-----------|-----------|
+| **기본 모델** | 다중 (GPT, Claude 등) | Qwen3-Coder 480B |
+| **모델 전환** | 쉬움 (/model) | 제한적 |
+| **특화** | 범용 | 코딩 에이전트 최적화 |
+| **성능** | 제공자 의존 | SWE-Bench SOTA (오픈소스) |
+
+**승자**: Cursor CLI (유연성), Qwen Code (전문성)
+
+*** 컨텍스트
+
+| 항목 | Cursor CLI | Qwen Code |
+|------|-----------|-----------|
+| **윈도우** | 모델 의존 | 256K-1M 토큰 |
+| **대규모 코드** | 제한적 | 최적화됨 |
+| **저장소 전체** | 부분적 | 완전 지원 |
+
+**승자**: Qwen Code (대규모 코드베이스)
+
+*** 통합
+
+| 항목 | Cursor CLI | Qwen Code |
+|------|-----------|-----------|
+| **IDE 연동** | Cursor IDE 완벽 | 독립적 |
+| **ACP 지원** | cursor-acp 어댑터 | 네이티브 npm |
+| **MCP 지원** | 베타 (불안정) | 미확인 |
+| **설정 재사용** | IDE 설정 공유 | 독립 설정 |
+
+**승자**: Cursor CLI (IDE 통합)
+
+*** 에이전트 능력
+
+| 항목 | Cursor CLI | Qwen Code |
+|------|-----------|-----------|
+| **자율성** | 중간 | 높음 (Agent RL) |
+| **도구 사용** | MCP 통해 | 네이티브 |
+| **브라우저 사용** | 제한적 | 강력 (학습됨) |
+| **장기 작업** | 배경 에이전트 | Agent RL 최적화 |
+
+**승자**: Qwen Code (에이전트 특화)
+
+*** 사용 편의성
+
+| 항목 | Cursor CLI | Qwen Code |
+|------|-----------|-----------|
+| **설치** | 간단 | 간단 |
+| **설정** | IDE 공유 | 독립 설정 |
+| **학습 곡선** | 낮음 (익숙함) | 중간 |
+| **문서** | 제한적 (베타) | 양호 |
+
+**승자**: Cursor CLI (익숙함)
+
+*** 안정성
+
+| 항목 | Cursor CLI | Qwen Code |
+|------|-----------|-----------|
+| **상태** | 베타 | 정식 릴리스 |
+| **버그** | MCP 불안정 | 안정적 |
+| **업데이트** | 활발 | 활발 |
+
+**승자**: Qwen Code (더 안정)
+
+*** 오픈소스
+
+| 항목 | Cursor CLI | Qwen Code |
+|------|-----------|-----------|
+| **라이선스** | 독점 | Apache 2.0 |
+| **소스 코드** | 비공개 | 완전 공개 |
+| **커뮤니티** | Cursor 포럼 | GitHub 이슈 |
+| **기여** | 불가능 | 가능 |
+
+**승자**: Qwen Code (완전 오픈소스)
+
+*** 종합 평가
+
+**** Cursor CLI 선택 시나리오
+1. **Cursor IDE 사용자**: 설정 재사용
+2. **다중 모델 필요**: 쉬운 전환
+3. **비용 OK**: Cursor 플랜 보유
+4. **베타 OK**: 빠른 개선 기대
+
+**** Qwen Code 선택 시나리오
+1. **무료 원함**: 2,000 요청/일
+2. **대규모 코드**: 256K-1M 컨텍스트
+3. **에이전트 작업**: Agent RL 최적화
+4. **오픈소스 선호**: Apache 2.0
+5. **안정성 중요**: 정식 릴리스
+
+* agent-shell 통합 가이드
+
+** Cursor CLI 통합
+
+*** 방법 1: cursor-acp 어댑터
+
+**** 설치
+#+begin_src bash
+# Cursor CLI 설치 (공식 방법)
+# https://cursor.com/cli
+
+# cursor-acp 설치
+npm install -g cursor-acp
+
+# 인증
+cursor-agent login
+#+end_src
+
+**** agent-shell 설정
+#+begin_src emacs-lisp
+;; Emacs 설정
+(setq agent-shell-cursor-command "cursor-acp")
+#+end_src
+
+**** 사용
+#+begin_src emacs-lisp
+M-x agent-shell
+→ Cursor 선택
+#+end_src
+
+*** 방법 2: 직접 통합 (실험적)
+
+공식 ACP 지원 대기 중:
+- Cursor 포럼에서 논의 중
+- 향후 네이티브 지원 가능
+
+** Qwen Code 통합
+
+*** 설치
+#+begin_src bash
+# Qwen Code 설치
+npm install -g @qwen-code/qwen-code@latest
+
+# 인증 (OAuth)
+qwen
+# 브라우저에서 인증 완료
+#+end_src
+
+*** agent-shell 설정
+#+begin_src emacs-lisp
+;; agent-shell에서 Qwen Code 지원
+;; (공식 문서 참조)
+#+end_src
+
+*** 사용
+#+begin_src emacs-lisp
+M-x agent-shell
+→ Qwen Code 선택
+
+;; 프로젝트에서 시작
+(defun my/qwen-code-project ()
+  (interactive)
+  (let ((default-directory (projectile-project-root)))
+    (agent-shell "qwen")))
+#+end_src
+
+** 통합 워크플로우 예시
+
+*** 시나리오: 다중 에이전트 협업
+
+**** 1. 탐색 (Qwen Code)
+#+begin_src
+M-x agent-shell → Qwen Code
+
+> 이 프로젝트의 아키텍처 설명
+> API 엔드포인트 모두 찾기
+> 보안 취약점 체크
+#+end_src
+
+이유:
+- 무료 (2,000 요청/일)
+- 대규모 코드 분석 우수
+- 256K-1M 컨텍스트
+
+**** 2. 코드 작성 (OpenCode)
+#+begin_src
+M-x agent-shell → OpenCode
+
+> 인증 미들웨어 구현
+> 테스트 코드 추가
+#+end_src
+
+이유:
+- 다양한 모델 선택
+- OpenCode Zen 활용
+- 무료 모델 있음
+
+**** 3. 리뷰 (Cursor CLI)
+#+begin_src
+M-x agent-shell → Cursor
+
+> 코드 리뷰
+> 베스트 프랙티스 확인
+#+end_src
+
+이유:
+- 다중 모델 (Claude, GPT)
+- IDE 설정 재사용
+- 익숙한 인터페이스
+
+**** 4. 최종 검토 (Claude Code)
+#+begin_src
+M-x agent-shell → Claude Code
+
+> 프로덕션 준비도 체크
+> 엣지 케이스 검토
+#+end_src
+
+이유:
+- 최고 품질
+- 중요 작업만 사용
+- 비용 효율
+
+** 비용 최적화 전략
+
+*** 전략 1: Qwen Code 중심
+
+#+begin_src
+일상 작업 (90%): Qwen Code (무료)
+  - 코드 탐색
+  - 일반 코딩
+  - 리팩토링
+  - 테스트 작성
+
+복잡한 작업 (10%): Cursor/Claude
+  - 아키텍처 설계
+  - 중요 리뷰
+  - 프로덕션 배포
+#+end_src
+
+**예상 비용**:
+- Qwen Code: $0
+- Cursor CLI: $20/월 (Pro)
+- **총**: $20/월
+- **Claude Code Max 대비**: 91% 절감
+
+*** 전략 2: 완전 무료
+
+#+begin_src
+모든 작업: Qwen Code (무료 OAuth)
+  - 2,000 요청/일
+  - 하루 100 요청이면 충분
+
+백업: OpenCode + 무료 모델
+  - Grok Code Fast 1
+  - Big Pickle
+#+end_src
+
+**예상 비용**: $0
+
+*** 전략 3: 하이브리드
+
+#+begin_src
+탐색/분석: Qwen Code (무료)
+코딩: OpenCode + Zen (저렴)
+리뷰: Cursor CLI (Pro)
+중요: Claude Code (Pro)
+#+end_src
+
+**예상 비용**: $20-40/월
+
+* 실전 활용 가이드
+
+** Cursor CLI 활용법
+
+*** 1. 터미널 명령어 생성
+
+**** 시나리오
+복잡한 bash 명령어를 모를 때
+
+**** 워크플로우
+#+begin_src bash
+# Cursor CLI 시작
+cursor-agent
+
+# Ctrl+K 누름
+> 최근 7일간 수정된 Python 파일 중 100줄 이상인 것만 찾기
+
+# 생성된 명령:
+find . -name "*.py" -mtime -7 -exec wc -l {} + | awk '$1 > 100'
+
+# 승인 후 실행
+#+end_src
+
+*** 2. 원격 서버 작업
+
+**** 시나리오
+SSH로 접속한 서버에서 작업
+
+**** 워크플로우
+#+begin_src bash
+ssh user@server
+
+# 서버에서 Cursor CLI 실행
+cursor-agent
+
+> 이 서버의 Node.js 메모리 사용량 모니터링 스크립트 작성
+> PM2로 자동 재시작 설정
+#+end_src
+
+이점:
+- 로컬 IDE 불필요
+- 서버에서 직접 작업
+- 컨텍스트 유지
+
+*** 3. CI/CD 파이프라인
+
+**** 시나리오
+GitHub Actions 워크플로우 작성
+
+**** 워크플로우
+#+begin_src bash
+cursor-agent
+
+> Node.js 프로젝트용 CI/CD 파이프라인 작성
+> 테스트, 린트, 빌드, Docker 이미지 생성 포함
+#+end_src
+
+** Qwen Code 활용법
+
+*** 1. 대규모 코드베이스 분석
+
+**** 시나리오
+수천 개 파일의 레거시 프로젝트
+
+**** 워크플로우
+#+begin_src bash
+cd legacy-project/
+qwen
+
+> 전체 프로젝트 아키텍처 설명
+> 모든 데이터베이스 쿼리 패턴 분석
+> 사용되지 않는 코드 찾기
+> 의존성 그래프 생성
+#+end_src
+
+이점:
+- 256K-1M 컨텍스트
+- 저장소 전체 이해
+- 무료 (2,000 요청/일)
+
+*** 2. Pull Request 자동 처리
+
+**** 시나리오
+PR 리뷰 및 머지 자동화
+
+**** 워크플로우
+#+begin_src bash
+qwen
+
+> PR #123 변경사항 분석
+> 테스트 커버리지 확인
+> 보안 이슈 체크
+> 충돌 해결 제안
+> 머지 안전성 평가
+#+end_src
+
+Agent RL의 강점:
+- 다중 단계 작업
+- 도구 사용 (git, test runner)
+- 자율적 의사결정
+
+*** 3. 리팩토링 워크플로우
+
+**** 시나리오
+전체 프로젝트 리팩토링
+
+**** 워크플로우
+#+begin_src bash
+qwen
+
+> 모든 클래스형 컴포넌트를 함수형으로 변환
+> PropTypes를 TypeScript로 마이그레이션
+> 테스트가 여전히 통과하는지 확인
+> 변경사항 커밋
+#+end_src
+
+자동화:
+- 파일 검색
+- 코드 변환
+- 테스트 실행
+- Git 커밋
+
+** 비교 활용 전략
+
+*** 작업 유형별 최적 도구
+
+| 작업 유형 | 최적 도구 | 이유 |
+|-----------|----------|------|
+| **코드 탐색** | Qwen Code | 대규모 컨텍스트, 무료 |
+| **빠른 스크립트** | Cursor CLI | Ctrl+K 명령 생성 |
+| **리팩토링** | Qwen Code | Agent RL, 자율성 |
+| **다중 모델 실험** | Cursor CLI | 쉬운 모델 전환 |
+| **PR 자동화** | Qwen Code | 장기 워크플로우 |
+| **원격 서버** | Cursor CLI | IDE 통합 |
+| **예산 제한** | Qwen Code | 무료 2,000/일 |
+| **복잡한 에이전트** | Qwen Code | Agent RL 학습 |
+
+* 추가 고려사항
+
+** 보안
+
+*** Cursor CLI
+- Cursor 계정 인증 필요
+- IDE 보안 정책 공유
+- ask-to-apply 모드
+
+*** Qwen Code
+- OAuth 또는 자체 API 키
+- 로컬 설정 파일
+- 코드는 API로 전송됨
+
+**권장**:
+- 민감한 코드: Ollama 로컬
+- 일반 코드: Qwen Code/Cursor OK
+- 검토: 모든 변경사항 확인
+
+** 성능
+
+*** Cursor CLI
+- 모델에 따라 다름
+- GPT-5: 빠름
+- Claude Sonnet 4: 중간
+
+*** Qwen Code
+- Qwen3-Coder: 중간-빠름
+- 대규모 컨텍스트: 느려질 수 있음
+- 최적화: ~/compress~ 명령
+
+** 커뮤니티
+
+*** Cursor CLI
+- Cursor 포럼
+- 베타 피드백 활발
+- 빠른 업데이트
+
+*** Qwen Code
+- GitHub Issues
+- Qwen 팀 응답
+- 오픈소스 기여 가능
+
+* 결론
+
+** Cursor CLI
+
+### 강점
+- Cursor IDE 사용자에게 완벽
+- 다중 모델 유연성
+- 터미널 네이티브
+- 빠른 명령어 생성 (Ctrl+K)
+
+### 약점
+- 비용 (Cursor 플랜)
+- 베타 불안정성 (MCP)
+- 제한된 에이전트 능력
+
+### 추천 대상
+- Cursor IDE 사용자
+- 터미널 워크플로우 중시
+- 다중 모델 실험
+- 원격 서버 작업
+
+## Qwen Code
+
+### 강점
+- **완전 무료** (2,000 요청/일)
+- 대규모 컨텍스트 (256K-1M)
+- Agent RL 최적화
+- 오픈소스 (Apache 2.0)
+- 안정적 (정식 릴리스)
+
+### 약점
+- 단일 모델 계열
+- 커뮤니티 작음 (신규)
+- IDE 통합 제한적
+
+### 추천 대상
+- 예산 제한
+- 대규모 코드베이스
+- 에이전트 작업 중요
+- 오픈소스 선호
+- 학습 및 실험
+
+## 최종 권장
+
+### 상황 1: 무료로 시작
+#+begin_src
+1. Qwen Code (메인) - 무료 2,000/일
+2. OpenCode + 무료 모델 - 백업
+3. agent-shell - Emacs 통합
+
+비용: $0/월
+#+end_src
+
+### 상황 2: Cursor 사용자
+#+begin_src
+1. Cursor CLI (메인) - IDE 연동
+2. Qwen Code (보조) - 대규모 분석
+3. agent-shell - 통합 관리
+
+비용: $20/월 (Cursor Pro)
+#+end_src
+
+### 상황 3: 최적 하이브리드
+#+begin_src
+1. Qwen Code (일상 90%) - 무료
+2. Cursor CLI (복잡 10%) - $20/월
+3. Claude Code (중요 5%) - $20/월
+4. agent-shell - Emacs 허브
+
+비용: $40/월
+절감: 82% (vs Claude Code Max $220)
+#+end_src
+
+두 도구 모두 agent-shell을 통해 Emacs에서 통합 관리 가능하며,
+작업 유형에 따라 최적 도구를 선택하는 것이 핵심입니다.
