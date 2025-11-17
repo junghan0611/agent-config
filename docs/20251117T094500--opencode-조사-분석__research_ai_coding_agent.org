@@ -1,0 +1,408 @@
+#+TITLE: OpenCode 조사 분석
+#+DATE: 2025-11-17T09:45:00
+#+FILETAGS: :research:ai_coding_agent:opencode:comparison:
+
+* 개요
+
+OpenCode는 터미널을 위해 제작된 AI 코딩 에이전트로, Claude Code의 오픈소스 대안입니다.
+100% 오픈소스이며 특정 AI 제공업체에 종속되지 않는 것이 가장 큰 특징입니다.
+
+** 프로젝트 정보
+- GitHub: https://github.com/sst/opencode
+- 공식 문서: https://opencode.ai/docs
+- 라이선스: MIT
+- 최신 버전: v1.0.68
+- 통계: ⭐ 33k stars, 🍴 2.6k forks
+
+* Claude Code vs OpenCode 비교
+
+** 공통점
+- 터미널 기반 AI 코딩 에이전트
+- 코드베이스 이해 및 다중 파일 작업 지원
+- 대화형 TUI (Terminal User Interface)
+- 세션 관리 및 파일 변경 추적
+- LSP 통합
+
+** 주요 차이점
+
+| 항목 | Claude Code | OpenCode |
+|------|-------------|----------|
+| **라이선스** | 독점 (Proprietary) | 오픈소스 (MIT) |
+| **가격** | $200/월 (Max 플랜) | 무료 |
+| **AI 모델** | Anthropic Claude만 지원 | 75개 이상 LLM 지원 |
+| **제공업체** | Anthropic | OpenAI, Anthropic, Google, AWS Bedrock, Groq, Azure OpenAI, OpenRouter, 로컬 모델 |
+| **성숙도** | 안정적, 검증됨 | 활발히 개발 중, 일부 미완성 기능 |
+| **성능** | 복잡한 대규모 작업 최적화 | 최상위 모델 사용 시 유사 성능 |
+| **커스터마이징** | 제한적 | 높은 자유도 |
+
+** 장단점
+
+*** OpenCode 장점
+- 비용 효율적 (무료)
+- 다양한 AI 모델 선택 가능
+- 오픈소스로 커스터마이징 자유
+- 로컬 모델 지원
+- 커뮤니티 기여 가능
+
+*** OpenCode 단점
+- 코드를 무단으로 리포맷할 수 있음
+- Claude Code 대비 덜 안정적
+- 큰 파일 처리 성능 이슈 (Issue #2003)
+- 일부 기능이 덜 다듬어짐
+
+*** Claude Code 장점
+- 대규모 프로젝트에서 검증된 성능
+- 컨텍스트 유지 능력 우수
+- 안정적이고 통합된 경험
+- 전체 스토리를 잘 유지함
+
+*** Claude Code 단점
+- 높은 비용
+- 단일 AI 제공업체 종속
+- 제한적인 커스터마이징
+
+* OpenCode 아키텍처
+
+** 에이전트 시스템
+
+OpenCode의 핵심은 전문화된 에이전트 시스템입니다.
+
+*** 에이전트 유형
+
+**** 기본 에이전트 (Primary Agents)
+- 직접 상호작용하는 주요 어시스턴트
+- Tab 키로 순환 전환
+- 모든 구성된 도구 접근 가능
+
+내장 기본 에이전트:
+- ~Build~: 모든 도구가 활성화된 일반 개발 에이전트
+- ~Plan~: 파일 편집/bash가 제한된 분석 전용 에이전트
+
+**** 보조 에이전트 (Subagents)
+- 특정 작업을 위해 호출되는 전문화된 어시스턴트
+- ~@general~ 같이 멘션으로 호출
+- 기본 에이전트가 자동으로 호출하거나 사용자가 직접 멘션
+
+내장 보조 에이전트:
+- ~General~: 복잡한 질문 조사, 코드 검색, 다단계 작업
+
+** 설정 방법
+
+*** 설정 파일 위치 (우선순위순)
+
+1. 프로젝트: ~./opencode.json~
+2. 전역: ~~/.config/opencode/opencode.json~
+3. 환경변수: ~OPENCODE_CONFIG~, ~OPENCODE_CONFIG_DIR~
+
+설정 파일들은 대체되지 않고 병합(merge)됩니다.
+
+*** JSON 설정 예시
+
+#+begin_src json
+{
+  "agent": {
+    "review": {
+      "description": "코드 검토 전문 에이전트",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.1,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false
+      },
+      "permission": {
+        "read": "allow"
+      }
+    },
+    "debug": {
+      "description": "디버깅 전문 에이전트",
+      "mode": "primary",
+      "model": "openai/gpt-4",
+      "tools": {
+        "bash": true,
+        "read": true,
+        "write": false
+      }
+    }
+  }
+}
+#+end_src
+
+*** Markdown 설정
+
+에이전트를 Markdown 파일로도 정의 가능:
+- 전역: ~~/.config/opencode/agent/~
+- 프로젝트: ~.opencode/agent/~
+
+파일명이 에이전트 이름이 됩니다.
+
+예: ~review.md~ → ~review~ 에이전트
+
+** 에이전트 설정 옵션
+
+| 옵션 | 타입 | 설명 | 예시 |
+|------|------|------|------|
+| ~description~ | string | 에이전트 목적 (필수) | "코드 검토용" |
+| ~mode~ | string | 에이전트 모드 | "primary", "subagent", "all" |
+| ~model~ | string | 사용할 LLM 모델 | "anthropic/claude-sonnet-4" |
+| ~temperature~ | number | 응답 창의성 (0.0-1.0) | 0.1 (정확), 0.7 (창의) |
+| ~prompt~ | string | 시스템 프롬프트 파일 | "{file:./prompts/review.txt}" |
+| ~tools~ | object | 도구 활성화/비활성화 | {"write": false} |
+| ~permission~ | string/object | 권한 설정 | "ask", "allow", "deny" |
+| ~disable~ | boolean | 에이전트 비활성화 | true |
+
+** 권한 시스템
+
+세 가지 권한 수준:
+- ~"ask"~: 도구 실행 전 승인 요청 (안전)
+- ~"allow"~: 승인 없이 모든 작업 허용 (편리)
+- ~"deny"~: 도구 완전 비활성화 (제한)
+
+세밀한 권한 설정 예시:
+
+#+begin_src json
+{
+  "agent": {
+    "build": {
+      "permission": {
+        "bash": {
+          "git push": "ask",
+          "git *": "ask",
+          "rm -rf *": "deny",
+          "*": "allow"
+        }
+      }
+    }
+  }
+}
+#+end_src
+
+* 설치 및 사용법
+
+** 설치 방법
+
+*** 빠른 설치 (권장)
+#+begin_src bash
+curl -fsSL https://opencode.ai/install | bash
+#+end_src
+
+*** npm
+#+begin_src bash
+npm i -g opencode-ai@latest
+#+end_src
+
+*** 패키지 매니저
+#+begin_src bash
+# macOS/Linux
+brew install opencode
+
+# Arch Linux
+paru -S opencode-bin
+
+# Windows (Scoop)
+scoop install opencode
+
+# Windows (Chocolatey)
+choco install opencode
+#+end_src
+
+** 기본 사용법
+
+*** 에이전트 생성
+#+begin_src bash
+opencode agent create
+#+end_src
+
+대화형으로 다음을 설정:
+1. 저장 위치 선택 (전역/프로젝트)
+2. 에이전트 설명 입력
+3. 시스템 프롬프트 자동 생성
+4. 도구 접근 권한 선택
+5. Markdown 파일 자동 생성
+
+*** 에이전트 전환
+- Tab 키: 기본 에이전트 순환
+- ~@agent_name~: 특정 에이전트 멘션
+- Ctrl+Right/Left: 자식 세션 탐색
+
+* 실용적 활용 사례
+
+** 전문화된 에이전트 예시
+
+*** Code Review 에이전트
+- 목적: 읽기 전용 코드 검토
+- 모델: Claude Sonnet (정확성)
+- 도구: read만 허용
+- Temperature: 0.1 (일관성)
+
+*** Prototyping 에이전트
+- 목적: 빠른 프로토타입 작성
+- 모델: GPT-4 (창의성)
+- 도구: write, edit 허용, bash 제한
+- Temperature: 0.7 (창의성)
+
+*** Debug 에이전트
+- 목적: 문제 진단
+- 모델: Claude Sonnet
+- 도구: bash, read 허용, write 거부
+- Permission: bash는 "ask"
+
+*** Documentation 에이전트
+- 목적: 문서 작성
+- 모델: GPT-4
+- 도구: write, edit만 허용
+- Temperature: 0.5 (균형)
+
+*** Refactoring 에이전트
+- 목적: 코드 리팩토링
+- 모델: Claude Opus (복잡한 이해)
+- 도구: 모든 도구 허용
+- Permission: 중요 작업은 "ask"
+
+* 주요 기능
+
+** LSP (Language Server Protocol) 지원
+- 기본 통합된 코드 인텔리전스
+- 자동완성, 정의로 이동 등
+- Claude Code와 동등한 수준
+
+** 다중 AI 제공업체 지원
+- OpenAI (GPT-4, GPT-3.5)
+- Anthropic (Claude Sonnet, Opus, Haiku)
+- Google (Gemini)
+- AWS Bedrock
+- Groq
+- Azure OpenAI
+- OpenRouter
+- 로컬 모델 (Ollama 등)
+
+** 세션 관리
+- 다중 세션 지원
+- 세션 공유 링크
+- 세션 히스토리 추적
+
+** 도구 시스템
+- Bash 명령 실행
+- 파일 읽기/쓰기/편집
+- 코드 검색
+- LSP 통합
+- 파일 변경 추적
+
+** UI/UX
+- 네이티브 터미널 UI
+- 반응형 디자인
+- 테마 커스터마이징
+- 키바인딩 설정
+
+* 추가 설정 옵션
+
+** 주요 설정 키
+
+| 키 | 설명 |
+|------|------|
+| ~model~ | 기본 AI 모델 |
+| ~small_model~ | 가벼운 작업용 모델 |
+| ~theme~ | UI 테마 |
+| ~tools~ | 전역 도구 설정 |
+| ~command~ | 커스텀 명령어 |
+| ~keybinds~ | 키보드 단축키 |
+| ~permission~ | 전역 권한 설정 |
+| ~formatter~ | 코드 포매터 |
+| ~mcp~ | MCP 서버 설정 |
+| ~instructions~ | 모델 지침 파일 |
+| ~disabled_providers~ | 비활성화할 제공자 |
+| ~autoupdate~ | 자동 업데이트 여부 |
+
+** 변수 대체 (Variable Substitution)
+
+- 환경변수: ~{env:VARIABLE_NAME}~
+- 파일 내용: ~{file:path/to/file}~
+
+예시:
+#+begin_src json
+{
+  "model": "{env:OPENCODE_DEFAULT_MODEL}",
+  "instructions": "{file:~/.config/opencode/instructions.txt}"
+}
+#+end_src
+
+* 커뮤니티 및 생태계
+
+** 활발한 개발
+- 4,128+ 커밋
+- 정기적인 릴리스
+- 활발한 이슈/PR 관리
+
+** 커뮤니티
+- Discord 서버
+- X.com (Twitter)
+- GitHub Discussions
+
+** 오픈소스 기여
+- MIT 라이선스
+- 커뮤니티 기여 환영
+- 투명한 개발 프로세스
+
+* 제한사항 및 알려진 이슈
+
+** 성능 이슈
+- 큰 파일 처리 시 Claude Code 대비 성능 저하 (Issue #2003)
+- 일부 복잡한 작업에서 안정성 문제
+
+** 예상치 못한 동작
+- 기존 코드를 무단으로 리포맷할 수 있음
+- 사용자 동의 없이 코드 스타일 변경 가능
+
+** 성숙도
+- Claude Code 대비 덜 검증됨
+- 일부 기능이 아직 다듬어지는 중
+- 엣지 케이스 처리 개선 필요
+
+* 언제 OpenCode를 선택할까?
+
+** OpenCode가 적합한 경우
+- 비용을 절감하고 싶을 때
+- 다양한 AI 모델을 실험하고 싶을 때
+- 로컬 모델을 사용하고 싶을 때
+- 오픈소스 프로젝트를 선호할 때
+- 높은 커스터마이징이 필요할 때
+- 특정 벤더 종속을 피하고 싶을 때
+
+** Claude Code가 적합한 경우
+- 대규모 복잡한 프로젝트를 다룰 때
+- 최고 수준의 안정성이 필요할 때
+- 검증된 성능이 중요할 때
+- 비용이 문제가 되지 않을 때
+- 즉시 프로덕션에 투입해야 할 때
+
+* 향후 전망
+
+** 발전 가능성
+- OpenCode with Sonnet-4로 Claude Code 대체 가능성
+- 커뮤니티 기여로 빠른 개선
+- 새로운 AI 모델 즉시 지원
+
+** 하이브리드 접근
+- 프로젝트 단계별로 다른 도구 활용
+- 실험: OpenCode
+- 프로덕션: Claude Code
+- 학습: OpenCode (무료)
+
+* 결론
+
+OpenCode는 Claude Code의 강력한 오픈소스 대안입니다. 특히 비용 효율성, 다양한 AI 모델 지원,
+높은 커스터마이징 자유도가 장점입니다.
+
+현재는 Claude Code가 복잡한 작업에서 더 검증된 성능을 보이지만, OpenCode의 빠른 발전 속도를
+고려하면 조만간 Sonnet-4 같은 최상위 모델과 함께 사용 시 동등한 수준에 도달할 것으로 예상됩니다.
+
+** 권장 전략
+1. OpenCode로 실험 및 학습
+2. Claude Code로 중요 프로젝트 진행
+3. 두 도구의 장점을 상황에 따라 활용
+4. OpenCode 커뮤니티에 기여하여 발전 촉진
+
+** 에이전트 설정 측면
+OpenCode의 강력한 에이전트 시스템은 Claude Code 대비 훨씬 유연합니다.
+프로젝트별, 작업별로 전문화된 에이전트를 구성하여 효율성을 극대화할 수 있습니다.
