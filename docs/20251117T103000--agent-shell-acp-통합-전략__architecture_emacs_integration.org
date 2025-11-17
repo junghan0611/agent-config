@@ -1,0 +1,1071 @@
+#+TITLE: agent-shell + ACP/A2A 통합 전략: Emacs 중심 에이전트 연결
+#+DATE: 2025-11-17T10:30:00
+#+FILETAGS: :architecture:emacs:agent_shell:acp:a2a:opencode_zen:
+
+* 개요
+
+agent-shell 패키지와 ACP/A2A 프로토콜을 활용하여 Emacs를 중심으로 OpenCode, Claude Code, Goose 등 다양한 AI 코딩 에이전트를 통합하는 전략입니다.
+
+** 핵심 아이디어
+- **단일 인터페이스**: Emacs agent-shell
+- **표준 프로토콜**: ACP → A2A (Linux Foundation)
+- **다중 에이전트**: OpenCode, Claude Code, Goose, Gemini CLI, Cursor 등
+- **비용 최적화**: OpenCode Zen의 큐레이티드 모델
+
+* agent-shell: Emacs 네이티브 에이전트 셸
+
+** 개요
+xenodium이 개발한 Emacs 패키지로, ACP/A2A 프로토콜을 통해 다양한 AI 코딩 에이전트와 통신합니다.
+
+- **GitHub**: https://github.com/xenodium/agent-shell
+- **패키지**: MELPA 제공
+- **라이선스**: 오픈소스
+- **활발한 개발**: 수 주 내에 100개 커밋
+
+** 핵심 기능
+
+*** 1. comint-mode 기반
+- Emacs 네이티브 셸 경험
+- 문자/라인 모드 자동 전환
+- 표준 Emacs 키바인딩
+- 버퍼로 완전 통합
+
+*** 2. 트래픽 검사
+#+begin_src emacs-lisp
+M-x agent-shell-view-traffic
+#+end_src
+
+- ACP 통신 내용 실시간 확인
+- JSON 메시지 포맷팅
+- 디버깅 및 학습 용이
+
+*** 3. 가짜 에이전트 재생
+- 저장된 트래픽 재생
+- API 호출 없이 테스트
+- 개발 비용 절감
+- 오프라인 작업 가능
+
+*** 4. 차이 비교 버퍼
+- 빠른 diff 표시
+- 권한 대화상자 통합
+- n/p 키로 네비게이션
+- 변경사항 즉시 검토
+
+** 지원 에이전트
+
+*** 공식 지원 (6개)
+
+**** 1. Claude Code (Anthropic)
+#+begin_src bash
+npm install -g @zed-industries/claude-code-acp
+#+end_src
+
+설정:
+#+begin_src emacs-lisp
+(setq agent-shell-anthropic-authentication
+  (agent-shell-anthropic-make-authentication
+    :api-key "your-api-key"))
+#+end_src
+
+**** 2. Gemini CLI (Google)
+Google Gemini CLI with `--experimental-acp` flag
+
+**** 3. Codex (OpenAI)
+`codex-acp` 실행 파일 필요
+
+**** 4. Goose (Block)
+공식 설치 가이드 참조
+
+**** 5. Cursor
+#+begin_src bash
+npm install -g @blowmage/cursor-agent-acp
+#+end_src
+
+**** 6. Qwen Code
+#+begin_src bash
+npm install -g @qwen-code/qwen-code@latest
+#+end_src
+
+*** 확장 가능성
+- ACP/A2A 호환 에이전트 모두 추가 가능
+- 풀 요청 환영
+- 커뮤니티 기여 활성화
+
+** 설치 및 설정
+
+*** MELPA 설치
+#+begin_src emacs-lisp
+(use-package agent-shell
+  :ensure t)
+#+end_src
+
+의존성 자동 설치:
+- acp.el (ACP 클라이언트 라이브러리)
+- shell-maker
+
+*** Doom Emacs
+#+begin_src emacs-lisp
+;; packages.el
+(package! shell-maker)
+(package! acp)
+(package! agent-shell)
+#+end_src
+
+#+begin_src bash
+doom sync
+#+end_src
+
+*** 기본 인증 설정
+
+**** API 키 방식
+#+begin_src emacs-lisp
+(setq agent-shell-anthropic-authentication
+  (agent-shell-anthropic-make-authentication
+    :api-key (getenv "ANTHROPIC_API_KEY")))
+#+end_src
+
+**** 환경변수 설정
+#+begin_src emacs-lisp
+(setq agent-shell-anthropic-claude-environment
+  (agent-shell-make-environment-variables
+    "ANTHROPIC_API_KEY" (getenv "ANTHROPIC_API_KEY")
+    "HTTPS_PROXY" "http://proxy.example.com:8080"))
+#+end_src
+
+*** 기본 사용법
+- ~M-x agent-shell~: 에이전트 선택/세션 시작
+- ~C-u M-x agent-shell~: 새 세션 강제 시작
+
+** 패키지 구조
+
+*** acp.el
+- **용도**: 패키지 개발자용 ACP 클라이언트 라이브러리
+- **기능**: ACP 프로토콜 저수준 구현
+- **사용자**: 새 에이전트 통합 시 활용
+
+*** agent-shell
+- **용도**: 최종 사용자용 에이전트 셸
+- **기능**: UI, 세션 관리, 에이전트 통합
+- **사용자**: 일반 개발자
+
+* ACP/A2A 프로토콜
+
+** ACP (Agent Communication Protocol)
+
+*** 개요
+- **개발**: IBM Bee 팀
+- **출시**: 2025년 3월
+- **목적**: AI 에이전트, 애플리케이션, 인간 간 통신 표준화
+
+*** 기술적 특징
+
+**** REST 기반 구조
+- 단순하고 잘 정의된 REST 엔드포인트
+- 표준 HTTP 패턴
+- JSON-RPC 같은 특수 방식 불필요
+
+**** SDK 불필요
+#+begin_src bash
+# curl로 직접 호출 가능
+curl -X POST https://agent.example.com/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello"}'
+#+end_src
+
+- curl, Postman, 브라우저로 접근 가능
+- Python, TypeScript SDK 제공 (선택사항)
+
+**** 비동기 우선 설계
+- 장시간 실행 작업에 최적
+- 동기 요청도 지원
+- 스트리밍 상호작용 가능
+
+**** 멀티모달 지원
+- MIME 타입 활용
+- 텍스트, 이미지, 오디오, 비디오
+- 모든 데이터 형식 지원
+
+** A2A (Agent-to-Agent Protocol)
+
+*** 개요
+- **개발**: Google
+- **출시**: 2025년 4월
+- **관리**: Linux Foundation
+- **참여**: 100개 이상 기술 기업
+
+*** 출범 배경
+- 엔터프라이즈 환경에서 AI 에이전트 확장 문제 해결
+- 플랫폼, 벤더, 프레임워크 무관하게 상호운용
+- 중립적 거버넌스 (Linux Foundation)
+
+*** ACP와의 통합
+
+**** 타임라인
+- 2025년 3월: IBM, ACP 출시
+- 2025년 4월: Google, A2A 출시
+- 2025년 6월: ACP가 A2A에 병합
+
+**** 통합 이유
+- 접근 방식의 유사성
+- 표준화의 중요성
+- 중복 노력 방지
+- 커뮤니티 통합
+
+**** 마이그레이션
+- ACP 팀이 A2A에 기술 및 전문성 기여
+- 마이그레이션 경로 제공
+- 문서화된 전환 가이드
+- 원활한 이전 지원
+
+*** A2A의 이점
+
+**** 광범위한 지원
+- 100개 이상 기업 참여
+- Google의 리더십
+- Linux Foundation 중립성
+- 산업 표준으로 부상
+
+**** 엔터프라이즈 최적화
+- 확장성 검증
+- 보안 강화
+- 프로덕션 준비
+- 장기 지원 보장
+
+** MCP vs ACP/A2A 비교
+
+| 특성 | MCP | ACP/A2A |
+|------|-----|---------|
+| **개발자** | Anthropic | IBM → Google + Linux Foundation |
+| **초점** | 모델-컨텍스트 연결 | 에이전트-에이전트 통신 |
+| **통신** | JSON-RPC | REST API |
+| **SDK 필요** | 예 | 아니오 (선택사항) |
+| **비동기** | 지원 | 기본값 |
+| **거버넌스** | Anthropic | Linux Foundation (중립) |
+| **채택** | Claude 생태계 | 100+ 기업 |
+
+*** 상호보완성
+- **MCP**: 도구 호출, 컨텍스트 제공
+- **A2A**: 에이전트 간 통신, 조율
+
+두 프로토콜은 함께 사용 가능하며, 서로 다른 계층에서 작동합니다.
+
+* OpenCode Zen: 큐레이티드 모델 게이트웨이
+
+** 개요
+
+OpenCode Zen은 **"AI 코딩 에이전트용으로 테스트되고 검증된 모델"**을 제공하는 게이트웨이 서비스입니다.
+
+- **상태**: 베타
+- **제공**: 선택사항 (필수 아님)
+- **모델 수**: 15개 큐레이션
+- **가격**: Pay-as-you-go
+
+** 왜 OpenCode Zen인가?
+
+*** 1. 검증된 모델만 제공
+"코드 생성과 도구 호출에 우수한 성능을 보이는 모델"만 선별
+- 품질 보장
+- 시행착오 감소
+- 프로덕션 준비
+
+*** 2. 투명한 가격 정책
+#+begin_quote
+"OpenCode Zen passes along any price drops by selling at cost,
+the only markup is to cover processing fees"
+#+end_quote
+
+- **원가 판매**: 가격 인하 즉시 반영
+- **마크업 최소화**: 처리 수수료만
+- **카드 수수료**: 원가 그대로 전가
+- **추가 요금 없음**
+
+*** 3. 무료 모델 제공
+- Grok Code Fast 1 (현재 무료)
+- Big Pickle (베타 무료)
+- GPT 5 Nano
+- Code Supernova (실험적, 베타 무료)
+
+*** 4. 팀 관리 기능
+- 역할 기반 접근 (Admin/Member)
+- 멤버별 월간 지출 한도
+- 팀별 모델 제한
+- 개인 API 키 사용 옵션
+
+*** 5. 프라이버시 보장
+- **미국 호스팅**: 모든 모델
+- **제로 보존 정책**: 대부분 모델이 데이터를 학습에 미사용
+- **예외**: Grok/Big Pickle (개선용 사용 가능)
+
+** 제공 모델 (15개)
+
+*** OpenAI 호환 (6개)
+1. **GPT 5.1 Codex**
+2. **GPT 5.1**
+3. **GPT 5 Codex**
+4. **GPT 5**
+5. **GPT 5 Nano** (무료)
+6. **GPT 4o**
+
+*** Anthropic Claude (5개)
+1. **Claude Sonnet 4.5**
+   - 입력: $6/1M tokens (200K 이상)
+   - 출력: $22.5/1M tokens (200K 이상)
+   - 캐시 지원
+
+2. **Claude Sonnet 4**
+
+3. **Claude Haiku 4.5**
+
+4. **Claude Haiku 3.5**
+   - 타이틀 생성 등 경량 작업용
+
+5. **Claude Opus 4.1**
+
+*** 기타 최신 모델 (4개)
+1. **Qwen3 Coder 480B**
+2. **Qwen 3**
+3. **Kimi K2**
+4. **GLM 4.6**
+
+*** 실험적 무료 모델 (2개)
+1. **Grok Code Fast 1** (현재 무료)
+   - xAI의 피드백 수집 기간
+   - 제한 시간 무료 제공
+
+2. **Big Pickle** (베타 무료)
+   - 실험적 모델
+   - 피드백 수집 단계
+
+3. **Code Supernova** (베타 무료)
+
+** 가격 구조
+
+*** 입력 토큰
+- 최저: $0.45/1M
+- 최고: $15.00/1M
+
+*** 출력 토큰
+- 최저: $1.50/1M
+- 최고: $75.00/1M
+
+*** 캐시 (일부 Claude 모델)
+- 캐시 쓰기: 별도 요금
+- 캐시 읽기: 할인 요금
+- 컨텍스트 재사용 시 비용 절감
+
+*** 결제 방식
+1. 선불 크레딧 충전
+2. 요청당 차감
+3. 월간 지출 한도 설정 가능
+4. 언제든 취소 가능
+
+** 사용 방법
+
+*** 1. 인증
+#+begin_src bash
+opencode auth login
+#+end_src
+
+- OpenCode Zen 계정 필요
+- API 키 발급
+- 로컬에 인증 정보 저장
+
+*** 2. 모델 확인
+TUI에서:
+#+begin_src
+/models
+#+end_src
+
+- 추천 모델 목록
+- 가격 정보
+- 가용성 확인
+
+*** 3. 모델 선택
+설정 파일 또는 TUI에서 선택
+#+begin_src json
+{
+  "model": "zen/claude-sonnet-4-5"
+}
+#+end_src
+
+*** 4. 사용
+일반 OpenCode 사용과 동일
+- 요청당 자동 과금
+- 크레딧 잔액 확인
+- 지출 모니터링
+
+** OpenCode Zen vs 직접 API
+
+| 항목 | OpenCode Zen | 직접 API |
+|------|-------------|----------|
+| **설정** | 간편 (단일 인증) | 복잡 (제공자별) |
+| **관리** | 통합 대시보드 | 분산 |
+| **가격** | 원가 + 처리 수수료 | 원가 |
+| **검증** | 테스트된 모델만 | 모든 모델 |
+| **무료 옵션** | 4개 모델 | 제한적 |
+| **팀 기능** | 내장 | 직접 구현 |
+| **지출 제한** | 자동 | 수동 |
+
+*** 언제 OpenCode Zen?
+- 팀 협업
+- 지출 관리 중요
+- 검증된 모델 선호
+- 설정 단순화
+- 무료 모델 활용
+
+*** 언제 직접 API?
+- 최저 비용 추구
+- 특정 모델 필요
+- 자체 인프라 선호
+- 벤더 직접 관계
+
+* 통합 아키텍처: agent-shell + A2A + OpenCode Zen
+
+** 전체 구조
+
+#+begin_example
+┌─────────────────────────────────────────────────────────────┐
+│                        Emacs                                │
+│                     (agent-shell)                           │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │ Claude   │  │ OpenCode │  │  Goose   │  │  Gemini  │   │
+│  │ Code     │  │          │  │          │  │   CLI    │   │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘   │
+└───────┼─────────────┼─────────────┼─────────────┼──────────┘
+        │             │             │             │
+        └─────────────┴─────────────┴─────────────┘
+                      │
+             ┌────────▼────────┐
+             │   A2A Protocol  │
+             │  (REST-based)   │
+             └────────┬────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        │             │             │
+   ┌────▼────┐  ┌────▼────┐  ┌────▼────┐
+   │ Claude  │  │ OpenCode│  │  Other  │
+   │  API    │  │   Zen   │  │ Agents  │
+   └─────────┘  └────┬────┘  └─────────┘
+                     │
+        ┌────────────┼────────────┐
+        │            │            │
+   ┌────▼────┐ ┌────▼────┐ ┌────▼────┐
+   │ Claude  │ │  GPT    │ │  Qwen   │
+   │ Sonnet  │ │ Codex   │ │  Kimi   │
+   └─────────┘ └─────────┘ └─────────┘
+#+end_example
+
+** 계층 설명
+
+*** Layer 1: Emacs UI (agent-shell)
+- 단일 인터페이스
+- comint-mode 셸
+- 에이전트 간 전환
+- 트래픽 검사
+- Diff 비교
+
+*** Layer 2: A2A Protocol
+- REST API 통신
+- 에이전트 독립적
+- 표준화된 메시지
+- 비동기 지원
+- 스트리밍 가능
+
+*** Layer 3: 에이전트 레이어
+- Claude Code (Anthropic 직접)
+- OpenCode (Zen 또는 직접 API)
+- Goose (다양한 제공자)
+- Gemini CLI (Google)
+- Cursor, Qwen 등
+
+*** Layer 4: 모델/API 레이어
+- OpenCode Zen (큐레이티드 15개)
+- Anthropic API (Claude)
+- OpenAI API (GPT)
+- Google API (Gemini)
+- 로컬 모델 (Ollama)
+
+** 데이터 흐름
+
+*** 사용자 요청
+#+begin_src
+사용자 입력 (Emacs)
+  ↓
+agent-shell 버퍼
+  ↓
+A2A REST 호출
+  ↓
+선택된 에이전트
+  ↓
+모델 API 호출
+  ↓
+응답 스트리밍
+  ↓
+agent-shell 버퍼
+  ↓
+사용자에게 표시
+#+end_src
+
+*** 에이전트 간 통신
+#+begin_src
+Agent A (OpenCode)
+  ↓ A2A 호출
+Agent B (Claude Code)
+  ↓ A2A 호출
+Agent C (Goose)
+  ↓
+공유 컨텍스트
+#+end_src
+
+** 실전 시나리오
+
+*** 시나리오 1: 비용 최적화 워크플로우
+
+**** 초기 코드 생성
+- **에이전트**: OpenCode
+- **모델**: Grok Code Fast 1 (무료)
+- **용도**: 초안 작성, 빠른 프로토타입
+- **비용**: $0
+
+**** 코드 리뷰 및 개선
+- **에이전트**: OpenCode
+- **모델**: Claude Sonnet 4.5 (via Zen)
+- **용도**: 품질 검증, 리팩토링
+- **비용**: $6-22.5/1M tokens
+
+**** 최종 검토
+- **에이전트**: Claude Code (Pro 계정)
+- **모델**: Claude Sonnet 4.5 (직접)
+- **용도**: 중요 검토만
+- **비용**: Pro 플랜 포함
+
+**** 결과
+- 초안: 무료 (Grok)
+- 대부분 작업: Zen (원가 수준)
+- 중요 작업만: Claude Code Pro
+- **총 비용**: 기존 대비 70-80% 절감
+
+*** 시나리오 2: 팀 협업
+
+**** 설정
+- OpenCode Zen 팀 계정
+- Admin: 프로젝트 리더
+- Member: 팀원들
+- 월간 한도: 멤버당 $50
+
+**** 모델 할당
+- **주니어**: Grok Code Fast 1, GPT 5 Nano
+- **시니어**: Claude Sonnet 4, Qwen3 Coder
+- **리뷰어**: Claude Sonnet 4.5
+
+**** 장점
+- 중앙 관리
+- 비용 제어
+- 역할별 모델
+- 단일 대시보드
+
+*** 시나리오 3: 하이브리드 접근
+
+**** 에이전트 믹스
+#+begin_src emacs-lisp
+;; OpenCode with Zen (일반 작업)
+M-x agent-shell → OpenCode → zen/claude-sonnet-4
+
+;; Claude Code (복잡한 작업)
+M-x agent-shell → Claude Code → Pro 플랜
+
+;; Goose (자율 작업)
+M-x agent-shell → Goose → DeepSeek (저렴)
+
+;; Gemini (실험)
+M-x agent-shell → Gemini CLI → 무료
+#+end_src
+
+**** 작업 분배
+- **탐색**: Goose + DeepSeek
+- **코딩**: OpenCode + Grok/Qwen
+- **리뷰**: OpenCode + Claude Sonnet
+- **중요**: Claude Code + Pro
+
+**** 이점
+- 각 도구의 강점 활용
+- 비용 최적화
+- 유연성 극대화
+- 단일 인터페이스 (Emacs)
+
+* 설정 가이드
+
+** 1단계: agent-shell 설치
+
+*** Emacs 설정
+#+begin_src emacs-lisp
+;; init.el 또는 config.el
+
+(use-package agent-shell
+  :ensure t
+  :config
+  ;; 환경 변수 설정
+  (setq agent-shell-anthropic-claude-environment
+    (agent-shell-make-environment-variables
+      "ANTHROPIC_API_KEY" (getenv "ANTHROPIC_API_KEY")))
+
+  ;; 인증 설정
+  (setq agent-shell-anthropic-authentication
+    (agent-shell-anthropic-make-authentication
+      :api-key (getenv "ANTHROPIC_API_KEY")))
+
+  ;; 키바인딩
+  :bind
+  ("C-c a s" . agent-shell)
+  ("C-c a t" . agent-shell-view-traffic))
+#+end_src
+
+** 2단계: 에이전트 설치
+
+*** Claude Code
+#+begin_src bash
+npm install -g @zed-industries/claude-code-acp
+#+end_src
+
+환경 변수:
+#+begin_src bash
+export ANTHROPIC_API_KEY="your-key"
+#+end_src
+
+*** OpenCode
+#+begin_src bash
+# 설치
+curl -fsSL https://opencode.ai/install | bash
+
+# 인증 (Zen 사용 시)
+opencode auth login
+#+end_src
+
+설정 (~/.config/opencode/opencode.json):
+#+begin_src json
+{
+  "model": "zen/claude-sonnet-4-5",
+  "small_model": "zen/claude-haiku-3-5"
+}
+#+end_src
+
+*** Goose
+#+begin_src bash
+# 공식 설치 가이드 참조
+# https://block.github.io/goose
+#+end_src
+
+*** Cursor
+#+begin_src bash
+npm install -g @blowmage/cursor-agent-acp
+#+end_src
+
+*** Qwen Code
+#+begin_src bash
+npm install -g @qwen-code/qwen-code@latest
+#+end_src
+
+** 3단계: OpenCode Zen 설정
+
+*** 계정 생성
+1. https://opencode.ai/zen 방문
+2. 계정 생성
+3. API 키 발급
+
+*** 크레딧 충전
+1. 대시보드 접속
+2. "Add Credits" 선택
+3. 금액 입력 (예: $50)
+4. 결제
+
+*** 지출 한도 설정
+1. Settings → Limits
+2. 월간 한도 설정 (예: $100)
+3. 알림 설정
+
+*** 모델 선택
+OpenCode 설정 파일:
+#+begin_src json
+{
+  "model": "zen/claude-sonnet-4-5",
+  "small_model": "zen/claude-haiku-3-5",
+  "agent": {
+    "coder": {
+      "model": "zen/grok-code-fast-1"  // 무료
+    },
+    "reviewer": {
+      "model": "zen/claude-sonnet-4-5"  // 유료
+    }
+  }
+}
+#+end_src
+
+** 4단계: 팀 설정 (선택사항)
+
+*** 팀 생성
+1. Dashboard → Teams → Create
+2. 팀 이름 입력
+3. 멤버 초대
+
+*** 역할 할당
+- **Admin**: 모든 권한
+- **Member**: 자신의 API 키만
+
+*** 멤버별 한도
+1. Team Settings → Member Limits
+2. 멤버 선택
+3. 월간 한도 설정 (예: $50)
+
+*** 모델 제한
+1. Team Settings → Available Models
+2. 멤버별 허용 모델 선택
+3. 저장
+
+** 5단계: Emacs 워크플로우 통합
+
+*** Org-mode 통합
+#+begin_src emacs-lisp
+(defun my/agent-shell-from-org ()
+  "Org 소스 블록을 agent-shell로 전송"
+  (interactive)
+  (let ((code (org-element-property :value (org-element-at-point))))
+    (agent-shell)
+    (insert code)
+    (comint-send-input)))
+
+(define-key org-mode-map (kbd "C-c a r") #'my/agent-shell-from-org)
+#+end_src
+
+*** Projectile 통합
+#+begin_src emacs-lisp
+(defun my/agent-shell-project ()
+  "현재 프로젝트에서 agent-shell 시작"
+  (interactive)
+  (let ((default-directory (projectile-project-root)))
+    (agent-shell)))
+
+(define-key projectile-mode-map (kbd "C-c p a") #'my/agent-shell-project)
+#+end_src
+
+*** 키바인딩 추천
+#+begin_src emacs-lisp
+(global-set-key (kbd "C-c a s") #'agent-shell)           ; 에이전트 셸
+(global-set-key (kbd "C-c a n") #'agent-shell)           ; 새 세션
+(global-set-key (kbd "C-c a t") #'agent-shell-view-traffic) ; 트래픽
+(global-set-key (kbd "C-c a p") #'my/agent-shell-project)   ; 프로젝트
+(global-set-key (kbd "C-c a o") #'my/agent-shell-from-org)  ; Org 연동
+#+end_src
+
+* 비용 분석
+
+** OpenCode Zen 기반 워크플로우
+
+*** 시나리오: 중형 프로젝트
+
+**** 작업 분배
+| 작업 유형 | 모델 | 비중 | 비용 |
+|-----------|------|------|------|
+| 초안 작성 | Grok Code Fast 1 | 40% | $0 |
+| 코드 생성 | Qwen3 Coder | 30% | $3-5/월 |
+| 리뷰/리팩토링 | Claude Sonnet 4.5 | 25% | $8-12/월 |
+| 타이틀 등 | Claude Haiku 3.5 | 5% | $0.5/월 |
+| **총계** | **혼합** | **100%** | **$11.5-17.5/월** |
+
+**** Claude Code Max 대비
+- Claude Code Max: $220/월 + Weekly limit
+- OpenCode Zen: $11.5-17.5/월 + 무제한
+- **절감율**: 92-95%
+
+*** 시나리오: 대형 프로젝트 (팀)
+
+**** 팀 구성
+- 5명 팀
+- 각 멤버 $50/월 한도
+- Admin: $100/월 한도
+
+**** 총 비용
+- 멤버: 5 × $30 (평균) = $150
+- Admin: $80
+- **총 비용**: $230/월
+
+**** Claude Code Max 대비
+- Claude Code Max: 6 × $220 = $1,320/월
+- OpenCode Zen: $230/월
+- **절감율**: 83%
+
+**** 추가 이점
+- Weekly limit 없음
+- 무제한 사용 가능
+- 팀 관리 기능
+- 지출 제어
+
+** 하이브리드 전략
+
+*** 조합 1: OpenCode Zen + Claude Code Pro
+- OpenCode Zen: $20/월 (대부분 작업)
+- Claude Code Pro: $20/월 (중요 작업만)
+- **총 비용**: $40/월
+- **Claude Code Max 대비**: 82% 절감
+
+*** 조합 2: OpenCode Zen + 직접 API
+- OpenCode Zen: $15/월 (편의성)
+- DeepSeek Direct: $5/월 (대량 작업)
+- **총 비용**: $20/월
+- **Claude Code Max 대비**: 91% 절감
+
+*** 조합 3: 완전 무료 (학습/실험)
+- Grok Code Fast 1 (OpenCode Zen)
+- Big Pickle (OpenCode Zen)
+- Gemini CLI (Google 무료)
+- Ollama 로컬 (무료)
+- **총 비용**: $0/월
+
+* 장단점 분석
+
+** OpenCode Zen 장점
+
+*** 1. 검증된 품질
+- 코딩 에이전트용 테스트된 모델만
+- 도구 호출 성능 보장
+- 프로덕션 준비
+
+*** 2. 비용 투명성
+- 원가 판매
+- 가격 인하 즉시 반영
+- 숨겨진 비용 없음
+
+*** 3. 무료 옵션
+- 4개 무료 모델
+- 베타 기간 무료 사용
+- 학습 및 실험 가능
+
+*** 4. 팀 관리
+- 내장 팀 기능
+- 지출 한도 자동 관리
+- 역할 기반 접근
+
+*** 5. 단순한 설정
+- 단일 인증
+- 통합 대시보드
+- 빠른 시작
+
+** OpenCode Zen 단점
+
+*** 1. 제한된 모델
+- 15개 모델만
+- 모든 제공자 지원 안 됨
+- 특정 모델 없을 수 있음
+
+*** 2. 작은 마크업
+- 처리 수수료 존재
+- 직접 API보다 약간 비쌈
+- 대량 사용 시 차이 누적
+
+*** 3. 베타 상태
+- 아직 안정화 중
+- 일부 기능 미완성
+- 변경 가능성
+
+** agent-shell 장점
+
+*** 1. Emacs 네이티브
+- comint-mode 기반
+- 완전한 Emacs 통합
+- 익숙한 인터페이스
+
+*** 2. 에이전트 독립적
+- 다중 에이전트 지원
+- 쉬운 전환
+- 표준 프로토콜
+
+*** 3. 개발 도구
+- 트래픽 검사
+- 재생 기능
+- 비용 절감
+
+*** 4. 확장 가능
+- 오픈소스
+- 커뮤니티 기여
+- 새 에이전트 추가 용이
+
+** agent-shell 단점
+
+### 1. Emacs 의존
+- Emacs 사용자만
+- 학습 곡선 존재
+- 터미널 셸과 다름
+
+### 2. 초기 설정
+- 각 에이전트 별도 설치
+- npm 패키지 관리
+- 환경 변수 설정
+
+### 3. 비교적 신규
+- 수 주 된 프로젝트
+- 아직 1.0 미만
+- 문서 개선 중
+
+* 실행 계획
+
+** Phase 1: 기초 설정 (1주)
+
+*** 1.1 agent-shell 설치
+- [ ] Emacs 패키지 설치
+- [ ] 기본 설정
+- [ ] 키바인딩 설정
+
+*** 1.2 Claude Code 연결
+- [ ] npm 패키지 설치
+- [ ] API 키 설정
+- [ ] 첫 테스트
+
+*** 1.3 OpenCode 연결
+- [ ] OpenCode 설치
+- [ ] agent-shell 통합
+- [ ] 직접 API 테스트
+
+** Phase 2: OpenCode Zen 평가 (1주)
+
+*** 2.1 계정 설정
+- [ ] Zen 계정 생성
+- [ ] 소액 크레딧 충전 ($10)
+- [ ] API 키 발급
+
+*** 2.2 무료 모델 테스트
+- [ ] Grok Code Fast 1
+- [ ] Big Pickle
+- [ ] GPT 5 Nano
+- [ ] 성능 평가
+
+*** 2.3 유료 모델 테스트
+- [ ] Claude Sonnet 4.5
+- [ ] Qwen3 Coder
+- [ ] 비용 측정
+
+*** 2.4 결정
+- [ ] Zen 계속 사용 여부
+- [ ] 직접 API vs Zen
+- [ ] 하이브리드 전략
+
+** Phase 3: 추가 에이전트 (2주)
+
+*** 3.1 Goose 통합
+- [ ] Goose 설치
+- [ ] agent-shell 연결
+- [ ] 워크플로우 테스트
+
+*** 3.2 Gemini CLI (선택)
+- [ ] 설치 및 설정
+- [ ] agent-shell 연결
+- [ ] 무료 사용 평가
+
+*** 3.3 기타 에이전트
+- [ ] Cursor (필요 시)
+- [ ] Qwen Code (필요 시)
+
+** Phase 4: 워크플로우 최적화 (2-3주)
+
+*** 4.1 작업별 에이전트 매핑
+- [ ] 초안: Grok/Qwen
+- [ ] 코딩: OpenCode/Goose
+- [ ] 리뷰: Claude
+- [ ] 문서: Gemini
+
+*** 4.2 Emacs 통합
+- [ ] Org-mode 연동
+- [ ] Projectile 통합
+- [ ] 커스텀 함수 작성
+
+*** 4.3 팀 설정 (해당 시)
+- [ ] 팀 생성
+- [ ] 멤버 초대
+- [ ] 한도 설정
+
+** Phase 5: 모니터링 및 개선 (진행 중)
+
+*** 5.1 비용 추적
+- [ ] 월별 지출 기록
+- [ ] 모델별 사용량
+- [ ] 최적화 기회
+
+*** 5.2 성능 평가
+- [ ] 모델별 품질
+- [ ] 응답 속도
+- [ ] 에이전트 비교
+
+*** 5.3 지속적 개선
+- [ ] 워크플로우 조정
+- [ ] 새 모델 테스트
+- [ ] 비용 최적화
+
+* 핵심 인사이트
+
+** 1. agent-shell의 가치
+- **단일 인터페이스**: Emacs에서 모든 에이전트
+- **A2A 표준**: 에이전트 독립적
+- **개발 도구**: 트래픽 검사, 재생
+- **Emacs 파워**: 완전한 통합 가능
+
+** 2. OpenCode Zen의 차별화
+- **검증된 모델**: 코딩 에이전트용 최적화
+- **투명한 가격**: 원가 + 처리 수수료만
+- **무료 옵션**: 4개 모델 무료
+- **팀 기능**: 엔터프라이즈 준비
+
+** 3. A2A의 미래
+- **Linux Foundation**: 중립적 거버넌스
+- **100+ 기업**: 광범위한 지원
+- **표준화**: 에이전트 상호운용성
+- **장기 지속**: 산업 표준으로 부상
+
+** 4. 하이브리드의 힘
+- **비용**: 무료 + 저가 + 프리미엄 조합
+- **유연성**: 작업별 최적 도구
+- **위험 분산**: 다중 제공자
+- **Emacs 중심**: 일관된 인터페이스
+
+** 5. Claude Code와의 관계
+- **대체 아님**: 보완 관계
+- **중요 작업**: Claude Code Pro
+- **일반 작업**: OpenCode + Zen
+- **실험**: 무료 모델
+- **결과**: 비용 70-90% 절감
+
+* 결론
+
+agent-shell + A2A + OpenCode Zen 조합은 **Emacs 중심의 다중 에이전트 워크플로우**를 가능하게 합니다.
+
+** 최적 전략
+
+*** 단계별 접근
+1. **시작**: agent-shell + Claude Code
+2. **확장**: OpenCode 추가
+3. **평가**: OpenCode Zen 무료 모델 테스트
+4. **최적화**: 작업별 모델 매핑
+5. **통합**: Emacs 워크플로우 완성
+
+*** 비용 최적화
+- **무료**: Grok Code Fast 1, Big Pickle (40%)
+- **저가**: Qwen3 Coder, Claude Haiku (30%)
+- **프리미엄**: Claude Sonnet 4.5 (20%)
+- **중요**: Claude Code Pro (10%)
+
+*** 예상 효과
+- **비용**: $220/월 → $20-40/월 (82-91% 절감)
+- **제한**: Weekly limit 제거
+- **유연성**: 다중 에이전트 자유 선택
+- **인터페이스**: Emacs 단일 환경
+
+** 핵심 메시지
+
+OpenCode의 **모델 구성이 좋은 이유**는:
+
+1. **검증된 큐레이션**: 15개 테스트된 모델
+2. **비용 효율**: 원가 수준 가격
+3. **무료 옵션**: 4개 모델 무료
+4. **팀 지원**: 엔터프라이즈 기능
+5. **agent-shell 통합**: Emacs에서 완벽 사용
+
+DeepSeek도 좋지만, **OpenCode Zen의 검증된 모델 세트 + 팀 관리 + 무료 옵션**이 실제 프로덕션 환경에서 더 안정적이고 관리하기 쉽습니다.
+
+A2A 프로토콜을 통해 agent-shell에서 모든 에이전트를 통합 관리하면, **Claude Code의 한계를 극복**하면서도 **필요할 때는 Claude Code의 강점**도 활용할 수 있는 최선의 전략입니다.
