@@ -9,7 +9,7 @@
  */
 
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-const DEFAULT_MODEL = "gemini-embedding-exp-03-07";
+const DEFAULT_MODEL = "gemini-embedding-2-preview";
 const VALID_DIMENSIONS = [768, 1536, 3072] as const;
 const MAX_BATCH_SIZE = 100; // Gemini batch limit
 

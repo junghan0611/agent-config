@@ -36,7 +36,7 @@ import { retrieve, type RetrieverConfig } from "./retriever.js";
 
 // --- Config ---
 
-const VECTOR_DIMENSIONS = 3072; // Full precision for sessions
+const VECTOR_DIMENSIONS = 3072; // Full precision for sessions (Matryoshka 768 for Phase 2/org)
 
 function getGeminiConfig(): GeminiEmbeddingConfig | null {
   const apiKey =
@@ -44,7 +44,7 @@ function getGeminiConfig(): GeminiEmbeddingConfig | null {
   if (!apiKey) return null;
   return {
     apiKey,
-    model: "gemini-embedding-exp-03-07",
+    model: "gemini-embedding-2-preview",
     // No dimensions → 3072 default (full precision for sessions)
   };
 }
@@ -62,7 +62,7 @@ function getRetrieverConfig(): Partial<RetrieverConfig> {
 // --- Extension ---
 
 export default function (pi: ExtensionAPI) {
-  const store = new VectorStore();
+  const store = new VectorStore(undefined, VECTOR_DIMENSIONS);
   let initialized = false;
   let indexing = false;
 
@@ -307,11 +307,9 @@ async function indexSessions(
   const sessionFiles = findSessionFiles();
 
   if (force) {
-    await store.reset(VECTOR_DIMENSIONS);
-    await store.ensureTable(VECTOR_DIMENSIONS);
-  } else {
-    await store.ensureTable(VECTOR_DIMENSIONS);
+    await store.reset();
   }
+  await store.ensureTable();
 
   // Find which sessions need indexing
   const indexed = force ? new Set<string>() : await store.getIndexedSessionFiles();
