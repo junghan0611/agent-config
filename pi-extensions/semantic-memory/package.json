@@ -2,7 +2,16 @@
   "name": "semantic-memory",
   "version": "0.1.0",
   "type": "module",
+  "scripts": {
+    "test": "tsx test.ts",
+    "test:unit": "tsx test.ts unit",
+    "test:integration": "tsx test.ts integration",
+    "test:search": "tsx test.ts search"
+  },
   "dependencies": {
     "@lancedb/lancedb": "^0.15.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
   }
 }
