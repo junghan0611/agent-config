@@ -17,19 +17,19 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { VectorStore } from "./store.js";
+import { VectorStore } from "./store.ts";
 import {
   findSessionFiles,
   extractSessionChunks,
   extractProjectName,
-} from "./session-indexer.js";
+} from "./session-indexer.ts";
 import {
   rrfFusion,
   applyRecencyDecay,
   jinaRerank,
   retrieve,
-} from "./retriever.js";
-import type { SearchResult } from "./store.js";
+} from "./retriever.ts";
+import type { SearchResult } from "./store.ts";
 
 // --- Test Framework ---
 

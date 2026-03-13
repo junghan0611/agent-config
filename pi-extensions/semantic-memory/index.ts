@@ -25,14 +25,14 @@ import {
   embedQuery,
   embedDocumentBatch,
   type GeminiEmbeddingConfig,
-} from "./gemini-embeddings.js";
-import { VectorStore } from "./store.js";
+} from "./gemini-embeddings.ts";
+import { VectorStore } from "./store.ts";
 import {
   findSessionFiles,
   extractSessionChunks,
   type SessionChunk,
-} from "./session-indexer.js";
-import { retrieve, type RetrieverConfig } from "./retriever.js";
+} from "./session-indexer.ts";
+import { retrieve, type RetrieverConfig } from "./retriever.ts";
 
 // --- Config ---
 
