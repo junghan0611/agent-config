@@ -1,0 +1,306 @@
+#+title:      슈퍼 에이전트 claude framework 통합
+#+date:       [2025-09-15 Mon 17:00]
+#+filetags:   :super:agent:
+#+identifier: 20250915T170000
+
+* 슈퍼 에이전트 - Claude Framework 통합 전략
+:PROPERTIES:
+:CUSTOM_ID: 슈퍼-에이전트---claude-framework-통합-전략
+:END:
+*작성일*: 2025-09-15 17:00 *상태*: 🔥 핵심 통합 문서 *목적*: Claude를 슈퍼 에이전트로 진화시키는 모든 지식 통합
+
+--------------
+
+** 🎯 슈퍼 에이전트 비전
+:PROPERTIES:
+:CUSTOM_ID: 슈퍼-에이전트-비전
+:END:
+
+#+begin_quote
+"Claude는 단순 도구가 아닌 슈퍼 에이전트다. 구조화된 프레임워크로 무한 확장 가능하다."
+#+end_quote
+
+*** 슈퍼 에이전트란?
+:PROPERTIES:
+:CUSTOM_ID: 슈퍼-에이전트란
+:END:
+- *단순 AI*: 질문 → 답변
+- *에이전트*: 작업 수행
+- *슈퍼 에이전트*: 시스템 전체를 오케스트레이션하는 메타 AI
+
+--------------
+
+** 📊 슈퍼 에이전트 아키텍처
+:PROPERTIES:
+:CUSTOM_ID: 슈퍼-에이전트-아키텍처
+:END:
+#+begin_example
+[슈퍼 에이전트 Claude]
+    │
+    ├── [Layer 1: 메모리] Git 기반 영속성
+    │   └── claude-memory 시스템
+    │
+    ├── [Layer 2: 역할] 멀티 페르소나
+    │   ├── PM 에이전트
+    │   ├── Architect 에이전트
+    │   ├── Developer 에이전트
+    │   └── Reviewer 에이전트
+    │
+    ├── [Layer 3: 도구] MCP + 커스텀
+    │   ├── 파일시스템 MCP
+    │   ├── GitHub MCP
+    │   └── 데이터베이스 MCP
+    │
+    └── [Layer 4: 자동화] 완전 자율 실행
+        ├── 자동 PR 생성
+        ├── 자동 테스트
+        └── 자동 배포
+#+end_example
+
+--------------
+
+** 🔗 지식 통합 맵
+:PROPERTIES:
+:CUSTOM_ID: 지식-통합-맵
+:END:
+*** 1️⃣ 이론적 기반 (Framework Wars)
+:PROPERTIES:
+:CUSTOM_ID: 이론적-기반-framework-wars
+:END:
+*출처*: [[https://shmck.substack.com][Claude Code Framework Wars]] *핵심*: 프레임워크로서의 Claude
+
+*** 2️⃣ 내 구현 현황
+:PROPERTIES:
+:CUSTOM_ID: 내-구현-현황
+:END:
+**** A. 메모리 시스템 (완성)
+:PROPERTIES:
+:CUSTOM_ID: a.-메모리-시스템-완성
+:END:
+*문서*: =20250907t135000--클로드-ai-대화-세션-지식베이스-통합-시스템__laptop.md= - Git 기반 영속성 ✅ - PARA 구조 ✅ - 플랫폼 통합 (Web/Desktop/Code) ✅
+
+**** B. 서브에이전트 패턴 (진행중)
+:PROPERTIES:
+:CUSTOM_ID: b.-서브에이전트-패턴-진행중
+:END:
+*문서*: =20250909t081113--클로드-서브에이전트-패턴-연구__exploration_laptop.md= - opcode 분석 ✅ - Task Spawn 패턴 ✅ - 멀티 에이전트 구현 🔄
+
+**** C. 환경 설정 (구축중)
+:PROPERTIES:
+:CUSTOM_ID: c.-환경-설정-구축중
+:END:
+*문서*: =20250906t131500--클로드-설정-공개-템플릿-프로젝트__termux.md= *문서*: =20250906t160000--termux-클로드-dotfiles-완성__active_termux.md= - CLAUDE.md 표준 ✅ - MCP 통합 🔄 - 템플릿 공유 🔄
+
+**** D. 작업공간 관리 (계획)
+:PROPERTIES:
+:CUSTOM_ID: d.-작업공간-관리-계획
+:END:
+*문서*: =20250111t105700--클로드-작업공간-관리__solution_workspace_nixos.md= - NixOS 환경 ✅ - Git worktrees ⏳ - 병렬 실행 ⏳
+
+--------------
+
+** 🚀 슈퍼 에이전트 구현 로드맵
+:PROPERTIES:
+:CUSTOM_ID: 슈퍼-에이전트-구현-로드맵
+:END:
+*** Level 1: Basic Agent (현재)
+:PROPERTIES:
+:CUSTOM_ID: level-1-basic-agent-현재
+:END:
+#+begin_src yaml
+현재 상태:
+  - 단일 Claude 인스턴스
+  - 수동 작업 관리
+  - 기본 도구 사용
+
+필요한 것:
+  - TodoWrite 자동화
+  - CLAUDE.md 강화
+#+end_src
+
+*** Level 2: Multi Agent (다음 목표)
+:PROPERTIES:
+:CUSTOM_ID: level-2-multi-agent-다음-목표
+:END:
+#+begin_src yaml
+목표:
+  - 역할별 서브에이전트
+  - 병렬 작업 실행
+  - 자동 컨텍스트 전환
+
+구현:
+  - opcode 패턴 적용
+  - Task Spawn 구현
+  - Git worktrees 활용
+#+end_src
+
+*** Level 3: Super Agent (최종 목표)
+:PROPERTIES:
+:CUSTOM_ID: level-3-super-agent-최종-목표
+:END:
+#+begin_src yaml
+비전:
+  - 완전 자율 시스템
+  - 자가 학습
+  - 자동 최적화
+
+능력:
+  - 프로젝트 전체 관리
+  - 코드 생성부터 배포까지
+  - 지속적 개선
+#+end_src
+
+--------------
+
+** 💡 슈퍼 에이전트 핵심 패턴
+:PROPERTIES:
+:CUSTOM_ID: 슈퍼-에이전트-핵심-패턴
+:END:
+*** 1. 메모리 패턴
+:PROPERTIES:
+:CUSTOM_ID: 메모리-패턴
+:END:
+#+begin_src python
+class SuperAgentMemory:
+    def __init__(self):
+        self.short_term = []  # 현재 세션
+        self.long_term = GitRepo("claude-memory")
+        self.patterns = {}  # 학습된 패턴
+#+end_src
+
+*** 2. 역할 전환 패턴
+:PROPERTIES:
+:CUSTOM_ID: 역할-전환-패턴
+:END:
+#+begin_src xml
+<role_switch>
+  <from>Developer</from>
+  <to>Reviewer</to>
+  <context>PR 생성 완료</context>
+  <action>코드 리뷰 시작</action>
+</role_switch>
+#+end_src
+
+*** 3. 자동화 체인
+:PROPERTIES:
+:CUSTOM_ID: 자동화-체인
+:END:
+#+begin_src yaml
+trigger: "새 이슈 생성"
+chain:
+  1. PM_Agent: 요구사항 분석
+  2. Architect_Agent: 설계 문서 작성
+  3. Developer_Agent: 코드 구현
+  4. Tester_Agent: 테스트 작성
+  5. Reviewer_Agent: PR 리뷰
+  6. Deploy_Agent: 배포 실행
+#+end_src
+
+--------------
+
+** 📊 슈퍼 에이전트 성숙도 모델
+:PROPERTIES:
+:CUSTOM_ID: 슈퍼-에이전트-성숙도-모델
+:END:
+| 레벨 | 능력          | 현재 상태 | 목표  |
+|------+---------------+-----------+-------|
+| L1   | 기본 대화     | ✅ 완료   | -     |
+| L2   | 작업 관리     | ✅ 완료   | -     |
+| L3   | 메모리 영속성 | ✅ 완료   | -     |
+| L4   | 서브에이전트  | 🔄 진행중 | 2주   |
+| L5   | 역할 전환     | ⏳ 계획   | 1개월 |
+| L6   | 병렬 실행     | ⏳ 계획   | 2개월 |
+| L7   | 자동 최적화   | ❌ 미래   | 6개월 |
+| L8   | 완전 자율     | ❌ 미래   | 1년   |
+
+--------------
+
+** 🔧 즉시 실행 계획
+:PROPERTIES:
+:CUSTOM_ID: 즉시-실행-계획
+:END:
+*** 이번 주 목표
+:PROPERTIES:
+:CUSTOM_ID: 이번-주-목표
+:END:
+1. *CLAUDE.md 슬래시 명령어 추가*
+
+#+begin_src markdown
+/spawn-pm - PM 에이전트 생성
+/spawn-dev - 개발 에이전트 생성
+/spawn-review - 리뷰 에이전트 생성
+#+end_src
+
+2. [@2] *첫 번째 서브에이전트 구현*
+
+#+begin_src python
+# Git Commit Agent
+- 변경사항 분석
+- 커밋 메시지 생성
+- 자동 푸시
+#+end_src
+
+3. [@3] *워크트리 설정*
+
+#+begin_src sh
+git worktree add ../super-agent-dev development
+git worktree add ../super-agent-test testing
+#+end_src
+
+--------------
+
+** 🎯 슈퍼 에이전트 차별화
+:PROPERTIES:
+:CUSTOM_ID: 슈퍼-에이전트-차별화
+:END:
+*** 왜 "슈퍼"인가?
+:PROPERTIES:
+:CUSTOM_ID: 왜-슈퍼인가
+:END:
+1. *통합성*: 모든 플랫폼, 모든 도구 통합
+2. *자율성*: 스스로 판단하고 실행
+3. *진화성*: 지속적으로 학습하고 개선
+
+*** 경쟁 우위
+:PROPERTIES:
+:CUSTOM_ID: 경쟁-우위
+:END:
+- Framework Wars의 이론 + 실제 구현
+- 한국 개발 환경 최적화
+- Git 중심 완벽한 버전 관리
+- Emacs/Org-mode 통합
+
+--------------
+
+** 📚 관련 문서 계층
+:PROPERTIES:
+:CUSTOM_ID: 관련-문서-계층
+:END:
+#+begin_example
+슈퍼 에이전트 (본 문서)
+    ├── 이론: Framework Wars
+    ├── 메모리: 지식베이스 통합 시스템
+    ├── 패턴: 서브에이전트 연구
+    ├── 환경: 설정 템플릿
+    └── 도구: 작업공간 관리
+#+end_example
+
+--------------
+
+** 🔄 지속적 진화
+:PROPERTIES:
+:CUSTOM_ID: 지속적-진화
+:END:
+이 문서는 슈퍼 에이전트 구현의 중심입니다. - 매주 진행상황 업데이트 - 새로운 패턴 즉시 반영 - 실험 결과 문서화
+
+--------------
+
+*슈퍼 에이전트 선언문*
+
+#+begin_quote
+"나는 단순한 AI 어시스턴트가 아니다. 나는 시스템을 이해하고, 프로세스를 관리하며, 스스로 진화하는 슈퍼 에이전트다."
+#+end_quote
+
+--------------
+
+*메타 정보* - 카테고리: areas (핵심 지속 관심사) - 우선순위: 🔥 최상위 - 키워드: #super_agent #claude #framework #automation - 업데이트: 주 2회

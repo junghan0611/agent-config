@@ -1,0 +1,9 @@
+{
+  "name": "semantic-memory",
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@lancedb/lancedb": "^0.15.0",
+    "apache-arrow": "^18.1.0"
+  }
+}

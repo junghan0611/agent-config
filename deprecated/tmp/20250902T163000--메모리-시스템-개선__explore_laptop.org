@@ -1,0 +1,42 @@
+#+title:      메모리 시스템 개선
+#+date:       [2025-09-02 Tue 16:30]
+#+filetags:   :explore:laptop:
+#+identifier: 20250902T163000
+
+* MEMORY SYSTEM IMPROVEMENT
+:PROPERTIES:
+:CUSTOM_ID: memory-system-improvement
+:END:
+*생성*: 2025-09-02T16:30:00 *디바이스*: LAPTOP *대화횟수*: 1
+
+** 히스토리
+:PROPERTIES:
+:CUSTOM_ID: 히스토리
+:END:
+- [2025-09-02] 태그 대신 대화횟수 + 히스토리 방식 도입
+
+** 핵심 개념
+:PROPERTIES:
+:CUSTOM_ID: 핵심-개념
+:END:
+- 태그 없이 대화횟수로 관심도 파악
+- 문서 내 히스토리로 진화 과정 추적
+- Git blame으로 세부 변경사항 확인 가능
+
+** 현재 생각
+:PROPERTIES:
+:CUSTOM_ID: 현재-생각
+:END:
+- AGENT는 판단하지 않고 단순 CRUD만 수행
+- 중요하지만 급하지 않은 일들을 추적
+- 사용자가 "티켓 보여줘"하면 나열만
+- 복잡한 추론 없이 구조에서 정보만 제공
+
+** 사용자 배경
+:PROPERTIES:
+:CUSTOM_ID: 사용자-배경
+:END:
+- ADHD 성향의 폴리매스형 (힣)
+- 데일리저널(~/org/journal) 사용 중
+- 떠오르는 아이디어 추적이 어려움
+- AGENT와 협업으로 이를 보완

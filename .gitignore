@@ -1,55 +1,10 @@
-# Agent Config - Git Ignore Rules
-
-# Tracking files (private, user-specific)
-tracking/repos/*.org
-!tracking/repos/_TEMPLATE.org
-tracking/workspace/*.org
-!tracking/workspace/_TEMPLATE.org
-
-# Credentials and secrets
-google-credentials/*.json
-*.secret
-
-# 임시 파일
-*.tmp
-*.swp
-*.bak
-*~
-
-# 일일 작업 로그 (개인 정보 포함 가능)
-# memory/daily/*
-#
-# 사용자 선호도 (개인 설정)
-# memory/preferences/*
-
-# 임시 메모리
-# memory/tmp/*
-
-# 민감 정보
-*.secret
-*.private
-*.key
-*.pem
-
-# 추적하지 않을 로그
-*.log
-
-# OS 생성 파일
-.DS_Store
-Thumbs.db
-
-# 편집기 설정
-.vscode/
-.idea/
-*.sublime-*
-
-# Claude 로컬 설정
-.claude/settings.local.json
-.claude/claude_local.json
-.claude/*_local.json
-
-# 백업 파일 (선택적)
-# memory/history/*
-
-*__human.org
-tmp
+node_modules/
+*.lance/
+*.lance
+.env
+.env.local
+dist/
+*.js
+*.js.map
+*.d.ts
+!package.json
