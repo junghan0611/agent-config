@@ -190,7 +190,7 @@ if (toIndex.length === 0) { console.log('✅ All org files indexed.'); await sto
 
 let totalChunks = 0, errors = 0, skipped = 0;
 const t0 = Date.now();
-const BATCH_SIZE = 50; // embeddings per API call
+const BATCH_SIZE = 100; // Gemini batchEmbedContents limit
 
 for (let i = 0; i < toIndex.length; i++) {
   const file = toIndex[i];
@@ -230,9 +230,10 @@ for (let i = 0; i < toIndex.length; i++) {
     console.error('ERR [' + (i+1) + ']', path.basename(file).slice(0,50), e.message?.slice(0,80));
   }
 
-  if ((i+1) % 50 === 0 || i === toIndex.length - 1) {
-    const elapsed = ((Date.now()-t0)/1000).toFixed(1);
-    console.log((i+1) + '/' + toIndex.length + ' files, ' + totalChunks + ' chunks, ' + errors + ' errors, ' + elapsed + 's');
+  const elapsed = ((Date.now()-t0)/1000).toFixed(1);
+  const fname = path.basename(file).slice(0, 60);
+  if ((i+1) % 5 === 0 || i === toIndex.length - 1) {
+    console.log((i+1) + '/' + toIndex.length + ' [' + totalChunks + ' ch] ' + elapsed + 's ' + fname);
   }
 }
 
