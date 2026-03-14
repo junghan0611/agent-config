@@ -7,3 +7,4 @@ dist/
 *.d.ts
 !package.json
 !package-lock.json
+.beads/.br_history/
