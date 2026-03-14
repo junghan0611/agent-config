@@ -6,7 +6,9 @@
     "test": "tsx test.ts",
     "test:unit": "tsx test.ts unit",
     "test:integration": "tsx test.ts integration",
-    "test:search": "tsx test.ts search"
+    "test:search": "tsx test.ts search",
+    "bench": "tsx benchmark.ts",
+    "bench:dry": "tsx benchmark.ts dry"
   },
   "dependencies": {
     "@lancedb/lancedb": "^0.15.0"
