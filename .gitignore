@@ -8,4 +8,4 @@ dist/
 !package.json
 !package-lock.json
 .beads/.br_history/
-benchmark-log.jsonl
+# benchmark-log.jsonl — 공개 추적

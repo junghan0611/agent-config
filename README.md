@@ -128,6 +128,66 @@ npm run test:search -- "your query"   # live search
 # Or just ask naturally — the agent calls session_search on its own
 ```
 
+## Benchmark
+
+### Org-mode RAG Quality (Phase 2)
+
+19 hand-curated queries across 9 categories, testing cross-lingual search on 3000+ Korean org-mode notes with English tags.
+
+| Category | Queries | Tests |
+|----------|---------|-------|
+| **cross-lingual** | 4 | Korean query → English-tagged note (e.g., "보편 학문" → `universalism` tag) |
+| **morphological** | 2 | `universal` vs `유니버셜` — transliteration + morphological variants |
+| **dialectical** | 2 | Opposite concepts in same meta-note ("보편 ↔ 특수") |
+| **korean-concept** | 3 | Pure Korean concept search |
+| **tag-boost** | 2 | Tags should boost relevance |
+| **indirect** | 2 | Notes connected via dblock, not direct content match |
+| **vague-short** | 2 | "특이점" (2 chars), "깨달음" (1 word) — hardest |
+| **gptel-context** | 1 | GPTEL property metadata |
+| **heading-precision** | 1 | 2-tier heading vs content accuracy |
+
+Difficulty: 🟢 easy (8) · 🟡 medium (8) · 🔴 hard (3)
+
+Every query runs with **and without Jina Rerank** for A/B comparison. Results logged to [`benchmark-log.jsonl`](pi-extensions/semantic-memory/benchmark-log.jsonl) — each run appends, so improvement over time is trackable.
+
+```bash
+./run.sh bench:dry    # see queries + expected results
+./run.sh bench        # full evaluation (needs indexed org DB)
+```
+
+<details>
+<summary>Log format (JSONL, 1 line per query per run)</summary>
+
+```json
+{
+  "timestamp": "2026-03-14T15:30:00.000Z",
+  "query": "보편 학문에 대한 문서",
+  "category": "cross-lingual",
+  "difficulty": "medium",
+  "lang": "ko",
+  "recall5": 0.67,
+  "recall10": 1.00,
+  "mrr": 0.50,
+  "hit": true,
+  "rerank": false,
+  "topResults": ["20250424T233558--†-보편-특수...", "20250516T090655--모티머애들러..."],
+  "notes": "힣봇이 denotecli로 못 찾은 실제 사례"
+}
+```
+</details>
+
+### The 3-Layer Cross-Lingual Model
+
+Why some queries are "hard" by design:
+
+| Layer | Mechanism | Handles | Status |
+|-------|-----------|---------|--------|
+| **1. Embedding** | Gemini multilingual vectors | "보편" ≈ "universalism" | ✅ This repo |
+| **2. dblock** | Denote regex link graph | 22 notes linked in meta-note | ✅ Emacs (existing) |
+| **3. dictcli** | Personal vocabulary ontology | 보편↔특수 dialectical pairs | 🚧 Prototype |
+
+Layer 1 alone should solve the "보편 학문" failure case. Layers 2+3 are needed for dialectical pairs and indirect connections. The benchmark deliberately includes queries that **only layer 2 or 3 can fully answer** — tracking how close layer 1 gets reveals where to invest next.
+
 ## Economics
 
 | | Without session_search | With session_search |
