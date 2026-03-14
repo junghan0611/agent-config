@@ -240,22 +240,33 @@ export class VectorStore {
   }
 
   /**
-   * Get all indexed session files (for incremental indexing)
+   * Get all indexed file paths (for incremental indexing)
+   * Uses SQL-based distinct query to avoid loading all rows
    */
-  async getIndexedSessionFiles(): Promise<Set<string>> {
+  async getIndexedFiles(): Promise<Set<string>> {
     await this.ensureInitialized();
     if (!this.table) return new Set();
 
     try {
+      // LanceDB query with explicit large limit to get all unique files
+      const count = await this.table.countRows();
       const results = await this.table
         .query()
         .select(["sessionFile"])
+        .limit(count)
         .toArray();
 
       return new Set(results.map((r) => r.sessionFile as string));
     } catch {
       return new Set();
     }
+  }
+
+  /**
+   * @deprecated Use getIndexedFiles() instead
+   */
+  async getIndexedSessionFiles(): Promise<Set<string>> {
+    return this.getIndexedFiles();
   }
 
   /**
