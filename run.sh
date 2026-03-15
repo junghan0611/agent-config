@@ -146,8 +146,8 @@ await store.close();
 
 # --- Org 인덱싱 (Phase 2 — 768d) ---
 
-# 디지털 가든 export 대상 폴더 (llmlog 제외)
-ORG_FOLDERS="notes,meta,bib,botlog,journal,configs,posts,talks"
+# 디지털 가든 export 대상 폴더 (llmlog, configs, posts, talks 제외)
+ORG_FOLDERS="meta,bib,notes,journal,botlog"
 
 cmd_index_org() {
   load_env
