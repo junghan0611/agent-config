@@ -32,9 +32,10 @@ Usage: ./run.sh <command> [args]
   index:sessions --force      세션 전체 재인덱싱
   index:org                   Org 증분 인덱싱 (768d)
   index:org --force           Org 전체 재인덱싱
-  status                      전체 인덱스 상태
+  compact [sessions|org]      DB 조각 모음 (fragment 정리)
+  status                      전체 인덱스 상태 + fragment 수 + 사이즈
 
-  환경변수: INDEX_CONCURRENCY=8 ./run.sh index:org (기본 4)
+  환경변수: INDEX_CONCURRENCY=2 ./run.sh index:org (기본 2)
 
 === 벤치마크 ===
   bench                       전체 벤치마크 (API 필요)
@@ -69,6 +70,8 @@ case "${1:-help}" in
     shift; load_env; cd "$SM_DIR" && npx tsx indexer.ts sessions "$@" ;;
   index:org)
     shift; load_env; cd "$SM_DIR" && npx tsx indexer.ts org "$@" ;;
+  compact)
+    shift; cd "$SM_DIR" && npx tsx indexer.ts compact "${1:-all}" ;;
   status)
     cd "$SM_DIR" && npx tsx indexer.ts status ;;
 
