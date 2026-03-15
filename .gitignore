@@ -9,3 +9,13 @@ dist/
 !package-lock.json
 .beads/.br_history/
 # benchmark-log.jsonl — 공개 추적
+
+# Go CLI binaries (built from source repos, copied by run.sh setup)
+skills/*/bibcli
+skills/*/bibcli-*
+skills/*/denotecli
+skills/*/denotecli-*
+skills/*/gitcli
+skills/*/gitcli-*
+skills/*/lifetract
+skills/*/lifetract-*

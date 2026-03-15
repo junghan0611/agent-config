@@ -46,7 +46,7 @@ Usage: ./run.sh <command> [args]
   chunk:org --sample          샘플 청크 출력
 
 === 유틸 ===
-  install                     extension 심볼릭 링크 설치
+  setup                       전체 설치 (extension + skills symlink + CLI 바이너리 복사)
   env                         환경변수 상태 확인
 EOF
 }
@@ -119,10 +119,60 @@ const est = Math.round(total.chunks * 100);
 console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6*0.006).toFixed(3) + ', ~' + Math.round(total.chunks*768*4/1024/1024) + 'MB');
 " ;;
 
-  install)
-    target="$HOME/.pi/agent/extensions/semantic-memory"
-    if [ -L "$target" ]; then echo "✅ Symlink exists: $target"; else ln -s "$SM_DIR" "$target" && echo "✅ Installed"; fi
-    [ -d "$SM_DIR/node_modules" ] || (cd "$SM_DIR" && npm install) ;;
+  setup)
+    echo "=== Extension ==="
+    ext_target="$HOME/.pi/agent/extensions/semantic-memory"
+    if [ -L "$ext_target" ]; then echo "✅ Extension: $ext_target"
+    else ln -s "$SM_DIR" "$ext_target" && echo "✅ Extension installed"; fi
+    [ -d "$SM_DIR/node_modules" ] || (cd "$SM_DIR" && npm install)
+
+    echo ""
+    echo "=== Skills ==="
+    skill_target="$HOME/.pi/agent/skills/pi-skills"
+    if [ -L "$skill_target" ]; then rm "$skill_target"; fi
+    ln -s "$SCRIPT_DIR/skills" "$skill_target"
+    echo "✅ Skills: $skill_target → $SCRIPT_DIR/skills"
+
+    echo ""
+    echo "=== CLI Binaries ==="
+    REPOS="$HOME/repos/gh"
+    copy_bin() {
+      local name=$1 src=$2 dest=$3
+      if [ -f "$src" ]; then
+        cp "$src" "$dest" && echo "✅ $name: $(du -h "$dest" | cut -f1)"
+      else
+        echo "⚠ $name: not found at $src (build from source repo)"
+      fi
+    }
+    # x86_64
+    copy_bin "denotecli" "$REPOS/denotecli/denotecli/denotecli" "$SCRIPT_DIR/skills/denotecli/denotecli"
+    copy_bin "bibcli" "${HOME}/.local/bin/bibcli" "$SCRIPT_DIR/skills/bibcli/bibcli"
+    copy_bin "gitcli" "$REPOS/gitcli/gitcli/gitcli" "$SCRIPT_DIR/skills/gitcli/gitcli"
+    copy_bin "lifetract" "$REPOS/lifetract/lifetract/lifetract" "$SCRIPT_DIR/skills/lifetract/lifetract"
+    # arm64 (Oracle VM)
+    for cli in denotecli bibcli gitcli lifetract; do
+      src_arm="$SCRIPT_DIR/skills/$cli/${cli}-linux-arm64"
+      if [ -f "$REPOS/${cli}/${cli}/${cli}-linux-arm64" ] 2>/dev/null; then
+        copy_bin "${cli}-arm64" "$REPOS/${cli}/${cli}/${cli}-linux-arm64" "$src_arm"
+      fi
+    done
+
+    echo ""
+    echo "=== npm install (skills) ==="
+    for pkg_dir in "$SCRIPT_DIR"/skills/*/; do
+      if [ -f "$pkg_dir/package.json" ] && [ ! -d "$pkg_dir/node_modules" ]; then
+        echo "  npm install in $(basename "$pkg_dir")..."
+        (cd "$pkg_dir" && npm install --silent 2>/dev/null)
+      fi
+    done
+    echo "✅ Done"
+
+    echo ""
+    echo "=== Summary ==="
+    echo "Skills: $(ls "$SCRIPT_DIR/skills/" | wc -l)"
+    echo "Extension: $(readlink "$ext_target")"
+    echo "Skills path: $(readlink "$skill_target")"
+    ;;
 
   env)
     load_env 2>/dev/null || true
