@@ -113,7 +113,9 @@ export class VectorStore {
   }
 
   /**
-   * Add chunks with their embeddings
+   * Add chunks with their embeddings.
+   * Safe: deletes existing chunks for the same file before inserting,
+   * preventing duplicates on re-indexing.
    */
   async addChunks(
     chunks: Array<{
@@ -130,6 +132,16 @@ export class VectorStore {
   ): Promise<void> {
     await this.ensureTable();
     if (chunks.length === 0) return;
+
+    // Delete existing chunks for this file (prevent duplicates)
+    const file = chunks[0].sessionFile;
+    if (file) {
+      try {
+        await this.table!.delete(`sessionFile = "${file.replace(/"/g, '\\"')}"`);
+      } catch {
+        // Table might be empty or filter syntax issue — safe to ignore
+      }
+    }
 
     const rows = chunks.map((c) => ({
       id: c.id,
