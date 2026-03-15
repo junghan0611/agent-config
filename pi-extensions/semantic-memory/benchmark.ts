@@ -312,7 +312,7 @@ async function runSearch(
   embedQuery: any,
   retrieve: any,
   config: any,
-  useRerank: boolean,
+  useMMR: boolean,
 ): Promise<string[]> {
   const qVec = await embedQuery(query, config);
   const vecResults = await store.search(qVec, 20, 0.05);
@@ -321,8 +321,11 @@ async function runSearch(
   const hybrid = await retrieve(query, vecResults, ftsResults, {
     vectorWeight: 0.7,
     bm25Weight: 0.3,
-    recencyHalfLifeDays: 90, // org notes span years
-    jinaApiKey: useRerank ? process.env.JINA_API_KEY : undefined,
+    recencyHalfLifeDays: 90,
+    minScore: 0.05,
+    mmr: { enabled: useMMR, lambda: 0.7 },
+    mergeStrategy: "weighted" as const,
+    // Jina disabled — hurts Korean+English mixed docs
   });
 
   return hybrid.map((r: any) => r.sessionFile ?? r.id ?? "");
@@ -357,7 +360,7 @@ async function fullBenchmark() {
   const count = await store.getCount();
   console.log(`Index: ${count} chunks\n`);
 
-  const hasJina = Boolean(process.env.JINA_API_KEY);
+  const _hasJina = Boolean(process.env.JINA_API_KEY); // reserved for future multilingual reranker
   const timestamp = new Date().toISOString();
   const allResults: BenchResult[] = [];
 
@@ -366,9 +369,10 @@ async function fullBenchmark() {
   for (const q of BENCH_QUERIES) {
     const diff = { easy: "🟢", medium: "🟡", hard: "🔴" }[q.difficulty];
 
-    for (const useRerank of hasJina ? [false, true] : [false]) {
+    // A/B: without MMR vs with MMR (Jina disabled — hurts Korean)
+  for (const useMMR of [false, true]) {
       try {
-        const retrieved = await runSearch(q.q, store, embedQuery, retrieve, config, useRerank);
+        const retrieved = await runSearch(q.q, store, embedQuery, retrieve, config, useMMR);
 
         const r5 = recall_at_k(retrieved, q.expected, 5);
         const r10 = recall_at_k(retrieved, q.expected, 10);
@@ -386,14 +390,14 @@ async function fullBenchmark() {
           recall10: r10,
           mrr: m,
           hit,
-          rerank: useRerank,
+          rerank: useMMR, // repurposed: false=no MMR, true=with MMR
           topResults: top3,
           notes: q.notes,
         };
         allResults.push(result);
 
         const icon = hit ? "✅" : "❌";
-        const rr = useRerank ? " [rerank]" : "";
+        const rr = useMMR ? " [MMR]" : "";
         console.log(
           `${icon} ${diff} [${q.lang}]${rr} "${q.q}" — R@5:${r5.toFixed(2)} R@10:${r10.toFixed(2)} MRR:${m.toFixed(2)}`,
         );
@@ -421,12 +425,12 @@ async function fullBenchmark() {
   // --- Summary ---
 
   console.log("\n" + "─".repeat(60));
-  printSummary(allResults, hasJina);
+  printSummary(allResults, true);
 }
 
 function printSummary(allResults: BenchResult[], hasJina: boolean) {
-  const noRerank = allResults.filter((r) => !r.rerank);
-  const withRerank = allResults.filter((r) => r.rerank);
+  const noRerank = allResults.filter((r) => !r.rerank);  // no MMR
+  const withRerank = allResults.filter((r) => r.rerank); // with MMR
 
   const summarize = (rs: BenchResult[], label: string) => {
     if (rs.length === 0) return;
@@ -461,13 +465,13 @@ function printSummary(allResults: BenchResult[], hasJina: boolean) {
     }
   };
 
-  summarize(noRerank, "📊 Without Rerank");
+  summarize(noRerank, "📊 Without MMR");
 
-  if (hasJina && withRerank.length > 0) {
-    summarize(withRerank, "📊 With Jina Rerank");
+  if (withRerank.length > 0) {
+    summarize(withRerank, "📊 With MMR (λ=0.7)");
 
     // Delta comparison
-    console.log("\n📈 Rerank Impact:");
+    console.log("\n📈 MMR Impact:");
     for (const q of BENCH_QUERIES) {
       const nr = noRerank.find((r) => r.query === q.q);
       const wr = withRerank.find((r) => r.query === q.q);
