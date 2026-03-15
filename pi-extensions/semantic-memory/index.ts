@@ -1,26 +1,20 @@
 /**
  * Semantic Memory — pi extension
  *
- * Session RAG: search past pi sessions by meaning, not just keywords.
- *
  * Tools:
- * - session_search: semantic search across all past sessions
+ * - session_search: search past pi sessions by meaning
+ * - knowledge_search: search org-mode knowledge base by meaning
  *
  * Commands:
  * - /memory status: show index stats
- * - /memory search <query>: manual search
- * - /memory reindex: rebuild index from scratch
- *
- * Architecture:
- * - LanceDB vector store (serverless, file-based)
- * - Gemini Embedding 2 native API (OpenClaw pattern)
- * - Hybrid BM25 + vector search with RRF fusion
- * - Jina Rerank (optional, cross-encoder)
- * - Recency decay (newer sessions rank higher)
+ * - /memory search <query>: search sessions
+ * - /memory reindex: rebuild session index
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
+import * as path from "node:path";
+import * as fs from "node:fs";
 import {
   embedQuery,
   embedDocumentBatch,
@@ -30,41 +24,37 @@ import { VectorStore } from "./store.ts";
 import {
   findSessionFiles,
   extractSessionChunks,
-  type SessionChunk,
 } from "./session-indexer.ts";
 import { retrieve, type RetrieverConfig } from "./retriever.ts";
 
 // --- Config ---
 
-const VECTOR_DIMENSIONS = 3072; // Full precision for sessions (Matryoshka 768 for Phase 2/org)
-
-function getGeminiConfig(): GeminiEmbeddingConfig | null {
+function getGeminiConfig(dimensions?: 768 | 3072): GeminiEmbeddingConfig | null {
   const apiKey =
     process.env.GOOGLE_AI_API_KEY ?? process.env.GEMINI_API_KEY ?? "";
   if (!apiKey) return null;
   return {
     apiKey,
     model: "gemini-embedding-2-preview",
-    // No dimensions → 3072 default (full precision for sessions)
-  };
-}
-
-function getRetrieverConfig(): Partial<RetrieverConfig> {
-  return {
-    vectorWeight: 0.7,
-    bm25Weight: 0.3,
-    recencyHalfLifeDays: 14,
-    jinaApiKey: process.env.JINA_API_KEY,
-    jinaModel: "jina-reranker-v3",
+    ...(dimensions ? { dimensions } : {}),
   };
 }
 
 // --- Extension ---
 
 export default function (pi: ExtensionAPI) {
-  const store = new VectorStore(undefined, VECTOR_DIMENSIONS);
-  let initialized = false;
-  let indexing = false;
+  const sessionStore = new VectorStore(undefined, 3072);
+  const orgDbPath = path.join(
+    process.env.HOME ?? "",
+    ".pi",
+    "agent",
+    "memory",
+    "org.lance",
+  );
+  const orgStore = new VectorStore(orgDbPath, 768);
+
+  let sessionReady = false;
+  let orgReady = false;
 
   // --- Initialize on session start ---
   pi.on("session_start", async (_event, ctx) => {
@@ -78,17 +68,21 @@ export default function (pi: ExtensionAPI) {
     }
 
     try {
-      await store.init();
-      initialized = true;
+      await sessionStore.init();
+      sessionReady = true;
+      const sCount = await sessionStore.getCount();
 
-      const count = await store.getCount();
-      if (count > 0) {
-        ctx.ui.setStatus("semantic-memory", `🧠 ${count} chunks indexed`);
-      } else {
+      // Org store (if indexed)
+      if (fs.existsSync(orgDbPath)) {
+        await orgStore.init();
+        orgReady = true;
+        const oCount = await orgStore.getCount();
         ctx.ui.setStatus(
           "semantic-memory",
-          "🧠 No sessions indexed yet. Use /memory reindex",
+          `🧠 ${sCount} sessions + 📚 ${oCount} org chunks`,
         );
+      } else {
+        ctx.ui.setStatus("semantic-memory", `🧠 ${sCount} session chunks`);
       }
     } catch (err) {
       ctx.ui.setStatus(
@@ -105,7 +99,7 @@ export default function (pi: ExtensionAPI) {
     description:
       "Search past pi sessions by meaning. Use when you need to find previous conversations, decisions, or context from past sessions.",
     promptSnippet:
-      "Search past sessions semantically — find conversations, decisions, and context by meaning",
+      "Search past pi sessions semantically — find conversations, decisions, and context by meaning",
     promptGuidelines: [
       "Use session_search when the user asks about past conversations, decisions, or context from other sessions.",
       "Use session_search when you need context that may have been discussed in a previous session.",
@@ -124,179 +118,191 @@ export default function (pi: ExtensionAPI) {
       ),
     }),
 
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      if (!initialized) {
-        throw new Error(
-          "Semantic memory not initialized. Check GOOGLE_AI_API_KEY.",
-        );
+    async execute(_toolCallId, params) {
+      if (!sessionReady) {
+        throw new Error("Session memory not initialized.");
       }
-
       const gemini = getGeminiConfig();
-      if (!gemini) {
-        throw new Error("GOOGLE_AI_API_KEY not set.");
-      }
+      if (!gemini) throw new Error("GOOGLE_AI_API_KEY not set.");
 
       const limit = params.limit ?? 10;
-
-      // 1. Embed query
       const queryVector = await embedQuery(params.query, gemini);
+      const vectorResults = await sessionStore.search(queryVector, limit * 2);
+      const ftsResults = await sessionStore.fullTextSearch(params.query, limit * 2);
 
-      // 2. Vector search
-      const vectorResults = await store.search(queryVector, limit * 2);
+      const results = await retrieve(params.query, vectorResults, ftsResults, {
+        vectorWeight: 0.7,
+        bm25Weight: 0.3,
+        recencyHalfLifeDays: 14,
+        mergeStrategy: "rrf" as const,
+        mmr: { enabled: false, lambda: 0.7 },
+      });
 
-      // 3. Full-text search
-      const ftsResults = await store.fullTextSearch(params.query, limit * 2);
+      return formatResults(params.query, results.slice(0, limit));
+    },
+  });
 
-      // 4. Hybrid retrieval (RRF + decay + optional rerank)
-      const results = await retrieve(
-        params.query,
-        vectorResults,
-        ftsResults,
-        getRetrieverConfig(),
-      );
+  // --- knowledge_search tool ---
+  pi.registerTool({
+    name: "knowledge_search",
+    label: "Knowledge Search",
+    description:
+      "Search the org-mode knowledge base (3000+ Denote notes) by meaning. Use for finding notes, concepts, references, meta-knowledge. Supports Korean and English queries.",
+    promptSnippet:
+      "Search org-mode knowledge base semantically — notes, concepts, references in Korean and English",
+    promptGuidelines: [
+      "Use knowledge_search when the user asks about their notes, concepts, or knowledge base.",
+      "Use knowledge_search for cross-lingual queries — Korean '보편' finds English-tagged 'universalism' notes.",
+      "Prefer knowledge_search over denotecli for semantic/conceptual search. Use denotecli for exact title/tag matching.",
+    ],
+    parameters: Type.Object({
+      query: Type.String({
+        description:
+          "Natural language search query (e.g., '보편 학문', 'knowledge graph ontology', '바흐 체화인지')",
+      }),
+      limit: Type.Optional(
+        Type.Number({
+          description: "Max results (default 10)",
+          default: 10,
+        }),
+      ),
+    }),
 
-      const topResults = results.slice(0, limit);
-
-      if (topResults.length === 0) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `No results found for: "${params.query}"\n\nTry /memory reindex if sessions haven't been indexed yet.`,
-            },
-          ],
-          details: { query: params.query, results: [] },
-        };
+    async execute(_toolCallId, params) {
+      if (!orgReady) {
+        throw new Error(
+          "Org knowledge base not indexed. Run: ./run.sh index:org",
+        );
       }
+      const gemini = getGeminiConfig(768);
+      if (!gemini) throw new Error("GOOGLE_AI_API_KEY not set.");
 
-      // Format results
-      const formatted = topResults
-        .map((r, i) => {
-          const lines = [
-            `## ${i + 1}. [${r.project}] ${r.role} (score: ${r.score.toFixed(3)})`,
-            `- File: ${r.sessionFile}:L${r.lineNumber}`,
-            `- Time: ${r.timestamp}`,
-            `- Text:\n${r.text.slice(0, 500)}${r.text.length > 500 ? "..." : ""}`,
-          ];
-          return lines.join("\n");
-        })
-        .join("\n\n---\n\n");
+      const limit = params.limit ?? 10;
+      const queryVector = await embedQuery(params.query, gemini);
+      const vectorResults = await orgStore.search(queryVector, limit * 2, 0.05);
+      const ftsResults = await orgStore.fullTextSearch(params.query, limit * 2);
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Found ${topResults.length} results for: "${params.query}"\n\n${formatted}`,
-          },
-        ],
-        details: {
-          query: params.query,
-          resultCount: topResults.length,
-          results: topResults.map((r) => ({
-            id: r.id,
-            project: r.project,
-            role: r.role,
-            score: r.score,
-            sessionFile: r.sessionFile,
-            lineNumber: r.lineNumber,
-          })),
-        },
-      };
+      const results = await retrieve(params.query, vectorResults, ftsResults, {
+        vectorWeight: 0.7,
+        bm25Weight: 0.3,
+        recencyHalfLifeDays: 90,
+        minScore: 0.05,
+        mmr: { enabled: true, lambda: 0.7 },
+        mergeStrategy: "weighted" as const,
+      });
+
+      return formatResults(params.query, results.slice(0, limit));
     },
   });
 
   // --- /memory command ---
   pi.registerCommand("memory", {
-    description:
-      "Semantic memory management — status, search <query>, reindex",
+    description: "Semantic memory — status, search <query>, reindex",
     handler: async (args, ctx) => {
       const parts = (args ?? "").trim().split(/\s+/);
-      const subcommand = parts[0] || "status";
+      const sub = parts[0] || "status";
 
-      switch (subcommand) {
-        case "status": {
-          if (!initialized) {
-            ctx.ui.notify("Semantic memory not initialized.", "warning");
-            return;
-          }
-          const count = await store.getCount();
-          const sessionFiles = findSessionFiles();
-          const indexed = await store.getIndexedSessionFiles();
+      if (sub === "status") {
+        const sCount = sessionReady ? await sessionStore.getCount() : 0;
+        const oCount = orgReady ? await orgStore.getCount() : 0;
+        const sFiles = findSessionFiles();
+        const sIndexed = sessionReady ? await sessionStore.getIndexedFiles() : new Set();
+        ctx.ui.notify(
+          `🧠 Sessions: ${sCount} chunks (${sIndexed.size}/${sFiles.length} files)\n` +
+            `📚 Org: ${oCount} chunks${orgReady ? "" : " (not indexed)"}`,
+          "info",
+        );
+      } else if (sub === "search") {
+        const query = parts.slice(1).join(" ");
+        if (!query) {
+          ctx.ui.notify("Usage: /memory search <query>", "warning");
+          return;
+        }
+        pi.sendUserMessage(
+          `Use session_search to find: "${query}"`,
+          { deliverAs: "followUp" },
+        );
+      } else if (sub === "reindex") {
+        if (!sessionReady) {
+          ctx.ui.notify("Session memory not initialized.", "warning");
+          return;
+        }
+        const gemini = getGeminiConfig();
+        if (!gemini) {
+          ctx.ui.notify("GOOGLE_AI_API_KEY not set.", "error");
+          return;
+        }
+        const force = parts.includes("--force");
+        ctx.ui.notify("🧠 Starting session index...", "info");
+        try {
+          await indexSessions(sessionStore, gemini, ctx, force);
+          const count = await sessionStore.getCount();
+          ctx.ui.setStatus("semantic-memory", `🧠 ${count} chunks indexed`);
+          ctx.ui.notify(`✅ Done. ${count} chunks.`, "info");
+        } catch (err) {
           ctx.ui.notify(
-            `🧠 Semantic Memory\n` +
-              `  Chunks: ${count}\n` +
-              `  Sessions: ${indexed.size} / ${sessionFiles.length} indexed`,
-            "info",
+            `❌ Failed: ${err instanceof Error ? err.message : String(err)}`,
+            "error",
           );
-          break;
         }
-
-        case "search": {
-          const query = parts.slice(1).join(" ");
-          if (!query) {
-            ctx.ui.notify("Usage: /memory search <query>", "warning");
-            return;
-          }
-          // Trigger the tool via user message
-          pi.sendUserMessage(
-            `Use session_search to find: "${query}"`,
-            { deliverAs: "followUp" },
-          );
-          break;
-        }
-
-        case "reindex": {
-          if (!initialized) {
-            ctx.ui.notify("Semantic memory not initialized.", "warning");
-            return;
-          }
-          if (indexing) {
-            ctx.ui.notify("Indexing already in progress...", "warning");
-            return;
-          }
-
-          const gemini = getGeminiConfig();
-          if (!gemini) {
-            ctx.ui.notify("GOOGLE_AI_API_KEY not set.", "error");
-            return;
-          }
-
-          const force = parts.includes("--force");
-          ctx.ui.notify("🧠 Starting index...", "info");
-          indexing = true;
-
-          try {
-            await indexSessions(store, gemini, ctx, force);
-            const count = await store.getCount();
-            ctx.ui.setStatus("semantic-memory", `🧠 ${count} chunks indexed`);
-            ctx.ui.notify(`✅ Indexing complete. ${count} chunks.`, "info");
-          } catch (err) {
-            ctx.ui.notify(
-              `❌ Indexing failed: ${err instanceof Error ? err.message : String(err)}`,
-              "error",
-            );
-          } finally {
-            indexing = false;
-          }
-          break;
-        }
-
-        default:
-          ctx.ui.notify(
-            "Usage: /memory [status | search <query> | reindex [--force]]",
-            "warning",
-          );
+      } else {
+        ctx.ui.notify(
+          "Usage: /memory [status | search <query> | reindex [--force]]",
+          "warning",
+        );
       }
     },
   });
 
-  // Cleanup on shutdown
   pi.on("session_shutdown", async () => {
-    await store.close();
+    await sessionStore.close();
+    await orgStore.close();
   });
 }
 
-// --- Indexing Logic ---
+// --- Helpers ---
+
+function formatResults(query: string, results: import("./store.ts").SearchResult[]) {
+  if (results.length === 0) {
+    return {
+      content: [{ type: "text" as const, text: `No results for: "${query}"` }],
+      details: { query, results: [] },
+    };
+  }
+
+  const formatted = results
+    .map((r, i) => {
+      const lines = [
+        `## ${i + 1}. [${r.project}] ${r.role} (score: ${r.score.toFixed(3)})`,
+        `- File: ${r.sessionFile}:L${r.lineNumber}`,
+        `- Time: ${r.timestamp}`,
+        `- Text:\n${r.text.slice(0, 500)}${r.text.length > 500 ? "..." : ""}`,
+      ];
+      return lines.join("\n");
+    })
+    .join("\n\n---\n\n");
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: `Found ${results.length} results for: "${query}"\n\n${formatted}`,
+      },
+    ],
+    details: {
+      query,
+      resultCount: results.length,
+      results: results.map((r) => ({
+        id: r.id,
+        project: r.project,
+        role: r.role,
+        score: r.score,
+        sessionFile: r.sessionFile,
+        lineNumber: r.lineNumber,
+      })),
+    },
+  };
+}
 
 async function indexSessions(
   store: VectorStore,
@@ -304,69 +310,34 @@ async function indexSessions(
   ctx: { ui: { notify: (msg: string, level: string) => void } },
   force: boolean = false,
 ): Promise<void> {
-  const sessionFiles = findSessionFiles();
-
-  if (force) {
-    await store.reset();
-  }
+  const files = findSessionFiles();
+  if (force) await store.reset();
   await store.ensureTable();
 
-  // Find which sessions need indexing
-  const indexed = force ? new Set<string>() : await store.getIndexedSessionFiles();
-  const toIndex = sessionFiles.filter((f) => !indexed.has(f));
+  const indexed = force ? new Set<string>() : await store.getIndexedFiles();
+  const toIndex = files.filter((f) => !indexed.has(f));
 
   if (toIndex.length === 0) {
     ctx.ui.notify("All sessions already indexed.", "info");
     return;
   }
 
-  ctx.ui.notify(
-    `Indexing ${toIndex.length} new sessions (${sessionFiles.length} total)...`,
-    "info",
-  );
-
+  ctx.ui.notify(`Indexing ${toIndex.length} sessions...`, "info");
   let totalChunks = 0;
 
   for (let i = 0; i < toIndex.length; i++) {
-    const file = toIndex[i];
-    const chunks = await extractSessionChunks(file);
-
+    const chunks = await extractSessionChunks(toIndex[i]);
     if (chunks.length === 0) continue;
 
-    // Batch embed
-    const texts = chunks.map((c) => c.text);
-    const vectors = await embedDocumentBatch(texts, gemini);
-
-    // Store
-    const records = chunks.map((c, j) => ({
-      id: c.id,
-      text: c.text,
-      vector: vectors[j],
-      sessionFile: c.sessionFile,
-      project: c.project,
-      lineNumber: c.lineNumber,
-      timestamp: c.timestamp,
-      role: c.role,
-      metadata: c.metadata,
-    }));
-
-    await store.addChunks(records);
+    const vectors = await embedDocumentBatch(chunks.map((c) => c.text), gemini);
+    await store.addChunks(chunks.map((c, j) => ({ ...c, vector: vectors[j] })));
     totalChunks += chunks.length;
 
-    // Progress every 10 files
     if ((i + 1) % 10 === 0) {
-      ctx.ui.notify(
-        `  ${i + 1}/${toIndex.length} sessions, ${totalChunks} chunks...`,
-        "info",
-      );
+      ctx.ui.notify(`${i + 1}/${toIndex.length} sessions, ${totalChunks} chunks...`, "info");
     }
   }
 
-  // Create FTS index
   await store.createFtsIndex();
-
-  ctx.ui.notify(
-    `Indexed ${toIndex.length} sessions → ${totalChunks} chunks`,
-    "info",
-  );
+  ctx.ui.notify(`Indexed ${toIndex.length} sessions → ${totalChunks} chunks`, "info");
 }
