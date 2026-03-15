@@ -18,13 +18,13 @@ const DEFAULT_MODEL = "gemini-embedding-2-preview";
 const VALID_DIMENSIONS = [768, 1536, 3072] as const;
 const MAX_BATCH_SIZE = 100; // Gemini batch limit
 
-// Retry config (OpenClaw pattern)
-const RETRY_MAX_ATTEMPTS = 3;
-const RETRY_BASE_DELAY_MS = 500;
-const RETRY_MAX_DELAY_MS = 8000;
+// Retry config (OpenClaw pattern, tuned for Tier 1 RPM limits)
+const RETRY_MAX_ATTEMPTS = 5;
+const RETRY_BASE_DELAY_MS = 2000;
+const RETRY_MAX_DELAY_MS = 30000;
 
-// Concurrency config
-export const DEFAULT_CONCURRENCY = 4; // OpenClaw: EMBEDDING_INDEX_CONCURRENCY = 4
+// Concurrency config — Tier 1 safe (preview model RPM ~20-30)
+export const DEFAULT_CONCURRENCY = 2;
 
 export type TaskType = "RETRIEVAL_QUERY" | "RETRIEVAL_DOCUMENT";
 
