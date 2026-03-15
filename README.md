@@ -38,7 +38,7 @@ Extensions load into the [Pi coding agent](https://github.com/badlogic/pi-mono) 
 
 Session RAG — search past conversations by meaning, not keywords.
 
-- **11,844 chunks** indexed from 94 sessions across 15+ projects
+- **11,378 session chunks** (3072d) + **103,898 org chunks** (768d)
 - **Gemini Embedding 2** native API (3072d, Matryoshka-ready)
 - **Hybrid retrieval**: vector search + BM25 full-text + RRF fusion + recency decay
 - **Jina Reranker v3** cross-encoder (optional)
@@ -155,16 +155,21 @@ Every query runs with **and without Jina Rerank** for A/B comparison. Results lo
 ./run.sh bench        # full evaluation (needs indexed org DB)
 ```
 
-**Latest benchmark** (2026-03-15, commit `8d80312`):
+**Latest benchmark** (2026-03-15, commit `c2466b8`):
 
 | Metric | Score |
 |--------|-------|
 | Hit Rate | **100% (19/19)** |
-| MRR | **0.860** |
-| R@5 | 0.746 |
-| R@10 | 0.781 |
+| MRR | **0.872** |
+| R@5 | 0.754 |
+| R@10 | 0.789 |
 
-**Last index** (2026-03-15): Sessions 24,020 chunks (3072d) · Org 84,087 chunks (768d)
+**Last index** (2026-03-15):
+
+| Store | Chunks | Files | Dims | Fragments | Size |
+|-------|--------|-------|------|-----------|------|
+| Sessions | 11,378 | 95/100 | 3072d | 7 | 161MB |
+| Org | 103,898 | 2,765/2,787 | 768d | 53 | 752MB |
 
 <details>
 <summary>Log format (JSONL, 1 line per query per run)</summary>
@@ -206,7 +211,8 @@ Layer 1 alone should solve the "보편 학문" failure case. Layers 2+3 are need
 | "What did we discuss about X yesterday?" | grep → read × 5-10 → **50K tokens** | 1 tool call → **2K tokens** |
 | Cost | Claude API tokens (expensive) | Gemini embed $0.0001 + local search |
 
-Indexing 94 sessions: **$0.19 one-time**. Each query: effectively free.
+Indexing: Sessions $0.07 + Org $0.06 = **$0.13 total**. Each query: effectively free.
+DB size: 913MB (Sessions 161MB + Org 752MB). LanceDB fragments: 60 total.
 The expensive model's tokens go to *work*, not to *remembering*.
 
 ## License
