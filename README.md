@@ -36,23 +36,16 @@ Extensions load into the [Pi coding agent](https://github.com/badlogic/pi-mono) 
 
 #### [semantic-memory](pi-extensions/semantic-memory/)
 
-Session RAG — search past conversations by meaning, not keywords.
+Two tools registered automatically in every pi session:
 
-- **11,378 session chunks** (3072d) + **103,898 org chunks** (768d)
-- **Gemini Embedding 2** native API (3072d, Matryoshka-ready)
-- **Hybrid retrieval**: vector search + BM25 full-text + RRF fusion + recency decay
-- **Jina Reranker v3** cross-encoder (optional)
-- **LanceDB** serverless vector store (173MB, file-based)
-- **41 tests** (unit + integration), API-free unit tests for CI
+| Tool | DB | Dims | Purpose |
+|------|-----|------|---------|
+| `session_search` | sessions.lance (161MB) | 3072d | Past agent conversations |
+| `knowledge_search` | org.lance (752MB) | 768d | Org-mode knowledge base (3000+ Denote notes) |
 
-```
-"어제 openclaw에서 memory 설정한 거"
-→ [0.183] openclaw gemini-embedding-2 API discussion
-→ [0.141] memory-lancedb-pro reference discussion
-→ [0.121] openclaw bot sync conversation
-```
+The agent calls these autonomously — ask "보편 학문 관련 노트 찾아줘" and it finds `universalism`-tagged notes without being told the English word.
 
-Vague Korean queries find precise cross-session context. The agent calls `session_search` autonomously when it needs past context.
+**Stack**: Gemini Embedding 2 native API · LanceDB serverless · weighted merge + MMR diversity · temporal decay · org-aware 2-tier chunking (headings + content)
 
 ### Skills
 
@@ -76,30 +69,24 @@ memex-kb              Knowledge base integration
 meta-config           Orchestration across layers
 ```
 
-agent-config supersedes the deprecated private `claude-config`. What was 103 private memory files is now 11,844 searchable vectors in a public repo. The shift: from hoarding context privately to building open infrastructure that *any* agent can use.
+agent-config supersedes the deprecated private `claude-config`. What was 103 private memory files is now 115K searchable vectors in a public repo. The shift: from hoarding context privately to building open infrastructure that *any* agent can use.
 
 ## Architecture Decisions
 
 **Why Gemini Embedding 2 native API (not OpenAI-compatible)?**
-taskType (RETRIEVAL_QUERY vs DOCUMENT), batchEmbedContents, outputDimensionality (Matryoshka). The OpenAI-compatible endpoint loses all three. We track [OpenClaw](https://github.com/openclaw)'s Gemini pattern as upstream.
+taskType (RETRIEVAL_QUERY vs DOCUMENT), batchEmbedContents, outputDimensionality (Matryoshka). The OpenAI-compatible endpoint loses all three. We track [OpenClaw](https://github.com/nicepkg/openclaw)'s Gemini pattern as upstream.
 
 **Why LanceDB (not SQLite+vec)?**
 Serverless, file-based, no extensions to compile. The DB is a directory you can rsync. OpenClaw uses SQLite+vec; we chose LanceDB for portability across NixOS machines.
 
-**Why Jina Rerank instead of MMR?**
-OpenClaw uses Jaccard-based MMR for diversity. We use Jina's cross-encoder reranker — it understands meaning, not just token overlap. Different tradeoff: their MMR is free and local; our rerank is an API call but more accurate. Both are valid.
+**Why MMR instead of Jina Rerank?**
+Benchmarked both. Jina reranker v3 **hurts** Korean+English mixed docs (MRR 0.642 → 0.717 with MMR). Jaccard-based MMR is free, local, and better for our multilingual corpus. Jina kept as optional for future multilingual rerankers.
 
-**Why 3072d now, 768d later?**
-Phase 1 (sessions): ~12K vectors, 173MB at 3072d — precision matters for vague queries. Phase 2 (3000+ org notes): Matryoshka 768d cuts storage 75% with minimal quality loss at scale.
+**Why 3072d for sessions, 768d for org?**
+Sessions (~11K vectors): precision matters for vague queries across conversations. Org (~104K vectors): Matryoshka 768d cuts storage 75% with minimal quality loss at scale. Both use the same Gemini Embedding 2 model.
 
-## Roadmap
-
-- [x] Phase 1: Session RAG (pi local sessions)
-- [ ] OpenClaw bot session integration (Oracle VM → git pull → reindex)
-- [ ] Phase 2: ~/org Denote notes (3000+ notes, Matryoshka 768d)
-- [ ] CLI extraction for non-pi environments (OpenClaw bots via skill)
-- [ ] pi-skills migration into this repo
-- [ ] Day-query integration (session context as 6th data source)
+**Why WriteBuffer?**
+LanceDB creates one fragment per `table.add()` call. Without buffering, 2,787 org files → 3,084 fragments → 1.1GB. With WriteBuffer (2000 chunks per flush): 53 fragments → 752MB.
 
 ## Setup
 
@@ -116,27 +103,30 @@ ln -s $(pwd)/pi-extensions/semantic-memory ~/.pi/agent/extensions/semantic-memor
 
 # Environment (in ~/.env.local)
 # GEMINI_API_KEY=...     (required)
-# JINA_API_KEY=...       (optional, for rerank)
+# JINA_API_KEY=...       (optional, kept for future reranker)
+
+# Index
+./run.sh index:sessions --force     # ~1 min, $0.07
+./run.sh index:org --force           # ~30 min, $0.06
+./run.sh status                      # verify
 
 # Test
-npm test                              # 41 tests
-npm run test:search -- "your query"   # live search
+./run.sh test:unit                   # 30 tests, no API
+./run.sh test                        # all tests
 
-# In pi session
-/memory reindex        # index all sessions
-/memory status         # check index stats
-# Or just ask naturally — the agent calls session_search on its own
+# In pi session — tools are available automatically
+# Or use commands:
+/memory status                       # show index stats
+/memory reindex                      # incremental session reindex
 ```
 
 ## Benchmark
-
-### Org-mode RAG Quality (Phase 2)
 
 19 hand-curated queries across 9 categories, testing cross-lingual search on 3000+ Korean org-mode notes with English tags.
 
 | Category | Queries | Tests |
 |----------|---------|-------|
-| **cross-lingual** | 4 | Korean query → English-tagged note (e.g., "보편 학문" → `universalism` tag) |
+| **cross-lingual** | 4 | Korean query → English-tagged note ("보편 학문" → `universalism` tag) |
 | **morphological** | 2 | `universal` vs `유니버셜` — transliteration + morphological variants |
 | **dialectical** | 2 | Opposite concepts in same meta-note ("보편 ↔ 특수") |
 | **korean-concept** | 3 | Pure Korean concept search |
@@ -148,14 +138,14 @@ npm run test:search -- "your query"   # live search
 
 Difficulty: 🟢 easy (8) · 🟡 medium (8) · 🔴 hard (3)
 
-Every query runs with **and without Jina Rerank** for A/B comparison. Results logged to [`benchmark-log.jsonl`](pi-extensions/semantic-memory/benchmark-log.jsonl) — each run appends, so improvement over time is trackable.
+Every query runs **with and without MMR** for A/B comparison. Results logged to [`benchmark-log.jsonl`](pi-extensions/semantic-memory/benchmark-log.jsonl) for tracking improvement over time.
 
 ```bash
 ./run.sh bench:dry    # see queries + expected results
-./run.sh bench        # full evaluation (needs indexed org DB)
+./run.sh bench        # full evaluation
 ```
 
-**Latest benchmark** (2026-03-15, commit `c2466b8`):
+**Latest** (2026-03-15, `91d87e6`):
 
 | Metric | Score |
 |--------|-------|
@@ -164,33 +154,10 @@ Every query runs with **and without Jina Rerank** for A/B comparison. Results lo
 | R@5 | 0.754 |
 | R@10 | 0.789 |
 
-**Last index** (2026-03-15):
-
 | Store | Chunks | Files | Dims | Fragments | Size |
 |-------|--------|-------|------|-----------|------|
 | Sessions | 11,378 | 95/100 | 3072d | 7 | 161MB |
 | Org | 103,898 | 2,765/2,787 | 768d | 53 | 752MB |
-
-<details>
-<summary>Log format (JSONL, 1 line per query per run)</summary>
-
-```json
-{
-  "timestamp": "2026-03-14T15:30:00.000Z",
-  "query": "보편 학문에 대한 문서",
-  "category": "cross-lingual",
-  "difficulty": "medium",
-  "lang": "ko",
-  "recall5": 0.67,
-  "recall10": 1.00,
-  "mrr": 0.50,
-  "hit": true,
-  "rerank": false,
-  "topResults": ["20250424T233558--†-보편-특수...", "20250516T090655--모티머애들러..."],
-  "notes": "힣봇이 denotecli로 못 찾은 실제 사례"
-}
-```
-</details>
 
 ### The 3-Layer Cross-Lingual Model
 
@@ -200,20 +167,30 @@ Why some queries are "hard" by design:
 |-------|-----------|---------|--------|
 | **1. Embedding** | Gemini multilingual vectors | "보편" ≈ "universalism" | ✅ This repo |
 | **2. dblock** | Denote regex link graph | 22 notes linked in meta-note | ✅ Emacs (existing) |
-| **3. dictcli** | Personal vocabulary ontology | 보편↔특수 dialectical pairs | 🚧 Prototype |
+| **3. dictcli** | Personal vocabulary ontology | 보편↔특수 dialectical pairs | 🚧 [Prototype](https://github.com/junghan0611/dictcli) |
 
-Layer 1 alone should solve the "보편 학문" failure case. Layers 2+3 are needed for dialectical pairs and indirect connections. The benchmark deliberately includes queries that **only layer 2 or 3 can fully answer** — tracking how close layer 1 gets reveals where to invest next.
+Layer 1 alone achieves 100% hit rate. Layers 2+3 are needed for dialectical pairs and indirect connections. The benchmark deliberately includes queries that **only layer 2 or 3 can fully answer** — tracking how close layer 1 gets reveals where to invest next.
+
+## Roadmap
+
+- [x] Phase 1: Session RAG (3072d, pi local sessions)
+- [x] Phase 2: Org-mode knowledge base (768d, 2-tier org-aware chunking)
+- [x] Benchmark: 19 queries, 9 categories, cross-lingual, public JSONL tracking
+- [x] WriteBuffer: fragment reduction 58x (3,084 → 53)
+- [ ] OpenClaw bot session integration (Oracle VM → git pull → reindex)
+- [ ] Day-query integration (session context as 6th data source)
+- [ ] pi-skills migration into this repo
+- [ ] 3-layer query expansion (dictcli wordmap → embedding boost)
 
 ## Economics
 
-| | Without session_search | With session_search |
+| | Without semantic search | With semantic search |
 |---|---|---|
-| "What did we discuss about X yesterday?" | grep → read × 5-10 → **50K tokens** | 1 tool call → **2K tokens** |
+| "What did we discuss about X?" | grep → read × 5-10 → **50K tokens** | 1 tool call → **2K tokens** |
 | Cost | Claude API tokens (expensive) | Gemini embed $0.0001 + local search |
 
-Indexing: Sessions $0.07 + Org $0.06 = **$0.13 total**. Each query: effectively free.
-DB size: 913MB (Sessions 161MB + Org 752MB). LanceDB fragments: 60 total.
-The expensive model's tokens go to *work*, not to *remembering*.
+Total indexing cost: **$0.13** (sessions $0.07 + org $0.06). Each query: effectively free.
+DB total: **913MB** (sessions 161MB + org 752MB). 60 LanceDB fragments.
 
 ## License
 
