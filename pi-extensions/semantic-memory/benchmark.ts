@@ -62,10 +62,10 @@ export const BENCH_QUERIES: BenchQuery[] = [
   {
     q: "데이터로그 쿼리 언어",
     lang: "ko",
-    expected: ["20220328T092700"], // † 데이터로그 (meta, tag: datalog)
+    expected: ["20250415T165756", "20220328T092700"], // bib/데이터로그-클로저 or meta/데이터로그
     category: "cross-lingual",
     difficulty: "easy",
-    notes: "한글 타이틀 + 영어 태그 datalog",
+    notes: "한글 타이틀 + 영어 태그 datalog. bib와 meta 둘 다 유효",
   },
   {
     q: "knowledge graph ontology",
@@ -150,9 +150,10 @@ export const BENCH_QUERIES: BenchQuery[] = [
   {
     q: "clojure emacs 개발환경",
     lang: "mixed",
-    expected: ["20220712T090000"], // @practicalli 이맥스 클로저
+    expected: ["20250322T161007", "20240117T121614", "20220712T090000"], // cider, 이맥스IDE, practicalli
     category: "tag-boost",
     difficulty: "easy",
+    notes: "clojure+emacs 관련 bib 노트 여러 개가 유효",
   },
   {
     q: "에이전트 메모리 시스템 진화",
@@ -201,10 +202,10 @@ export const BENCH_QUERIES: BenchQuery[] = [
   {
     q: "깨달음",
     lang: "ko",
-    expected: ["20260307T165907"], // @디팩초프라 깨달음 특이점 AI 영적 지능
+    expected: ["20250314T144713", "20260307T165907"], // meta/꽝-하산하라-깨달음 or botlog/디팩초프라
     category: "vague-short",
     difficulty: "hard",
-    notes: "1단어 모호한 쿼리. 많은 노트에 '깨달음'이 있을 수 있음",
+    notes: "1단어 모호한 쿼리. meta가 더 직접적, botlog도 유효",
   },
 
   // ============================
@@ -225,10 +226,10 @@ export const BENCH_QUERIES: BenchQuery[] = [
   {
     q: "Denote 파일명 네이밍 규칙",
     lang: "mixed",
-    expected: ["20211117T190700"], // notes 중 Denote 관련
+    expected: ["20231114T105616", "20241020T172137", "20211117T190700"], // denote매뉴얼, meta/작명-네이밍, 이맥스팁
     category: "heading-precision",
     difficulty: "medium",
-    notes: "heading 청크가 content보다 정확한지 비교",
+    notes: "denote 매뉴얼과 네이밍 meta 노트가 더 직접적",
   },
 ];
 
