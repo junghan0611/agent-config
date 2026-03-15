@@ -119,8 +119,16 @@ export default function (pi: ExtensionAPI) {
     }),
 
     async execute(_toolCallId, params) {
+      // Lazy init — session_start may not have fired yet or env wasn't ready
       if (!sessionReady) {
-        throw new Error("Session memory not initialized.");
+        const gemini = getGeminiConfig();
+        if (!gemini) throw new Error("GOOGLE_AI_API_KEY / GEMINI_API_KEY not set.");
+        try {
+          await sessionStore.init();
+          sessionReady = true;
+        } catch (err) {
+          throw new Error(`Session memory init failed: ${err instanceof Error ? err.message : String(err)}`);
+        }
       }
       const gemini = getGeminiConfig();
       if (!gemini) throw new Error("GOOGLE_AI_API_KEY not set.");
@@ -134,6 +142,7 @@ export default function (pi: ExtensionAPI) {
         vectorWeight: 0.7,
         bm25Weight: 0.3,
         recencyHalfLifeDays: 14,
+        minScore: 0.001,  // RRF scores are small (~0.01), don't filter them
         mergeStrategy: "rrf" as const,
         mmr: { enabled: false, lambda: 0.7 },
       });
@@ -169,10 +178,19 @@ export default function (pi: ExtensionAPI) {
     }),
 
     async execute(_toolCallId, params) {
+      // Lazy init — org DB may exist but session_start lost the race with env-loader
       if (!orgReady) {
-        throw new Error(
-          "Org knowledge base not indexed. Run: ./run.sh index:org",
-        );
+        if (!fs.existsSync(orgDbPath)) {
+          throw new Error("Org knowledge base not indexed. Run: ./run.sh index:org");
+        }
+        const gemini = getGeminiConfig(768);
+        if (!gemini) throw new Error("GOOGLE_AI_API_KEY / GEMINI_API_KEY not set.");
+        try {
+          await orgStore.init();
+          orgReady = true;
+        } catch (err) {
+          throw new Error(`Org memory init failed: ${err instanceof Error ? err.message : String(err)}`);
+        }
       }
       const gemini = getGeminiConfig(768);
       if (!gemini) throw new Error("GOOGLE_AI_API_KEY not set.");
