@@ -155,6 +155,17 @@ Every query runs with **and without Jina Rerank** for A/B comparison. Results lo
 ./run.sh bench        # full evaluation (needs indexed org DB)
 ```
 
+**Latest benchmark** (2026-03-15, commit `8d80312`):
+
+| Metric | Score |
+|--------|-------|
+| Hit Rate | **100% (19/19)** |
+| MRR | **0.860** |
+| R@5 | 0.746 |
+| R@10 | 0.781 |
+
+**Last index** (2026-03-15): Sessions 24,020 chunks (3072d) · Org 84,087 chunks (768d)
+
 <details>
 <summary>Log format (JSONL, 1 line per query per run)</summary>
 
