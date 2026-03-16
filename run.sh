@@ -146,6 +146,9 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     }
     # x86_64
     copy_bin "denotecli" "$REPOS/denotecli/denotecli/denotecli" "$SCRIPT_DIR/skills/denotecli/denotecli"
+    copy_bin "dictcli" "$REPOS/dictcli/target/dictcli" "$SCRIPT_DIR/skills/dictcli/dictcli"
+    # graph.edn도 복사
+    [ -f "$REPOS/dictcli/graph.edn" ] && cp "$REPOS/dictcli/graph.edn" "$SCRIPT_DIR/skills/dictcli/graph.edn" && echo "✅ graph.edn copied"
     copy_bin "bibcli" "${HOME}/.local/bin/bibcli" "$SCRIPT_DIR/skills/bibcli/bibcli"
     copy_bin "gitcli" "$REPOS/gitcli/gitcli/gitcli" "$SCRIPT_DIR/skills/gitcli/gitcli"
     copy_bin "lifetract" "$REPOS/lifetract/lifetract/lifetract" "$SCRIPT_DIR/skills/lifetract/lifetract"
