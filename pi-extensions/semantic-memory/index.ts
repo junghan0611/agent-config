@@ -15,6 +15,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import * as path from "node:path";
 import * as fs from "node:fs";
+import { execSync } from "node:child_process";
 import {
   embedQuery,
   embedDocumentBatch,
@@ -26,6 +27,38 @@ import {
   extractSessionChunks,
 } from "./session-indexer.ts";
 import { retrieve, type RetrieverConfig } from "./retriever.ts";
+
+// --- dictcli expand (3층) ---
+
+function dictcliExpand(query: string): string[] {
+  const koreanWords = query.match(/[\uAC00-\uD7AF]+/g) ?? [];
+  if (koreanWords.length === 0) return [];
+
+  // dictcli 위치: skills/dictcli/ (graph.edn과 같은 디렉토리)
+  const dictcliDir = path.join(
+    process.env.HOME ?? "",
+    ".pi", "agent", "skills", "pi-skills", "dictcli",
+  );
+  const dictcliBin = path.join(dictcliDir, "dictcli");
+  if (!fs.existsSync(dictcliBin)) return [];
+
+  const expanded: string[] = [];
+  for (const word of koreanWords) {
+    try {
+      const out = execSync(`./dictcli expand "${word}" --json`, {
+        timeout: 1000,
+        encoding: "utf-8",
+        cwd: dictcliDir, // graph.edn이 여기에 있어야 함
+      }).trim();
+      if (out.startsWith("[")) {
+        expanded.push(...(JSON.parse(out) as string[]));
+      }
+    } catch {
+      // silent — dictcli not available or word not found
+    }
+  }
+  return [...new Set(expanded)];
+}
 
 // --- Config ---
 
@@ -119,7 +152,7 @@ export default function (pi: ExtensionAPI) {
     }),
 
     async execute(_toolCallId, params) {
-      // Lazy init — session_start may not have fired yet or env wasn't ready
+      // Lazy init
       if (!sessionReady) {
         const gemini = getGeminiConfig();
         if (!gemini) throw new Error("GOOGLE_AI_API_KEY / GEMINI_API_KEY not set.");
@@ -134,20 +167,58 @@ export default function (pi: ExtensionAPI) {
       if (!gemini) throw new Error("GOOGLE_AI_API_KEY not set.");
 
       const limit = params.limit ?? 10;
-      const queryVector = await embedQuery(params.query, gemini);
+
+      // 3층 dictcli expand — 한글 쿼리 확장
+      const expanded = dictcliExpand(params.query);
+      const enrichedQuery = expanded.length > 0
+        ? `${params.query} ${expanded.join(" ")}`
+        : params.query;
+
+      const queryVector = await embedQuery(enrichedQuery, gemini);
       const vectorResults = await sessionStore.search(queryVector, limit * 2);
       const ftsResults = await sessionStore.fullTextSearch(params.query, limit * 2);
 
-      const results = await retrieve(params.query, vectorResults, ftsResults, {
+      let results = await retrieve(params.query, vectorResults, ftsResults, {
         vectorWeight: 0.7,
         bm25Weight: 0.3,
         recencyHalfLifeDays: 14,
-        minScore: 0.001,  // RRF scores are small (~0.01), don't filter them
+        minScore: 0.001,
         mergeStrategy: "rrf" as const,
         mmr: { enabled: false, lambda: 0.7 },
       });
 
-      return formatResults(params.query, results.slice(0, limit));
+      // 자동 폴백: session 결과가 빈약하면 knowledge_search도 실행
+      const topScore = results[0]?.score ?? 0;
+      let fallbackUsed = false;
+      if (orgReady && (results.length < 3 || topScore < 0.005)) {
+        const orgGemini = getGeminiConfig(768);
+        if (orgGemini) {
+          const orgQueryVector = await embedQuery(enrichedQuery, orgGemini);
+          const orgVec = await orgStore.search(orgQueryVector, limit, 0.05);
+          const orgFts = await orgStore.fullTextSearch(params.query, limit);
+          const orgResults = await retrieve(params.query, orgVec, orgFts, {
+            vectorWeight: 0.7,
+            bm25Weight: 0.3,
+            recencyHalfLifeDays: 90,
+            minScore: 0.05,
+            mmr: { enabled: true, lambda: 0.7 },
+            mergeStrategy: "weighted" as const,
+          });
+          if (orgResults.length > 0) {
+            results = [...results.slice(0, limit - 3), ...orgResults.slice(0, 3)];
+            fallbackUsed = true;
+          }
+        }
+      }
+
+      const output = formatResults(
+        expanded.length > 0 ? `${params.query} (+expand: ${expanded.join(", ")})` : params.query,
+        results.slice(0, limit),
+      );
+      if (fallbackUsed) {
+        output.content[0].text += "\n\n(⚡ session 결과 부족 → knowledge_search 폴백 포함)";
+      }
+      return output;
     },
   });
 
@@ -196,7 +267,14 @@ export default function (pi: ExtensionAPI) {
       if (!gemini) throw new Error("GOOGLE_AI_API_KEY not set.");
 
       const limit = params.limit ?? 10;
-      const queryVector = await embedQuery(params.query, gemini);
+
+      // 3층 dictcli expand — 한글 쿼리 확장
+      const expanded = dictcliExpand(params.query);
+      const enrichedQuery = expanded.length > 0
+        ? `${params.query} ${expanded.join(" ")}`
+        : params.query;
+
+      const queryVector = await embedQuery(enrichedQuery, gemini);
       const vectorResults = await orgStore.search(queryVector, limit * 2, 0.05);
       const ftsResults = await orgStore.fullTextSearch(params.query, limit * 2);
 
@@ -209,7 +287,10 @@ export default function (pi: ExtensionAPI) {
         mergeStrategy: "weighted" as const,
       });
 
-      return formatResults(params.query, results.slice(0, limit));
+      return formatResults(
+        expanded.length > 0 ? `${params.query} (+expand: ${expanded.join(", ")})` : params.query,
+        results.slice(0, limit),
+      );
     },
   });
 
