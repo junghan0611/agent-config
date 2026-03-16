@@ -68,10 +68,15 @@ if [ -n "$TAGS" ]; then
   [ -n "$VALIDATED" ] && ORG_TAGS=" :${VALIDATED}:"
 fi
 
+# from 식별자 자동 생성 — agent@device
+AGENT="${AGENT_ID:-pi}"
+FROM="${AGENT}@${DEVICE}"
+
 # 엔트리를 임시 파일로 (멀티라인 안전)
 ENTRY_FILE=$(mktemp)
 echo "**** ${DESC}${ORG_TAGS}" > "$ENTRY_FILE"
 echo "<${TIMESTAMP}>" >> "$ENTRY_FILE"
+echo "from: ${FROM}" >> "$ENTRY_FILE"
 if [ -n "$BODY" ]; then
   echo "$BODY" >> "$ENTRY_FILE"
 fi
