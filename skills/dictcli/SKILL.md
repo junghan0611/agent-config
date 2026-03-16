@@ -19,8 +19,11 @@ knowledge_search의 크로스링귀얼 정확도를 높이는 3층 역할.
 
 ### expand — 쿼리 확장 (핵심)
 
+Binary is bundled in the skill directory. Invoke via `{baseDir}/dictcli`.
+graph.edn is co-located — **must cd to {baseDir} before calling** (GraalVM native binary reads CWD/graph.edn).
+
 ```bash
-{baseDir}/dictcli expand "보편" --json
+cd {baseDir} && ./dictcli expand "보편" --json
 # → ["universal","universalism","particular","special","generalpurpose","general","paideia"]
 
 {baseDir}/dictcli expand "기술" --json
