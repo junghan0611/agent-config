@@ -10,13 +10,28 @@ raw JSONL을 `read`하면 50KB JSON 노이즈가 컨텍스트에 들어가므로
 
 스크립트: `{baseDir}/scripts/session-recap.py`
 
+## 중요: -p 프로젝트 필터 필수
+
+`-p` 없으면 **전체 프로젝트에서 최신 1개**를 가져옴 — 다른 리포 세션이 나올 수 있다.
+**현재 리포의 직전 세션을 보려면 반드시 `-p` 지정:**
+
+```bash
+# 현재 리포가 agent-config이면
+session-recap.py -p agent-config -m 15
+
+# 현재 리포가 dictcli이면
+session-recap.py -p dictcli -m 15
+```
+
+프로젝트명 = 리포 디렉토리명 (~/repos/gh/**agent-config** → `agent-config`).
+
 ## When to Use
 
-- "직전에 뭐했지?" → `session-recap.py -m 15`
-- "이전 세션 요약" → `session-recap.py -m 20 --cost`
-- "agent-config에서 뭐 했지?" → `session-recap.py -p agent-config`
-- "최근 3개 세션" → `session-recap.py -s 3 -a -m 10`
-- "커밋 목록" → `session-recap.py --commits` (또는 gitcli 사용)
+- "직전에 뭐했지?" → `session-recap.py -p <현재리포> -m 15`
+- "이전 세션 요약" → `session-recap.py -p <현재리포> -m 20 --cost`
+- "전체 최근 세션" → `session-recap.py -a -m 10`
+- "최근 3개 세션" → `session-recap.py -p <현재리포> -s 3 -m 10`
+- "커밋 목록" → `session-recap.py -p <현재리포> --commits`
 
 ## 에이전트 워크플로우: "직전에 뭐했지?"
 
