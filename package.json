@@ -23,6 +23,9 @@
     ],
     "themes": [
       "./pi-themes"
+    ],
+    "prompts": [
+      "./commands"
     ]
   },
   "peerDependencies": {
