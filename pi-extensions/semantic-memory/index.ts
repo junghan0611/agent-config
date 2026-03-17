@@ -90,21 +90,42 @@ export default function (pi: ExtensionAPI) {
   let orgReady = false;
   let sessionInfoInjected = false;
 
-  // --- Session context injection ---
+  // --- Session naming + context injection ---
+  const device = (() => {
+    try {
+      return fs.readFileSync(
+        path.join(process.env.HOME ?? "", ".current-device"),
+        "utf-8",
+      ).trim();
+    } catch {
+      return "unknown";
+    }
+  })();
+
+  pi.on("session_start", async (_event, _ctx) => {
+    // /resume 목록에서 알아볼 수 있게 세션 이름 설정
+    const cwd = process.cwd();
+    const project = path.basename(cwd);
+    const date = new Date().toLocaleDateString("ko-KR", {
+      timeZone: "Asia/Seoul",
+      month: "2-digit",
+      day: "2-digit",
+      weekday: "short",
+    });
+    const time = new Date().toLocaleTimeString("ko-KR", {
+      timeZone: "Asia/Seoul",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    if (!pi.getSessionName()) {
+      pi.setSessionName(`${project} · ${date} ${time} · ${device}`);
+    }
+  });
+
   pi.on("before_agent_start", async (event, ctx) => {
     if (sessionInfoInjected) return;
     sessionInfoInjected = true;
-
-    const device = (() => {
-      try {
-        return fs.readFileSync(
-          path.join(process.env.HOME ?? "", ".current-device"),
-          "utf-8",
-        ).trim();
-      } catch {
-        return "unknown";
-      }
-    })();
 
     const timeKST = new Date().toLocaleString("ko-KR", {
       timeZone: "Asia/Seoul",
