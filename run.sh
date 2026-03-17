@@ -152,9 +152,17 @@ setup_build() {
 setup_links() {
   section "Pi Agent Links"
 
-  # Extension
+  # Extensions — semantic-memory (디렉토리) + 개별 .ts 파일
   mkdir -p "$HOME/.pi/agent/extensions"
   ensure_link "$SM_DIR" "$HOME/.pi/agent/extensions/semantic-memory"
+  for ext_file in "$SCRIPT_DIR"/pi/extensions/*.ts; do
+    [ -f "$ext_file" ] || continue
+    ensure_link "$ext_file" "$HOME/.pi/agent/extensions/$(basename "$ext_file")"
+  done
+
+  # Settings + Keybindings
+  ensure_link "$SCRIPT_DIR/pi/settings.json" "$HOME/.pi/agent/settings.json"
+  ensure_link "$SCRIPT_DIR/pi/keybindings.json" "$HOME/.pi/agent/keybindings.json"
 
   # Skills (pi)
   mkdir -p "$HOME/.pi/agent/skills"

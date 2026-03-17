@@ -1,0 +1,9 @@
+{
+  "lastChangelogVersion": "0.59.0",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-opus-4-6",
+  "defaultThinkingLevel": "high",
+  "hideThinkingBlock": false,
+  "defaultTheme": "glg-dark",
+  "theme": "glg-dark"
+}
