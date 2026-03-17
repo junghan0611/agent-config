@@ -135,6 +135,8 @@ setup_build() {
 
   log "--- dictcli (GraalVM native-image) ---"
   local dictcli_bin="$REPOS/dictcli/target/dictcli-${ARCH}"
+  # fallback: target/dictcli (no arch suffix)
+  [ ! -f "$dictcli_bin" ] && dictcli_bin="$REPOS/dictcli/target/dictcli"
   if [ -f "$dictcli_bin" ]; then
     cp "$dictcli_bin" "$SKILLS_DIR/dictcli/dictcli"
     chmod +x "$SKILLS_DIR/dictcli/dictcli"
