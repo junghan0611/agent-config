@@ -409,28 +409,43 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
 
   env)
     load_env 2>/dev/null || true
-    echo "Arch:           $ARCH"
-    echo "GEMINI_API_KEY: ${GEMINI_API_KEY:+SET (${#GEMINI_API_KEY}ch)}"
-    echo "JINA_API_KEY:   ${JINA_API_KEY:+SET (${#JINA_API_KEY}ch)}"
-    echo "Go:             $(go version 2>/dev/null | grep -oP 'go\d+\.\d+\.\d+' || echo 'not found')"
-    echo "Node:           $(node --version 2>/dev/null || echo 'not found')"
-    echo "GraalVM:        $(native-image --version 2>/dev/null || echo 'not found')"
-    echo "Pi ext:         $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo 'not linked')"
-    echo "Pi skill:       $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
+    section "System"
+    echo "  Arch:    $ARCH"
+    echo "  Device:  $(cat "$HOME/.current-device" 2>/dev/null || echo 'unknown')"
+    echo "  Go:      $(go version 2>/dev/null | grep -oP 'go\d+\.\d+\.\d+' || echo 'not found')"
+    echo "  Node:    $(node --version 2>/dev/null || echo 'not found')"
+    echo "  GraalVM: $(native-image --version 2>/dev/null || echo 'not found')"
+
+    section "API Keys"
+    echo "  GEMINI_API_KEY: ${GEMINI_API_KEY:+SET (${#GEMINI_API_KEY}ch)}"
+    echo "  JINA_API_KEY:   ${JINA_API_KEY:+SET (${#JINA_API_KEY}ch)}"
+
+    section "Links"
+    echo "  Pi extension: $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo '❌ not linked')"
+    echo "  Pi skills:    $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo '❌ not linked')"
+    echo "  Pi theme:     $(cat "$HOME/.pi/agent/settings.json" 2>/dev/null | grep -oP '"defaultTheme":\s*"\K[^"]+' || echo 'default')"
+    echo "  Claude:       $(ls "$HOME/.claude/skills/" 2>/dev/null | wc -l) skills"
+    echo "  OpenCode:     $(ls "$HOME/.config/opencode/skills/" 2>/dev/null | wc -l) skills"
+
+    section "CLI Binaries"
     for cli in denotecli bibcli gitcli lifetract dictcli; do
       _bin="$SKILLS_DIR/$cli/$cli"
       if [ -f "$_bin" ]; then
-        echo "  $cli: $(file "$_bin" | grep -oP 'ARM aarch64|x86-64') $(du -h "$_bin" | cut -f1)"
+        _arch=$(file "$_bin" | grep -oP 'ARM aarch64|x86-64' | head -1)
+        echo "  ✅ $cli: $_arch $(du -h "$_bin" | cut -f1)"
       else
-        echo "  $cli: not built"
+        echo "  ❌ $cli: not built"
       fi
     done
     _gog="$SKILLS_DIR/gogcli/gog"
     if [ -f "$_gog" ]; then
-      echo "  gog: $(file "$_gog" | grep -oP 'ARM aarch64|x86-64') $(du -h "$_gog" | cut -f1)"
+      echo "  ✅ gog: $(du -h "$_gog" | cut -f1)"
     else
-      echo "  gog: not built"
+      echo "  ❌ gog: not built"
     fi
+
+    section "Memory Index"
+    cd "$SM_DIR" && npx tsx indexer.ts status 2>/dev/null || echo "  (indexer not available)"
     ;;
 
   *)
