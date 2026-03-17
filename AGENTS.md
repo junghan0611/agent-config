@@ -22,6 +22,20 @@ br sync --flush-only             # git commit 전 필수
 | `br close` → NOT NULL | `br update`로 필수 필드 채운 후 close |
 | `br comment` | `br comments add` (복수형 + add) |
 
+## 세션 관리 — compact 대신 /new + 시맨틱 검색
+
+**compact를 쓰지 않는다.** compact는 AI가 전체 대화를 읽고 요약하는 작업 — 비용+시간 소모.
+
+대신:
+1. 대화가 길어지면 `/new`로 새 세션 시작
+2. `/new` 시 자동으로 현재 세션 + 최근 24시간 세션 인덱싱 (session_before_switch 훅)
+3. 새 세션에서 맥락 복원:
+   - `session-recap -p <리포> -m 15` → 직전 세션 4KB 요약 (즉시)
+   - `session_search` → 의미 기반 검색 (전체 세션)
+   - `knowledge_search` → org 지식베이스 검색 (3층 확장)
+
+**0에서 시작해도 동기화 가능** — 3층 검색이 compact를 대체한다.
+
 ## Extensions
 
 `./pi-extensions/` 에 위치. pi 런타임에 로드되어 tool + command 를 등록한다.
