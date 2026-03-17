@@ -135,6 +135,7 @@ setup_build() {
 
   log "--- dictcli (GraalVM native-image) ---"
   if [ -d "$REPOS/dictcli" ]; then
+    # binary + graph.edn 세트 복사 (SSOT: dictcli 리포)
     (cd "$REPOS/dictcli" && ./run.sh build --output "$SKILLS_DIR/dictcli/dictcli")
     if [ -f "$SKILLS_DIR/dictcli/dictcli" ]; then
       ok "dictcli $(du -h "$SKILLS_DIR/dictcli/dictcli" | cut -f1)"
@@ -143,12 +144,6 @@ setup_build() {
     fi
   else
     warn "dictcli: repo not found at $REPOS/dictcli"
-  fi
-
-  # dictcli graph.edn (데이터 파일)
-  if [ -f "$REPOS/dictcli/graph.edn" ]; then
-    cp "$REPOS/dictcli/graph.edn" "$SKILLS_DIR/dictcli/graph.edn"
-    ok "graph.edn $(du -h "$SKILLS_DIR/dictcli/graph.edn" | cut -f1)"
   fi
 }
 
