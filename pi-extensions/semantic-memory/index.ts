@@ -390,6 +390,43 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
+  // --- /new 시 현재 세션 자동 인덱싱 ---
+  pi.on("session_before_switch", async (event, ctx) => {
+    if (event.reason !== "new") return; // /resume은 건너뜀
+
+    const gemini = getGeminiConfig();
+    if (!gemini || !sessionReady) return;
+
+    try {
+      const files = findSessionFiles();
+      const indexed = await sessionStore.getIndexedFiles();
+      const toIndex = files.filter((f) => !indexed.has(f));
+
+      if (toIndex.length > 0) {
+        ctx.ui.notify(`🧠 ${toIndex.length}개 세션 인덱싱 중...`, "info");
+        for (const file of toIndex) {
+          const chunks = await extractSessionChunks(file);
+          if (chunks.length === 0) continue;
+          const vectors = await embedDocumentBatch(
+            chunks.map((c) => c.text),
+            gemini,
+          );
+          await sessionStore.addChunks(
+            chunks.map((c, j) => ({ ...c, vector: vectors[j] })),
+          );
+        }
+        try { await sessionStore.createFtsIndex(); } catch {}
+        const total = await sessionStore.getCount();
+        ctx.ui.notify(`✅ 인덱싱 완료. ${total} chunks.`, "info");
+      }
+    } catch (err) {
+      ctx.ui.notify(
+        `⚠ 인덱싱 실패: ${err instanceof Error ? err.message : String(err)}`,
+        "warning",
+      );
+    }
+  });
+
   pi.on("session_shutdown", async () => {
     await sessionStore.close();
     await orgStore.close();
