@@ -88,6 +88,43 @@ export default function (pi: ExtensionAPI) {
 
   let sessionReady = false;
   let orgReady = false;
+  let sessionInfoInjected = false;
+
+  // --- Session context injection ---
+  pi.on("before_agent_start", async (event, ctx) => {
+    if (sessionInfoInjected) return;
+    sessionInfoInjected = true;
+
+    const device = (() => {
+      try {
+        return fs.readFileSync(
+          path.join(process.env.HOME ?? "", ".current-device"),
+          "utf-8",
+        ).trim();
+      } catch {
+        return "unknown";
+      }
+    })();
+
+    const timeKST = new Date().toLocaleString("ko-KR", {
+      timeZone: "Asia/Seoul",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    return {
+      message: {
+        customType: "session-info",
+        content: `device=${device}, time_kst=${timeKST}`,
+        display: false,
+      },
+    };
+  });
 
   // --- Initialize on session start ---
   pi.on("session_start", async (_event, ctx) => {
