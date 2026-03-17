@@ -390,9 +390,9 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  // --- /name 커맨드 — 세션 이름 설정 (영속) ---
-  pi.registerCommand("name", {
-    description: "세션 이름 설정 — /resume에서 구분. 예: /name 에이전트1",
+  // --- /whoami 커맨드 — 세션 이름 설정 (영속) ---
+  pi.registerCommand("whoami", {
+    description: "세션 이름 설정 — /resume에서 구분. 예: /whoami 에이전트1",
     handler: async (args, ctx) => {
       const name = (args ?? "").trim();
       if (!name) {
