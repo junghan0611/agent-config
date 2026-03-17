@@ -102,27 +102,6 @@ export default function (pi: ExtensionAPI) {
     }
   })();
 
-  pi.on("session_start", async (_event, _ctx) => {
-    // /resume 목록에서 알아볼 수 있게 세션 이름 설정
-    const cwd = process.cwd();
-    const project = path.basename(cwd);
-    const date = new Date().toLocaleDateString("ko-KR", {
-      timeZone: "Asia/Seoul",
-      month: "2-digit",
-      day: "2-digit",
-      weekday: "short",
-    });
-    const time = new Date().toLocaleTimeString("ko-KR", {
-      timeZone: "Asia/Seoul",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-    if (!pi.getSessionName()) {
-      pi.setSessionName(`${project} · ${date} ${time} · ${device}`);
-    }
-  });
-
   pi.on("before_agent_start", async (event, ctx) => {
     if (sessionInfoInjected) return;
     sessionInfoInjected = true;
@@ -408,6 +387,21 @@ export default function (pi: ExtensionAPI) {
           "warning",
         );
       }
+    },
+  });
+
+  // --- /name 커맨드 — 세션 이름 설정 (영속) ---
+  pi.registerCommand("name", {
+    description: "세션 이름 설정 — /resume에서 구분. 예: /name 에이전트1",
+    handler: async (args, ctx) => {
+      const name = (args ?? "").trim();
+      if (!name) {
+        const current = pi.getSessionName();
+        ctx.ui.notify(current ? `현재: ${current}` : "이름 없음. /name <이름>", "info");
+        return;
+      }
+      pi.setSessionName(name);
+      ctx.ui.notify(`✅ 세션 이름: ${name}`, "info");
     },
   });
 
