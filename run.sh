@@ -174,6 +174,15 @@ setup_links() {
     ensure_link "$SKILLS_DIR/gogcli/gog" "$HOME/.local/bin/gog"
   fi
 
+  section "Pi Themes"
+  mkdir -p "$HOME/.pi/agent/themes"
+  for theme_file in "$SCRIPT_DIR"/pi-themes/*.json; do
+    [ -f "$theme_file" ] || continue
+    local tname
+    tname=$(basename "$theme_file")
+    ensure_link "$theme_file" "$HOME/.pi/agent/themes/$tname"
+  done
+
   section "Claude Code Skills"
   # ~/.claude/skills/<name> → skills/<name> (SKILL.md가 있는 폴더)
   mkdir -p "$HOME/.claude/skills"

@@ -20,6 +20,9 @@
     ],
     "skills": [
       "./skills"
+    ],
+    "themes": [
+      "./pi-themes"
     ]
   },
   "peerDependencies": {
