@@ -134,22 +134,15 @@ setup_build() {
   fi
 
   log "--- dictcli (GraalVM native-image) ---"
-  local dictcli_bin="$REPOS/dictcli/target/dictcli-${ARCH}"
-  # fallback: target/dictcli (no arch suffix)
-  [ ! -f "$dictcli_bin" ] && dictcli_bin="$REPOS/dictcli/target/dictcli"
-  if [ -f "$dictcli_bin" ]; then
-    cp "$dictcli_bin" "$SKILLS_DIR/dictcli/dictcli"
-    chmod +x "$SKILLS_DIR/dictcli/dictcli"
-    ok "dictcli $(du -h "$SKILLS_DIR/dictcli/dictcli" | cut -f1) (pre-built)"
-  elif command -v native-image &>/dev/null; then
-    log "Building dictcli with GraalVM..."
-    (cd "$REPOS/dictcli" && ./run.sh native-build)
-    cp "$dictcli_bin" "$SKILLS_DIR/dictcli/dictcli"
-    chmod +x "$SKILLS_DIR/dictcli/dictcli"
-    ok "dictcli $(du -h "$SKILLS_DIR/dictcli/dictcli" | cut -f1)"
+  if [ -d "$REPOS/dictcli" ]; then
+    (cd "$REPOS/dictcli" && ./run.sh build --output "$SKILLS_DIR/dictcli/dictcli")
+    if [ -f "$SKILLS_DIR/dictcli/dictcli" ]; then
+      ok "dictcli $(du -h "$SKILLS_DIR/dictcli/dictcli" | cut -f1)"
+    else
+      warn "dictcli: build failed"
+    fi
   else
-    warn "dictcli: no pre-built binary and native-image not available"
-    warn "  Build manually: cd $REPOS/dictcli && ./run.sh native-build"
+    warn "dictcli: repo not found at $REPOS/dictcli"
   fi
 
   # dictcli graph.edn (데이터 파일)
