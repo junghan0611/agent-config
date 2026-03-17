@@ -391,26 +391,48 @@ export default function (pi: ExtensionAPI) {
   });
 
   // --- /new 시 현재 세션 자동 인덱싱 ---
+  // 현재 세션 JSONL은 계속 추가되므로 무조건 재인덱싱 (delete→insert)
   pi.on("session_before_switch", async (event, ctx) => {
-    if (event.reason !== "new") return; // /resume은 건너뜀
+    if (event.reason !== "new") return;
 
     const gemini = getGeminiConfig();
     if (!gemini || !sessionReady) return;
 
     try {
+      // 현재 세션 파일 찾기 (가장 최근 수정된 것)
+      const sessionFile = ctx.sessionManager.getSessionFile?.() ?? "";
       const files = findSessionFiles();
+
+      // 현재 세션 + 미인덱싱 세션 모두 처리
       const indexed = await sessionStore.getIndexedFiles();
       const toIndex = files.filter((f) => !indexed.has(f));
 
-      if (toIndex.length > 0) {
-        ctx.ui.notify(`🧠 ${toIndex.length}개 세션 인덱싱 중...`, "info");
-        for (const file of toIndex) {
+      // 현재 세션은 이미 인덱싱됐더라도 재인덱싱 (내용이 늘어났으므로)
+      const currentSessionFiles = sessionFile
+        ? files.filter((f) => f.includes(sessionFile.split("/").pop()?.split(".")[0] ?? "___"))
+        : [];
+      const reindexFiles = [...new Set([...toIndex, ...currentSessionFiles])];
+
+      // 최근 수정된 세션도 재인덱싱 (긴 세션이 업데이트됐을 수 있음)
+      const now = Date.now();
+      const recentFiles = files.filter((f) => {
+        try {
+          const stat = fs.statSync(f);
+          return now - stat.mtimeMs < 24 * 60 * 60 * 1000; // 24시간 내 수정
+        } catch { return false; }
+      });
+      const allToIndex = [...new Set([...reindexFiles, ...recentFiles])];
+
+      if (allToIndex.length > 0) {
+        ctx.ui.notify(`🧠 ${allToIndex.length}개 세션 인덱싱 중...`, "info");
+        for (const file of allToIndex) {
           const chunks = await extractSessionChunks(file);
           if (chunks.length === 0) continue;
           const vectors = await embedDocumentBatch(
             chunks.map((c) => c.text),
             gemini,
           );
+          // addChunks는 delete-before-insert (중복 방지)
           await sessionStore.addChunks(
             chunks.map((c, j) => ({ ...c, vector: vectors[j] })),
           );
