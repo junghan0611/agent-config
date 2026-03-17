@@ -152,7 +152,11 @@ setup_build() {
 setup_links() {
   section "Pi Agent Links"
 
-  # Extensions — semantic-memory (디렉토리) + 개별 .ts 파일
+  # Extensions — 폴더 심볼릭 링크면 실제 디렉토리로 교체
+  if [ -L "$HOME/.pi/agent/extensions" ]; then
+    rm "$HOME/.pi/agent/extensions"
+    log "extensions: removed legacy folder symlink"
+  fi
   mkdir -p "$HOME/.pi/agent/extensions"
   ensure_link "$SM_DIR" "$HOME/.pi/agent/extensions/semantic-memory"
   for ext_file in "$SCRIPT_DIR"/pi/extensions/*.ts; do
