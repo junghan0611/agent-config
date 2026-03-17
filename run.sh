@@ -42,7 +42,7 @@ ensure_repo() {
   fi
 }
 
-# Create symlink — remove old/broken first
+# Create symlink — remove old/broken, backup regular files
 ensure_link() {
   local target=$1 link=$2
   if [ -L "$link" ]; then
@@ -54,8 +54,9 @@ ensure_link() {
     fi
     rm "$link"
   elif [ -e "$link" ]; then
-    warn "$(basename "$link"): not a symlink, skipping"
-    return
+    # Regular file/dir exists — back up and replace
+    mv "$link" "${link}.bak.$(date +%Y%m%d)"
+    log "$(basename "$link"): backed up existing → $(basename "${link}.bak.$(date +%Y%m%d)")"
   fi
   local parent
   parent=$(dirname "$link")
@@ -168,6 +169,20 @@ setup_links() {
   # Skills (pi)
   mkdir -p "$HOME/.pi/agent/skills"
   ensure_link "$SKILLS_DIR" "$HOME/.pi/agent/skills/pi-skills"
+
+  section "PATH Binaries (~/.local/bin)"
+  mkdir -p "$HOME/.local/bin"
+  for cli in denotecli bibcli gitcli lifetract dictcli; do
+    local src="$SKILLS_DIR/$cli/$cli"
+    local dst="$HOME/.local/bin/$cli"
+    if [ -f "$src" ]; then
+      ensure_link "$src" "$dst"
+    fi
+  done
+  # gog
+  if [ -f "$SKILLS_DIR/gogcli/gog" ]; then
+    ensure_link "$SKILLS_DIR/gogcli/gog" "$HOME/.local/bin/gog"
+  fi
 
   section "Claude Code Skills"
   # ~/.claude/skills/<name> → skills/<name> (SKILL.md가 있는 폴더)
