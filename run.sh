@@ -196,6 +196,13 @@ setup_links() {
     ensure_link "$theme_file" "$HOME/.pi/agent/themes/$tname"
   done
 
+  section "Pi Prompts (Commands)"
+  mkdir -p "$HOME/.pi/agent/prompts"
+  for cmd_file in "$SCRIPT_DIR"/commands/*.md; do
+    [ -f "$cmd_file" ] || continue
+    ensure_link "$cmd_file" "$HOME/.pi/agent/prompts/$(basename "$cmd_file")"
+  done
+
   section "Claude Code Skills"
   # ~/.claude/skills/<name> → skills/<name> (SKILL.md가 있는 폴더)
   mkdir -p "$HOME/.claude/skills"
