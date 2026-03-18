@@ -1,34 +1,27 @@
 ---
-description: Markdown/Org → 구글독스 변환 (HTML 또는 DOCX)
+description: Markdown/Org → 구글독스 변환 (HTML 추천 또는 DOCX)
 ---
 
 {{input}} 파일을 구글독스에 붙여넣을 수 있게 변환해줘.
 
-## 방법 1: HTML (빠름, 브라우저 복붙)
+## ★ 추천: HTML (원커맨드, 최고 품질)
 
 ```bash
 cd ~/repos/gh/memex-kb
-python scripts/md_to_gdocs_html.py <파일> --open
-# → /tmp/<파일>-gdocs.html 브라우저 열림 → Ctrl+A → Ctrl+C → Google Docs Ctrl+V
+./run.sh md-to-gdocs-html <파일> --open
+# → 브라우저 열림 → Ctrl+A → Ctrl+C → Google Docs Ctrl+V
 ```
 
-## 방법 2: DOCX (Org 경유, 스타일 적용)
+경로: MD → Org → HTML (inline style). 서식 완벽 보존.
+
+## 대안: DOCX (LibreOffice 경유)
 
 ```bash
 cd ~/repos/gh/memex-kb
-python scripts/md_to_gdocs.py <파일> --open
-# → /tmp/<파일>.docx LibreOffice 열림 → Ctrl+A → Ctrl+C → Google Docs Ctrl+V
-
-# 단계별
-python scripts/md_to_gdocs.py <파일> --step org --keep   # Org까지만
-python scripts/md_to_gdocs.py <파일> --step odt --keep   # ODT까지만
+./run.sh md-to-gdocs <파일> --open
+# → LibreOffice 열림 → Ctrl+A → Ctrl+C → Google Docs Ctrl+V
 ```
 
-## 방법 3: pandoc 직접 (memex-kb 없이)
+경로: MD → Org → ODT → DOCX. 스타일 적용 가능, 단계별 `--step org|odt|docx --keep`.
 
-```bash
-pandoc <파일> -f markdown -t html5 -s --wrap=preserve -o <파일>.html
-sed -i 's/<li>/\n<li>/g' <파일>.html
-```
-
-기본은 방법 1(HTML). 스타일이 필요하면 방법 2(DOCX). memex-kb가 없으면 방법 3.
+기본은 HTML. DOCX는 세밀한 스타일이 필요할 때만.
