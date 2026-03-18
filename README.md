@@ -31,7 +31,7 @@ The agent calls these autonomously. Ask "보편 학문 관련 노트 찾아줘" 
 
 **Stack**: Gemini Embedding 2 native API · LanceDB · weighted merge + MMR · temporal decay · org-aware 2-tier chunking · dictcli expand · session→knowledge auto-fallback
 
-### Pi Extensions ([`pi/extensions/`](pi/extensions/))
+### Pi Extensions ([`pi-extensions/`](pi-extensions/))
 
 | Extension | Purpose |
 |-----------|---------|
@@ -39,7 +39,6 @@ The agent calls these autonomously. Ask "보편 학문 관련 노트 찾아줘" 
 | `env-loader.ts` | Load ~/.env.local at session start |
 | `context.ts` | /context command — show loaded extensions, skills, context usage |
 | `go-to-bed.ts` | Late night reminder |
-| `notify.ts` | Desktop notifications |
 | `peon-ping.ts` | Sound notifications |
 | `session-breakdown.ts` | Session cost breakdown |
 | `whimsical.ts` | Personality touches |

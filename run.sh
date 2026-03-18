@@ -158,8 +158,9 @@ setup_links() {
     log "extensions: removed legacy folder symlink"
   fi
   mkdir -p "$HOME/.pi/agent/extensions"
+  # pi-extensions/ 내 .ts 파일 + semantic-memory 디렉토리
   ensure_link "$SM_DIR" "$HOME/.pi/agent/extensions/semantic-memory"
-  for ext_file in "$SCRIPT_DIR"/pi/extensions/*.ts; do
+  for ext_file in "$SCRIPT_DIR"/pi-extensions/*.ts; do
     [ -f "$ext_file" ] || continue
     ensure_link "$ext_file" "$HOME/.pi/agent/extensions/$(basename "$ext_file")"
   done
