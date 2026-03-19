@@ -1,6 +1,6 @@
 ---
 name: semantic-memory
-description: "Semantic search over past sessions (15K+ chunks) and org-mode knowledge base (100K+ chunks). Uses Gemini Embedding 2 + LanceDB + hybrid retrieval (vector + FTS). Korean↔English cross-lingual via dictcli expand. Use when searching for past conversations, decisions, context, or knowledge base concepts."
+description: "Semantic search over past sessions (pi + Claude Code, 15K+ chunks) and org-mode knowledge base (100K+ chunks). Uses Gemini Embedding 2 + LanceDB + hybrid retrieval (vector + FTS). Korean↔English cross-lingual via dictcli expand. Supports --source filter (pi|claude) for harness-specific search. Use when searching for past conversations, decisions, context, or knowledge base concepts."
 ---
 
 # semantic-memory — Semantic Memory CLI
@@ -15,7 +15,7 @@ All output is JSON.
 
 1. **Semantic search** — "NixOS GPU 설정" finds "RTX 5080 cluster configuration" even without keyword overlap
 2. **Cross-lingual** — Korean "보편" finds English-tagged "universalism" notes via dictcli expand
-3. **Session memory** — Search past pi/claude conversations, decisions, context across all projects
+3. **Session memory** — Search past pi + Claude Code conversations, decisions, context across all projects. Filter by `--source pi` or `--source claude`
 4. **Hybrid retrieval** — Vector similarity (0.7) + BM25 full-text (0.3), with temporal decay and MMR diversity
 5. **Auto-fallback** — When session results are thin, automatically includes knowledge base results
 
@@ -27,9 +27,12 @@ All output is JSON.
 {baseDir}/semantic-memory search-sessions "NixOS GPU cluster setup" --limit 10
 {baseDir}/semantic-memory search-sessions "claude-config memory 정리"
 {baseDir}/semantic-memory search-sessions "beads migration"
+{baseDir}/semantic-memory search-sessions "andenken 작업" --source claude
+{baseDir}/semantic-memory search-sessions "nixos setup" --source pi
 ```
 
-- Searches pi session JSONL files (user messages, assistant responses, compaction summaries)
+- Searches pi + Claude Code session JSONL files (user messages, assistant responses, compaction summaries)
+- `--source pi` or `--source claude` to filter by harness (default: all)
 - Korean queries auto-expanded via dictcli (e.g., "보편" → "universal, universalism, paideia")
 - Auto-fallback to knowledge base when session results are insufficient
 - Default limit: 10
@@ -44,6 +47,7 @@ All output is JSON.
     {
       "project": "hej-nixos-cluster",
       "role": "user",
+      "source": "pi",
       "score": 0.0123,
       "file": "/home/.../.jsonl",
       "line": 42,
@@ -130,6 +134,7 @@ All output is JSON.
 | Flag | Applies to | Description | Default |
 |------|-----------|-------------|---------|
 | `--limit N` | search-sessions, search-knowledge | Max results | 10 |
+| `--source S` | search-sessions | Filter by harness: `pi` or `claude` | all |
 | `--force` | reindex | Drop and rebuild entire index | false |
 
 ## Architecture

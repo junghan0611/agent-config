@@ -40,34 +40,20 @@ br sync --flush-only             # git commit 전 필수
 
 `./pi-extensions/` 에 위치. pi 런타임에 로드되어 tool + command 를 등록한다.
 
-### semantic-memory
+### semantic-memory → [andenken](https://github.com/junghan0611/andenken)
 
-Session RAG — LanceDB + Gemini Embedding 2 + Jina Rerank.
+별도 리포로 분리. pi에서는 **컴파일된 패키지**(`pi install`)로 로드.
 
-- **Architecture doc**: `~/org/botlog/20260312T174622`
-- **OpenClaw pattern**: native Gemini API (not openai-compatible) — taskType, batchEmbed, Matryoshka 지원
-- **DB**: `~/.pi/agent/memory/sessions.lance` (173MB, 11,844 chunks)
-- **Test**: `cd pi-extensions/semantic-memory && npm test` (41 tests)
+- pi: andenken extension (네이티브 registerTool, 인프로세스 LanceDB)
+- Claude Code / OpenCode: `skills/semantic-memory/` CLI 래퍼
 
-Key files:
-| 파일 | 역할 |
-|------|------|
-| `index.ts` | ExtensionAPI 진입점 — session_search tool, /memory command |
-| `gemini-embeddings.ts` | Gemini Embed 2 native API |
-| `session-indexer.ts` | JSONL 파싱 → chunks |
-| `store.ts` | LanceDB wrapper (OpenClaw lazy-init 패턴) |
-| `retriever.ts` | RRF fusion + recency decay + Jina rerank |
-| `test.ts` | 유닛 + 통합 테스트 |
+**Multi-source 세션 인덱싱:**
+- `~/.pi/agent/sessions/` — pi 세션 (source: `"pi"`)
+- `~/.claude/projects/` — Claude Code 세션 (source: `"claude"`)
+- 검색 시 `source` 파라미터로 필터 가능
 
-환경변수 (모두 `~/.env.local`):
-- `GEMINI_API_KEY` — 필수
-- `JINA_API_KEY` — 선택 (rerank)
-
-### 세션 소스 확장 (계획)
-
-현재: `~/.pi/agent/sessions/` (pi 로컬)
-다음: OpenClaw 봇 세션 (Oracle VM → git pull → reindex)
-나중: `~/org/` Denote 노트 (Phase 2, Matryoshka 768d)
+환경변수 (`~/.env.local`):
+- `GEMINI_API_KEY` 또는 `GOOGLE_AI_API_KEY` — 필수
 
 ## Skills
 
