@@ -7,7 +7,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SM_DIR="$SCRIPT_DIR/pi-extensions/semantic-memory"
+SM_DIR="$HOME/repos/gh/andenken"
 SKILLS_DIR="$SCRIPT_DIR/skills"
 ENV_FILE="$HOME/.env.local"
 REPOS="$HOME/repos/gh"
@@ -203,38 +203,22 @@ setup_links() {
     ensure_link "$cmd_file" "$HOME/.pi/agent/prompts/$(basename "$cmd_file")"
   done
 
+  section "Claude Code Config"
+  mkdir -p "$HOME/.claude/hooks"
+  ensure_link "$SCRIPT_DIR/claude/settings.json"        "$HOME/.claude/settings.json"
+  ensure_link "$SCRIPT_DIR/claude/settings.local.json"  "$HOME/.claude/settings.local.json"
+  ensure_link "$SCRIPT_DIR/claude/keybindings.json"     "$HOME/.claude/keybindings.json"
+  ensure_link "$SCRIPT_DIR/claude/statusline.sh"        "$HOME/.claude/statusline.sh"
+  ensure_link "$SCRIPT_DIR/claude/hooks/session-info.sh" "$HOME/.claude/hooks/session-info.sh"
+
   section "Claude Code Skills"
-  # ~/.claude/skills/<name> → skills/<name> (SKILL.md가 있는 폴더)
-  mkdir -p "$HOME/.claude/skills"
-  # 레거시 깨진 링크 정리
-  for link in "$HOME/.claude/skills/"*; do
-    if [ -L "$link" ] && [ ! -e "$link" ]; then
-      rm "$link"
-      log "removed broken link: $(basename "$link")"
-    fi
-  done
-  for skill_dir in "$SKILLS_DIR"/*/; do
-    local name
-    name=$(basename "$skill_dir")
-    [ -f "$skill_dir/SKILL.md" ] || continue
-    ensure_link "$skill_dir" "$HOME/.claude/skills/$name"
-  done
+  # ~/.claude/skills → skills/ (단일 디렉토리 링크)
+  ensure_link "$SKILLS_DIR" "$HOME/.claude/skills"
 
   section "OpenCode Skills"
-  # ~/.config/opencode/skills/<name>/SKILL.md
-  mkdir -p "$HOME/.config/opencode/skills"
-  for link in "$HOME/.config/opencode/skills/"*; do
-    if [ -L "$link" ] && [ ! -e "$link" ]; then
-      rm "$link"
-      log "removed broken link: $(basename "$link")"
-    fi
-  done
-  for skill_dir in "$SKILLS_DIR"/*/; do
-    local name
-    name=$(basename "$skill_dir")
-    [ -f "$skill_dir/SKILL.md" ] || continue
-    ensure_link "$skill_dir" "$HOME/.config/opencode/skills/$name"
-  done
+  # ~/.config/opencode/skills → skills/ (단일 디렉토리 링크)
+  mkdir -p "$HOME/.config/opencode"
+  ensure_link "$SKILLS_DIR" "$HOME/.config/opencode/skills"
 }
 
 # --- setup:npm — npm install for extensions/skills ---
@@ -242,13 +226,12 @@ setup_links() {
 setup_npm() {
   section "npm install"
 
-  # semantic-memory extension
-  if [ ! -d "$SM_DIR/node_modules" ]; then
-    log "semantic-memory: installing..."
-    (cd "$SM_DIR" && npm install --silent 2>&1)
-    ok "semantic-memory"
+  # andenken
+  if [ -f "$SM_DIR/run.sh" ]; then
+    "$SM_DIR/run.sh" setup
+    ok "andenken"
   else
-    ok "semantic-memory (already installed)"
+    warn "andenken: repo not found at $SM_DIR"
   fi
 
   # Skills with package.json
@@ -302,8 +285,8 @@ setup_all() {
   echo "  Arch:     $ARCH"
   echo "  Pi ext:   $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo 'not linked')"
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
-  echo "  Claude:   $(ls "$HOME/.claude/skills/" 2>/dev/null | wc -l) skills"
-  echo "  OpenCode: $(ls "$HOME/.config/opencode/skills/" 2>/dev/null | wc -l) skills"
+  echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null && echo ' + skills' || echo 'not linked')"
+  echo "  OpenCode: $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo 'not linked')"
 }
 
 # --- help ---
@@ -361,31 +344,17 @@ case "${1:-help}" in
   setup:npm)
     setup_npm ;;
 
-  # === Test ===
-  test)
-    shift; load_env; cd "$SM_DIR" && npx tsx test.ts "${@:-}" ;;
-  test:unit)
-    cd "$SM_DIR" && npx tsx test.ts unit ;;
-  test:integration)
-    load_env; cd "$SM_DIR" && npx tsx test.ts integration ;;
-  test:search)
-    shift; load_env; cd "$SM_DIR" && npx tsx test.ts search "$@" ;;
-
-  # === Index ===
-  index:sessions)
-    shift; load_env; cd "$SM_DIR" && npx tsx indexer.ts sessions "$@" ;;
-  index:org)
-    shift; load_env; cd "$SM_DIR" && npx tsx indexer.ts org "$@" ;;
+  # === andenken (delegated) ===
+  test|test:unit|test:integration|test:search)
+    exec "$SM_DIR/run.sh" "$@" ;;
+  index:sessions|index:org)
+    exec "$SM_DIR/run.sh" "$@" ;;
   compact)
-    shift; cd "$SM_DIR" && npx tsx indexer.ts compact "${1:-all}" ;;
+    exec "$SM_DIR/run.sh" "$@" ;;
   status)
-    cd "$SM_DIR" && npx tsx indexer.ts status ;;
-
-  # === Bench ===
-  bench)
-    shift; load_env; cd "$SM_DIR" && npx tsx benchmark.ts "${@:-}" ;;
-  bench:dry)
-    cd "$SM_DIR" && npx tsx benchmark.ts dry ;;
+    exec "$SM_DIR/run.sh" status ;;
+  bench|bench:dry)
+    exec "$SM_DIR/run.sh" "$@" ;;
 
   # === Util ===
   chunk:org)
@@ -444,8 +413,9 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Pi extension: $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo '❌ not linked')"
     echo "  Pi skills:    $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Pi theme:     $(cat "$HOME/.pi/agent/settings.json" 2>/dev/null | grep -oP '"defaultTheme":\s*"\K[^"]+' || echo 'default')"
-    echo "  Claude:       $(ls "$HOME/.claude/skills/" 2>/dev/null | wc -l) skills"
-    echo "  OpenCode:     $(ls "$HOME/.config/opencode/skills/" 2>/dev/null | wc -l) skills"
+    echo "  Claude conf:  $(readlink "$HOME/.claude/settings.json" 2>/dev/null || echo '❌ not linked')"
+    echo "  Claude skills:$(readlink "$HOME/.claude/skills" 2>/dev/null || echo '❌ not linked')"
+    echo "  OpenCode:     $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo '❌ not linked')"
 
     section "CLI Binaries"
     for cli in denotecli bibcli gitcli lifetract dictcli; do
@@ -465,7 +435,7 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     fi
 
     section "Memory Index"
-    cd "$SM_DIR" && npx tsx indexer.ts status 2>/dev/null || echo "  (indexer not available)"
+    "$SM_DIR/run.sh" status 2>/dev/null || echo "  (andenken not available)"
     ;;
 
   *)

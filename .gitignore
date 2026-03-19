@@ -23,3 +23,6 @@ skills/dictcli/dictcli
 skills/dictcli/dictcli-*
 skills/gogcli/gog
 skills/gogcli/gog-*
+
+# Claude Code local settings (contains secrets)
+claude/settings.local.json

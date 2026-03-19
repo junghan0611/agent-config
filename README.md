@@ -10,16 +10,16 @@ agent-config solves this. It's the public, reproducible layer that lets your age
 
 ## What's Here
 
-### Semantic Memory ([`pi-extensions/semantic-memory/`](pi-extensions/semantic-memory/))
+### Semantic Memory → [andenken](https://github.com/junghan0611/andenken)
 
-Two tools registered automatically in every pi session:
+Semantic memory has graduated to its own repo: **[andenken](https://github.com/junghan0611/andenken)** — "recollective thinking" (Heidegger).
 
 | Tool | DB | Dims | Purpose |
 |------|-----|------|---------|
-| `session_search` | sessions.lance | 3072d | Past agent conversations |
-| `knowledge_search` | org.lance | 768d | Org-mode knowledge base (3000+ Denote notes) |
+| `session_search` | sessions.lance (145MB) | 3072d | Past pi + Claude Code conversations |
+| `knowledge_search` | org.lance (1.5GB) | 768d | Org-mode knowledge base (3000+ Denote notes) |
 
-The agent calls these autonomously. Ask "보편 학문 관련 노트 찾아줘" and `knowledge_search` fires with dictcli query expansion — finding `universalism`-tagged notes without being told the English word.
+Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and `knowledge_search` fires with dictcli query expansion — finding `universalism`-tagged notes without being told the English word.
 
 **3-Layer Cross-Lingual Search:**
 
@@ -29,13 +29,12 @@ The agent calls these autonomously. Ask "보편 학문 관련 노트 찾아줘" 
 | **2. dblock** | Denote regex link graph | 22 notes linked in meta-note |
 | **3. dictcli** | Personal vocabulary graph | `expand("보편")` → `[universal, universalism, paideia]` |
 
-**Stack**: Gemini Embedding 2 native API · LanceDB · weighted merge + MMR · temporal decay · org-aware 2-tier chunking · dictcli expand · session→knowledge auto-fallback
+Pi loads andenken as extension via symlink: `~/.pi/agent/extensions/semantic-memory → ~/repos/gh/andenken`.
 
 ### Pi Extensions ([`pi-extensions/`](pi-extensions/))
 
 | Extension | Purpose |
 |-----------|---------|
-| `semantic-memory/` | session_search + knowledge_search + /memory + /whoami + /new auto-indexing |
 | `env-loader.ts` | Load ~/.env.local at session start |
 | `context.ts` | /context command — show loaded extensions, skills, context usage |
 | `go-to-bed.ts` | Late night reminder |
@@ -43,19 +42,19 @@ The agent calls these autonomously. Ask "보편 학문 관련 노트 찾아줘" 
 | `session-breakdown.ts` | Session cost breakdown |
 | `whimsical.ts` | Personality touches |
 
-### Skills ([`skills/`](skills/)) — 25 skills
+Semantic memory extension lives in [andenken](https://github.com/junghan0611/andenken) (separate repo, symlinked).
+
+### Skills ([`skills/`](skills/)) — 26 skills
 
 | Category | Skills |
 |----------|--------|
 | **Data Access** | denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query |
-| **Agent Memory** | session-recap, dictcli, improve-agent |
+| **Agent Memory** | session-recap, dictcli, semantic-memory, improve-agent |
 | **Writing** | botlog, agenda, punchout |
 | **Communication** | slack-latest, jiracli |
 | **Web/Media** | brave-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe |
 | **Tools** | emacs, tmux, diskspace |
 | **Utility** | bd-to-br-migration |
-
-Each skill has a `SKILL.md` that agents read. CLI binaries (Go/GraalVM) are built by `./run.sh setup`.
 
 ### Pi Config ([`pi/`](pi/))
 
@@ -73,6 +72,7 @@ Each skill has a `SKILL.md` that agents read. CLI binaries (Go/GraalVM) are buil
 | Command | Purpose |
 |---------|---------|
 | `/recap` | Quick recap of previous session |
+| `/pandoc-html` | Markdown/Org → Google Docs HTML/DOCX |
 
 ## Session Management — No Compact
 
@@ -86,8 +86,6 @@ Instead:
    - `session_search` → semantic search (all sessions)
    - `knowledge_search` → org knowledge base (3-layer expansion)
 
-**Zero to sync in seconds** — 3-layer search replaces compact.
-
 ## One-Command Setup
 
 ```bash
@@ -98,66 +96,34 @@ cd agent-config
 ```
 
 `./run.sh setup` does:
-- Clone 5 source repos (if missing)
+- Clone source repos (if missing) — including andenken
 - Build 6 native CLI binaries (Go + GraalVM)
-- Symlink: pi extensions + skills + themes + settings + keybindings
-- Symlink: Claude Code + OpenCode skills
+- Symlink: pi extensions + andenken + skills + themes + settings + keybindings
+- Symlink: Claude Code + OpenCode skills + prompts
 - Symlink: ~/.local/bin PATH binaries
 - npm install for extensions and skills
 
-### Index
-
-```bash
-./run.sh index:sessions --force   # ~2 min, $0.07
-./run.sh index:org --force         # ~30 min, $0.06
-./run.sh status                    # verify
-./run.sh bench                     # 19-query benchmark
-```
-
-## Benchmark
-
-19 hand-curated queries, 9 categories, testing cross-lingual search on 3000+ Korean org-mode notes with English tags.
-
-**Latest** (2026-03-17):
-
-| Metric | Score |
-|--------|-------|
-| Hit Rate | **100% (19/19)** |
-| MRR | **0.872** |
-| R@5 | 0.754 |
-| R@10 | 0.789 |
-
-| Store | Chunks | Files | Dims | Size |
-|-------|--------|-------|------|------|
-| Sessions | 11,400+ | 100+ | 3072d | ~230MB |
-| Org | 104,000+ | 2,780+ | 768d | ~1GB |
-
-Results logged to [`benchmark-log.jsonl`](pi-extensions/semantic-memory/benchmark-log.jsonl) for tracking improvement over time.
-
 ## The -config Ecosystem
-
-Each repo owns one layer of a reproducible personal computing environment:
 
 | Repo | Layer | Description |
 |------|-------|-------------|
 | [nixos-config](https://github.com/junghan0611/nixos-config) | OS | NixOS flakes, hardware, services |
 | [doomemacs-config](https://github.com/junghan0611/doomemacs-config) | Editor | Doom Emacs, org-mode, denote |
 | [zotero-config](https://github.com/junghan0611/zotero-config) | Bibliography | 8,000+ references, bibcli |
-| **[agent-config](https://github.com/junghan0611/agent-config)** | **Agent infra** | **This repo — extensions, skills, memory, themes** |
+| **[agent-config](https://github.com/junghan0611/agent-config)** | **Agent infra** | **Extensions, skills, themes, settings** |
+| **[andenken](https://github.com/junghan0611/andenken)** | **Memory** | **Semantic memory — sessions + org knowledge base** |
 | [memex-kb](https://github.com/junghan0611/memex-kb) | Knowledge | Legacy document conversion pipeline |
 | [GLG-Mono](https://github.com/junghan0611/GLG-Mono) | Orchestration | OpenClaw bot configurations |
 | [geworfen](https://github.com/junghan0611/geworfen) | Meta | Cross-repo coordination |
 
 ### Skill Source Repos
 
-Custom CLI tools built from these repos:
-
 | CLI | Repo | Language | Purpose |
 |-----|------|----------|---------|
 | denotecli | [junghan0611/denotecli](https://github.com/junghan0611/denotecli) | Go | Denote knowledge base search (3000+ notes) |
 | gitcli | [junghan0611/gitcli](https://github.com/junghan0611/gitcli) | Go | Local git commit timeline (50+ repos) |
 | lifetract | [junghan0611/lifetract](https://github.com/junghan0611/lifetract) | Go | Samsung Health + aTimeLogger tracking |
-| dictcli | [junghan0611/dictcli](https://github.com/junghan0611/dictcli) | Clojure/GraalVM | Personal vocabulary graph (1,150 triples) |
+| dictcli | [junghan0611/dictcli](https://github.com/junghan0611/dictcli) | Clojure/GraalVM | Personal vocabulary graph (1,150+ triples) |
 | bibcli | [junghan0611/zotero-config](https://github.com/junghan0611/zotero-config) | Go | BibTeX search (8,000+ entries) |
 
 ### Archived
@@ -168,17 +134,15 @@ Custom CLI tools built from these repos:
 
 ## Architecture Decisions
 
-**Why no compact?** Compact = AI summarizes 600K tokens = expensive + slow. `/new` + semantic search = instant + cheaper. Session JSONL is written in real-time; `/new` hook auto-indexes before switching.
+**Why andenken as separate repo?** Semantic memory serves pi, Claude Code, and future agents. It's not pi-specific. Data (LanceDB) lives with the code, not in `~/.pi/agent/memory/`.
 
-**Why Gemini Embedding 2 native API?** taskType, batchEmbedContents, outputDimensionality (Matryoshka). OpenAI-compatible endpoint loses all three. We track [OpenClaw](https://github.com/nicepkg/openclaw)'s Gemini pattern as upstream.
+**Why no compact?** `/new` + semantic search = instant + cheaper. Session JSONL is written in real-time; `/new` hook auto-indexes.
 
-**Why LanceDB?** Serverless, file-based, rsync-able. WriteBuffer (2000 chunks per flush) minimizes fragments.
+**Why Gemini Embedding 2?** taskType, batchEmbedContents, Matryoshka outputDimensionality. OpenClaw upstream tracking.
 
-**Why MMR over Jina Rerank?** Benchmarked both. Jina reranker v3 hurts Korean+English mixed docs (MRR 0.642). Jaccard-based MMR is free, local, better (MRR 0.717→0.872).
+**Why MMR over Jina Rerank?** Jina hurts Korean+English mixed docs. Jaccard-based MMR is free, local, better.
 
-**Why 3072d for sessions, 768d for org?** Sessions (~11K vectors): precision for vague queries. Org (~104K vectors): Matryoshka 768d cuts storage 75% at scale.
-
-**Why dictcli expand in search pipeline?** "보편" alone gives MRR 0.13. With expand → "보편 universal universalism paideia" → MRR jumps. 3rd layer makes 1st layer stronger.
+**Why dictcli expand?** "보편" alone gives MRR 0.13. With expand → "보편 universal universalism paideia" → MRR jumps.
 
 ## Economics
 
@@ -187,7 +151,7 @@ Custom CLI tools built from these repos:
 | "What did we discuss about X?" | grep → read × 5-10 → **50K tokens** | 1 tool call → **2K tokens** |
 | "What did I do last session?" | raw JSONL read → **100KB** | session-recap → **4KB** |
 
-Total indexing: **$0.13** (sessions $0.07 + org $0.06). Each query: effectively free.
+Total indexing: **~$0.13**. Each query: effectively free.
 
 ## License
 

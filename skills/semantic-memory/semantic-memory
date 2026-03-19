@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# andenken CLI — semantic memory for humans and AI agents
+# Calls the andenken repo's CLI via npx tsx.
+set -euo pipefail
+
+# Load API keys
+[[ -f "${HOME}/.env.local" ]] && source "${HOME}/.env.local"
+
+ANDENKEN_DIR="${HOME}/repos/gh/andenken"
+
+exec npx tsx "${ANDENKEN_DIR}/cli.ts" "$@"
