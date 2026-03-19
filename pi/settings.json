@@ -5,5 +5,8 @@
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "defaultTheme": "glg-dark",
-  "theme": "glg-dark"
+  "theme": "glg-dark",
+  "packages": [
+    "../../repos/gh/andenken"
+  ]
 }

@@ -170,9 +170,22 @@ setup_links() {
   ensure_link "$SCRIPT_DIR/pi/settings.json" "$HOME/.pi/agent/settings.json"
   ensure_link "$SCRIPT_DIR/pi/keybindings.json" "$HOME/.pi/agent/keybindings.json"
 
-  # Skills (pi)
-  mkdir -p "$HOME/.pi/agent/skills"
-  ensure_link "$SKILLS_DIR" "$HOME/.pi/agent/skills/pi-skills"
+  # Skills (pi) — 개별 링크. semantic-memory는 extension(andenken 패키지)이 대체하므로 제외
+  mkdir -p "$HOME/.pi/agent/skills/pi-skills"
+  # 기존 디렉토리 심링크가 있으면 제거 (개별 링크로 전환)
+  [ -L "$HOME/.pi/agent/skills/pi-skills" ] && rm "$HOME/.pi/agent/skills/pi-skills" && mkdir -p "$HOME/.pi/agent/skills/pi-skills"
+  local PI_SKIP_SKILLS="semantic-memory"  # andenken pi 패키지가 네이티브 tool로 제공
+  for skill_dir in "$SKILLS_DIR"/*/; do
+    [ -f "$skill_dir/SKILL.md" ] || continue
+    local sname
+    sname=$(basename "$skill_dir")
+    # 제외 목록에 있으면 건너뛰기
+    if echo "$PI_SKIP_SKILLS" | grep -qw "$sname"; then
+      [ -L "$HOME/.pi/agent/skills/pi-skills/$sname" ] && rm "$HOME/.pi/agent/skills/pi-skills/$sname"
+      continue
+    fi
+    ensure_link "$skill_dir" "$HOME/.pi/agent/skills/pi-skills/$sname"
+  done
 
   section "PATH Binaries (~/.local/bin)"
   mkdir -p "$HOME/.local/bin"
