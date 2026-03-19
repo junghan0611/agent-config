@@ -4,7 +4,17 @@
 
 When you work with multiple agents across dozens of projects, the hardest problem isn't code — it's context. Every new session starts from zero. Every compaction loses nuance. Every agent asks the same questions you answered yesterday.
 
-agent-config solves this. It's the public, reproducible layer that lets your agents remember, search, and stay aligned with your evolving perspective — without repeating yourself.
+agent-config solves this. It's the **harness-agnostic** layer that lets your agents remember, search, and stay aligned — regardless of which tool drives the session.
+
+### Multi-Harness Architecture
+
+| Harness | Memory | Skills | Config |
+|---------|--------|--------|--------|
+| **[pi](https://github.com/badlogic/pi-mono)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 25 skills (semantic-memory excluded — extension covers it) | extensions + themes + keybindings |
+| **Claude Code** | andenken **skill** (CLI wrapper via bash) | 26 skills (full set including semantic-memory) | CLAUDE.md + hooks |
+| **OpenCode** | andenken **skill** (CLI wrapper via bash) | 26 skills (full set) | settings |
+
+Session JSONL from all harnesses flows into [andenken](https://github.com/junghan0611/andenken)'s unified index. Each chunk carries a `source` field (`"pi"` | `"claude"`) so you can filter, compare, or roll back across harnesses.
 
 > Part of the [-config ecosystem](#the--config-ecosystem) by [@junghan0611](https://github.com/junghan0611)
 
@@ -29,7 +39,7 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 | **2. dblock** | Denote regex link graph | 22 notes linked in meta-note |
 | **3. dictcli** | Personal vocabulary graph | `expand("보편")` → `[universal, universalism, paideia]` |
 
-Pi loads andenken as extension via symlink: `~/.pi/agent/extensions/semantic-memory → ~/repos/gh/andenken`.
+Pi loads andenken as a **compiled pi package** (`pi install`), not a symlinked `.ts` file. This bypasses jiti parsing limitations and allows direct LanceDB access in-process. Claude Code and OpenCode use the CLI wrapper skill instead.
 
 ### Pi Extensions ([`pi-extensions/`](pi-extensions/))
 
@@ -42,7 +52,7 @@ Pi loads andenken as extension via symlink: `~/.pi/agent/extensions/semantic-mem
 | `session-breakdown.ts` | Session cost breakdown |
 | `whimsical.ts` | Personality touches |
 
-Semantic memory extension lives in [andenken](https://github.com/junghan0611/andenken) (separate repo, symlinked).
+Semantic memory extension lives in [andenken](https://github.com/junghan0611/andenken) (separate repo, loaded as pi package).
 
 ### Skills ([`skills/`](skills/)) — 26 skills
 
@@ -98,8 +108,9 @@ cd agent-config
 `./run.sh setup` does:
 - Clone source repos (if missing) — including andenken
 - Build 6 native CLI binaries (Go + GraalVM)
-- Symlink: pi extensions + andenken + skills + themes + settings + keybindings
-- Symlink: Claude Code + OpenCode skills + prompts
+- Symlink: pi extensions + skills (semantic-memory excluded) + themes + settings + keybindings
+- Install: andenken as pi package (compiled extension)
+- Symlink: Claude Code + OpenCode skills (full set including semantic-memory) + prompts
 - Symlink: ~/.local/bin PATH binaries
 - npm install for extensions and skills
 
@@ -134,7 +145,7 @@ cd agent-config
 
 ## Architecture Decisions
 
-**Why andenken as separate repo?** Semantic memory serves pi, Claude Code, and future agents. It's not pi-specific. Data (LanceDB) lives with the code, not in `~/.pi/agent/memory/`.
+**Why andenken as separate repo?** Semantic memory serves pi, Claude Code, and future agents. It's not pi-specific. Data (LanceDB) lives with the code, not in `~/.pi/agent/memory/`. Pi gets a compiled extension (native tools, in-process); other harnesses get a CLI skill (same search quality, subprocess overhead).
 
 **Why no compact?** `/new` + semantic search = instant + cheaper. Session JSONL is written in real-time; `/new` hook auto-indexes.
 
