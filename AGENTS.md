@@ -22,6 +22,28 @@ br sync --flush-only             # git commit 전 필수
 | `br close` → NOT NULL | `br update`로 필수 필드 채운 후 close |
 | `br comment` | `br comments add` (복수형 + add) |
 
+### Epic 운용 원칙
+
+**Epic은 방향이다. Task는 그 방향에서 나온 질문이다.**
+
+- task를 "힣이 하라는 대로" 만들면 방향 없이 쌓이기만 한다
+- epic이 있어야 task가 올바른 방향인지 판단할 수 있다
+- 방향이 바뀌면 epic을 닫고 새로 만든다. task들은 옮기거나 닫는다
+- task 중복은 상관없다. **어느 epic에서(질문) 나왔는가**가 중요하다
+
+**현재 Epic 구조:**
+
+| Epic | 방향 | 핵심 질문 |
+|------|------|----------|
+| `p6w` 멀티하네스 인프라 | pi/claude/opencode를 하나의 설정으로 | "어떤 머신이든 setup 하나로 재현되는가?" |
+| `8sm` 힣의 분신 | 홈 에이전트가 실무 에이전트에 위임 | "기억을 쥔 코어가 손발에게 일을 시킬 수 있는가?" |
+| `elh` 품질 감시 | 도구 간 미스포인트 포착 | "못 찾았을 때 왜 못 찾았는지 추적하고 있는가?" |
+
+**에이전트의 역할:**
+- task 생성 시 `br comments add <task-id> "epic: <epic-id>"` 로 소속 명시
+- 작업 시작 전 `br list`로 현재 epic 방향 확인
+- 방향과 안 맞는 task를 발견하면 → epic을 먼저 검토하고, 사용자에게 보고
+
 ## 세션 관리 — compact 대신 /new + 시맨틱 검색
 
 **compact를 쓰지 않는다.** compact는 AI가 전체 대화를 읽고 요약하는 작업 — 비용+시간 소모.
