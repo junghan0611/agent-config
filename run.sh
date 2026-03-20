@@ -311,12 +311,12 @@ agent-config — 에이전트 인프라 원커맨드 CLI
 
 Usage: ./run.sh <command> [args]
 
-=== 설치/빌드 ===
-  setup                       원커맨드 전체 설치 (clone + build + link + npm)
-  setup:repos                 Git 리포 clone (없는 것만)
-  setup:build                 CLI 바이너리 빌드 (네이티브)
-  setup:links                 심볼릭 링크 (pi + claude + opencode)
-  setup:npm                   npm install (extension + skills)
+=== 설치 ===
+  setup                       원커맨드 전체 설치 (이것만 기억하면 됨)
+                              → clone + build + link + npm 전부 수행
+                              → 어떤 디바이스든 이것 하나로 재현
+
+  setup:repos|build|links|npm 개별 단계 (디버깅용, 보통 불필요)
 
 === 테스트 ===
   test                        모든 테스트 (unit + integration)
