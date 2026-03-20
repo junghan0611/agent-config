@@ -49,6 +49,7 @@ Pi loads andenken as a **compiled pi package** (`pi install`), not a symlinked `
 | `context.ts` | /context command — show loaded extensions, skills, context usage |
 | `go-to-bed.ts` | Late night reminder |
 | `peon-ping.ts` | Sound notifications |
+| `delegate.ts` | Spawn independent agent process (local or SSH remote) |
 | `session-breakdown.ts` | Session cost breakdown |
 | `whimsical.ts` | Personality touches |
 
