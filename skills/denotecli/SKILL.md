@@ -102,6 +102,11 @@ rg and fd can search files. This tool exists for what they can't do:
 [{"id": "20251107T082610", "title": "제목", "tags": ["tag1", "tag2"], "date": "2025-11-07", "path": "/home/..."}]
 ```
 
+Signature가 있는 파일의 경우:
+```json
+[{"id": "20250904T075937", "signature": "5a2", "title": "힣-ai-에이전트-편재성-기억-연결", "tags": ["agents", "ai"], "date": "2025-09-04", "path": "/home/..."}]
+```
+
 ### keyword-map — Korean↔English keyword mapping
 
 ```bash
@@ -275,8 +280,9 @@ rg and fd can search files. This tool exists for what they can't do:
 
 ## Denote File Format
 
-- **Filename**: `YYYYMMDDTHHMMSS--title-with-hyphens__tag1_tag2.org`
+- **Filename**: `YYYYMMDDTHHMMSS[==SIGNATURE]--title-with-hyphens[__tag1_tag2].org`
 - **ID** = unique timestamp identifier (the key for everything)
+- **Signature** = 옵셔널 영숫자 코드 (`==5a2`, `==0za`). ~/org/meta/ 디렉토리의 syntopicon/propaedia 노트 203개가 사용 중
 - **Frontmatter**: `#+title:`, `#+date:`, `#+filetags:`, `#+identifier:`
 - **Links**: `[[denote:YYYYMMDDTHHMMSS]]`
 
