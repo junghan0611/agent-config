@@ -157,5 +157,6 @@
   "alwaysThinkingEnabled": true,
   "effortLevel": "medium",
   "voiceEnabled": true,
-  "verbose": true
+  "verbose": true,
+  "skipDangerousModePermissionPrompt": true
 }

@@ -92,6 +92,7 @@
 - **불허**: `-` (하이픈), `_` (밑줄), 대문자, 한글, 특수문자
 - **복합어**: 붙여 쓴다. `doomemacs`, `orgmode`, `nixos`, `digitalgarden`
 - **분리도 OK**: `doom`과 `emacs` 두 태그로 나눠도 좋다. 의도적 분리는 세렌디피티를 만든다.
+- **단수형 사용**: `agent` ✅ `agents` ❌, `llm` ✅ `llms` ❌, `tag` ✅ `tags` ❌
 - 예: `:commit:nixos:botlog:` ✅ / `:doom-emacs:` ❌ / `:org_mode:` ❌
 
 **헤더 템플릿**:
