@@ -1,12 +1,36 @@
 ---
 name: botlog
-description: "봇 노트 생성 — 에이전트가 리서치/분석/대화 결과를 org-mode denote 형식으로 ~/org/botlog에 기록. Use when creating a bot note, research summary, analysis document, or when user says 'botlog', '노트 만들어', '기록해', 'write a note', or wants agent work saved as a denote note."
+description: "봇 노트 생성 — 에이전트가 리서치/분석/대화 결과를 org-mode denote 형식으로 기록. botlog(공개)과 llmlog(비공개 작업기록) 두 모드 지원. Use when user says 'botlog', 'llmlog', '노트 만들어', '기록해', '지침 남겨', '전달해', '작업기록', 'write a note', or wants agent work saved as a denote note."
 user_invocable: true
 ---
 
-# botlog — 봇 노트 생성
+# botlog / llmlog — 봇 노트 생성
 
-에이전트의 리서치, 분석, 대화 결과를 **denote 형식 org-mode 파일**로 `~/org/botlog/`에 기록한다.
+에이전트의 작업 결과를 **denote 형식 org-mode 파일**로 기록한다.
+
+## botlog vs llmlog — 두 모드
+
+| | **botlog** (`~/org/botlog/`) | **llmlog** (`~/org/llmlog/`) |
+|---|---|---|
+| **공개** | 디지털 가든에 공개 | 비공개 (에이전트 간 작업 기록) |
+| **용도** | 리서치/분석 결과 정리 | 작업 지침 전달, 결과 공유, 반복 구체화 |
+| **성격** | 완성된 글 | 작업 진행 문서 (br보다 편한 작업 로그) |
+| **태그** | `:botlog:` 필수 | `:llmlog:` 필수 |
+| **헤딩 태그** | `:LLMLOG:` | `:LLMLOG:` (동일) |
+| **흐름** | llmlog에서 정리 → botlog로 승격 가능 | 에이전트끼리 주고받는 문서 |
+
+**판단 기준:**
+- "기록해", "노트 만들어", "정리해" → **botlog** (기본)
+- "지침 남겨", "전달해", "llmlog", "작업기록", "이거 적어놔" → **llmlog**
+- 힣이 명시적으로 "llmlog로" 또는 "llmlog에" 라고 하면 → **llmlog**
+
+**llmlog 전용 규칙:**
+- 폴더: `~/org/llmlog/` (botlog와 다름!)
+- 태그: `:llmlog:` 필수 (`:botlog:` 아님)
+- 레벨1 헤딩에 `:LLMLOG:` 태그는 동일
+- 담당 에이전트에게 전달하는 문서일 경우, 제목에 대상 리포명이나 역할 포함 권장
+
+아래 규칙은 botlog/llmlog 공통이다. 폴더와 태그만 다르다.
 
 ## When to Use
 
