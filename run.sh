@@ -189,28 +189,16 @@ setup_links() {
 
   section "PATH Binaries (~/.local/bin)"
   mkdir -p "$HOME/.local/bin"
-  for cli in denotecli bibcli gitcli lifetract dictcli; do
+  # dictcli 제외 — CWD에 graph.edn 필요하므로 PATH 심링크 불가. 스킬 디렉토리에서만 실행.
+  for cli in denotecli bibcli gitcli lifetract; do
     local src="$SKILLS_DIR/$cli/$cli"
     local dst="$HOME/.local/bin/$cli"
     if [ -f "$src" ]; then
       ensure_link "$src" "$dst"
     fi
   done
-
-  # dictcli: DICTCLI_GRAPH 환경변수 설정 (graph.edn은 바이너리 옆에 있지만, symlink로 실행 시 CWD 기준 fallback이므로 명시 필요)
-  local graph_edn="$SKILLS_DIR/dictcli/graph.edn"
-  if [ -f "$graph_edn" ]; then
-    if ! grep -q "DICTCLI_GRAPH" "$ENV_FILE" 2>/dev/null; then
-      echo '' >> "$ENV_FILE"
-      echo "# dictcli graph.edn 경로 (agent-config SSOT)" >> "$ENV_FILE"
-      echo "DICTCLI_GRAPH=$graph_edn" >> "$ENV_FILE"
-      ok "DICTCLI_GRAPH → $graph_edn (added to .env.local)"
-    else
-      # 경로가 바뀌었을 수 있으므로 업데이트
-      sed -i "s|^DICTCLI_GRAPH=.*|DICTCLI_GRAPH=$graph_edn|" "$ENV_FILE"
-      ok "DICTCLI_GRAPH → $graph_edn"
-    fi
-  fi
+  # dictcli PATH 심링크가 남아있으면 제거 (심링크에 write하면 바이너리 파괴)
+  [ -e "$HOME/.local/bin/dictcli" ] && rm -f "$HOME/.local/bin/dictcli" && log "dictcli: removed from PATH (skill-only)"
   # gog
   if [ -f "$SKILLS_DIR/gogcli/gog" ]; then
     ensure_link "$SKILLS_DIR/gogcli/gog" "$HOME/.local/bin/gog"
