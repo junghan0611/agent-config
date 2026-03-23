@@ -217,6 +217,10 @@ setup_links() {
     ensure_link "$cmd_file" "$HOME/.pi/agent/prompts/$(basename "$cmd_file")"
   done
 
+  section "Home AGENTS.md / CLAUDE.md"
+  ensure_link "$SCRIPT_DIR/home/AGENTS.md" "$HOME/AGENTS.md"
+  ensure_link "$SCRIPT_DIR/home/CLAUDE.md" "$HOME/CLAUDE.md"
+
   section "Claude Code Config"
   mkdir -p "$HOME/.claude/hooks"
   ensure_link "$SCRIPT_DIR/claude/settings.json"        "$HOME/.claude/settings.json"

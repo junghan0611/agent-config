@@ -1,4 +1,5 @@
 {
+  "cleanupPeriodDays": 365,
   "env": {},
   "permissions": {
     "allow": [
@@ -149,7 +150,8 @@
     "claude-code-setup@claude-plugins-official": false,
     "gopls-lsp@claude-plugins-official": false,
     "beads@beads-marketplace": false,
-    "atlassian@claude-plugins-official": true
+    "atlassian@claude-plugins-official": true,
+    "telegram@claude-plugins-official": true
   },
   "language": "Korean",
   "alwaysThinkingEnabled": true,

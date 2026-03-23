@@ -26,3 +26,6 @@ skills/gogcli/gog-*
 
 # Claude Code local settings (contains secrets)
 claude/settings.local.json
+
+# Private environment info (company, IPs, accounts)
+home/PRIVATE.md
