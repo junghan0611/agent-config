@@ -70,6 +70,10 @@
 | 도구 | 용도 |
 |------|------|
 | **delegate** | 독립 에이전트 프로세스 스폰 — 로컬 또는 SSH 리모트. 격리 실행 후 결과 수신 |
+| **delegate_status** | async delegate 상태 확인 — taskId별 상세 또는 전체 목록 |
+| **delegate_resume** | 완료된 delegate 세션 이어가기 — 맥락 유지한 채 추가 작업 |
+| **send_to_session** | 실행 중인 다른 pi 세션에 메시지 전송 (control.ts) |
+| **list_sessions** | 제어 소켓이 열린 pi 세션 목록 조회 (control.ts) |
 
 ## 세션 시작: 디바이스/시간 자동 제공
 - SessionStart 훅이 `device=`, `time_kst=` 정보를 자동 전달합니다.
