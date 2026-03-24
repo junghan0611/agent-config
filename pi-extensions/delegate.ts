@@ -175,6 +175,7 @@ export default function (pi: ExtensionAPI) {
       "Use delegate for tasks that should run in isolation — different cwd, different machine, or resource-intensive work.",
       "For SSH remote: set host to SSH config name (e.g., 'gpu1i'). The remote must have pi installed.",
       "The delegate runs without session — it starts fresh, executes, and returns. No memory carryover.",
+      "When delegating tasks that produce notes, instruct the delegate to use llmlog (not botlog). Delegated work is agent-to-agent, not public.",
     ],
     parameters: Type.Object({
       task: Type.String({ description: "Task description for the delegate agent" }),

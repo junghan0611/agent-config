@@ -23,6 +23,7 @@ user_invocable: true
 - "기록해", "노트 만들어", "정리해" → **botlog** (기본)
 - "지침 남겨", "전달해", "llmlog", "작업기록", "이거 적어놔" → **llmlog**
 - 힣이 명시적으로 "llmlog로" 또는 "llmlog에" 라고 하면 → **llmlog**
+- **delegate로 스폰된 에이전트**가 작성하는 노트 → **llmlog** (에이전트 간 작업 기록이므로)
 
 **llmlog 전용 규칙:**
 - 폴더: `~/org/llmlog/` (botlog와 다름!)
