@@ -185,7 +185,7 @@ export default function (pi: ExtensionAPI) {
         Type.String({ description: "Working directory for the delegate" }),
       ),
       model: Type.Optional(
-        Type.String({ description: "Model override (e.g., 'anthropic/claude-sonnet-4-20250514')" }),
+        Type.String({ description: "Model override (e.g., 'anthropic/claude-sonnet-4-6' or 'anthropic/claude-opus-4-6')" }),
       ),
     }),
 
