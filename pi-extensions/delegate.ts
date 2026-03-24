@@ -6,9 +6,9 @@
  * 로컬과 리모트(SSH) 동일 패턴.
  *
  * 모드:
- *   sync  — 기존 동작. 완료까지 블로킹, 결과 리턴. (기본)
- *   async — 스폰 후 즉시 리턴. 완료 시 분신 세션에 알림.
+ *   async — 스폰 후 즉시 리턴. 완료 시 분신 세션에 알림. (기본)
  *           세션이 남아 resume 가능.
+ *   sync  — 완료까지 블로킹, 결과 리턴.
  *
  * 비동기 delegate의 핵심:
  *   - 분신 세션이 --session-control로 소켓을 노출 (control.ts peer)
@@ -439,12 +439,12 @@ export default function (pi: ExtensionAPI) {
     name: "delegate",
     label: "Delegate",
     description:
-      "Delegate a task to an independent agent process. Spawns a separate pi instance (local or remote via SSH) and returns the result. Use when a task needs isolated execution or should run on a different machine.\n\nModes:\n- sync (default): Wait for completion, return result.\n- async: Spawn and return immediately. Get notified on completion. Use delegate_status to check progress.",
+      "Delegate a task to an independent agent process. Spawns a separate pi instance (local or remote via SSH) and returns the result. Use when a task needs isolated execution or should run on a different machine.\n\nModes:\n- async (default): Spawn and return immediately. Get notified on completion. Use delegate_status to check progress.\n- sync: Wait for completion, return result.",
     promptSnippet: "Spawn independent agent for isolated task execution (local or SSH remote)",
     promptGuidelines: [
       "Use delegate for tasks that should run in isolation — different cwd, different machine, or resource-intensive work.",
       "For SSH remote: set host to SSH config name (e.g., 'gpu1i'). The remote must have pi installed.",
-      "mode='sync' (default): blocks until completion. mode='async': returns immediately with taskId.",
+      "mode='async' (default): returns immediately with taskId. mode='sync': blocks until completion.",
       "Async delegates save sessions — use delegate_status to check, or resume later.",
       "When delegating tasks that produce notes, instruct the delegate to use llmlog (not botlog). Delegated work is agent-to-agent, not public.",
     ],
@@ -461,14 +461,14 @@ export default function (pi: ExtensionAPI) {
       ),
       mode: Type.Optional(
         Type.Union([Type.Literal("sync"), Type.Literal("async")], {
-          description: "sync: wait for completion (default). async: return immediately with taskId.",
-          default: "sync",
+          description: "sync: wait for completion. async: return immediately with taskId (default).",
+          default: "async",
         }),
       ),
     }),
 
     async execute(toolCallId, params, signal, onUpdate) {
-      const mode = params.mode ?? "sync";
+      const mode = params.mode ?? "async";
 
       if (mode === "async") {
         const result = await runDelegateAsync(pi, params.task, {
@@ -642,15 +642,15 @@ export default function (pi: ExtensionAPI) {
 
   // --- /delegate 커맨드 ---
   pi.registerCommand("delegate", {
-    description: "Delegate task to independent agent — /delegate [async] [host:] task",
+    description: "Delegate task to independent agent — /delegate [sync] [host:] task",
     handler: async (args, ctx) => {
       if (!args?.trim()) {
         ctx.ui.notify(
-          "Usage: /delegate [async] [host:] task\n" +
+          "Usage: /delegate [sync] [host:] task\n" +
             "Examples:\n" +
-            "  /delegate check disk space\n" +
-            "  /delegate gpu1i: train model\n" +
-            "  /delegate async gpu1i: long running task",
+            "  /delegate check disk space          (async, default)\n" +
+            "  /delegate gpu1i: train model        (async, remote)\n" +
+            "  /delegate sync check something      (sync, blocking)",
           "warning",
         );
         return;
@@ -658,12 +658,12 @@ export default function (pi: ExtensionAPI) {
 
       let host = "local";
       let task = args.trim();
-      let mode: "sync" | "async" = "sync";
+      let mode: "sync" | "async" = "async";
 
-      // async 키워드
-      if (task.startsWith("async ")) {
-        mode = "async";
-        task = task.slice(6).trim();
+      // sync 키워드 (async가 기본)
+      if (task.startsWith("sync ")) {
+        mode = "sync";
+        task = task.slice(5).trim();
       }
 
       // host: task 형식
@@ -688,6 +688,165 @@ export default function (pi: ExtensionAPI) {
           result.exitCode === 0 ? "info" : "error",
         );
       }
+    },
+  });
+
+  // --- delegate_resume tool ---
+  pi.registerTool({
+    name: "delegate_resume",
+    label: "Resume Delegate",
+    description:
+      "Resume a completed delegate session. Runs the delegate's saved session with an additional prompt, synchronously. Use to continue work from where the delegate left off.",
+    parameters: Type.Object({
+      taskId: Type.String({ description: "Delegate task ID to resume" }),
+      prompt: Type.String({ description: "Additional prompt to continue the work" }),
+      host: Type.Optional(Type.String({ description: "SSH host override (for remote delegates)" })),
+    }),
+
+    async execute(_toolCallId, params, signal, onUpdate) {
+      const info = activeDelegates.get(params.taskId);
+
+      // taskId가 없으면 세션 디렉토리에서 검색
+      let sessionFile: string | null = null;
+      let host = params.host ?? "local";
+
+      if (info) {
+        sessionFile = info.sessionFile;
+        host = params.host ?? info.host;
+      } else {
+        // taskId로 세션 파일 검색
+        try {
+          const files = fs.readdirSync(DELEGATE_SESSION_DIR);
+          const match = files.find((f) => f.includes(params.taskId));
+          if (match) {
+            sessionFile = path.join(DELEGATE_SESSION_DIR, match);
+          }
+        } catch { /* dir not found */ }
+      }
+
+      if (!sessionFile) {
+        return {
+          content: [{ type: "text", text: `Delegate session not found: ${params.taskId}` }],
+          isError: true,
+          details: { error: "not_found" },
+        };
+      }
+
+      // 로컬 파일 존재 확인
+      const isRemote = host !== "local";
+      if (!isRemote && !fs.existsSync(sessionFile)) {
+        return {
+          content: [{ type: "text", text: `Session file not found: ${sessionFile}` }],
+          isError: true,
+          details: { error: "file_not_found" },
+        };
+      }
+
+      // resume 실행 — 동기로 결과를 받음 (이어가기이므로 블로킹이 맞음)
+      const piArgs = [
+        "--mode", "json",
+        "-p",
+        "--no-extensions",
+        "--session", sessionFile,
+        params.prompt,
+      ];
+
+      let command: string;
+      let args: string[];
+      if (isRemote) {
+        command = "ssh";
+        const remoteCmd = `pi ${piArgs.map((a) => JSON.stringify(a)).join(" ")}`;
+        args = [host, remoteCmd];
+      } else {
+        command = "pi";
+        args = piArgs;
+      }
+
+      const messages: Array<{ role: string; content: unknown }> = [];
+      let turns = 0;
+      let cost = 0;
+      let model: string | undefined;
+
+      return new Promise((resolve) => {
+        const proc = spawn(command, args, {
+          cwd: isRemote ? undefined : (info?.cwd ?? process.cwd()),
+          shell: false,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+
+        let buffer = "";
+        let stderr = "";
+
+        const processLine = (line: string) => {
+          if (!line.trim()) return;
+          try {
+            const event = JSON.parse(line);
+            if (event.type === "message_end" && event.message) {
+              messages.push(event.message);
+              if (event.message.role === "assistant") {
+                turns++;
+                const c = event.message.usage?.cost?.total;
+                if (typeof c === "number") cost += c;
+                if (event.message.model) model = event.message.model;
+                const latest = parseMessages([event.message]);
+                if (latest) {
+                  onUpdate?.({
+                    content: [{ type: "text", text: `[resume] ${latest.slice(0, 200)}...` }],
+                  });
+                }
+              }
+            }
+          } catch { /* skip */ }
+        };
+
+        proc.stdout.on("data", (data: Buffer) => {
+          buffer += data.toString();
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const l of lines) processLine(l);
+        });
+        proc.stderr.on("data", (data: Buffer) => { stderr += data.toString(); });
+
+        proc.on("close", (code) => {
+          if (buffer.trim()) processLine(buffer);
+          const output = parseMessages(messages) || stderr || "(no output)";
+
+          resolve({
+            content: [
+              {
+                type: "text",
+                text: [
+                  `Resumed: ${params.taskId}`,
+                  `Turns: ${turns}`,
+                  `Cost: $${cost.toFixed(4)}`,
+                  model ? `Model: ${model}` : null,
+                  code !== 0 ? `Exit: ${code}` : null,
+                  "",
+                  output,
+                ].filter(Boolean).join("\n"),
+              },
+            ],
+            details: { taskId: params.taskId, sessionFile, turns, cost, exitCode: code ?? 0 },
+          });
+        });
+
+        proc.on("error", (err) => {
+          resolve({
+            content: [{ type: "text", text: `Resume failed: ${err.message}` }],
+            isError: true,
+            details: { error: err.message },
+          });
+        });
+
+        if (signal) {
+          const kill = () => {
+            proc.kill("SIGTERM");
+            setTimeout(() => { if (!proc.killed) proc.kill("SIGKILL"); }, 5000);
+          };
+          if (signal.aborted) kill();
+          else signal.addEventListener("abort", kill, { once: true });
+        }
+      });
     },
   });
 
