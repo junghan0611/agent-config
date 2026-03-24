@@ -5,20 +5,46 @@
  * 서브에이전트가 아니라 독립 프로세스 간 대화.
  * 로컬과 리모트(SSH) 동일 패턴.
  *
- * pi --mode json -p --no-session "태스크"
- *   → NDJSON 이벤트 스트림 파싱
- *   → 결과 수신
+ * 모드:
+ *   sync  — 기존 동작. 완료까지 블로킹, 결과 리턴. (기본)
+ *   async — 스폰 후 즉시 리턴. 완료 시 분신 세션에 알림.
+ *           세션이 남아 resume 가능.
+ *
+ * 비동기 delegate의 핵심:
+ *   - 분신 세션이 --session-control로 소켓을 노출 (control.ts peer)
+ *   - delegate는 소켓 없이 실행 (소켓 서버가 pi -p의 exit을 막으므로)
+ *   - 완료 시 proc.on('close') → 분신에게 followUp 메시지 주입
+ *   - delegate_status로 상태 조회 (pid + JSONL 파싱)
  *
  * 사용:
  *   LLM이 delegate tool 호출 → 별도 pi 프로세스 스폰
  *   /delegate "태스크" → 커맨드로 직접 실행
  *
+ * 의존:
+ *   - control.ts (peer extension, ~/.pi/agent/extensions/control.ts)
+ *     분신 세션에 --session-control 필요 (delegate에는 불필요)
+ *
  * Epic: agent-config-8sm (힣의 분신)
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
+import * as crypto from "node:crypto";
+import * as path from "node:path";
+import * as os from "node:os";
+import * as fs from "node:fs";
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const DELEGATE_SESSION_DIR = path.join(os.homedir(), ".pi", "agent", "sessions", "--delegate--");
+const DELEGATE_ENTRY_TYPE = "delegate-task";
+
+// ============================================================================
+// Types
+// ============================================================================
 
 interface DelegateResult {
   task: string;
@@ -29,7 +55,32 @@ interface DelegateResult {
   cost: number;
   model?: string;
   error?: string;
+  sessionFile?: string;
 }
+
+interface AsyncDelegateInfo {
+  taskId: string;
+  sessionFile: string;
+  pid: number;
+  host: string;
+  task: string;
+  cwd: string;
+  model?: string;
+  startTime: number;
+  status: "running" | "completed" | "failed";
+  exitCode?: number;
+  output?: string;
+}
+
+// ============================================================================
+// State
+// ============================================================================
+
+const activeDelegates = new Map<string, AsyncDelegateInfo & { proc?: ChildProcess }>();
+
+// ============================================================================
+// Helpers
+// ============================================================================
 
 function parseMessages(messages: Array<{ role: string; content: unknown }>): string {
   const texts: string[] = [];
@@ -47,7 +98,65 @@ function parseMessages(messages: Array<{ role: string; content: unknown }>): str
   return texts.join("\n\n");
 }
 
-async function runDelegate(
+/** 세션 JSONL에서 마지막 어시스턴트 메시지 추출 */
+function getLastAssistantFromSession(sessionFile: string): string | null {
+  try {
+    const content = fs.readFileSync(sessionFile, "utf-8");
+    const lines = content.trim().split("\n").reverse();
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.type === "message" && entry.message?.role === "assistant") {
+          const msg = entry.message;
+          if (typeof msg.content === "string") return msg.content;
+          if (Array.isArray(msg.content)) {
+            return msg.content
+              .filter((b: { type: string; text?: string }) => b.type === "text" && b.text)
+              .map((b: { text: string }) => b.text)
+              .join("\n\n");
+          }
+        }
+      } catch { /* skip malformed lines */ }
+    }
+  } catch { /* file not readable */ }
+  return null;
+}
+
+/** 세션 JSONL에서 비용/턴 수 집계 */
+function getSessionStats(sessionFile: string): { turns: number; cost: number } {
+  let turns = 0;
+  let cost = 0;
+  try {
+    const content = fs.readFileSync(sessionFile, "utf-8");
+    for (const line of content.trim().split("\n")) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.type === "message" && entry.message?.role === "assistant") {
+          turns++;
+          const c = entry.message?.usage?.cost?.total;
+          if (typeof c === "number") cost += c;
+        }
+      } catch { /* skip */ }
+    }
+  } catch { /* file not readable */ }
+  return { turns, cost };
+}
+
+/** 프로세스가 살아있는지 확인 */
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================================
+// Sync delegate (기존 동작, --no-session 제거)
+// ============================================================================
+
+async function runDelegateSync(
   task: string,
   options: {
     host?: string;
@@ -60,12 +169,11 @@ async function runDelegate(
   const host = options.host ?? "local";
   const isRemote = host !== "local";
 
-  // pi 실행 인자
-  const piArgs = ["--mode", "json", "-p", "--no-session"];
+  // pi 실행 인자 — 세션 저장 + extensions 비활성화 (exit 방해 방지)
+  const piArgs = ["--mode", "json", "-p", "--no-extensions", "--session-dir", DELEGATE_SESSION_DIR];
   if (options.model) piArgs.push("--model", options.model);
   piArgs.push(task);
 
-  // 로컬 vs SSH
   let command: string;
   let args: string[];
   if (isRemote) {
@@ -77,15 +185,7 @@ async function runDelegate(
     args = piArgs;
   }
 
-  const result: DelegateResult = {
-    task,
-    host,
-    exitCode: 0,
-    output: "",
-    turns: 0,
-    cost: 0,
-  };
-
+  const result: DelegateResult = { task, host, exitCode: 0, output: "", turns: 0, cost: 0 };
   const messages: Array<{ role: string; content: unknown }> = [];
 
   return new Promise((resolve) => {
@@ -100,27 +200,22 @@ async function runDelegate(
 
     const processLine = (line: string) => {
       if (!line.trim()) return;
-      let event: { type: string; message?: { role: string; content: unknown; usage?: { cost?: { total?: number } }; model?: string }; [k: string]: unknown };
-      try {
-        event = JSON.parse(line);
-      } catch {
-        return;
-      }
+      let event: {
+        type: string;
+        message?: { role: string; content: unknown; usage?: { cost?: { total?: number } }; model?: string };
+        [k: string]: unknown;
+      };
+      try { event = JSON.parse(line); } catch { return; }
 
       if (event.type === "message_end" && event.message) {
         messages.push(event.message);
-
         if (event.message.role === "assistant") {
           result.turns++;
           const usage = event.message.usage;
           if (usage?.cost?.total) result.cost += usage.cost.total;
           if (event.message.model) result.model = event.message.model;
-
-          // 스트리밍 업데이트
           const latest = parseMessages([event.message]);
-          if (latest && options.onUpdate) {
-            options.onUpdate(latest);
-          }
+          if (latest && options.onUpdate) options.onUpdate(latest);
         }
       }
     };
@@ -132,9 +227,7 @@ async function runDelegate(
       for (const line of lines) processLine(line);
     });
 
-    proc.stderr.on("data", (data: Buffer) => {
-      stderr += data.toString();
-    });
+    proc.stderr.on("data", (data: Buffer) => { stderr += data.toString(); });
 
     proc.on("close", (code) => {
       if (buffer.trim()) processLine(buffer);
@@ -151,7 +244,6 @@ async function runDelegate(
       resolve(result);
     });
 
-    // 중단 지원
     if (options.signal) {
       const kill = () => {
         proc.kill("SIGTERM");
@@ -163,18 +255,197 @@ async function runDelegate(
   });
 }
 
+// ============================================================================
+// Async delegate (B안: control.ts 패턴)
+// ============================================================================
+
+async function runDelegateAsync(
+  pi: ExtensionAPI,
+  task: string,
+  options: {
+    host?: string;
+    cwd?: string;
+    model?: string;
+  },
+): Promise<{ taskId: string; sessionFile: string; pid: number }> {
+  const host = options.host ?? "local";
+  const isRemote = host !== "local";
+  const taskId = crypto.randomUUID().slice(0, 8);
+  const cwd = options.cwd ?? process.cwd();
+
+  // 세션 디렉토리 보장
+  fs.mkdirSync(DELEGATE_SESSION_DIR, { recursive: true });
+
+  // 세션 파일 경로 생성 (pi가 새 세션을 이 경로에 만듬)
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const sessionFile = path.join(DELEGATE_SESSION_DIR, `${timestamp}_delegate-${taskId}.jsonl`);
+
+  // pi 실행 인자
+  // --no-extensions: global extensions가 이벤트 루프를 잡아 pi -p exit을 막음
+  // --session-control 제외: 소켓 서버가 exit을 막음
+  const piArgs = [
+    "--mode", "json",
+    "-p",
+    "--no-extensions",
+    "--session", sessionFile,
+  ];
+  if (options.model) piArgs.push("--model", options.model);
+  piArgs.push(task);
+
+  // 부모 세션 ID (control.ts가 설정한 환경변수)
+  const parentSessionId = process.env.PI_SESSION_ID;
+
+  let command: string;
+  let args: string[];
+  if (isRemote) {
+    command = "ssh";
+    const envPrefix = parentSessionId ? `PARENT_SESSION_ID=${parentSessionId}` : "";
+    const remoteCmd = `cd ${cwd} && ${envPrefix} pi ${piArgs.map((a) => JSON.stringify(a)).join(" ")}`;
+    args = [host, remoteCmd];
+  } else {
+    command = "pi";
+    args = piArgs;
+  }
+
+  // 스폰 — detached로 독립 실행, stdout/stderr 수집
+  const proc = spawn(command, args, {
+    cwd: isRemote ? undefined : cwd,
+    shell: false,
+    detached: true,
+    stdio: ["ignore", "pipe", "pipe"],
+    env: {
+      ...process.env,
+      ...(parentSessionId ? { PARENT_SESSION_ID: parentSessionId } : {}),
+    },
+  });
+
+  const pid = proc.pid ?? 0;
+
+  // 활성 delegate 등록
+  const info: AsyncDelegateInfo & { proc?: ChildProcess } = {
+    taskId,
+    sessionFile: isRemote ? `${host}:${sessionFile}` : sessionFile,
+    pid,
+    host,
+    task,
+    cwd,
+    model: options.model,
+    startTime: Date.now(),
+    status: "running",
+    proc,
+  };
+  activeDelegates.set(taskId, info);
+
+  // 세션에 영속화
+  pi.appendEntry(DELEGATE_ENTRY_TYPE, {
+    taskId,
+    sessionFile: info.sessionFile,
+    pid,
+    host,
+    task,
+    cwd,
+    model: options.model,
+    startTime: info.startTime,
+  });
+
+  // stderr 수집 (에러 진단용)
+  let stderr = "";
+  proc.stderr?.on("data", (data: Buffer) => { stderr += data.toString(); });
+
+  // 완료 시 분신에게 알림
+  proc.on("close", (code) => {
+    info.exitCode = code ?? 0;
+    info.status = code === 0 ? "completed" : "failed";
+    delete info.proc; // GC
+
+    // 결과 추출
+    const localSessionFile = isRemote ? null : info.sessionFile;
+    if (localSessionFile && fs.existsSync(localSessionFile)) {
+      const lastMsg = getLastAssistantFromSession(localSessionFile);
+      const stats = getSessionStats(localSessionFile);
+      info.output = lastMsg ?? stderr ?? "(no output)";
+      const summary = lastMsg
+        ? lastMsg.slice(0, 500) + (lastMsg.length > 500 ? "..." : "")
+        : `exit code ${code}`;
+
+      // 분신 세션에 followUp 메시지 주입
+      try {
+        pi.sendMessage(
+          {
+            customType: "delegate-complete",
+            content: `🏁 delegate \`${taskId}\` ${info.status} (${host}, ${stats.turns} turns, $${stats.cost.toFixed(4)})\n\n${summary}`,
+            display: true,
+            details: { taskId, host, status: info.status, turns: stats.turns, cost: stats.cost },
+          },
+          { triggerTurn: true, deliverAs: "followUp" },
+        );
+      } catch {
+        // 분신 세션이 이미 종료된 경우 무시
+      }
+    } else if (stderr) {
+      info.output = stderr.slice(0, 500);
+      try {
+        pi.sendMessage(
+          {
+            customType: "delegate-complete",
+            content: `❌ delegate \`${taskId}\` failed (${host}): ${stderr.slice(0, 300)}`,
+            display: true,
+            details: { taskId, host, status: "failed", error: stderr.slice(0, 500) },
+          },
+          { triggerTurn: true, deliverAs: "followUp" },
+        );
+      } catch { /* ignore */ }
+    }
+  });
+
+  proc.on("error", (err) => {
+    info.status = "failed";
+    info.output = err.message;
+    delete info.proc;
+  });
+
+  return { taskId, sessionFile: info.sessionFile, pid };
+}
+
+// ============================================================================
+// Extension Export
+// ============================================================================
+
 export default function (pi: ExtensionAPI) {
-  // --- delegate tool ---
+
+  // --- session_start: 활성 delegate 복원 ---
+  pi.on("session_start", async (_event, ctx) => {
+    for (const entry of ctx.sessionManager.getEntries()) {
+      if (entry.type === "custom" && (entry as { customType?: string }).customType === DELEGATE_ENTRY_TYPE) {
+        const data = (entry as { data?: AsyncDelegateInfo }).data;
+        if (!data?.taskId) continue;
+
+        // 이미 추적 중이면 스킵
+        if (activeDelegates.has(data.taskId)) continue;
+
+        // 프로세스 상태 확인
+        const alive = data.pid > 0 && isProcessAlive(data.pid);
+
+        activeDelegates.set(data.taskId, {
+          ...data,
+          status: alive ? "running" : "completed",
+        });
+      }
+    }
+  });
+
+  // --- delegate tool (sync + async) ---
   pi.registerTool({
     name: "delegate",
     label: "Delegate",
     description:
-      "Delegate a task to an independent agent process. Spawns a separate pi instance (local or remote via SSH) and returns the result. Use when a task needs isolated execution or should run on a different machine.",
+      "Delegate a task to an independent agent process. Spawns a separate pi instance (local or remote via SSH) and returns the result. Use when a task needs isolated execution or should run on a different machine.\n\nModes:\n- sync (default): Wait for completion, return result.\n- async: Spawn and return immediately. Get notified on completion. Use delegate_status to check progress.",
     promptSnippet: "Spawn independent agent for isolated task execution (local or SSH remote)",
     promptGuidelines: [
       "Use delegate for tasks that should run in isolation — different cwd, different machine, or resource-intensive work.",
       "For SSH remote: set host to SSH config name (e.g., 'gpu1i'). The remote must have pi installed.",
-      "The delegate runs without session — it starts fresh, executes, and returns. No memory carryover.",
+      "mode='sync' (default): blocks until completion. mode='async': returns immediately with taskId.",
+      "Async delegates save sessions — use delegate_status to check, or resume later.",
       "When delegating tasks that produce notes, instruct the delegate to use llmlog (not botlog). Delegated work is agent-to-agent, not public.",
     ],
     parameters: Type.Object({
@@ -188,10 +459,51 @@ export default function (pi: ExtensionAPI) {
       model: Type.Optional(
         Type.String({ description: "Model override (e.g., 'anthropic/claude-sonnet-4-6' or 'anthropic/claude-opus-4-6')" }),
       ),
+      mode: Type.Optional(
+        Type.Union([Type.Literal("sync"), Type.Literal("async")], {
+          description: "sync: wait for completion (default). async: return immediately with taskId.",
+          default: "sync",
+        }),
+      ),
     }),
 
     async execute(toolCallId, params, signal, onUpdate) {
-      const result = await runDelegate(params.task, {
+      const mode = params.mode ?? "sync";
+
+      if (mode === "async") {
+        const result = await runDelegateAsync(pi, params.task, {
+          host: params.host,
+          cwd: params.cwd,
+          model: params.model,
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: [
+                `🚀 Async delegate spawned`,
+                `Task ID: ${result.taskId}`,
+                `Session: ${result.sessionFile}`,
+                `PID: ${result.pid}`,
+                `Host: ${params.host ?? "local"}`,
+                "",
+                "Use delegate_status to check progress. You'll be notified on completion.",
+              ].join("\n"),
+            },
+          ],
+          details: {
+            taskId: result.taskId,
+            sessionFile: result.sessionFile,
+            pid: result.pid,
+            host: params.host ?? "local",
+            mode: "async",
+          },
+        };
+      }
+
+      // sync mode (기존 동작)
+      const result = await runDelegateSync(params.task, {
         host: params.host,
         cwd: params.cwd,
         model: params.model,
@@ -224,37 +536,179 @@ export default function (pi: ExtensionAPI) {
           turns: result.turns,
           cost: result.cost,
           model: result.model,
+          sessionFile: result.sessionFile,
         },
+      };
+    },
+  });
+
+  // --- delegate_status tool ---
+  pi.registerTool({
+    name: "delegate_status",
+    label: "Delegate Status",
+    description:
+      "Check status of async delegate tasks. Without taskId, lists all tracked delegates. With taskId, shows detailed status including last message.",
+    parameters: Type.Object({
+      taskId: Type.Optional(
+        Type.String({ description: "Specific delegate task ID. Omit to list all." }),
+      ),
+    }),
+
+    async execute(_toolCallId, params) {
+      // 특정 태스크
+      if (params.taskId) {
+        const info = activeDelegates.get(params.taskId);
+        if (!info) {
+          return {
+            content: [{ type: "text", text: `Unknown delegate task: ${params.taskId}` }],
+            isError: true,
+            details: { error: "not_found" },
+          };
+        }
+
+        // 상태 갱신
+        if (info.status === "running" && info.pid > 0) {
+          if (!isProcessAlive(info.pid)) {
+            info.status = "completed";
+          }
+        }
+
+        // 세션 파일에서 결과 추출 (로컬만)
+        let lastMessage: string | null = null;
+        let stats = { turns: 0, cost: 0 };
+        if (info.host === "local" && fs.existsSync(info.sessionFile)) {
+          lastMessage = getLastAssistantFromSession(info.sessionFile);
+          stats = getSessionStats(info.sessionFile);
+        }
+
+        const elapsed = Math.round((Date.now() - info.startTime) / 1000);
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: [
+                `Task: ${info.taskId}`,
+                `Status: ${info.status}`,
+                `Host: ${info.host}`,
+                `Elapsed: ${elapsed}s`,
+                `Turns: ${stats.turns}`,
+                `Cost: $${stats.cost.toFixed(4)}`,
+                `Session: ${info.sessionFile}`,
+                info.exitCode !== undefined ? `Exit: ${info.exitCode}` : null,
+                lastMessage ? `\nLast message:\n${lastMessage.slice(0, 800)}` : null,
+              ]
+                .filter(Boolean)
+                .join("\n"),
+            },
+          ],
+          details: {
+            taskId: info.taskId,
+            status: info.status,
+            host: info.host,
+            elapsed,
+            turns: stats.turns,
+            cost: stats.cost,
+            exitCode: info.exitCode,
+          },
+        };
+      }
+
+      // 전체 목록
+      if (activeDelegates.size === 0) {
+        return {
+          content: [{ type: "text", text: "No active delegates." }],
+          details: { count: 0 },
+        };
+      }
+
+      const lines: string[] = [];
+      for (const [id, info] of activeDelegates) {
+        // 상태 갱신
+        if (info.status === "running" && info.pid > 0 && !isProcessAlive(info.pid)) {
+          info.status = "completed";
+        }
+        const elapsed = Math.round((Date.now() - info.startTime) / 1000);
+        const icon = info.status === "running" ? "⏳" : info.status === "completed" ? "✅" : "❌";
+        lines.push(`${icon} ${id} [${info.host}] ${info.status} (${elapsed}s) — ${info.task.slice(0, 60)}`);
+      }
+
+      return {
+        content: [{ type: "text", text: lines.join("\n") }],
+        details: { count: activeDelegates.size },
       };
     },
   });
 
   // --- /delegate 커맨드 ---
   pi.registerCommand("delegate", {
-    description: "Delegate task to independent agent — /delegate [host:] task",
+    description: "Delegate task to independent agent — /delegate [async] [host:] task",
     handler: async (args, ctx) => {
       if (!args?.trim()) {
-        ctx.ui.notify("Usage: /delegate [host:] task\nExample: /delegate gpu1i: check disk space", "warning");
+        ctx.ui.notify(
+          "Usage: /delegate [async] [host:] task\n" +
+            "Examples:\n" +
+            "  /delegate check disk space\n" +
+            "  /delegate gpu1i: train model\n" +
+            "  /delegate async gpu1i: long running task",
+          "warning",
+        );
         return;
       }
 
-      // host: task 형식 파싱
       let host = "local";
       let task = args.trim();
+      let mode: "sync" | "async" = "sync";
+
+      // async 키워드
+      if (task.startsWith("async ")) {
+        mode = "async";
+        task = task.slice(6).trim();
+      }
+
+      // host: task 형식
       const colonMatch = task.match(/^(\S+):\s+(.+)$/);
       if (colonMatch) {
         host = colonMatch[1];
         task = colonMatch[2];
       }
 
-      ctx.ui.notify(`🚀 Delegating to ${host}...`, "info");
+      if (mode === "async") {
+        ctx.ui.notify(`🚀 Async delegating to ${host}...`, "info");
+        const result = await runDelegateAsync(pi, task, { host });
+        ctx.ui.notify(
+          `✅ Spawned: ${result.taskId} (pid ${result.pid})\nSession: ${result.sessionFile}`,
+          "info",
+        );
+      } else {
+        ctx.ui.notify(`🚀 Delegating to ${host}...`, "info");
+        const result = await runDelegateSync(task, { host });
+        ctx.ui.notify(
+          `✅ ${host}: ${result.turns} turns, $${result.cost.toFixed(4)}\n${result.output.slice(0, 200)}`,
+          result.exitCode === 0 ? "info" : "error",
+        );
+      }
+    },
+  });
 
-      const result = await runDelegate(task, { host });
-
-      ctx.ui.notify(
-        `✅ ${host}: ${result.turns} turns, $${result.cost.toFixed(4)}\n${result.output.slice(0, 200)}`,
-        result.exitCode === 0 ? "info" : "error",
-      );
+  // --- /delegate-status 커맨드 ---
+  pi.registerCommand("delegate-status", {
+    description: "Show status of async delegates",
+    handler: async (_args, ctx) => {
+      if (activeDelegates.size === 0) {
+        ctx.ui.notify("No active delegates.", "info");
+        return;
+      }
+      const lines: string[] = [];
+      for (const [id, info] of activeDelegates) {
+        if (info.status === "running" && info.pid > 0 && !isProcessAlive(info.pid)) {
+          info.status = "completed";
+        }
+        const elapsed = Math.round((Date.now() - info.startTime) / 1000);
+        const icon = info.status === "running" ? "⏳" : info.status === "completed" ? "✅" : "❌";
+        lines.push(`${icon} ${id} [${info.host}] ${info.status} (${elapsed}s) — ${info.task.slice(0, 60)}`);
+      }
+      ctx.ui.notify(lines.join("\n"), "info");
     },
   });
 }
