@@ -97,6 +97,19 @@ Instead:
    - `session_search` → semantic search (all sessions)
    - `knowledge_search` → org knowledge base (3-layer expansion)
 
+## Shell Aliases (`~/.bashrc.local`)
+
+```bash
+# Claude Code + 텔레그램
+alias claude-tg='claude --channels plugin:telegram@claude-plugins-official'
+alias claude-tgd='claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions'
+
+# pi: --session-control 기본 (delegate 비동기 알림 + 세션 간 RPC)
+alias pi='command pi --session-control'
+# 분신 에이전트: 텔레그램 브릿지 포함
+alias pi-home='command pi --session-control --telegram'
+```
+
 ## One-Command Setup
 
 ```bash
