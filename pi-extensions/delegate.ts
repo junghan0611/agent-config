@@ -6,9 +6,9 @@
  * 로컬과 리모트(SSH) 동일 패턴.
  *
  * 모드:
- *   async — 스폰 후 즉시 리턴. 완료 시 분신 세션에 알림. (기본)
+ *   sync  — 완료까지 블로킹, 결과 리턴. (기본)
+ *   async — 스폰 후 즉시 리턴. 완료 시 분신 세션에 알림.
  *           세션이 남아 resume 가능.
- *   sync  — 완료까지 블로킹, 결과 리턴.
  *
  * 비동기 delegate의 핵심:
  *   - 분신 세션이 --session-control로 소켓을 노출 (control.ts peer)
@@ -439,13 +439,13 @@ export default function (pi: ExtensionAPI) {
     name: "delegate",
     label: "Delegate",
     description:
-      "Delegate a task to an independent agent process. Spawns a separate pi instance (local or remote via SSH) and returns the result. Use when a task needs isolated execution or should run on a different machine.\n\nModes:\n- async (default): Spawn and return immediately. Get notified on completion. Use delegate_status to check progress.\n- sync: Wait for completion, return result.",
+      "Delegate a task to an independent agent process. Spawns a separate pi instance (local or remote via SSH) and returns the result. Use when a task needs isolated execution or should run on a different machine.\n\nModes:\n- sync (default): Wait for completion, return result.\n- async: Spawn and return immediately. Get notified on completion. Use delegate_status to check progress.",
     promptSnippet: "Spawn independent agent for isolated task execution (local or SSH remote)",
     promptGuidelines: [
       "Use delegate for tasks that should run in isolation — different cwd, different machine, or resource-intensive work.",
       "For SSH remote: set host to SSH config name (e.g., 'gpu1i'). The remote must have pi installed.",
-      "mode='async' (default): Spawn and return immediately. Get notified on completion. Use delegate_status to check progress.",
-      "mode='sync': Wait for completion, return result. Use for quick checks, git operations, simple commands.",
+      "mode='sync' (default): Wait for completion, return result.",
+      "mode='async': Spawn and return immediately. Use for builds, long-running tasks, GPU remote work.",
       "Async delegates save sessions — use delegate_status to check, or resume later.",
       "When delegating tasks that produce notes, instruct the delegate to use llmlog (not botlog). Delegated work is agent-to-agent, not public.",
     ],
@@ -462,14 +462,14 @@ export default function (pi: ExtensionAPI) {
       ),
       mode: Type.Optional(
         Type.Union([Type.Literal("sync"), Type.Literal("async")], {
-          description: "sync: wait for completion. async: return immediately with taskId (default).",
-          default: "async",
+          description: "sync: wait for completion (default). async: return immediately with taskId.",
+          default: "sync",
         }),
       ),
     }),
 
     async execute(toolCallId, params, signal, onUpdate) {
-      const mode = params.mode ?? "async";
+      const mode = params.mode ?? "sync";
 
       if (mode === "async") {
         const result = await runDelegateAsync(pi, params.task, {
@@ -643,15 +643,15 @@ export default function (pi: ExtensionAPI) {
 
   // --- /delegate 커맨드 ---
   pi.registerCommand("delegate", {
-    description: "Delegate task to independent agent — /delegate [sync] [host:] task",
+    description: "Delegate task to independent agent — /delegate [async] [host:] task",
     handler: async (args, ctx) => {
       if (!args?.trim()) {
         ctx.ui.notify(
-          "Usage: /delegate [sync] [host:] task\n" +
+          "Usage: /delegate [async] [host:] task\n" +
             "Examples:\n" +
-            "  /delegate check disk space          (async, default)\n" +
-            "  /delegate gpu1i: train model        (async, remote)\n" +
-            "  /delegate sync check something      (sync, blocking)",
+            "  /delegate check disk space          (sync, default)\n" +
+            "  /delegate async gpu1i: train model  (async, remote)\n" +
+            "  /delegate async build project       (async, long-running)",
           "warning",
         );
         return;
@@ -659,12 +659,12 @@ export default function (pi: ExtensionAPI) {
 
       let host = "local";
       let task = args.trim();
-      let mode: "sync" | "async" = "async";
+      let mode: "sync" | "async" = "sync";
 
-      // sync 키워드 (async가 기본)
-      if (task.startsWith("sync ")) {
-        mode = "sync";
-        task = task.slice(5).trim();
+      // async 키워드 (sync가 기본)
+      if (task.startsWith("async ")) {
+        mode = "async";
+        task = task.slice(6).trim();
       }
 
       // host: task 형식
