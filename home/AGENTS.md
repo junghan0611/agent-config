@@ -75,6 +75,18 @@
 | **send_to_session** | 실행 중인 다른 pi 세션에 메시지 전송 (control.ts) |
 | **list_sessions** | 제어 소켓이 열린 pi 세션 목록 조회 (control.ts) |
 
+### delegate 사용 패턴
+
+| 상황 | 모드 | 이유 |
+|------|------|------|
+| 빌드, 테스트, 장시간 작업 | `mode: "async"` (기본) | 분신이 블로킹되면 안 됨 |
+| git 커밋/푸시, 상태 확인 | `mode: "sync"` | 결과를 바로 받아야 함 |
+| GPU 리모트 작업 | `mode: "async", host: "gpu1i"` | SSH 너머 장시간 |
+| 완료된 delegate 이어가기 | `delegate_resume` | 세션 맥락 유지 |
+
+> **주의**: `delegate_resume`은 원래 task가 성공한 세션에만 유효.
+> delegate_status로 "completed"인지 확인 후 resume할 것.
+
 ## 세션 시작: 디바이스/시간 자동 제공
 - SessionStart 훅이 `device=`, `time_kst=` 정보를 자동 전달합니다.
 - 훅 출력이 보이면 별도 확인 불필요. 보이지 않으면 `cat ~/.current-device` 및 `TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S'`로 확인.
