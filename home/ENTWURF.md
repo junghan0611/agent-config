@@ -71,6 +71,15 @@ delegate에게 프롬프트만 보내면 맥락이 부족하다.
 분신의 TODO는 org-agenda로 관리한다: `~/sync/org/botlog/agenda/20260325T171244--entwurf__agenda.org`
 TODO → DONE 순서로 진행. 이맥스 org-agenda에서 보인다.
 
+### dictcli 큐레이션 후 필수: graph.edn 동기화
+
+```bash
+cp ~/repos/gh/dictcli/graph.edn ~/repos/gh/agent-config/skills/dictcli/graph.edn
+cd ~/repos/gh/agent-config && git add skills/dictcli/graph.edn && git commit -m "skills(dictcli): graph.edn 동기화" && git push
+```
+
+이걸 안 하면 스킬의 `expand`가 구버전 graph.edn을 읽는다.
+
 ## 삽질 방지 — 데일리 로그에서 배운 것
 
 > 교훈은 리포별 llmlog에 적으면 다시 안 본다.
