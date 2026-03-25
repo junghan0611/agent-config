@@ -307,12 +307,15 @@ async function runDelegateAsync(
     args = piArgs;
   }
 
-  // 스폰 — detached로 독립 실행, stdout/stderr 수집
+  // 스폰 — detached로 독립 실행
+  // stdout: "ignore" — JSONL 출력을 /dev/null로. pipe로 열면 버퍼(64KB) 초과 시 행(hang).
+  //   결과는 세션 파일(JSONL)에서 읽으므로 stdout 불필요.
+  // stderr: "pipe" — 에러 진단용
   const proc = spawn(command, args, {
     cwd: isRemote ? undefined : cwd,
     shell: false,
     detached: true,
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: ["ignore", "ignore", "pipe"],
     env: {
       ...process.env,
       ...(parentSessionId ? { PARENT_SESSION_ID: parentSessionId } : {}),
