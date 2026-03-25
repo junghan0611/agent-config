@@ -39,8 +39,40 @@ import * as fs from "node:fs";
 // Constants
 // ============================================================================
 
-const DELEGATE_SESSION_DIR = path.join(os.homedir(), ".pi", "agent", "sessions", "--delegate--");
+const SESSIONS_BASE = path.join(os.homedir(), ".pi", "agent", "sessions");
 const DELEGATE_ENTRY_TYPE = "delegate-task";
+
+/** cwd → 세션 디렉토리 경로 변환 (pi의 네이밍 규칙 준수)
+ *  /home/junghan/repos/gh/dictcli → ~/.pi/agent/sessions/--home-junghan-repos-gh-dictcli--/
+ */
+function cwdToSessionDir(cwd: string): string {
+  const normalized = cwd.replace(/\/$/, ""); // trailing slash 제거
+  const dirName = "--" + normalized.replace(/^\//, "").replace(/\//g, "-") + "--";
+  return path.join(SESSIONS_BASE, dirName);
+}
+
+/** taskId로 전체 sessions 디렉토리에서 delegate 세션 파일 검색 */
+function findDelegateSession(taskId: string): string | null {
+  // 1. active delegates에서 찾기
+  const active = activeDelegates.get(taskId);
+  if (active?.sessionFile) return active.sessionFile;
+
+  // 2. 전체 sessions 디렉토리 검색
+  try {
+    for (const dir of fs.readdirSync(SESSIONS_BASE)) {
+      const dirPath = path.join(SESSIONS_BASE, dir);
+      try {
+        if (!fs.statSync(dirPath).isDirectory()) continue;
+        for (const file of fs.readdirSync(dirPath)) {
+          if (file.includes(`delegate-${taskId}`)) {
+            return path.join(dirPath, file);
+          }
+        }
+      } catch { /* skip inaccessible dirs */ }
+    }
+  } catch { /* sessions base not found */ }
+  return null;
+}
 
 // ============================================================================
 // Types
@@ -168,9 +200,17 @@ async function runDelegateSync(
 ): Promise<DelegateResult> {
   const host = options.host ?? "local";
   const isRemote = host !== "local";
+  const effectiveCwd = options.cwd ?? process.cwd();
+  const taskId = crypto.randomUUID().slice(0, 8);
+
+  // cwd 기반 세션 디렉토리 + delegate 파일명
+  const sessionDir = cwdToSessionDir(effectiveCwd);
+  fs.mkdirSync(sessionDir, { recursive: true });
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const sessionFile = path.join(sessionDir, `${timestamp}_delegate-${taskId}.jsonl`);
 
   // pi 실행 인자 — 세션 저장 + extensions 비활성화 (exit 방해 방지)
-  const piArgs = ["--mode", "json", "-p", "--no-extensions", "--session-dir", DELEGATE_SESSION_DIR];
+  const piArgs = ["--mode", "json", "-p", "--no-extensions", "--session", sessionFile];
   if (options.model) piArgs.push("--model", options.model);
   piArgs.push(task);
 
@@ -185,7 +225,7 @@ async function runDelegateSync(
     args = piArgs;
   }
 
-  const result: DelegateResult = { task, host, exitCode: 0, output: "", turns: 0, cost: 0 };
+  const result: DelegateResult = { task, host, exitCode: 0, output: "", turns: 0, cost: 0, sessionFile };
   const messages: Array<{ role: string; content: unknown }> = [];
 
   return new Promise((resolve) => {
@@ -273,12 +313,12 @@ async function runDelegateAsync(
   const taskId = crypto.randomUUID().slice(0, 8);
   const cwd = options.cwd ?? process.cwd();
 
-  // 세션 디렉토리 보장
-  fs.mkdirSync(DELEGATE_SESSION_DIR, { recursive: true });
+  // cwd 기반 세션 디렉토리 + delegate 파일명
+  const sessionDir = cwdToSessionDir(cwd);
+  fs.mkdirSync(sessionDir, { recursive: true });
 
-  // 세션 파일 경로 생성 (pi가 새 세션을 이 경로에 만듬)
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const sessionFile = path.join(DELEGATE_SESSION_DIR, `${timestamp}_delegate-${taskId}.jsonl`);
+  const sessionFile = path.join(sessionDir, `${timestamp}_delegate-${taskId}.jsonl`);
 
   // pi 실행 인자
   // --no-extensions: global extensions가 이벤트 루프를 잡아 pi -p exit을 막음
@@ -712,7 +752,7 @@ export default function (pi: ExtensionAPI) {
     async execute(_toolCallId, params, signal, onUpdate) {
       const info = activeDelegates.get(params.taskId);
 
-      // taskId가 없으면 세션 디렉토리에서 검색
+      // taskId가 없으면 전체 sessions 디렉토리에서 검색
       let sessionFile: string | null = null;
       let host = params.host ?? "local";
 
@@ -720,14 +760,7 @@ export default function (pi: ExtensionAPI) {
         sessionFile = info.sessionFile;
         host = params.host ?? info.host;
       } else {
-        // taskId로 세션 파일 검색
-        try {
-          const files = fs.readdirSync(DELEGATE_SESSION_DIR);
-          const match = files.find((f) => f.includes(params.taskId));
-          if (match) {
-            sessionFile = path.join(DELEGATE_SESSION_DIR, match);
-          }
-        } catch { /* dir not found */ }
+        sessionFile = findDelegateSession(params.taskId);
       }
 
       if (!sessionFile) {
