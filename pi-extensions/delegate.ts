@@ -702,7 +702,7 @@ export default function (pi: ExtensionAPI) {
     name: "delegate_resume",
     label: "Resume Delegate",
     description:
-      "Resume a completed delegate session. Runs the delegate's saved session with an additional prompt, synchronously. Use to continue work from where the delegate left off.",
+      "Resume a completed delegate session. Runs the delegate's saved session with an additional prompt. Use to continue work from where the delegate left off.",
     parameters: Type.Object({
       taskId: Type.String({ description: "Delegate task ID to resume" }),
       prompt: Type.String({ description: "Additional prompt to continue the work" }),
@@ -748,7 +748,7 @@ export default function (pi: ExtensionAPI) {
         };
       }
 
-      // resume 실행 — 동기로 결과를 받음 (이어가기이므로 블로킹이 맞음)
+      // resume = 기존 세션에 추가 prompt로 스폰. delegate와 동일 패턴.
       const piArgs = [
         "--mode", "json",
         "-p",
@@ -768,91 +768,99 @@ export default function (pi: ExtensionAPI) {
         args = piArgs;
       }
 
-      const messages: Array<{ role: string; content: unknown }> = [];
-      let turns = 0;
-      let cost = 0;
-      let model: string | undefined;
+      // async로 스폰 — delegate와 동일 패턴
+      const resumeTaskId = crypto.randomUUID().slice(0, 8);
+      const cwd = info?.cwd ?? process.cwd();
 
-      return new Promise((resolve) => {
-        const proc = spawn(command, args, {
-          cwd: isRemote ? undefined : (info?.cwd ?? process.cwd()),
-          shell: false,
-          stdio: ["ignore", "pipe", "pipe"],
-        });
+      const proc = spawn(command, args, {
+        cwd: isRemote ? undefined : cwd,
+        shell: false,
+        detached: true,
+        stdio: ["ignore", "ignore", "pipe"],
+      });
 
-        let buffer = "";
-        let stderr = "";
+      const pid = proc.pid ?? 0;
 
-        const processLine = (line: string) => {
-          if (!line.trim()) return;
+      // 활성 delegate로 등록 (resume도 추적)
+      const resumeInfo: AsyncDelegateInfo & { proc?: ChildProcess } = {
+        taskId: resumeTaskId,
+        sessionFile,
+        pid,
+        host,
+        task: `resume:${params.taskId} — ${params.prompt.slice(0, 60)}`,
+        cwd,
+        model: info?.model,
+        startTime: Date.now(),
+        status: "running",
+        proc,
+      };
+      activeDelegates.set(resumeTaskId, resumeInfo);
+
+      pi.appendEntry(DELEGATE_ENTRY_TYPE, {
+        taskId: resumeTaskId,
+        sessionFile,
+        pid,
+        host,
+        task: resumeInfo.task,
+        cwd,
+        startTime: resumeInfo.startTime,
+      });
+
+      // stderr 수집
+      let stderr = "";
+      proc.stderr?.on("data", (data: Buffer) => { stderr += data.toString(); });
+
+      // 완료 시 알림
+      proc.on("close", (code) => {
+        resumeInfo.exitCode = code ?? 0;
+        resumeInfo.status = code === 0 ? "completed" : "failed";
+        delete resumeInfo.proc;
+
+        if (!isRemote && fs.existsSync(sessionFile!)) {
+          const lastMsg = getLastAssistantFromSession(sessionFile!);
+          const stats = getSessionStats(sessionFile!);
+          resumeInfo.output = lastMsg ?? stderr ?? "(no output)";
+          const summary = lastMsg
+            ? lastMsg.slice(0, 500) + (lastMsg.length > 500 ? "..." : "")
+            : `exit code ${code}`;
+
           try {
-            const event = JSON.parse(line);
-            if (event.type === "message_end" && event.message) {
-              messages.push(event.message);
-              if (event.message.role === "assistant") {
-                turns++;
-                const c = event.message.usage?.cost?.total;
-                if (typeof c === "number") cost += c;
-                if (event.message.model) model = event.message.model;
-                const latest = parseMessages([event.message]);
-                if (latest) {
-                  onUpdate?.({
-                    content: [{ type: "text", text: `[resume] ${latest.slice(0, 200)}...` }],
-                  });
-                }
-              }
-            }
-          } catch { /* skip */ }
-        };
-
-        proc.stdout.on("data", (data: Buffer) => {
-          buffer += data.toString();
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-          for (const l of lines) processLine(l);
-        });
-        proc.stderr.on("data", (data: Buffer) => { stderr += data.toString(); });
-
-        proc.on("close", (code) => {
-          if (buffer.trim()) processLine(buffer);
-          const output = parseMessages(messages) || stderr || "(no output)";
-
-          resolve({
-            content: [
+            pi.sendMessage(
               {
-                type: "text",
-                text: [
-                  `Resumed: ${params.taskId}`,
-                  `Turns: ${turns}`,
-                  `Cost: $${cost.toFixed(4)}`,
-                  model ? `Model: ${model}` : null,
-                  code !== 0 ? `Exit: ${code}` : null,
-                  "",
-                  output,
-                ].filter(Boolean).join("\n"),
+                customType: "delegate-complete",
+                content: `🏁 resume \`${resumeTaskId}\` (← ${params.taskId}) ${resumeInfo.status} (${stats.turns} turns, $${stats.cost.toFixed(4)})\n\n${summary}`,
+                display: true,
+                details: { taskId: resumeTaskId, originalTaskId: params.taskId, status: resumeInfo.status },
               },
-            ],
-            details: { taskId: params.taskId, sessionFile, turns, cost, exitCode: code ?? 0 },
-          });
-        });
-
-        proc.on("error", (err) => {
-          resolve({
-            content: [{ type: "text", text: `Resume failed: ${err.message}` }],
-            isError: true,
-            details: { error: err.message },
-          });
-        });
-
-        if (signal) {
-          const kill = () => {
-            proc.kill("SIGTERM");
-            setTimeout(() => { if (!proc.killed) proc.kill("SIGKILL"); }, 5000);
-          };
-          if (signal.aborted) kill();
-          else signal.addEventListener("abort", kill, { once: true });
+              { triggerTurn: true, deliverAs: "followUp" },
+            );
+          } catch { /* session already closed */ }
         }
       });
+
+      proc.on("error", (err) => {
+        resumeInfo.status = "failed";
+        resumeInfo.output = err.message;
+        delete resumeInfo.proc;
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: [
+              `🔄 Resume spawned (async)`,
+              `Resume ID: ${resumeTaskId}`,
+              `Original: ${params.taskId}`,
+              `Session: ${sessionFile}`,
+              `PID: ${pid}`,
+              "",
+              "Use delegate_status to check progress. You'll be notified on completion.",
+            ].join("\n"),
+          },
+        ],
+        details: { taskId: resumeTaskId, originalTaskId: params.taskId, sessionFile, pid },
+      };
     },
   });
 
