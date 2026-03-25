@@ -1,6 +1,6 @@
 ---
 name: emacs
-description: "Emacs daemon 연결 — org 파일 조작, denote 검색, 서지 조회, dblock 업데이트, 임의 Elisp 실행. emacsclient로 호스트의 Emacs 30.2 daemon에 접속. denote 노트에 헤딩/히스토리/링크 추가 시 반드시 이 스킬의 agent-denote-add-heading, agent-denote-add-history, agent-denote-add-link 사용. Edit 도구나 bash heredoc으로 org 파일 직접 수정 금지."
+description: "Emacs daemon 연결 — org 파일 조작, denote 검색, 서지 조회, dblock 업데이트, 임의 Elisp 실행. emacsclient로 호스트의 Emacs 30.2 daemon에 접속. denote 노트에 내용을 추가할 때 agent-denote-add-heading(헤딩 추가), agent-denote-add-history(히스토리 추가), agent-denote-add-link(링크 추가)를 제공한다. org 구조를 안전하게 유지하는 전용 함수."
 ---
 
 # Emacs Agent Server
