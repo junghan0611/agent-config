@@ -185,23 +185,44 @@ ls ~/org/botlog/ | grep -i "<키워드>"
 | **비슷하지만 다른 주제** | 새 노트 생성 + 기존 노트 링크 |
 | **관련 노트 없음** | 새 노트 생성 |
 
-### Step 3: 기존 노트 업데이트 시
+### Step 3: 기존 노트 업데이트 시 — emacs 함수 필수
 
-1. **히스토리에 엔트리 추가** (역시간순, 맨 위에):
-   ```org
-   * 히스토리
-   - [2026-03-09 Mon 11:40] @pi-claude — <무엇을 추가했는지 한줄>
-   - [2026-03-08 Sun 09:12] 생성 — <원래 생성 경위>
-   ```
+**⚠️ bash heredoc이나 Edit 도구로 org 파일을 직접 수정하지 않는다.**
+반드시 emacs 스킬의 `agent-denote-*` 함수를 사용한다.
 
-2. **새 헤딩(레벨1)으로 내용 추가** (파일 끝에):
-   ```org
-   * 새 주제 제목 :LLMLOG:
+**1. 히스토리에 엔트리 추가:**
 
-   <본문>
-   ```
+```bash
+# emacs 스킬의 접속 방법 참조 (ec 함수 정의 필요)
+ec '(agent-denote-add-history "<IDENTIFIER>" "@pi — <무엇을 추가했는지 한줄>")'
+# → 히스토리 섹션 맨 위에 타임스탬프 엔트리 자동 추가
+# → 히스토리 헤딩이 없으면 자동 생성
+```
 
-3. **filetags 확장** (필요 시): 새 태그 추가, 파일명도 동기화
+**2. 새 헤딩(레벨1)으로 내용 추가:**
+
+```bash
+ec '(agent-denote-add-heading "<IDENTIFIER>" "[2026-03-25] 새 주제 제목" "본문 내용")'
+# → 파일 끝에 레벨1 헤딩 추가
+# → 특정 헤딩 뒤에 삽입하려면 4번째 인자: "배경" (해당 헤딩 뒤에 삽입)
+```
+
+**3. 관련 노트 링크 추가:**
+
+```bash
+ec '(agent-denote-add-link "<IDENTIFIER>" "<TARGET_ID>" "링크 설명")'
+# → 관련/관련 노트/Related 헤딩에 denote 링크 추가
+```
+
+**4. filetags/제목 변경** (필요 시):
+
+```bash
+ec '(agent-denote-rename-by-front-matter "<IDENTIFIER>")'
+# → #+filetags:, #+title: 변경 후 호출하면 파일명 자동 동기화
+```
+
+> **emacs 접속 방법**: emacs 스킬(SKILL.md) 상단의 `ec()` 함수 정의 참조.
+> NixOS: `emacsclient -s agent-server --eval "..."` 로 실행.
 
 이 규칙의 목적: **하나의 주제가 여러 노트에 분산되지 않고, 하나의 노트에서 시간순으로 성장한다.**
 
