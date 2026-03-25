@@ -66,6 +66,11 @@ delegate에게 프롬프트만 보내면 맥락이 부족하다.
 
 > 모델 ID: `anthropic/claude-sonnet-4-6`, `anthropic/claude-haiku-4.5` (haiku는 4.5까지만 있음, 4.6 없음)
 
+## 진행 중인 작업
+
+분신의 TODO는 org-agenda로 관리한다: `~/sync/org/botlog/agenda/20260325T171244--entwurf__agenda.org`
+TODO → DONE 순서로 진행. 이맥스 org-agenda에서 보인다.
+
 ## 삽질 방지 — 데일리 로그에서 배운 것
 
 > 교훈은 리포별 llmlog에 적으면 다시 안 본다.
