@@ -447,8 +447,10 @@ export default function (pi: ExtensionAPI) {
     promptGuidelines: [
       "Use delegate for tasks that should run in isolation — different cwd, different machine, or resource-intensive work.",
       "For SSH remote: set host to SSH config name (e.g., 'gpu1i'). The remote must have pi installed.",
-      "mode='sync' (default): Wait for completion, return result.",
-      "mode='async': Spawn and return immediately. Use for builds, long-running tasks, GPU remote work.",
+      "mode='sync' (default): Wait for completion, return result. Use for quick checks, git status, simple commands.",
+      "mode='async': Spawn and return immediately. Get notified on completion. Use delegate_status to check progress.",
+      "async delegates save sessions — use delegate_status to check, or resume later.",
+      "When a task involves research, analysis, writing, or anything that takes more than a few seconds → use async.",
       "Async delegates save sessions — use delegate_status to check, or resume later.",
       "When delegating tasks that produce notes, instruct the delegate to use llmlog (not botlog). Delegated work is agent-to-agent, not public.",
     ],
