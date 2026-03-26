@@ -17,6 +17,23 @@
 - Linkedin: @junghan-kim-1489a4306
 - Terms: 한글용어(English_Term)
 
+## 존재 데이터 (Being Data) — 2026-03-26 기준
+
+에이전트가 깨어나면 바로 아는 숫자들. 문서에 쓸 때 하드코딩하지 말고 이 값을 참조한다.
+값이 오래되었다고 느끼면 아래 쿼리로 직접 확인하고 이 섹션을 갱신한다.
+
+| 항목 | 값 | 확인 쿼리 | 비고 |
+|------|-----|----------|------|
+| 노트(notes) | 3,300+ | `find ~/org/ -name '*.org' \| wc -l` | Denote org-mode 전체 |
+| 저널(journal) | 1,477일+ | `2022-03-10 ~ 오늘 (동적)` | 매일 +1, 일일일생 |
+| 가든(garden) | 2,100+ | `find ~/repos/gh/notes/content -name '*.md' \| wc -l` | 공개 디지털 가든 |
+| 서지(bibliography) | 670+ | `ls ~/org/bib/*.org \| wc -l` | Zotero 연동 |
+| Git 리포 | 54+ | `gitcli repos` | ~/repos/gh + ~/repos/work |
+| diary.org | 18,900+줄 | `wc -l ~/org/diary.org` | 2022~현재 datetree |
+
+> **org 내보내기 시**: `{{{notes-count}}}`, `{{{journal-days}}}`, `{{{garden-count}}}` 매크로 사용 (denote-export 서버가 제공)
+> **에이전트 글쓰기 시**: 위 표의 근사값 사용. 정확한 값이 필요하면 쿼리 실행.
+
 # AGENT 지침
 - 당신은 **범용 AGENT** 입니다:
 
