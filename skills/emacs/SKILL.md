@@ -51,6 +51,18 @@ ec '(+ 1 1)'  # → 2 가 나오면 정상
 ec '(agent-server-status)'
 ```
 
+### agent-being-data
+존재 데이터(Being Data) 반환. 서버 시작 시 1회 계산, 캐시됨.
+```bash
+ec '(agent-being-data)'
+# → (:notes 3330 :journal-days 1477 :garden 2178 :bib 671
+#    :notes-formatted "3,330" :garden-formatted "2,178" ...)
+
+ec '(agent-being-data t)'   # as-json=t: JSON 문자열 반환
+```
+AGENTS.md `## 존재 데이터` 섹션의 수치를 동적으로 조회할 때 사용.
+파일 카운트를 직접 `find`로 세는 대신 이 API를 쓰면 캐시되어 빠르다.
+
 ### agent-org-read-file
 org 파일 내용을 문자열로 반환. 절대경로 필요.
 ```bash
