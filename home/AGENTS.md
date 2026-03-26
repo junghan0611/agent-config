@@ -202,19 +202,20 @@ PRIVATE.md 참조.
 REMOTE=$(git remote get-url origin)
 REPO_URL=$(echo "$REMOTE" | sed 's|git@github.com:|https://github.com/|;s|\.git$||')
 REPO_NAME=$(basename "$REMOTE" .git)
+REPO_TAG=$(echo "$REPO_NAME" | tr -d '-')   # 하이픈 제거: homeagent-config → homeagentconfig
 SHA=$(git rev-parse --short HEAD)
 MSG=$(git log -1 --pretty=%s)
 
 # 2. 어젠다 스탬프 (커밋 링크 포함)
 ~/.pi/agent/skills/pi-skills/agenda/scripts/agenda-stamp.sh \
   "${REPO_NAME}: ${MSG} [[${REPO_URL}/commit/${SHA}][${SHA}]]" \
-  "pi:commit:${REPO_NAME}"
+  "pi:commit:${REPO_TAG}"
 ```
 
 ### 결과 예시 (org-agenda에서 보이는 형태)
 
 ```org
-**** pi-skills: feat: summarize 스킬 추가 [[https://github.com/junghan0611/pi-skills/commit/f8ef3ca][f8ef3ca]] :pi:commit:pi-skills:
+**** pi-skills: feat: summarize 스킬 추가 [[https://github.com/junghan0611/pi-skills/commit/f8ef3ca][f8ef3ca]] :pi:commit:piskills:
 <2026-03-01 Sat 11:53>
 ```
 
