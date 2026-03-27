@@ -112,6 +112,7 @@ function slugify(text: string, maxLen = 30): string {
 		.replace(/[^\w\s]/g, " ") // 특수문자 → 공백
 		.replace(/\s+/g, "-") // 공백 → 하이픈
 		.replace(/-+/g, "-") // 중복 하이픈 정리
+		.replace(/^-/, "") // 앞 하이픈 제거 (denote -- 뒤에 ---가 되는 것 방지)
 		.slice(0, maxLen)
 		.replace(/-$/, ""); // 끝 하이픈 제거
 }
