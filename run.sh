@@ -267,6 +267,14 @@ setup_npm() {
     warn "andenken: repo not found at $SM_DIR"
   fi
 
+  # pi-extensions (grammy 등)
+  local ext_dir="$SCRIPT_DIR/pi-extensions"
+  if [ -f "$ext_dir/package.json" ]; then
+    log "pi-extensions: installing..."
+    (cd "$ext_dir" && npm install --silent 2>/dev/null)
+    ok "pi-extensions"
+  fi
+
   # Skills with package.json
   for pkg_dir in "$SKILLS_DIR"/*/; do
     if [ -f "$pkg_dir/package.json" ] && [ ! -d "$pkg_dir/node_modules" ]; then
