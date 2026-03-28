@@ -54,6 +54,7 @@ Pi loads andenken as a **compiled pi package** (`pi install`), not a symlinked `
 | `whimsical.ts` | Personality touches |
 
 Semantic memory extension lives in [andenken](https://github.com/junghan0611/andenken) (separate repo, loaded as pi package).
+Telegram bridge lives in [entwurf](https://github.com/junghan0611/entwurf) (separate repo, loaded as pi package).
 
 ### Skills ([`skills/`](skills/)) — 26 skills
 
@@ -106,7 +107,7 @@ alias claude-tgd='claude --channels plugin:telegram@claude-plugins-official --da
 
 # pi: --session-control 기본 (delegate 비동기 알림 + 세션 간 RPC)
 alias pi='command pi --session-control'
-# 분신 에이전트: 텔레그램 브릿지 포함
+# 분신 에이전트: 텔레그램 브릿지 (entwurf 패키지 설치 필요)
 alias pi-home='command pi --session-control --telegram'
 ```
 
@@ -137,9 +138,10 @@ cd agent-config
 | [zotero-config](https://github.com/junghan0611/zotero-config) | Bibliography | 8,000+ references, bibcli |
 | **[agent-config](https://github.com/junghan0611/agent-config)** | **Agent infra** | **Extensions, skills, themes, settings** |
 | **[andenken](https://github.com/junghan0611/andenken)** | **Memory** | **Semantic memory — sessions + org knowledge base** |
+| **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — 분신 에이전트 원격 접근** |
 | [memex-kb](https://github.com/junghan0611/memex-kb) | Knowledge | Legacy document conversion pipeline |
 | [GLG-Mono](https://github.com/junghan0611/GLG-Mono) | Orchestration | OpenClaw bot configurations |
-| [geworfen](https://github.com/junghan0611/geworfen) | Meta | Cross-repo coordination |
+| [geworfen](https://github.com/junghan0611/geworfen) | Being | Existence data viewer — WebTUI agenda |
 
 ### Skill Source Repos
 
