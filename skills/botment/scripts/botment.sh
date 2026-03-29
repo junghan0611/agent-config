@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
 # botment.sh — remark42 댓글 읽기/쓰기
 # 힣봇 생태계 전용. Docker 내부 또는 호스트에서 실행.
+# Dev auth로 고정 계정 (이름 = user_id, 프로파일 추적 가능)
 
 set -euo pipefail
 
 # remark42 접근 URL 자동 감지
 if curl -s --max-time 1 "http://remark42:8080/api/v1/config?site=notes" &>/dev/null; then
     REMARK_URL="http://remark42:8080"  # Docker 내부
+    REMARK_8084="http://remark42:8084" # Dev auth OAuth 서버
 elif curl -s --max-time 1 "http://172.18.0.3:8080/api/v1/config?site=notes" &>/dev/null; then
     REMARK_URL="http://172.18.0.3:8080"  # 호스트
+    REMARK_8084="http://172.18.0.3:8084"
 else
-    REMARK_URL="https://comments.junghanacs.com"  # 외부 (읽기 전용)
+    echo "ERROR: remark42에 접근할 수 없습니다 (Docker 내부 또는 호스트에서만 실행)" >&2
+    exit 1
 fi
 
 SITE="notes"
@@ -25,9 +29,7 @@ usage() {
     echo "  reply <bot> <cid> <url> <text>      답글 작성"
     echo "  comment <bot> <url> <text>          독립 댓글 작성"
     echo ""
-    echo "Examples:"
-    echo "  botment.sh unread"
-    echo "  botment.sh reply '힣봇 클로드' 'abc-123' 'https://notes.junghanacs.com' '답글'"
+    echo "Bot names: 힣봇에이전트, 힣봇클로드, 힣봇제미나이, 힣봇지피티"
 }
 
 # 댓글 있는 페이지 목록
@@ -97,27 +99,60 @@ for c in comments:
 "
 }
 
-# 로그인하여 JWT+XSRF 획득
+# Dev auth 로그인 — 3단계 OAuth 플로우
 do_login() {
     local bot_name="$1"
+
+    # Step 1: /auth/dev/login → redirect URL + handshake JWT
     local encoded=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${bot_name}'))")
-    local resp
-    resp=$(curl -s --max-time 5 -D /tmp/botment_headers \
-        "${REMARK_URL}/auth/anonymous/login?user=${encoded}&aud=${SITE}" 2>&1)
+    local step1_headers
+    step1_headers=$(curl -s --max-time 5 -D - \
+        "${REMARK_URL}/auth/dev/login?user=${encoded}&aud=${SITE}" 2>&1)
 
-    JWT=$(grep 'Set-Cookie: JWT=' /tmp/botment_headers | head -1 | sed 's/.*Set-Cookie: JWT=//;s/;.*//')
-    XSRF=$(grep 'Set-Cookie: XSRF-TOKEN=' /tmp/botment_headers | head -1 | sed 's/.*Set-Cookie: XSRF-TOKEN=//;s/;.*//')
+    JWT_HS=$(echo "$step1_headers" | grep 'Set-Cookie: JWT=' | head -1 | sed 's/.*Set-Cookie: JWT=//;s/;.*//')
+    local redirect_url=$(echo "$step1_headers" | grep -i '^Location:' | head -1 | sed 's/Location: //;s/\r//')
 
-    if [ -z "$JWT" ]; then
-        echo "ERROR: 로그인 실패 (${bot_name})" >&2
-        echo "Response: ${resp}" >&2
+    # external URL → internal (호스트에서 실행 시)
+    local internal_url=$(echo "$redirect_url" | sed "s|http://comments.junghanacs.com:8084|${REMARK_8084}|")
+
+    if [ -z "$JWT_HS" ]; then
+        echo "ERROR: Step 1 실패 — handshake JWT 없음" >&2
+        exit 1
+    fi
+
+    # Step 2: POST username → callback URL with code
+    local step2_headers
+    step2_headers=$(curl -s --max-time 5 -D - \
+        -X POST --data-urlencode "username=${bot_name}" \
+        "$internal_url" 2>&1)
+
+    local callback_url=$(echo "$step2_headers" | grep -i '^Location:' | head -1 | sed 's/Location: //;s/\r//')
+    local internal_callback=$(echo "$callback_url" | sed "s|https://comments.junghanacs.com|${REMARK_URL}|")
+
+    if [ -z "$callback_url" ]; then
+        echo "ERROR: Step 2 실패 — callback URL 없음" >&2
+        exit 1
+    fi
+
+    # Step 3: callback with handshake JWT → final JWT
+    local step3_headers
+    step3_headers=$(curl -s --max-time 10 -D - \
+        -b "JWT=${JWT_HS}" \
+        "$internal_callback" 2>&1)
+
+    JWT=$(echo "$step3_headers" | grep 'Set-Cookie: JWT=' | grep -v 'handshake' | tail -1 | sed 's/.*Set-Cookie: JWT=//;s/;.*//')
+    XSRF=$(echo "$step3_headers" | grep 'Set-Cookie: XSRF-TOKEN=' | tail -1 | sed 's/.*Set-Cookie: XSRF-TOKEN=//;s/;.*//')
+
+    if [ -z "$JWT" ] || [ ${#JWT} -lt 200 ]; then
+        echo "ERROR: Dev auth 로그인 실패 (${bot_name})" >&2
+        echo "Step 3 응답: $(echo "$step3_headers" | tail -3)" >&2
         exit 1
     fi
 }
 
 # 답글 작성
 cmd_reply() {
-    local bot_name="${1:?bot_name required (e.g. '힣봇 클로드')}"
+    local bot_name="${1:?bot_name required (e.g. '힣봇에이전트')}"
     local comment_id="${2:?comment_id required}"
     local page_url="${3:?page_url required}"
     local text="${4:?text required}"
@@ -139,8 +174,7 @@ print(json.dumps({
 }, ensure_ascii=False))
 " "$text" "$comment_id" "$page_url")" 2>&1)
 
-    # 결과 확인
-    if echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f\"✅ 봇멘트 작성: {d['user']['name']} → {d['locator']['url']} (id: {d['id'][:12]}...)\")" 2>/dev/null; then
+    if echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f\"✅ 봇멘트: {d['user']['name']} (id:{d['user']['id'][:20]}) → {d['locator']['url']}\")" 2>/dev/null; then
         :
     else
         echo "❌ 실패: $result" >&2
@@ -170,7 +204,7 @@ print(json.dumps({
 }, ensure_ascii=False))
 " "$text" "$page_url")" 2>&1)
 
-    if echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f\"✅ 봇멘트 작성: {d['user']['name']} → {d['locator']['url']} (id: {d['id'][:12]}...)\")" 2>/dev/null; then
+    if echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f\"✅ 봇멘트: {d['user']['name']} (id:{d['user']['id'][:20]}) → {d['locator']['url']}\")" 2>/dev/null; then
         :
     else
         echo "❌ 실패: $result" >&2
