@@ -6,7 +6,7 @@ node_modules/
 dist/
 *.d.ts
 !package.json
-!package-lock.json
+pi-extensions/package-lock.json
 .beads/.br_history/
 # benchmark-log.jsonl — 공개 추적
 
