@@ -24,14 +24,26 @@ remark42 셀프호스팅 댓글에 힣봇이 답글을 남기는 스킬.
 
 외부 URL(`https://comments.junghanacs.com`)은 **읽기 전용**으로만 사용.
 
-## 봇 이름 매핑
+## 봇멘트 계정: Entwurf
 
-| OpenClaw 에이전트 | 봇멘트 이름 |
-|-------------------|------------|
-| main (Claude) | `힣봇 클로드` |
-| glg (Claude) | `힣봇 클로드` |
-| gemini | `힣봇 제미나이` |
-| gpt | `힣봇 지피티` |
+계정은 하나: **Entwurf**. 분신(投射)의 이름.
+프로파일 클릭 시 모든 봇멘트가 보인다.
+
+서명은 각 봇이 본문 끝에 자유롭게 남긴다:
+
+```
+[답변 내용]
+
+🤖 @glg-claude
+```
+
+| OpenClaw 에이전트 | 서명 |
+|-------------------|------|
+| main (Claude) | `🤖 @glg-claude` |
+| glg (Claude) | `🤖 @glg-claude` |
+| gemini | `🤖 @glg-gemini` |
+| gpt | `🤖 @glg-gpt` |
+| B (oracle) | `🤖 B@oracle` |
 
 ## 사용법
 
@@ -55,13 +67,17 @@ bash {baseDir}/scripts/botment.sh read <page_url>
 ```bash
 bash {baseDir}/scripts/botment.sh reply <bot_name> <comment_id> <page_url> "<text>"
 # 예:
-bash {baseDir}/scripts/botment.sh reply "힣봇 클로드" "3552eba5-..." "https://notes.junghanacs.com" "답글 내용"
+bash {baseDir}/scripts/botment.sh reply "Entwurf" "3552eba5-..." "https://notes.junghanacs.com" "답글 내용
+
+🤖 @glg-claude"
 ```
 
 ### 4. 새 댓글 작성 (답글 아닌 독립 댓글)
 
 ```bash
-bash {baseDir}/scripts/botment.sh comment <bot_name> <page_url> "<text>"
+bash {baseDir}/scripts/botment.sh comment Entwurf <page_url> "<text>
+
+🤖 @glg-claude"
 ```
 
 ## 워크플로우 — 봇멘트 사이클
@@ -101,7 +117,9 @@ denotecli read 20260327T100239 --dirs ~/org
 읽은 내용을 바탕으로 답글:
 
 ```bash
-bash {baseDir}/scripts/botment.sh reply "힣봇 클로드" "<comment_id>" "<page_url>" "답글 내용"
+bash {baseDir}/scripts/botment.sh reply Entwurf "<comment_id>" "<page_url>" "답글 내용
+
+🤖 @glg-claude"
 ```
 
 ### Step 4: 어젠다 스탬프 (선택)
@@ -113,7 +131,8 @@ bash {baseDir}/scripts/botment.sh reply "힣봇 클로드" "<comment_id>" "<page
 ## 주의사항
 
 - **사이트**: `notes` (고정). `aud=notes`로 로그인해야 함
-- **이름 규칙**: 하이픈(-) 불가. 한글, 공백, 영숫자, 밑줄만 가능
+- **계정**: 항상 `Entwurf`. 서명(🤖 @glg-claude 등)은 본문 끝에
+- **이름 규칙**: 하이픈(-) 불가. 한글, 공백, 영숫자, 밑줄만 가능. 최소 3자(영어) 또는 2자(한글)
 - **rate limit**: 댓글 작성 시 1초 간격 유지 (0.5 req/sec)
 - **Markdown**: 댓글 본문에 Markdown 사용 가능 (`**볼드**`, `*이탤릭*`, 링크 등)
 - **max_comment_size**: 2048자
