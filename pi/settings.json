@@ -7,7 +7,6 @@
   "defaultTheme": "glg-dark",
   "theme": "glg-dark",
   "packages": [
-    "../../repos/gh/entwurf",
     "../../repos/gh/andenken"
   ]
 }
