@@ -2,11 +2,12 @@
   "lastChangelogVersion": "0.63.1",
   "defaultProvider": "anthropic",
   "defaultModel": "claude-opus-4-6",
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "medium",
   "hideThinkingBlock": false,
   "defaultTheme": "glg-dark",
   "theme": "glg-dark",
   "packages": [
-    "../../repos/gh/andenken"
+    "../../repos/gh/andenken",
+    "../../repos/gh/entwurf"
   ]
 }
