@@ -53,16 +53,28 @@ import sys, json
 data = json.load(sys.stdin)
 comments = data.get('comments', [])
 
+# 봇 계정 판별: Dev auth(id에 _ 없음) 또는 이름에 '힣봇' 포함
+def is_bot(c):
+    uid = c['user']['id']
+    name = c['user']['name']
+    # Dev auth: id = 이름 그대로 (anonymous_xxx, google_xxx, github_xxx가 아님)
+    if '_' not in uid:
+        return True
+    # Anonymous 시절 봇멘트 (레거시)
+    if '힣봇' in name:
+        return True
+    return False
+
 # 봇 답변 수집 (pid = 부모 댓글 ID)
 bot_replied = set()
 for c in comments:
-    if '힣봇' in c['user']['name'] and c.get('pid'):
+    if is_bot(c) and c.get('pid'):
         bot_replied.add(c['pid'])
 
 # 미답변 = 봇이 아닌 댓글 중 봇이 답하지 않은 것
 unanswered = []
 for c in comments:
-    if '힣봇' not in c['user']['name'] and c['id'] not in bot_replied:
+    if not is_bot(c) and c['id'] not in bot_replied:
         unanswered.append(c)
 
 if not unanswered:
