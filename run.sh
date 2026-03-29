@@ -267,6 +267,20 @@ setup_npm() {
     warn "andenken: repo not found at $SM_DIR"
   fi
 
+  # entwurf (pi package — Telegram delegate)
+  local ENTWURF_DIR="$REPOS/entwurf"
+  if [ -f "$ENTWURF_DIR/package.json" ]; then
+    log "entwurf: installing + building..."
+    (cd "$ENTWURF_DIR" && npm install --silent 2>/dev/null && npm run build --silent 2>/dev/null)
+    if [ -f "$ENTWURF_DIR/dist/index.js" ]; then
+      ok "entwurf (dist/index.js)"
+    else
+      warn "entwurf: build failed (dist/index.js missing)"
+    fi
+  else
+    warn "entwurf: repo not found at $ENTWURF_DIR"
+  fi
+
   # pi-extensions (grammy 등)
   local ext_dir="$SCRIPT_DIR/pi-extensions"
   if [ -f "$ext_dir/package.json" ]; then
