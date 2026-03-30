@@ -59,6 +59,7 @@
 |------|------|
 | **agenda** | 에이전트 어젠다 스탬프 — reverse datetree에 활동 기록, org-agenda 통합 |
 | **botlog** | 리서치/분석 결과를 denote org-mode로 ~/org/botlog에 기록 |
+| **botment** | 디지털 가든 댓글 읽기/쓰기 — remark42 봇멘트. SSH oracle 자동 fallback |
 | **denotecli** | ~/org/ Denote 노트 3,000+ 검색/읽기. `find`/`cat` 대신 반드시 사용 |
 | **bibcli** | Zotero 서지 8,000+ 검색/조회 |
 | **ghcli** | GitHub 이슈, PR, 스타, 알림 관리 |

@@ -10,9 +10,10 @@ agent-config solves this. It's the **harness-agnostic** layer that lets your age
 
 | Harness | Memory | Skills | Config |
 |---------|--------|--------|--------|
-| **[pi](https://github.com/badlogic/pi-mono)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 25 skills (semantic-memory excluded — extension covers it) | extensions + themes + keybindings |
-| **Claude Code** | andenken **skill** (CLI wrapper via bash) | 26 skills (full set including semantic-memory) | CLAUDE.md + hooks |
-| **OpenCode** | andenken **skill** (CLI wrapper via bash) | 26 skills (full set) | settings |
+| **[pi](https://github.com/badlogic/pi-mono)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 26 skills (semantic-memory excluded — extension covers it) | extensions + themes + keybindings |
+| **Claude Code** | andenken **skill** (CLI wrapper via bash) | 27 skills (full set including semantic-memory) | CLAUDE.md + hooks |
+| **OpenCode** | andenken **skill** (CLI wrapper via bash) | 27 skills (full set) | settings |
+| **OpenClaw** (Oracle VM) | andenken **skill** (same skills/ via symlink mount) | 27 skills (Docker 내 Nix store 마운트) | openclaw.json |
 
 Session JSONL from all harnesses flows into [andenken](https://github.com/junghan0611/andenken)'s unified index. Each chunk carries a `source` field (`"pi"` | `"claude"`) so you can filter, compare, or roll back across harnesses.
 
@@ -26,8 +27,8 @@ Semantic memory has graduated to its own repo: **[andenken](https://github.com/j
 
 | Tool | DB | Dims | Purpose |
 |------|-----|------|---------|
-| `session_search` | sessions.lance (145MB) | 3072d | Past pi + Claude Code conversations |
-| `knowledge_search` | org.lance (1.5GB) | 768d | Org-mode knowledge base (3000+ Denote notes) |
+| `session_search` | sessions.lance (1.4GB) | 3072d | Past pi + Claude Code conversations |
+| `knowledge_search` | org.lance (707MB) | 768d | Org-mode knowledge base (3,300+ Denote notes) |
 
 Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and `knowledge_search` fires with dictcli query expansion — finding `universalism`-tagged notes without being told the English word.
 
@@ -37,7 +38,8 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 |-------|-----------|---------|
 | **1. Embedding** | Gemini multilingual vectors | "보편" ≈ "universalism" |
 | **2. dblock** | Denote regex link graph | 22 notes linked in meta-note |
-| **3. dictcli** | Personal vocabulary graph | `expand("보편")` → `[universal, universalism, paideia]` |
+| **1.5 BM25** | Korean josa removal (dual emit) | "위임의" → "위임" + "위임의" (BM25 both) |
+| **3. dictcli** | Personal vocabulary graph (2,400+ triples) | `expand("보편")` → `[universal, universalism, paideia]` |
 
 Pi loads andenken as a **compiled pi package** (`pi install`), not a symlinked `.ts` file. This bypasses jiti parsing limitations and allows direct LanceDB access in-process. Claude Code and OpenCode use the CLI wrapper skill instead.
 
@@ -49,6 +51,7 @@ Pi loads andenken as a **compiled pi package** (`pi install`), not a symlinked `
 | `context.ts` | /context command — show loaded extensions, skills, context usage |
 | `go-to-bed.ts` | Late night reminder |
 | `peon-ping.ts` | Sound notifications |
+| `gemini-image-gen.ts` | Gemini image generation (나노바나나 2flash) |
 | `delegate.ts` | Spawn independent agent process (local or SSH remote) |
 | `session-breakdown.ts` | Session cost breakdown |
 | `whimsical.ts` | Personality touches |
@@ -56,13 +59,13 @@ Pi loads andenken as a **compiled pi package** (`pi install`), not a symlinked `
 Semantic memory extension lives in [andenken](https://github.com/junghan0611/andenken) (separate repo, loaded as pi package).
 Telegram bridge lives in [entwurf](https://github.com/junghan0611/entwurf) (separate repo, loaded as pi package).
 
-### Skills ([`skills/`](skills/)) — 26 skills
+### Skills ([`skills/`](skills/)) — 27 skills
 
 | Category | Skills |
 |----------|--------|
 | **Data Access** | denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query |
 | **Agent Memory** | session-recap, dictcli, semantic-memory, improve-agent |
-| **Writing** | botlog, agenda, punchout |
+| **Writing** | botlog, botment, agenda, punchout |
 | **Communication** | slack-latest, jiracli |
 | **Web/Media** | brave-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe |
 | **Tools** | emacs, tmux, diskspace |
@@ -150,7 +153,7 @@ cd agent-config
 | denotecli | [junghan0611/denotecli](https://github.com/junghan0611/denotecli) | Go | Denote knowledge base search (3000+ notes) |
 | gitcli | [junghan0611/gitcli](https://github.com/junghan0611/gitcli) | Go | Local git commit timeline (50+ repos) |
 | lifetract | [junghan0611/lifetract](https://github.com/junghan0611/lifetract) | Go | Samsung Health + aTimeLogger tracking |
-| dictcli | [junghan0611/dictcli](https://github.com/junghan0611/dictcli) | Clojure/GraalVM | Personal vocabulary graph (1,150+ triples) |
+| dictcli | [junghan0611/dictcli](https://github.com/junghan0611/dictcli) | Clojure/GraalVM | Personal vocabulary graph (2,400+ triples) |
 | bibcli | [junghan0611/zotero-config](https://github.com/junghan0611/zotero-config) | Go | BibTeX search (8,000+ entries) |
 
 ### Archived
@@ -168,6 +171,8 @@ cd agent-config
 **Why Gemini Embedding 2?** taskType, batchEmbedContents, Matryoshka outputDimensionality. OpenClaw upstream tracking.
 
 **Why MMR over Jina Rerank?** Jina hurts Korean+English mixed docs. Jaccard-based MMR is free, local, better.
+
+**Why Korean josa removal in BM25?** 한국어 조사("의", "에서", "으로")가 BM25 토큰 매칭을 방해. dual emit으로 원문+조사제거 양쪽 인덱싱. score 17배 향상.
 
 **Why dictcli expand?** "보편" alone gives MRR 0.13. With expand → "보편 universal universalism paideia" → MRR jumps.
 
