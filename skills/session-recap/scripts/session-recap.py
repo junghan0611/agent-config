@@ -18,9 +18,53 @@ Usage:
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+def _extract_project(dirname: str) -> str:
+    """세션 디렉토리명에서 프로젝트명 추출.
+
+    pi는 CWD를 --{path}-- 형식으로 인코딩 (/ → -).
+    유저·컨테이너 경로를 제거하고 프로젝트명만 남긴다.
+
+    경로 구조:
+      ~/repos/{gh,work,3rd}/PROJECT  → PROJECT
+      ~/sync/{subfolder}/PROJECT     → PROJECT  (emacs, family, man 등)
+      ~/sync/PROJECT                 → PROJECT  (org, screenshot 등)
+      ~/PROJECT                      → PROJECT  (doomemacs 등)
+      리모트도 동일 (home-goqual-...)
+    """
+    if dirname == "delegate":
+        return "delegate"
+
+    # home-{user} 또는 home-{user}-{rest}
+    m = re.match(r"home-[a-z]+(?:-(.+))?$", dirname)
+    if not m:
+        return dirname
+    rest = m.group(1)
+    if not rest:
+        return "home"
+
+    # repos-{category}-PROJECT
+    m = re.match(r"repos-(?:gh|work|3rd)-(.+)", rest)
+    if m:
+        return m.group(1)
+
+    # sync-{subfolder}-PROJECT (subfolder 뒤에 내용이 있으면 그것이 프로젝트)
+    m = re.match(r"sync-([a-z]+)-(.*)", rest)
+    if m and m.group(2):
+        return m.group(2)
+
+    # sync-PROJECT (org, screenshot 등 — subfolder 자체가 프로젝트)
+    m = re.match(r"sync-(.*)", rest)
+    if m:
+        return m.group(1)
+
+    # 홈 직속 (doomemacs 등)
+    return rest
 
 
 def get_sessions_dir() -> Path:
@@ -38,18 +82,14 @@ def find_session_files(
     for subdir in sessions_dir.iterdir():
         if not subdir.is_dir():
             continue
-        # 프로젝트 이름 추출: --home-junghan-repos-gh-agent-config-- → agent-config
-        dirname = subdir.name.strip("-")
-        # repos/gh/ 또는 repos/work/ 이후가 프로젝트명
+        # 프로젝트 이름 추출: 세션 디렉토리명 → 프로젝트명
         # home-junghan-repos-gh-agent-config → agent-config
-        # home-junghan-repos-work-sks-hub-zig → sks-hub-zig
-        # home-junghan → junghan
-        for prefix in ("home-junghan-repos-gh-", "home-junghan-repos-work-", "home-junghan-repos-3rd-", "home-junghan-"):
-            if dirname.startswith(prefix):
-                proj = dirname[len(prefix):]
-                break
-        else:
-            proj = dirname
+        # home-junghan-sync-org → org
+        # home-junghan-sync-emacs-doomemacs-config → doomemacs-config
+        # home-goqual-repos-gh-homeagent-config → homeagent-config (리모트)
+        # delegate → delegate
+        dirname = subdir.name.strip("-")
+        proj = _extract_project(dirname)
 
         if project and project != proj:
             continue
