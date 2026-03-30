@@ -1,6 +1,6 @@
 ---
 name: emacs
-description: "Emacs daemon 연결 — org 파일 조작, denote 검색, 서지 조회, dblock 업데이트, 임의 Elisp 실행. emacsclient로 호스트의 Emacs 30.2 daemon에 접속. denote 노트에 내용을 추가할 때 agent-denote-add-heading(헤딩 추가), agent-denote-add-history(히스토리 추가), agent-denote-add-link(링크 추가)를 제공한다. org 구조를 안전하게 유지하는 전용 함수."
+description: "Emacs daemon 연결 — org 파일 조작, denote 검색, 서지 조회, dblock 업데이트, 임의 Elisp 실행. emacsclient로 호스트의 Emacs 30.2 daemon에 접속. denote 노트에 내용을 추가할 때 agent-denote-add-heading(헤딩 추가), agent-denote-add-history(히스토리 추가), agent-denote-add-link(링크 추가)를 제공한다. 파일명 변경 시 agent-denote-rename-by-front-matter(단일), agent-denote-rename-bulk(일괄)를 쓰면 태그 정렬·한글 정규화를 자동 처리한다. org 구조를 안전하게 유지하는 전용 함수."
 ---
 
 # Emacs Agent Server
@@ -152,6 +152,39 @@ denote 파일에 관련 노트 링크 추가.
 ec '(agent-denote-add-link "20260302T191200" "20260322T080400" "denote 오퍼레이션 프로토콜")'
 # → "OK: Added link to 20260322T080400 in ..."
 ```
+
+### agent-denote-rename-by-front-matter
+denote 파일의 front-matter(#+title, #+filetags)를 읽어 파일명을 동기화한다.
+태그 알파벳순 정렬, 한글 정규화, denote 규약 전부를 Emacs가 처리한다.
+```bash
+ec '(agent-denote-rename-by-front-matter "/home/junghan/org/bib/20240301T072554--제목__태그.org")'
+# → 파일명이 front-matter에 맞게 갱신됨
+```
+
+**언제 쓰나:**
+- `#+filetags:` 편집 후 파일명 동기화
+- `#+title:` 변경 후 파일명 동기화
+- `write`로 신규 파일 생성 후 파일명 검증
+- 태그를 추가/제거했을 때
+
+**힣과 동시 작업 시:** Emacs에서 `revert-buffer`로 변경을 반영할 수 있으므로 안전하다.
+`mv`로도 rename은 되지만, 이 API를 쓰면 denote 규약(태그 알파벳순, 한글 정규화 등)을
+자동으로 지켜주므로 적극 권장한다. 같은 도구를 익히면 실수가 줄어든다.
+
+### agent-denote-rename-bulk
+디렉토리 내 모든 denote 파일을 일괄 rename. front-matter ↔ 파일명 불일치를 한 번에 해소.
+```bash
+ec '(agent-denote-rename-bulk "/home/junghan/org/bib/")'
+# → 디렉토리 내 모든 .org 파일의 파일명을 front-matter에 맞게 갱신
+```
+대량 태그 작업 후 마무리에 유용하다.
+
+### 인터페이스 피드백
+
+위 API가 기대와 다르게 동작하거나, 필요한 기능이 빠져 있으면:
+- **바로 보고한다** — "이 함수가 이렇게 동작하는데 왜 이런 거냐"고 물어도 좋다
+- 담당 에이전트(doomemacs-config)가 수정해준다
+- 피드백이 10번 쌓여야 1번 개선된다. 작은 불편도 남겨두면 쌓인다
 
 ### Denote 오퍼레이션 경로 제어
 
