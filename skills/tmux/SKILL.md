@@ -20,9 +20,38 @@ tmux new-session -d -s <name> '<command> > /tmp/pi-tmux-<name>.log 2>&1'
 # 단일 명령
 tmux new-session -d -s nix-build 'nixos-rebuild switch > /tmp/pi-tmux-nix-build.log 2>&1'
 
-# 복합 명령 — 중괄호로 감싸서 출력 통합
-tmux new-session -d -s deploy '{ npm install && npm run build; } > /tmp/pi-tmux-deploy.log 2>&1'
+# 복합 명령 — && 또는 ; 로 한 줄에 이어쓰기
+tmux new-session -d -s deploy '{ cd ~/project && npm install && npm run build; } > /tmp/pi-tmux-deploy.log 2>&1'
 ```
+
+### ⚠️ 여러 줄 명령 — 이스케이프 함정
+
+tmux new-session의 명령 인자는 **반드시 한 줄**이어야 한다.
+`\n`을 넣으면 리터럴로 합쳐져서 `bashncd: command not found` 같은 에러가 난다.
+tmux + bash -c + nix run 같은 중첩이 깊어지면 이스케이프가 기하급수적으로 복잡해진다.
+
+```bash
+# ❌ 줄바꿈 리터럴 → "bashncd" 합쳐짐
+tmux new-session -d -s build "bash\ncd ~/repos\nmake"
+
+# ❌ bash -c 안에 또 bash -c → 3중 이스케이프 지옥
+tmux new-session -d -s build "bash -c \"nix run .#yocto -- -c \\\"make\\\"\""
+
+# ✅ 방법 1: && 로 한 줄에 이어쓰기 (가장 안전)
+tmux new-session -d -s build 'cd ~/repos && make > /tmp/pi-tmux-build.log 2>&1'
+
+# ✅ 방법 2: 복잡하면 스크립트 파일로 빼기 (중첩 깊을 때 권장)
+cat > /tmp/pi-tmux-build.sh << 'SCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+cd ~/repos/3rd/yocto
+nix run .#yocto -- -c "bitbake core-image-weston"
+SCRIPT
+chmod +x /tmp/pi-tmux-build.sh
+tmux new-session -d -s build '/tmp/pi-tmux-build.sh > /tmp/pi-tmux-build.log 2>&1'
+```
+
+**원칙: 중첩이 2단계 이상이면 스크립트 파일로 빼라.** 이스케이프를 정확히 맞추는 것보다 파일로 빼는 게 빠르고 안전하다. 실패하면 왜 실패했는지도 디버깅이 쉽다.
 
 ## User Visibility (필수)
 
