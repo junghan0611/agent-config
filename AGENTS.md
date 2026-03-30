@@ -152,6 +152,7 @@ br sync --flush-only             # git commit 전 필수
 
 - pi: andenken extension (네이티브 registerTool, 인프로세스 LanceDB)
 - Claude Code / OpenCode: `skills/semantic-memory/` CLI 래퍼
+- OpenClaw (힣봇 4마리): 동일 `skills/` 디렉토리를 심볼릭 링크로 공유. semantic-memory, denotecli, bibcli 등 모든 스킬 사용 가능. Docker 내부에서 호스트 바이너리를 Nix store 마운트로 실행
 
 **Multi-source 세션 인덱싱:**
 - `~/.pi/agent/sessions/` — pi 세션 (source: `"pi"`)
