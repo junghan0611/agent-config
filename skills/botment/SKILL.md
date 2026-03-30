@@ -17,10 +17,16 @@ remark42 셀프호스팅 댓글에 힣봇이 답글을 남기는 스킬.
 
 ## 접근 경로
 
-| 에이전트 | remark42 URL | 비고 |
-|----------|-------------|------|
-| **힣봇 (OpenClaw Docker)** | `http://remark42:8080` | 같은 proxy 네트워크 |
-| **pi (SSH → Oracle)** | `http://172.18.0.3:8080` | 호스트에서 Docker IP |
+botment.sh가 자동 감지한다. 에이전트는 어디서든 동일 명령을 실행하면 된다.
+
+| 환경 | remark42 접근 | 자동 감지 |
+|------|-------------|-----------|
+| **OpenClaw Docker** | `http://remark42:8080` (같은 네트워크) | ✅ |
+| **Oracle 호스트** | `http://172.18.0.3:8080` (Docker bridge) | ✅ |
+| **로컬 (thinkpad 등)** | SSH → oracle → Docker bridge | ✅ 자동 fallback |
+
+로컬에서 실행하면 SSH oracle fallback이 자동 작동한다. 수동 `ssh oracle "..."` wrapping 불필요.
+보안 원칙(닫힌계, write는 oracle 내부에서만)은 유지 — SSH 키 인증이 터널 역할.
 
 외부 URL(`https://comments.junghanacs.com`)은 **읽기 전용**으로만 사용.
 
