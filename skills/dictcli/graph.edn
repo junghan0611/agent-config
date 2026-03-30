@@ -1,7 +1,7 @@
 ;; graph.edn — 힣의 어휘 연결체
 ;; 형식: [entity relation value]
-;; 생성: 2026-03-25T17:53:10.606165351
-;; 트리플: 3820개
+;; 생성: 2026-03-30T16:38:35.405414219
+;; 트리플: 3971개
 
 [
  ["보편" :trans "universal"]
@@ -3824,7 +3824,6 @@
  ["완전성정리" :trans "completenesstheorem"]
  ["페아노산술" :trans "peanoarithmetic"]
  ["참" :trans "true"]
- ;; 3차 큐레이션 2026-03-26 — philosophy glossary 50개
  ["경험주의" :trans "empiricism"]
  ["낭만주의" :trans "romanticism"]
  ["민족주의" :trans "nationalism"]
@@ -3875,9 +3874,6 @@
  ["다양체론" :trans "manifold"]
  ["뫼비우스의띠" :trans "mobiusstrip"]
  ["플라토닉러브" :trans "platoniclove"]
-
- ;; 4차 큐레이션 2026-03-26 — philosophy glossary 50개
- ;; 논리학 용어
  ["연언" :trans "conjunction"]
  ["부정문" :trans "negation"]
  ["쌍조건" :trans "biconditional"]
@@ -3898,7 +3894,6 @@
  ["연언논법" :trans "conjunctionrule"]
  ["첨가논법" :trans "additionrule"]
  ["전칭문" :trans "universalform"]
- ;; 인식론/형이상학
  ["건전" :trans "soundness"]
  ["공리" :trans "axiom"]
  ["타당" :trans "validity"]
@@ -3910,33 +3905,25 @@
  ["속성" :trans "attribute"]
  ["인과" :trans "causality"]
  ["목적" :trans "teleology"]
- ;; 사회/역사 철학
  ["몽매주의" :trans "obscurantism"]
  ["봉건주의" :trans "feudalism"]
  ["지방주의" :trans "localism"]
  ["권리" :trans "right"]
- ;; 현상학/실존철학
  ["다자인" :trans "dasein"]
  ["선험적" :trans "apriori"]
- ;; 지식론
  ["암묵지" :trans "tacitknowledge"]
  ["형식지" :trans "explicit"]
  ["자기지시" :trans "selfreference"]
- ;; 논리적 오류
  ["순환논증" :trans "circularlogic"]
  ["논점이탈" :trans "irrelevance"]
  ["대인논증" :trans "adhominem"]
  ["허수아비" :trans "strawman"]
  ["우연진실" :trans "contingenttruth"]
  ["우연허위" :trans "contingentfalse"]
- ;; 수리논리 철학
  ["직관주의" :trans "intuitionism"]
  ["형식주의" :trans "formalism"]
  ["논리주의" :trans "logicism"]
  ["화용론" :trans "pragmatics"]
-
- ;; 5차 큐레이션 2026-03-27 — philosophy glossary 50개 (중복 제거 후 검증됨)
- ;; 의식/자아/심리학
  ["미학" :trans "aesthetics"]
  ["교양" :trans "bildung"]
  ["의식" :trans "consciousness"]
@@ -3945,7 +3932,6 @@
  ["기시감" :trans "dejavu"]
  ["집단무의식" :trans "collectiveunconscious"]
  ["에로스" :trans "eros"]
- ;; 형이상학/인식론/현상학
  ["본체" :trans "noumenon"]
  ["초월" :trans "transcendence"]
  ["내재" :trans "immanence"]
@@ -3956,7 +3942,6 @@
  ["범주" :trans "category"]
  ["이율배반" :trans "antinomy"]
  ["아포리아" :trans "aporia"]
- ;; 윤리학
  ["윤리학" :trans "ethics"]
  ["의무론" :trans "deontology"]
  ["덕윤리" :trans "virtueethics"]
@@ -3964,7 +3949,6 @@
  ["결정론" :trans "determinism"]
  ["책임" :trans "responsibility"]
  ["에우다이모니아" :trans "eudaimonia"]
- ;; 언어/기호/그리스 철학
  ["기표" :trans "signifier"]
  ["기의" :trans "signified"]
  ["에포케" :trans "epoche"]
@@ -3976,7 +3960,6 @@
  ["폴리스" :trans "polis"]
  ["관조" :trans "contemplation"]
  ["카타르시스" :trans "catharsis"]
- ;; 종교/신학 철학
  ["무신론" :trans "atheism"]
  ["유신론" :trans "theism"]
  ["불가지론" :trans "agnosticism"]
@@ -3984,7 +3967,6 @@
  ["신정론" :trans "theodicy"]
  ["세속화" :trans "secularization"]
  ["탈신화화" :trans "demythologization"]
- ;; 기타 철학 개념
  ["사고실험" :trans "thoughtexperiment"]
  ["상상력" :trans "imagination"]
  ["상호인정" :trans "recognition"]
@@ -3992,4 +3974,5 @@
  ["범신론" :trans "pantheism"]
  ["비극" :trans "tragedy"]
  ["파토스" :trans "pathos"]
+ ["봇멘트" :trans "botment"]
 ]
