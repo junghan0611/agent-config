@@ -79,7 +79,7 @@
 | **day-query** | 특정 날짜 통합 조회 — git/저널/노트/서지/건강 데이터 시간축 재구성 |
 | **punchout** | 하루 마무리 도장 — day-query 결과를 org 저널에 삽입 |
 | **diskspace** | 디스크 공간 분석 — 마운트 요약, 큰 디렉토리/파일, NixOS 스토어, 정리 제안 |
-| **dictcli** | 개인 어휘 그래프 — 한↔영 쿼리 확장. `expand "보편"` → `[universal, universalism, paideia]` |
+| **dictcli** | 개인 어휘 그래프 — 한↔영 쿼리 확장 + 한국어 형태소 분석. `expand "보편"` → `[universal, universalism, paideia]`, `stem "설계했다"` → `설계` (Kiwi) |
 | **session-recap** | 직전 세션 요약 추출 — JSONL에서 핵심 텍스트만. raw read 대신 사용 (100KB→4KB) |
 | **brave-search** | 웹 검색 (Brave Search API) |
 

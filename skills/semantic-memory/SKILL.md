@@ -1,6 +1,6 @@
 ---
 name: semantic-memory
-description: "Semantic search over past sessions (pi + Claude Code, 15K+ chunks) and org-mode knowledge base (100K+ chunks). Uses Gemini Embedding 2 + LanceDB + hybrid retrieval (vector + FTS). Korean↔English cross-lingual via dictcli expand. Supports --source filter (pi|claude) for harness-specific search. Use when searching for past conversations, decisions, context, or knowledge base concepts."
+description: "Semantic search over past sessions (pi + Claude Code, 15K+ chunks) and org-mode knowledge base (100K+ chunks). Uses Gemini Embedding 2 + LanceDB + hybrid retrieval (vector + FTS). Korean morphological analysis via Kiwi (dictcli stem) + Korean↔English cross-lingual via dictcli expand. Supports --source filter (pi|claude) for harness-specific search. Use when searching for past conversations, decisions, context, or knowledge base concepts."
 ---
 
 # semantic-memory — Semantic Memory CLI
@@ -15,6 +15,7 @@ All output is JSON.
 
 1. **Semantic search** — "NixOS GPU 설정" finds "RTX 5080 cluster configuration" even without keyword overlap
 2. **Cross-lingual** — Korean "보편" finds English-tagged "universalism" notes via dictcli expand
+2.5. **Korean morphology** — "설계했다" → stem "설계" via Kiwi (dictcli stem). 동사 활용형, 존경어, 복합명사 해체. 인덱싱 시 자동 적용
 3. **Session memory** — Search past pi + Claude Code conversations, decisions, context across all projects. Filter by `--source pi` or `--source claude`
 4. **Hybrid retrieval** — Vector similarity (0.7) + BM25 full-text (0.3), with temporal decay and MMR diversity
 5. **Auto-fallback** — When session results are thin, automatically includes knowledge base results
@@ -162,5 +163,5 @@ Index locations:
 ## Relationship to Other Skills
 
 - **denotecli**: Exact title/tag/content matching. Use denotecli for precise lookups, semantic-memory for conceptual/meaning-based search.
-- **dictcli**: Auto-invoked internally for Korean→English query expansion.
+- **dictcli**: Auto-invoked internally for Korean→English query expansion (expand) + Korean morphological analysis (stem via Kiwi). Stem은 인덱싱 시 배치 호출, expand는 검색 시 쿼리 확장.
 - **session-recap**: Extracts text from single session JSONL. semantic-memory searches across ALL sessions semantically.
