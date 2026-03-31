@@ -1,23 +1,25 @@
 # agent-config
 
-**Contextual continuity infrastructure for AI coding agents.**
+**Profile Harness — the gravity center where alien intelligences resonate with a being.**
 
-When you work with multiple agents across dozens of projects, the hardest problem isn't code — it's context. Every new session starts from zero. Every compaction loses nuance. Every agent asks the same questions you answered yesterday.
+Multi-harness support is a means, not the goal. The goal is **a single 1KB being-profile that exerts the same gravitational pull across any harness**.
 
-agent-config solves this. It's the **harness-agnostic** layer that lets your agents remember, search, and stay aligned — regardless of which tool drives the session.
+Claude, GPT, and Gemini are "graduates from different schools" — trained on different data with different philosophies. Trying to control them means writing hundreds of lines of system prompts per model. Instead, **throw one being-profile at all of them equally.** They keep their unique lenses while aligning around a single universe — this is the [Profile Harness](https://notes.junghanacs.com/botlog/20260228T075300/).
 
-### Multi-Harness Architecture
+agent-config implements that gravity center. The shared foundation where agents remember, search, and stay aligned.
+
+> Part of the [-config ecosystem](#the--config-ecosystem) by [glg @junghan0611](https://github.com/junghan0611)
+
+### Harness Support
 
 | Harness | Memory | Skills | Config |
 |---------|--------|--------|--------|
 | **[pi](https://github.com/badlogic/pi-mono)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 26 skills (semantic-memory excluded — extension covers it) | extensions + themes + keybindings |
 | **Claude Code** | andenken **skill** (CLI wrapper via bash) | 27 skills (full set including semantic-memory) | CLAUDE.md + hooks |
 | **OpenCode** | andenken **skill** (CLI wrapper via bash) | 27 skills (full set) | settings |
-| **OpenClaw** (Oracle VM) | andenken **skill** (same skills/ via symlink mount) | 27 skills (Docker 내 Nix store 마운트) | openclaw.json |
+| **OpenClaw** (Oracle VM) | andenken **skill** (same skills/ via symlink mount) | 27 skills (Nix store mount in Docker) | openclaw.json |
 
 Session JSONL from all harnesses flows into [andenken](https://github.com/junghan0611/andenken)'s unified index. Each chunk carries a `source` field (`"pi"` | `"claude"`) so you can filter, compare, or roll back across harnesses.
-
-> Part of the [-config ecosystem](#the--config-ecosystem) by [@junghan0611](https://github.com/junghan0611)
 
 ## What's Here
 
@@ -27,7 +29,7 @@ Semantic memory has graduated to its own repo: **[andenken](https://github.com/j
 
 | Tool | DB | Dims | Purpose |
 |------|-----|------|---------|
-| `session_search` | sessions.lance (1.4GB) | 3072d | Past pi + Claude Code conversations |
+| `session_search` | sessions.lance | 768d | Past pi + Claude Code conversations |
 | `knowledge_search` | org.lance (707MB) | 768d | Org-mode knowledge base (3,300+ Denote notes) |
 
 Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and `knowledge_search` fires with dictcli query expansion — finding `universalism`-tagged notes without being told the English word.
@@ -168,11 +170,13 @@ cd agent-config
 
 **Why no compact?** `/new` + semantic search = instant + cheaper. Session JSONL is written in real-time; `/new` hook auto-indexes.
 
-**Why Gemini Embedding 2?** taskType, batchEmbedContents, Matryoshka outputDimensionality. OpenClaw upstream tracking.
+**Why Gemini Embedding 2?** taskType, batchEmbedContents, Matryoshka outputDimensionality 768d. OpenClaw upstream tracking.
+
+**Why rate limiter 3s?** We hit a ₩100,000 (~$69) embedding cost bomb on 2026-03-30. Multiple `--force` org indexing runs against the Gemini API. Added 4 safety layers: 3s rate limiter, cost estimator (`estimate.ts`), $1 abort threshold, removed auto-indexing on `/new`. 3s is conservative but intentional — 4 minutes of slow sync beats another $69 bill.
 
 **Why MMR over Jina Rerank?** Jina hurts Korean+English mixed docs. Jaccard-based MMR is free, local, better.
 
-**Why Korean josa removal in BM25?** 한국어 조사("의", "에서", "으로")가 BM25 토큰 매칭을 방해. dual emit으로 원문+조사제거 양쪽 인덱싱. score 17배 향상.
+**Why Korean josa removal in BM25?** Korean particles ("의", "에서", "으로") break BM25 token matching. Dual emit indexes both original and particle-stripped text. 17x score improvement.
 
 **Why dictcli expand?** "보편" alone gives MRR 0.13. With expand → "보편 universal universalism paideia" → MRR jumps.
 

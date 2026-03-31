@@ -74,6 +74,7 @@
 | **youtube-transcript** | YouTube 자막 원문 추출 (요약 아님). 관점 지정 분석/번역에 활용 |
 | **tmux** | 장시간 명령(빌드, 서버, 배포) tmux 실행. `wait-for-text.sh`로 동기화 |
 | **improve-agent** | 과거 세션 JSONL 분석 → 반복 실패/패턴 발견 → AGENTS.md/스킬 개선 |
+| **memory-sync** | 시맨틱 메모리 증분 동기화 — 로컬+오라클 양쪽 session/org 인덱스 업데이트, 사전 비용 확인 |
 | **gitcli** | 로컬 git 커밋 타임라인 조회 (58개 리포, 14,000+ 커밋) |
 | **lifetract** | Samsung Health + aTimeLogger 통합 조회 (수면/걸음/심박/시간추적) |
 | **day-query** | 특정 날짜 통합 조회 — git/저널/노트/서지/건강 데이터 시간축 재구성 |
