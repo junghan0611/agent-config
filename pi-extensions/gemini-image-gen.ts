@@ -79,7 +79,7 @@ const TOOL_PARAMS = Type.Object({
 	),
 	model: Type.Optional(
 		Type.String({
-			description: `이미지 생성 모델 ID. 기본값: ${DEFAULT_MODEL}. 고품질: gemini-3-pro-image-preview`,
+			description: `이미지 생성 모델 ID. 기본값: ${DEFAULT_MODEL}. 고품질: gemini-3-pro-image-preview (프로 모델 비용 높음 — 특별 요청 시만 사용)`,
 		}),
 	),
 	imageSize: Type.Optional(
