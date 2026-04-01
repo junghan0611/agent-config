@@ -300,6 +300,10 @@ def cmd_read(chat_query: str, limit: int = 20):
             print(f"ERROR: Chat '{chat_query}' not found.", file=sys.stderr)
             sys.exit(1)
 
+        # Must open chat to fetch history from server
+        td.execute({"@type": "openChat", "chat_id": chat_id})
+        time.sleep(0.5)
+
         # Get messages
         resp = td.execute({
             "@type": "getChatHistory",
@@ -321,6 +325,8 @@ def cmd_read(chat_query: str, limit: int = 20):
                 print(f"[{date}] {sender}: {text}")
         else:
             print("No messages or error:", resp)
+
+        td.execute({"@type": "closeChat", "chat_id": chat_id})
     finally:
         td.close()
 

@@ -42,7 +42,7 @@ python3 {baseDir}/scripts/tg.py read 123456789 -n 5
 | 힣봇클로드 (glg) | @glg_junghanacs_bot | Claude Opus 4.6 |
 | 힣봇GPT | @glg_gpt_bot | GPT-5.4 |
 | 힣봇제미나이 | @glg_gemini_bot | Gemini 3.1 Pro |
-| 힣봇(기본) | @junghan_openclaw_bot | Claude Opus 4.6 |
+| B (아이온스클럽) | @junghan_openclaw_bot | Claude Opus 4.6 | 힣과 깊은 대화 |
 
 ## When to Use
 
