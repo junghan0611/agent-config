@@ -166,6 +166,8 @@ cd agent-config
 
 ## Architecture Decisions
 
+**Why trust agent intuition over documentation?** When an agent calls `emacsclient -s server` and fails because the right socket is `agent-server`, that's not the agent's fault — the naming violated intuition. We renamed: agent daemon → `server` (default, intuitive), user's GUI Emacs → `user` (human bears the non-obvious name). This principle applies everywhere: if an agent fails once, it's a naming/design problem, not a docs problem.
+
 **Why andenken as separate repo?** Semantic memory serves pi, Claude Code, and future agents. It's not pi-specific. Data (LanceDB) lives with the code, not in `~/.pi/agent/memory/`. Pi gets a compiled extension (native tools, in-process); other harnesses get a CLI skill (same search quality, subprocess overhead).
 
 **Why no compact?** `/new` + semantic search = instant + cheaper. Session JSONL is written in real-time; `/new` hook auto-indexes.
