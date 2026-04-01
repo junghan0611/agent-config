@@ -254,6 +254,21 @@ setup_links() {
   # ~/.config/opencode/skills → skills/ (단일 디렉토리 링크)
   mkdir -p "$HOME/.config/opencode"
   ensure_link "$SKILLS_DIR" "$HOME/.config/opencode/skills"
+
+  section "Codex Skills"
+  # ~/.codex/skills/ has .system/ (built-in) — individual skill links, not directory replace
+  mkdir -p "$HOME/.codex/skills"
+  for skill_dir in "$SKILLS_DIR"/*/; do
+    [ -f "$skill_dir/SKILL.md" ] || continue
+    local sname
+    sname=$(basename "$skill_dir")
+    ensure_link "$skill_dir" "$HOME/.codex/skills/$sname"
+  done
+  # Clean up old skills not in our set
+  for old in bd-to-br-migration pi-agent-rust; do
+    [ -L "$HOME/.codex/skills/$old" ] && rm "$HOME/.codex/skills/$old"
+    [ -d "$HOME/.codex/skills/$old" ] && rm -rf "$HOME/.codex/skills/$old"
+  done
 }
 
 # --- setup:npm — npm install for extensions/skills ---
@@ -473,6 +488,7 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Claude conf:  $(readlink "$HOME/.claude/settings.json" 2>/dev/null || echo '❌ not linked')"
     echo "  Claude skills:$(readlink "$HOME/.claude/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  OpenCode:     $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo '❌ not linked')"
+    echo "  Codex:        $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills linked"
 
     section "CLI Binaries"
     for cli in denotecli bibcli gitcli lifetract dictcli; do
