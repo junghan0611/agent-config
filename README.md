@@ -68,10 +68,11 @@ Telegram bridge lives in [entwurf](https://github.com/junghan0611/entwurf) (sepa
 | **Data Access** | denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query |
 | **Agent Memory** | session-recap, dictcli, semantic-memory, improve-agent |
 | **Writing** | botlog, botment, agenda, punchout |
-| **Communication** | slack-latest, jiracli |
+| **Communication** | slack-latest, jiracli, telegram |
 | **Web/Media** | brave-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe |
 | **Tools** | emacs, tmux, diskspace |
-| **Utility** | bd-to-br-migration |
+
+**Skill doc principle (LSP pattern):** Agents don't read full docs. Each SKILL.md has a single API table at the top — function/command + args + example. English body, Korean description only. Target: <100 lines, <4KB. Like LSP autocomplete: see the signature, call immediately.
 
 ### Pi Config ([`pi/`](pi/))
 
@@ -82,7 +83,7 @@ Telegram bridge lives in [entwurf](https://github.com/junghan0611/entwurf) (sepa
 
 ### Themes ([`pi-themes/`](pi-themes/))
 
-7 themes: glg-dark (custom, Ghostty Dracula compatible), catppuccin-mocha, cyberpunk, gruvbox-dark, nord, oh-p-dark, tokyo-night.
+1 theme: glg-dark (custom, Ghostty Dracula compatible).
 
 ### Commands ([`commands/`](commands/))
 
