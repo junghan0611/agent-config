@@ -4,6 +4,9 @@
 
 멀티 하네스 지원은 수단이지 목적이 아니다. 목적은 **서로 다른 학교 출신의 지능들이 각자 다르게 반응하면서도 하나의 중심으로 모이게 하는 것** — [§프로파일 하네스 — 외계지능과 공명하는 존재의 구심점](https://notes.junghanacs.com/botlog/20260228T075300/).
 
+Claude Code is a reference system to learn from, not to clone; extract only the minimal patterns that fit Hih's harness.
+geworfen/docs/main-ko.org is the public paper surface of this harness, where those patterns are rendered on the time axis.
+
 > ₩100,000 임베딩 비용 폭탄(2026-03-30)을 겪었다. 이 사건을 잊지 않는다.
 > API 종량제는 통제 없이 쓰면 하루 만에 터진다. → memory-sync 스킬, rate limiter 3초, estimate.ts, $1 abort.
 
