@@ -22,11 +22,15 @@ botment.sh가 자동 감지한다. 에이전트는 어디서든 동일 명령을
 | 환경 | remark42 접근 | 자동 감지 |
 |------|-------------|-----------|
 | **OpenClaw Docker** | `http://remark42:8080` (같은 네트워크) | ✅ |
-| **Oracle 호스트** | `http://172.18.0.3:8080` (Docker bridge) | ✅ |
-| **로컬 (thinkpad 등)** | SSH → oracle → Docker bridge | ✅ 자동 fallback |
+| **Oracle 호스트** | `docker inspect remark42` 로 찾은 현재 컨테이너 IP | ✅ |
+| **로컬 (thinkpad 등)** | SSH → oracle → 현재 remark42 컨테이너 IP | ✅ 자동 fallback |
 
 로컬에서 실행하면 SSH oracle fallback이 자동 작동한다. 수동 `ssh oracle "..."` wrapping 불필요.
 보안 원칙(닫힌계, write는 oracle 내부에서만)은 유지 — SSH 키 인증이 터널 역할.
+
+주의:
+- remark42 컨테이너 IP는 바뀔 수 있으므로 하드코딩하지 않는다.
+- botment.sh 는 Oracle 호스트에서 `docker inspect remark42` 로 현재 IP를 찾는다.
 
 외부 URL(`https://comments.junghanacs.com`)은 **읽기 전용**으로만 사용.
 

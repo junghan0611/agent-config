@@ -6,23 +6,33 @@
 set -euo pipefail
 
 # remark42 접근 URL 자동 감지
-# Docker 내부 → 호스트 → SSH oracle fallback (로컬 thinkpad 등)
+# Docker 내부 → Oracle 호스트(docker inspect로 컨테이너 IP 조회) → SSH oracle fallback
 REMOTE_MODE=""
+resolve_local_remark_ip() {
+    docker inspect remark42 --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || true
+}
+
+resolve_remote_remark_ip_cmd="docker inspect remark42 --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null"
+
 if curl -s --max-time 1 "http://remark42:8080/api/v1/config?site=notes" &>/dev/null; then
     REMARK_URL="http://remark42:8080"  # Docker 내부
     REMARK_8084="http://remark42:8084" # Dev auth OAuth 서버
-elif curl -s --max-time 1 "http://172.18.0.3:8080/api/v1/config?site=notes" &>/dev/null; then
-    REMARK_URL="http://172.18.0.3:8080"  # 호스트
-    REMARK_8084="http://172.18.0.3:8084"
-elif ssh -o ConnectTimeout=3 -o BatchMode=yes oracle "curl -s --max-time 1 http://172.18.0.3:8080/api/v1/config?site=notes" &>/dev/null; then
-    # 로컬(thinkpad 등)에서 실행 — SSH 경유로 oracle에서 전체 명령 실행
-    # 보안: write는 oracle 내부에서만. SSH 키 인증 = 닫힌계 유지
-    REMOTE_MODE="oracle"
 else
-    echo "ERROR: remark42에 접근할 수 없습니다" >&2
-    echo "  - Docker 내부/호스트: curl 실패" >&2
-    echo "  - SSH oracle: 접속 불가 (ssh oracle 확인)" >&2
-    exit 1
+    REMARK_IP="$(resolve_local_remark_ip)"
+    if [ -n "${REMARK_IP}" ] && curl -s --max-time 1 "http://${REMARK_IP}:8080/api/v1/config?site=notes" &>/dev/null; then
+        REMARK_URL="http://${REMARK_IP}:8080"  # Oracle 호스트
+        REMARK_8084="http://${REMARK_IP}:8084"
+    elif ssh -o ConnectTimeout=3 -o BatchMode=yes oracle "REMARK_IP=\$(${resolve_remote_remark_ip_cmd}); [ -n \"\$REMARK_IP\" ] && curl -s --max-time 1 http://\$REMARK_IP:8080/api/v1/config?site=notes" &>/dev/null; then
+        # 로컬(thinkpad 등)에서 실행 — SSH 경유로 oracle에서 전체 명령 실행
+        # 보안: write는 oracle 내부에서만. SSH 키 인증 = 닫힌계 유지
+        REMOTE_MODE="oracle"
+    else
+        echo "ERROR: remark42에 접근할 수 없습니다" >&2
+        echo "  - Docker 내부: http://remark42:8080 실패" >&2
+        echo "  - Oracle 호스트: docker inspect remark42 IP 조회 또는 curl 실패" >&2
+        echo "  - SSH oracle fallback 실패 (ssh oracle / docker inspect remark42 확인)" >&2
+        exit 1
+    fi
 fi
 
 # SSH fallback: 전체 명령을 oracle에서 실행
