@@ -1,6 +1,6 @@
 ---
 name: emacs
-description: "Emacs daemon — org manipulation, denote notes, citar bibliography, org-agenda, arbitrary elisp. Two sockets: server (agent work), user (show file to user). Core: agent-denote-add-history(ID,CONTENT), agent-denote-add-heading(ID,TITLE,&rest), agent-denote-add-link(ID,TARGET-ID,DESC). DESC is required — omitting causes hang."
+description: "Emacs daemon — org manipulation, denote notes, citar bibliography, org-agenda, arbitrary elisp. Two sockets: server (agent work), user (show file to user). Core: agent-denote-add-history(ID,CONTENT), agent-denote-add-heading(ID,TITLE,BODY) or (ID,TITLE,TAG,BODY) — no tag? body as 3rd arg. Never pass nil. agent-denote-add-link(ID,TARGET-ID,DESC). DESC required — hang if omitted."
 ---
 
 # Emacs Agent Server
@@ -20,7 +20,8 @@ Define ec/eu in EVERY bash call (subshell resets).
 | Function | Args | Example |
 |----------|------|---------|
 | `agent-denote-add-history` | ID, CONTENT | `ec '(agent-denote-add-history "ID" "@pi — msg")'` |
-| `agent-denote-add-heading` | ID, TITLE, ?TAG, BODY | `ec '(agent-denote-add-heading "ID" "Title" "LLMLOG" "body")'` |
+| `agent-denote-add-heading` | ID, TITLE, BODY | `ec '(agent-denote-add-heading "ID" "Title" "body")'` |
+| | ID, TITLE, TAG, BODY | `ec '(agent-denote-add-heading "ID" "Title" "LLMLOG" "body")'` |
 | `agent-denote-add-link` | ID, TARGET-ID, DESC | `ec '(agent-denote-add-link "ID1" "ID2" "desc")'` ⚠️ DESC required — hang if omitted |
 | `agent-denote-search` | QUERY, ?TYPE(title/tag/fulltext) | `ec '(agent-denote-search "term" (quote tag))'` |
 | `agent-denote-keywords` | — | `ec '(agent-denote-keywords)'` → all tags list |
@@ -37,9 +38,13 @@ Define ec/eu in EVERY bash call (subshell resets).
 | `agent-server-status` | — | `ec '(agent-server-status)'` → version, uptime |
 | `agent-being-data` | ?AS-JSON | `ec '(agent-being-data)'` → notes/journal/garden counts |
 
-add-heading: 3rd arg is TAG if UPPERCASE (e.g. "LLMLOG"), BODY otherwise. "LLMLOG:ARCHIVE" for multiple tags.
+add-heading: 3rd arg is TAG if UPPERCASE (e.g. "LLMLOG"), BODY otherwise. ⚠️ Never pass `nil` — body silently drops. No tag? Put body as 3rd arg directly.
 
 ```bash
+# no tag — body as 3rd arg
+ec '(agent-denote-add-heading "ID" "New Section" "body text here")'
+# with tag — TAG then body
+ec '(agent-denote-add-heading "ID" "New Section" "LLMLOG" "body text here")'
 # insert after a specific heading
 ec '(agent-denote-add-heading "ID" "New Section" "body" "After This Heading")'
 ```
