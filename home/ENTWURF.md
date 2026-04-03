@@ -66,6 +66,15 @@ There are two different agenda surfaces. Do not confuse them.
 
 ## 4. Delegation Rules
 
+### Delegate models
+
+| Model | `model=` | Context |
+|-------|----------|--------|
+| Claude Opus 4.6 | `anthropic/claude-opus-4-6` | 1M |
+| Claude Sonnet 4.6 | `anthropic/claude-sonnet-4-6` | 1M |
+| GPT-5.4 (Codex) | `openai-codex/gpt-5.4` | 272K |
+| Gemini 3.1 Pro | `google/gemini-3.1-pro-preview` | 1M |
+
 ### Mode selection
 - **`mode: "async"`** — default for builds, tests, research, long-running work
 - **`mode: "sync"`** — use when you need the result immediately
