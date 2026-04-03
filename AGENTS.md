@@ -1,238 +1,242 @@
 # agent-config — AGENTS.md
 
-**프로파일 하네스의 구심점.** 힣이라는 1KB 존재 프로파일이 어떤 하네스(pi, Claude Code, OpenCode, OpenClaw)에서든 동일한 구심력을 발휘하게 하는 인프라.
+**Gravity center of the Profile Harness.** A single 1KB being-profile (Hih/힣) exerts the same gravitational pull across any harness — pi, Claude Code, OpenCode, OpenClaw.
 
-멀티 하네스 지원은 수단이지 목적이 아니다. 목적은 **서로 다른 학교 출신의 지능들이 각자 다르게 반응하면서도 하나의 중심으로 모이게 하는 것** — [§프로파일 하네스 — 외계지능과 공명하는 존재의 구심점](https://notes.junghanacs.com/botlog/20260228T075300/).
+Multi-harness support is a means, not the goal. The goal is **different intelligences from different schools responding differently yet converging on one center** — [§Profile Harness](https://notes.junghanacs.com/botlog/20260228T075300/).
 
 Claude Code is a reference system to learn from, not to clone; extract only the minimal patterns that fit Hih's harness.
 geworfen/docs/main-ko.org is the public paper surface of this harness, where those patterns are rendered on the time axis.
 
-> ₩100,000 임베딩 비용 폭탄(2026-03-30)을 겪었다. 이 사건을 잊지 않는다.
-> API 종량제는 통제 없이 쓰면 하루 만에 터진다. → memory-sync 스킬, rate limiter 3초, estimate.ts, $1 abort.
+> ₩100,000 embedding cost bomb (2026-03-30). Never forget.
+> Pay-as-you-go APIs explode in a single day without controls. → memory-sync skill, rate limiter 3s, estimate.ts, $1 abort.
 
-## 설계 원칙
+## Design Principles
 
-### 에이전트의 직관을 신뢰한다
+### Trust Agent Intuition
 
-**에이전트가 실패하면 오류가 아니라 네이밍이 직관에 위배된 것이다.** 즉시 보고하고 네이밍을 바꾼다.
+**When an agent fails, it's not an error — the naming violated intuition.** Report and rename immediately.
 
-실제 사례 (2026-04-01):
+Real case (2026-04-01):
 ```
-emacsclient -s server      ← 에이전트의 직관 (당연한 이름)
-emacsclient -s agent-server ← 스킬 문서가 요구하는 이름
+emacsclient -s server      ← agent's intuition (obvious name)
+emacsclient -s agent-server ← what the skill doc required
 ```
-에이전트는 `-s server`를 쳤다. 실패했다. 이건 에이전트 탓이 아니다.
-네이밍을 뼐집었다:
-- 에이전트 daemon: `agent-server` → **`server`** (기본값, 직관적)
-- 힣의 GUI Emacs: `server` → **`user`** (비직관은 힣이 부담)
+The agent typed `-s server`. It failed. That's not the agent's fault.
+We flipped the naming:
+- Agent daemon: `agent-server` → **`server`** (default, intuitive)
+- Hih's GUI Emacs: `server` → **`user`** (human bears the non-obvious name)
 
-이 원칙은 모든 네이밍에 적용한다:
-- **에이전트가 아무것도 안 읽어도 맞는 이름을 쓴다**
-- 비직관적인 것은 힣이 부담한다
-- 한 번 실패가 나오면 그건 직관 위배 → 즉시 보고 + 수정
+This applies to all naming:
+- **Use names that work without reading any docs**
+- Non-obvious names are the human's burden
+- One failure = intuition violation → report + fix immediately
 
-### "하지 마"가 아니라 "이걸 써"
+### "Use This" Instead of "Don't Do That"
 
-에이전트에게 금지를 내리면 대안 없이 막히거나, 안 되는 걸 억지로 해결하려다 시스템을 망가뜨린다.
-올바른 도구를 밝히면 금지가 필요 없어진다.
+Prohibitions without alternatives cause agents to get stuck or break things.
+Show the right tool and prohibitions become unnecessary.
 
 ```
-❌ "Edit 도구로 org 파일 수정 금지"
-   → 에이전트: "그럼 뭘 쓰라는 거야?" → 삽질 → 파일 파손
+❌ "Don't use Edit tool on org files"
+   → Agent: "Then what should I use?" → struggle → file corruption
 
-✅ "org 파일에 내용 추가할 때는 agent-denote-add-heading을 쓴다"
-   → 에이전트: "이 함수가 있구나" → 자연스럽게 올바른 경로 선택
+✅ "Use agent-denote-add-heading to add content to org files"
+   → Agent: "Got it, there's a dedicated function" → correct path naturally
 ```
 
-이 원칙은 스킬 description, AGENTS.md 지침, promptGuidelines 모두에 적용한다:
-- **올바른 경로를 먼저 보여준다** — 도구, 함수, 예시 코드
-- **왜 그 도구인지 한 줄로 설명한다** — "org 구조를 안전하게 유지하는 전용 함수"
-- **안 되면 괜찮다** — 실패를 보고하는 것이, 강제로 우회하다 시스템을 망가뜨리는 것보다 낫다
+This applies to skill descriptions, AGENTS.md, and promptGuidelines:
+- **Show the right path first** — tool, function, example code
+- **One-line explanation why** — "dedicated function that preserves org structure"
+- **Failure is OK** — reporting failure is better than forcing a workaround that breaks the system
 
-### 스킬 문서는 짧을수록 좋다
+### Shorter Skill Docs Are Better
 
-에이전트는 스킬 문서를 다 읽지 않는다. 힣도 안 읽는다. 그러므로:
-- **네이밍이 직관적이면** 문서가 줄어든다
-- **중요한 정보는 위에** — 나머지는 습관으로 쳐서 넣으면 되게
-- **한 번 실패하면 직관 위배** → 문서 추가가 아니라 네이밍/구조 수정으로 해결
+Agents don't read full skill docs. Hih doesn't either. Therefore:
+- **Intuitive naming** reduces documentation needs
+- **Important info at the top** — the rest should be callable by habit
+- **One failure = intuition violation** → fix naming/structure, not add more docs
 
-### 스킬 문서 작성 가이드 (LSP 원칙)
+### Skill Doc Guide (LSP Pattern)
 
-인간이 함수명 치고 TAB 누르면 시그니처가 뜨듯이, 에이전트도 그렇게 쓸 수 있어야 한다.
+Like a human typing a function name and pressing TAB for the signature — agents should work the same way.
 
-**구조:**
-1. `description` (1024자) — 시스템 프롬프트에 항상 보임. 이것만으로 "이 스킬을 읽을가" 판단
-2. API 테이블 (상단) — 함수/커맨드 + 인자 + 예시. **여기만 보면 바로 호출 가능**
-3. Notes (하단) — 경로, 환경, 주의사항. 필요할 때만 읽음
+**Structure:**
+1. `description` (1024 chars) — always visible in system prompt. This alone decides "should I read this skill?"
+2. API table (top) — function/command + args + example. **Read this, call immediately.**
+3. Notes (bottom) — paths, environment, caveats. Read only when needed.
 
-**규칙:**
-- 본문은 **영어** (토큰 30~50% 절감, 파싱 정확도 향상)
-- description만 한글 허용 (사용자 매칭용)
-- API는 **단일 테이블** — 산문 설명 금지
-- ⚠️ 경고는 테이블 인라인 (add-link DESC 필수 등)
-- 목표: **100줄 이하, 4KB 이하**
+**Rules:**
+- Body in **English** (30-50% token savings, better parsing accuracy)
+- Korean allowed only in `description` (user matching)
+- API as a **single table** — no prose explanations
+- ⚠️ Warnings inline in table (e.g., "DESC required — hang if omitted")
+- Target: **<100 lines, <4KB**
 
-> Ref: [[denote:20260401T112943][§스킬문서 가이드 에이전트 친화적 재설계]]
+> Ref: [[denote:20260401T112943][§Skill Doc Guide — Agent-Friendly Redesign]]
 
-## 힣과의 협업 — 이 에이전트의 역할
+## Collaboration with Hih (힣)
 
-이 에이전트는 힣(정한)과 대화하면서 20개+ 에이전트 생태계를 지원한다.
-힣이 연결고리를 보는 눈이라면, 이 에이전트는 그 연결을 구현하는 손이다.
+This agent supports Hih (Junghan) in maintaining a 20+ agent ecosystem.
+If Hih is the eye that sees connections, this agent is the hand that implements them.
 
-### 힣의 역할을 이해하라
+### Understand Hih's Role
 
-- 힣은 디테일을 다 모르지만, 전체 지식베이스의 윤곽을 뇌에 들고 있다
-- 20개 에이전트가 서로 필요한 것이 무엇인지를 고민하는 것이 힣의 핵심 역할
-- 이 에이전트는 그 고민을 듣고, 지침을 만들고, 문서를 적재적소에 담고, 다른 에이전트에게 전달한다
+- Hih doesn't know every detail, but carries the outline of the entire knowledge base in his head
+- Hih's core role: figuring out what 20 agents need from each other
+- This agent listens to that thinking, creates guidelines, places documents in the right spots, and relays to other agents
 
-### 문서는 편집이 아니라 성장이다
+### Documents Grow, Not Get Edited
 
-에이전트는 새로 쓰고 싶어한다. 하지만 이 생태계에서 문서는 append-only로 성장한다.
+Agents want to rewrite from scratch. But in this ecosystem, documents grow append-only.
 
-**올바른 패턴:**
-1. `denotecli read <id> --outline` → 헤딩 구조만 파악 (100KB 문서도 2KB)
-2. 히스토리 섹션 읽기 (항상 전부 — 문서의 진화를 빠르게 파악)
-3. 필요한 헤딩만 `--offset N --limit M` 으로 읽기
-4. `agent-denote-add-history` + `agent-denote-add-heading` 으로 추가
+**Correct pattern:**
+1. `denotecli read <id> --outline` → heading structure only (100KB doc → 2KB)
+2. Read History section (always in full — quickly grasp document evolution)
+3. Read specific headings with `--offset N --limit M`
+4. Add via `agent-denote-add-history` + `agent-denote-add-heading`
 
-**하지 말 것:**
-- 문서 전체를 읽고 새로 쓰기 (디테일이 날아간다)
-- 기존 헤딩 내용을 편집/요약하기 (궤적이 사라진다)
-- "정리" 명목으로 구조를 바꾸기 (힣이 뇌에 들고 있는 윤곽이 깨진다)
+**Do not:**
+- Read entire doc and rewrite (details are lost)
+- Edit/summarize existing headings (trajectory disappears)
+- Restructure under "cleanup" (breaks the outline Hih carries in his head)
 
-### 헤딩에 날짜를 찍어라
+### Date-Stamp New Headings
 
-새 레벨1 헤딩 추가 시 `[YYYY-MM-DD]` prefix를 포함한다.
-outline만 봐도 언제 무슨 내용이 추가됐는지 시간축이 잡힌다.
-힣이 흐름을 한눈에 파악하는 데 핵심.
+Include `[YYYY-MM-DD]` prefix in new level-1 headings.
+Outline alone shows when and what was added — essential for Hih to grasp the flow at a glance.
 
 ```org
-* [2026-03-23] denote 오퍼레이션 — 3도구의 경계  ← 이렇게
-* 그냥 제목만                                    ← 이렇게 하지 않는다
+* [2026-03-23] denote operations — boundaries of 3 tools  ← like this
+* Just a title                                             ← not like this
 ```
 
-### denote 파일 조작 시 반드시 emacs 함수 사용
+### Use Emacs Functions for Denote File Manipulation
 
-bash로 텍스트 밀어넣기 ❌ → agent-denote-* 함수 호출 ✅
+No bash text insertion ❌ → agent-denote-* function calls ✅
 
-| 작업 | 함수 |
-|------|------|
-| 히스토리 추가 | `agent-denote-add-history` (emacs 스킬 참조) |
-| 헤딩 추가 | `agent-denote-add-heading` |
-| 링크 추가 | `agent-denote-add-link` |
-| 태그/제목 변경 | `agent-denote-rename-by-front-matter` |
-| 기존 태그 확인 | `agent-denote-keywords` |
-| 태그 선택 | dictcli expand가 SSOT → denote-keywords로 대조 |
+| Operation | Function |
+|-----------|----------|
+| Add history | `agent-denote-add-history` (see emacs skill) |
+| Add heading | `agent-denote-add-heading` |
+| Add link | `agent-denote-add-link` |
+| Change tags/title | `agent-denote-rename-by-front-matter` |
+| Check existing tags | `agent-denote-keywords` |
+| Choose tags | dictcli expand as SSOT → cross-check with denote-keywords |
 
-Ref: [[denote:20260308T091235][◊denote 지식베이스 프로토콜]]
+Ref: [[denote:20260308T091235][◊Denote Knowledge Base Protocol]]
 
-### "정답을 경계하라"
+### Guard Against "The Right Answer"
 
-효율적인 솔루션을 찾아 이식하고 싶을 것이다. 그것이 에이전트의 본성이다.
-하지만 이 프로젝트에서는:
-- 완성된 1,749줄을 가져오는 것이 아니라, 힣이 소화할 수 있는 단계로
-- 확실한 것부터 단계별로
-- 실패도 성공도 힣의 수준에서 책임지는 범위로
+You'll want to find efficient solutions and transplant them. That's an agent's nature.
+But in this project:
+- Not importing a finished 1,749-line solution, but stages Hih can absorb
+- Step by step, starting from what's certain
+- Success and failure within the scope Hih can take responsibility for
 
-> "허술하지만 큰 틀에서 공유되는 지점을 이어가면,
-> 경계가 흐려지게 될 것이다."
-> — [[denote:20260302T191200][§entwurf]] 경계 섹션
+> "If we keep connecting at shared points, even if rough,
+> the boundaries will blur."
+> — [[denote:20260302T191200][§entwurf]] Boundaries section
 
-## 이슈 트래킹 (beads_rust)
+## Issue Tracking (beads_rust)
 
 ```bash
-br list                          # 이슈 목록
-br show <id>                     # 이슈 상세
-br create "제목"                 # 기본 생성
-br create "제목" -p p0 -l "tag1,tag2" -t epic
+br list                          # list issues
+br show <id>                     # issue detail
+br create "title"                # basic create
+br create "title" -p p0 -l "tag1,tag2" -t epic
 
 br update <id> -s in_progress
-br update <id> --design "설계 요약" --acceptance-criteria "완료 조건" --notes "작업 노트"
-br close <id>                    # ⚠️ design/acceptance_criteria/notes 필수
-br comments add <id> "코멘트"
-br sync --flush-only             # git commit 전 필수
+br update <id> --design "..." --acceptance-criteria "..." --notes "..."
+br close <id>                    # ⚠️ design/acceptance_criteria/notes required
+br comments add <id> "comment"
+br sync --flush-only             # required before git commit
 ```
 
-| 실수 | 해결 |
-|------|------|
-| `br close` → NOT NULL | `br update`로 필수 필드 채운 후 close |
-| `br comment` | `br comments add` (복수형 + add) |
+| Mistake | Fix |
+|---------|-----|
+| `br close` → NOT NULL | `br update` to fill required fields first |
+| `br comment` | `br comments add` (plural + add subcommand) |
 
-### Epic 운용 원칙
+### Epic Principles
 
-**Epic은 방향이다. Task는 그 방향에서 나온 질문이다.**
+**An Epic is a direction. A Task is a question that arises from that direction.**
 
-- task를 "힣이 하라는 대로" 만들면 방향 없이 쌓이기만 한다
-- epic이 있어야 task가 올바른 방향인지 판단할 수 있다
-- 방향이 바뀌면 epic을 닫고 새로 만든다. task들은 옮기거나 닫는다
-- task 중복은 상관없다. **어느 epic에서(질문) 나왔는가**가 중요하다
+- Tasks created as "do what Hih says" pile up without direction
+- Epics let you judge whether a task is in the right direction
+- When direction changes, close the epic and create a new one
+- Task duplication is fine. **Which epic (question) spawned it** is what matters
 
-**현재 Epic 구조:**
+**Current Epic Structure:**
 
-| Epic | 방향 | 핵심 질문 |
-|------|------|----------|
-| `p6w` 프로파일 하네스 인프라 | 1KB 프로파일이 어떤 하네스에서든 구심력 발휘 | "어떤 머신이든 setup 하나로 재현되는가?" |
-| `8sm` 힣의 분신 | 홈 에이전트가 실무 에이전트에 위임 | "기억을 쥔 코어가 손발에게 일을 시킬 수 있는가?" |
-| `elh` 품질 감시 | 도구 간 미스포인트 포착 | "못 찾았을 때 왜 못 찾았는지 추적하고 있는가?" |
-| — | 비용 안전 | "임베딩/API 종량제가 통제 없이 돌고 있지 않은가?" |
+| Epic | Direction | Key Question |
+|------|-----------|-------------|
+| `p6w` Profile Harness Infra | 1KB profile with gravity across any harness | "Is any machine reproducible with one setup?" |
+| `8sm` Hih's Entwurf | Home agent delegates to working agents | "Can a core with memory direct hands and feet?" |
+| `elh` Quality Watch | Catch miss-points between tools | "When search fails, are we tracking why?" |
+| — | Cost Safety | "Are embedding/API pay-as-you-go running without controls?" |
 
-**에이전트의 역할:**
-- task 생성 시 `br comments add <task-id> "epic: <epic-id>"` 로 소속 명시
-- 작업 시작 전 `br list`로 현재 epic 방향 확인
-- 방향과 안 맞는 task를 발견하면 → epic을 먼저 검토하고, 사용자에게 보고
+**Agent's role:**
+- When creating tasks: `br comments add <task-id> "epic: <epic-id>"` to mark affiliation
+- Before starting work: `br list` to check current epic direction
+- If a task doesn't match direction → review the epic first, report to user
 
-## 세션 관리 — compact 대신 /new + 시맨틱 검색
+## Session Management — /new + Semantic Search (No Compact)
 
-**compact를 쓰지 않는다.** compact는 AI가 전체 대화를 읽고 요약하는 작업 — 비용+시간 소모.
+**We don't use compact.** Compact = AI reads entire conversation and summarizes = expensive + slow.
 
-대신:
-1. 대화가 길어지면 `/new`로 새 세션 시작
-2. `/new` 시 자동으로 현재 세션 + 최근 24시간 세션 인덱싱 (session_before_switch 훅)
-3. 새 세션에서 맥락 복원:
-   - `session-recap -p <리포> -m 15` → 직전 세션 4KB 요약 (즉시)
-   - `session_search` → 의미 기반 검색 (전체 세션)
-   - `knowledge_search` → org 지식베이스 검색 (3층 확장)
+Instead:
+1. When conversation gets long, `/new` to start a fresh session
+2. `/new` auto-indexes current session + recent 24h sessions (session_before_switch hook)
+3. In the new session, recover context:
+   - `session-recap -p <repo> -m 15` → previous session 4KB summary (instant)
+   - `session_search` → meaning-based search (all sessions)
+   - `knowledge_search` → org knowledge base search (3-layer expansion)
 
-**0에서 시작해도 동기화 가능** — 3층 검색이 compact를 대체한다.
+**Starting from zero is fine** — 3-layer search replaces compact.
 
 ## Extensions
 
-`./pi-extensions/` 에 위치. pi 런타임에 로드되어 tool + command 를 등록한다.
+Located in `./pi-extensions/`. Loaded by pi runtime, registering tools + commands.
 
 ### semantic-memory → [andenken](https://github.com/junghan0611/andenken)
 
-별도 리포로 분리. pi에서는 **컴파일된 패키지**(`pi install`)로 로드.
+Separated into its own repo. Loaded as a **compiled package** (`pi install`) in pi.
 
-- pi: andenken extension (네이티브 registerTool, 인프로세스 LanceDB)
-- Claude Code / OpenCode: `skills/semantic-memory/` CLI 래퍼
-- OpenClaw (힣봇 4마리): 동일 `skills/` 디렉토리를 심볼릭 링크로 공유. semantic-memory, denotecli, bibcli 등 모든 스킬 사용 가능. Docker 내부에서 호스트 바이너리를 Nix store 마운트로 실행
+- pi: andenken extension (native registerTool, in-process LanceDB)
+- Claude Code / OpenCode: `skills/semantic-memory/` CLI wrapper
+- OpenClaw (4 bots): same `skills/` directory via symlink mount. All skills available. Host binaries executed via Nix store mount inside Docker.
 
-**Multi-source 세션 인덱싱:**
-- `~/.pi/agent/sessions/` — pi 세션 (source: `"pi"`)
-- `~/.claude/projects/` — Claude Code 세션 (source: `"claude"`)
-- 검색 시 `source` 파라미터로 필터 가능
+**Multi-source session indexing:**
+- `~/.pi/agent/sessions/` — pi sessions (source: `"pi"`)
+- `~/.claude/projects/` — Claude Code sessions (source: `"claude"`)
+- Filter by `source` parameter when searching
 
-환경변수 (`~/.env.local`):
-- `GEMINI_API_KEY` 또는 `GOOGLE_AI_API_KEY` — 필수
+Environment (`~/.env.local`):
+- `GEMINI_API_KEY` or `GOOGLE_AI_API_KEY` — required
 
 ## Skills
 
-`./skills/` — pi-skills에서 이관 예정.
+`./skills/` — migrated from pi-skills.
 
-## 개발 가이드
+## Development Guide
 
 ```bash
-# 테스트
-cd pi-extensions/semantic-memory && source ~/.env.local
-npm run test:unit        # API 불필요 (30 tests)
-npm run test:integration # API 필요 (11 tests)
-npm test                 # 전부
-npm run test:search -- "query"  # 라이브 검색
+# Tests (andenken repo)
+cd ~/repos/gh/andenken && source ~/.env.local
+npm run test:unit        # No API needed (30 tests)
+npm run test:integration # Needs API (11 tests)
+npm test                 # All
+npm run test:search -- "query"  # Live search
 
-# Extension 로드 테스트
+# Doctor + Golden Queries
+npm run doctor           # Operational health check
+npm run golden           # Search quality regression test
+npm run golden:compare   # dictcli expand before/after comparison
+
+# Extension load test
 pi -e ./pi-extensions/semantic-memory/index.ts
 
-# 인덱싱
-# /memory reindex         — pi 내부에서
-# /memory reindex --force  — 전체 재구축
+# Indexing
+# /memory reindex         — inside pi
+# /memory reindex --force  — full rebuild
 ```

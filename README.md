@@ -1,14 +1,30 @@
 # agent-config
 
-**Profile Harness — the gravity center where alien intelligences resonate with a being.**
+**Contextual continuity infrastructure for AI agents.** Every new AI session starts at zero — no memory of past conversations, no access to your knowledge base, no awareness of your tools. agent-config solves this: when you switch agents, sessions, or even models, the same human's memory, knowledge, and work context carries over.
 
-Multi-harness support is a means, not the goal. The goal is **a single 1KB being-profile that exerts the same gravitational pull across any harness**.
+> **What this is NOT:** This is not a prompt collection, not a LangChain-style tool-calling automation layer, not a multi-agent orchestration framework. It is the infrastructure that makes any AI agent — regardless of provider — remember who you are and what you've been working on.
+
+## Why This Exists
+
+The hardest problem in working with AI agents is not code generation — it's continuity. You build context over hours, then the session ends. Next session: blank slate. Switch from Claude to GPT: blank slate. Move from your laptop to your phone: blank slate.
+
+agent-config attacks this with three layers:
+
+1. **Shared memory layer** ([andenken](https://github.com/junghan0611/andenken)) — past conversations from every harness + 3,300+ personal notes in a semantically searchable index. Ask "보편 학문 관련 노트 찾아줘" and it finds `universalism`-tagged notes without being told the English word.
+
+2. **Shared skill set** (27 skills) — the same capabilities (search notes, read bibliography, check git history, write to journal) available identically whether you're in pi, Claude Code, OpenCode, or OpenClaw.
+
+3. **Session continuity protocol** — `/new` + recap + semantic search instead of expensive compact. Start a new session, recover full context in seconds for ~2K tokens instead of re-reading 50K.
+
+The result: context survives across sessions, across harnesses, across models. One human's digital universe stays coherent no matter which AI is looking at it.
+
+> Part of the [-config ecosystem](#the--config-ecosystem) by [glg @junghan0611](https://github.com/junghan0611)
+
+## The Profile Harness Concept
 
 Claude, GPT, and Gemini are "graduates from different schools" — trained on different data with different philosophies. Trying to control them means writing hundreds of lines of system prompts per model. Instead, **throw one being-profile at all of them equally.** They keep their unique lenses while aligning around a single universe — this is the [Profile Harness](https://notes.junghanacs.com/botlog/20260228T075300/).
 
-agent-config implements that gravity center. The shared foundation where agents remember, search, and stay aligned.
-
-> Part of the [-config ecosystem](#the--config-ecosystem) by [glg @junghan0611](https://github.com/junghan0611)
+Multi-harness support is a means, not the goal. The goal is **a single 1KB being-profile that exerts the same gravitational pull across any harness**.
 
 ### Harness Support
 
@@ -53,7 +69,7 @@ Pi loads andenken as a **compiled pi package** (`pi install`), not a symlinked `
 | `context.ts` | /context command — show loaded extensions, skills, context usage |
 | `go-to-bed.ts` | Late night reminder |
 | `peon-ping.ts` | Sound notifications |
-| `gemini-image-gen.ts` | Gemini image generation (나노바나나 2flash) |
+| `gemini-image-gen.ts` | Gemini image generation (nanobanana 2flash) |
 | `delegate.ts` | Spawn independent agent process (local or SSH remote) |
 | `session-breakdown.ts` | Session cost breakdown |
 | `whimsical.ts` | Personality touches |
@@ -107,13 +123,13 @@ Instead:
 ## Shell Aliases (`~/.bashrc.local`)
 
 ```bash
-# Claude Code + 텔레그램
+# Claude Code + Telegram bridge
 alias claude-tg='claude --channels plugin:telegram@claude-plugins-official'
 alias claude-tgd='claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions'
 
-# pi: --session-control 기본 (delegate 비동기 알림 + 세션 간 RPC)
+# pi: --session-control default (async delegate notifications + inter-session RPC)
 alias pi='command pi --session-control'
-# 분신 에이전트: 텔레그램 브릿지 (entwurf 패키지 설치 필요)
+# Entwurf agent: Telegram bridge (requires entwurf package)
 alias pi-home='command pi --session-control --telegram'
 ```
 
@@ -144,7 +160,7 @@ cd agent-config
 | [zotero-config](https://github.com/junghan0611/zotero-config) | Bibliography | 8,000+ references, bibcli |
 | **[agent-config](https://github.com/junghan0611/agent-config)** | **Agent infra** | **Extensions, skills, themes, settings** |
 | **[andenken](https://github.com/junghan0611/andenken)** | **Memory** | **Semantic memory — sessions + org knowledge base** |
-| **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — 분신 에이전트 원격 접근** |
+| **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — Entwurf remote agent access** |
 | [memex-kb](https://github.com/junghan0611/memex-kb) | Knowledge | Legacy document conversion pipeline |
 | [GLG-Mono](https://github.com/junghan0611/GLG-Mono) | Orchestration | OpenClaw bot configurations |
 | [geworfen](https://github.com/junghan0611/geworfen) | Being | Existence data viewer — WebTUI agenda |
