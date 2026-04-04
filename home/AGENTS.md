@@ -136,14 +136,6 @@
 - **노트 링크**: `[[denote:YYYYMMDDTHHMMSS][제목]]` (denotecli로 검색)
 
 
-### 마이크로 (Micro) - 리포 작업
-- **br (beads_rust)**: 리포별 이슈 트래커
-- 에이전트가 자율적으로 `br create`, `br update`, `br close` 사용
-- `br sync --flush-only` 후 `git add .beads/ && git commit` 필요
-- **close 전 필수**: `br update <id> --design "..." --acceptance-criteria "..." --notes "..."`
-  - 이 3필드가 비어있으면 `br close` 시 NOT NULL constraint 에러
-- **코멘트**: `br comments add <id> "텍스트"` (comments 복수형, add 서브커맨드 필수)
-
 ## 시스템 환경
 
 ### 개인 디바이스(~/repos/gh/nixos-config)
