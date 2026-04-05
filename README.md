@@ -31,6 +31,7 @@ Multi-harness support is a means, not the goal. The goal is **a single 1KB being
 | Harness | Memory | Skills | Config |
 |---------|--------|--------|--------|
 | **[pi](https://github.com/badlogic/pi-mono)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 26 skills (semantic-memory excluded — extension covers it) | extensions + themes + keybindings |
+| **pi-entwurf** (Oracle, tmux) | andenken **extension** + pi-telegram | 26 skills + Telegram bridge | persistent Opus session, `@glg_entwurf_bot` |
 | **Claude Code** | andenken **skill** (CLI wrapper via bash) | 27 skills (full set including semantic-memory) | CLAUDE.md + hooks |
 | **OpenCode** | andenken **skill** (CLI wrapper via bash) | 27 skills (full set) | settings |
 | **OpenClaw** (Oracle VM) | andenken **skill** (same skills/ via symlink mount) | 27 skills (Nix store mount in Docker) | openclaw.json |
@@ -76,6 +77,7 @@ Pi loads andenken as a **compiled pi package** (`pi install`), not a symlinked `
 
 Semantic memory extension lives in [andenken](https://github.com/junghan0611/andenken) (separate repo, loaded as pi package).
 Telegram bridge lives in [entwurf](https://github.com/junghan0611/entwurf) (separate repo, loaded as pi package).
+Production Telegram bridge uses [pi-telegram](https://github.com/badlogic/pi-telegram) (by pi author, `pi install` package) — queuing, file I/O, stop/abort, streaming preview.
 
 ### Skills ([`skills/`](skills/)) — 27 skills
 
@@ -120,6 +122,38 @@ Instead:
    - `session_search` → semantic search (all sessions)
    - `knowledge_search` → org knowledge base (3-layer expansion)
 
+## Persistent Agent — pi-entwurf (Oracle)
+
+A persistent pi session on Oracle VM, accessible via Telegram `@glg_entwurf_bot`. This is the **always-on presence agent** — a 분신(Entwurf) that maintains context across days.
+
+**Why this exists (2026-04-06):** Anthropic blocked flat-rate API access for third-party apps (OpenClaw). OpenClaw bots switched to GitHub Copilot relay (`github-copilot/claude-sonnet-4.6` for glg, `github-copilot/claude-opus-4.6` for main). But a direct pi session on Oracle bypasses this entirely — Anthropic API direct, Opus, full skills, no intermediary.
+
+| Component | Detail |
+|-----------|--------|
+| tmux session | `pi-entwurf` |
+| Model | `anthropic/claude-opus-4-6` (direct API) |
+| Telegram bot | `@glg_entwurf_bot` (pi-telegram bridge) |
+| Working dir | `~` (home) |
+| Skills | Full 26 skills + semantic memory |
+| Role | Life-support agent, research, note-taking, agenda |
+
+**Two Telegram bridges coexist:**
+
+| Bridge | Package | Purpose |
+|--------|---------|--------|
+| [pi-telegram](https://github.com/badlogic/pi-telegram) | `pi install` (production) | Queuing, file I/O, stop, streaming preview |
+| [entwurf](https://github.com/junghan0611/entwurf) | local package (minimal) | Presence bridge philosophy, `--telegram` flag |
+
+**OpenClaw vs pi-entwurf:**
+
+| | OpenClaw bots | pi-entwurf |
+|---|---|---|
+| Runtime | Docker sandbox | NixOS host direct |
+| Model routing | GitHub Copilot relay | Anthropic API direct |
+| Multi-bot | 4 bots (main/glg/gpt/gemini) | 1 persistent session |
+| Skills | Same 27 skills (mounted) | Same 26 skills (native) |
+| Use case | Family/public service | Personal deep work |
+
 ## Shell Aliases (`~/.bashrc.local`)
 
 ```bash
@@ -160,7 +194,8 @@ cd agent-config
 | [zotero-config](https://github.com/junghan0611/zotero-config) | Bibliography | 8,000+ references, bibcli |
 | **[agent-config](https://github.com/junghan0611/agent-config)** | **Agent infra** | **Extensions, skills, themes, settings** |
 | **[andenken](https://github.com/junghan0611/andenken)** | **Memory** | **Semantic memory — sessions + org knowledge base** |
-| **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — Entwurf remote agent access** |
+| **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — Entwurf minimal presence bridge** |
+| **[pi-telegram](https://github.com/badlogic/pi-telegram)** | **Transport** | **Telegram DM bridge — production queue/file/streaming** |
 | [memex-kb](https://github.com/junghan0611/memex-kb) | Knowledge | Legacy document conversion pipeline |
 | [GLG-Mono](https://github.com/junghan0611/GLG-Mono) | Orchestration | OpenClaw bot configurations |
 | [geworfen](https://github.com/junghan0611/geworfen) | Being | Existence data viewer — WebTUI agenda |

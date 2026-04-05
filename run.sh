@@ -298,6 +298,19 @@ setup_npm() {
     warn "entwurf: repo not found at $ENTWURF_DIR"
   fi
 
+  # pi-telegram (production Telegram bridge by pi author)
+  # Installed as pi package — no local clone needed
+  if command -v pi &>/dev/null; then
+    if pi list 2>/dev/null | grep -q "pi-telegram"; then
+      ok "pi-telegram (already installed)"
+    else
+      log "pi-telegram: installing..."
+      pi install git:github.com/badlogic/pi-telegram 2>/dev/null && ok "pi-telegram" || warn "pi-telegram: install failed"
+    fi
+  else
+    warn "pi-telegram: pi not found in PATH"
+  fi
+
   # pi-extensions (grammy 등)
   local ext_dir="$SCRIPT_DIR/pi-extensions"
   if [ -f "$ext_dir/package.json" ]; then
