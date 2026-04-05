@@ -233,6 +233,26 @@ setup_links() {
     ensure_link "$cmd_file" "$HOME/.pi/agent/prompts/$(basename "$cmd_file")"
   done
 
+  section "Pi Telegram (pi-telegram bridge config)"
+  # PI_ENTWURF_BOT_TOKEN이 있으면 telegram.json 자동 생성
+  load_env
+  if [ -n "${PI_ENTWURF_BOT_TOKEN:-}" ]; then
+    local tg_json="$HOME/.pi/agent/telegram.json"
+    local bot_id
+    bot_id=$(echo "$PI_ENTWURF_BOT_TOKEN" | cut -d: -f1)
+    local chat_id="${PI_TELEGRAM_CHAT_ID:-0}"
+    cat > "$tg_json" << TGJSON
+{
+	"botToken": "$PI_ENTWURF_BOT_TOKEN",
+	"botId": $bot_id,
+	"allowedUserId": $chat_id
+}
+TGJSON
+    ok "telegram.json (@glg_entwurf_bot, chatId=$chat_id)"
+  else
+    log "PI_ENTWURF_BOT_TOKEN not set — skipping telegram.json"
+  fi
+
   section "Home AGENTS.md / CLAUDE.md / ENTWURF.md"
   ensure_link "$SCRIPT_DIR/home/AGENTS.md" "$HOME/AGENTS.md"
   ensure_link "$SCRIPT_DIR/home/CLAUDE.md" "$HOME/CLAUDE.md"
