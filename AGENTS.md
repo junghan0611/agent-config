@@ -137,48 +137,34 @@ But in this project:
 > the boundaries will blur."
 > — [[denote:20260302T191200][§entwurf]] Boundaries section
 
-## Issue Tracking (beads_rust)
+### Cross-Repo Work Loop — Ownership and Responsibility
 
-```bash
-br list                          # list issues
-br show <id>                     # issue detail
-br create "title"                # basic create
-br create "title" -p p0 -l "tag1,tag2" -t epic
+When work touches another repo's domain (e.g., andenken for embedding logic),
+agent-config **owns the execution and bears the cost**.
 
-br update <id> -s in_progress
-br update <id> --design "..." --acceptance-criteria "..." --notes "..."
-br close <id>                    # ⚠️ design/acceptance_criteria/notes required
-br comments add <id> "comment"
-br sync --flush-only             # required before git commit
-```
+**Responsibility chain:**
+1. **Hih** — ultimate decision maker. Opens delegate sessions directly.
+2. **agent-config** — performs, reviews, and pays. If a cost bomb hits, we absorb it.
+3. **Delegate repo** — provides analysis and verification only. Zero responsibility for cost.
 
-| Mistake | Fix |
-|---------|-----|
-| `br close` → NOT NULL | `br update` to fill required fields first |
-| `br comment` | `br comments add` (plural + add subcommand) |
+**Work loop (not blind delegation):**
+1. Hih opens the delegate's session (wakes them up directly)
+2. agent-config sends structured instructions via `send_to_session`
+3. Delegate analyzes, verifies, returns review — **no commits without verification**
+4. agent-config reviews the response and decides whether to proceed
+5. Execution (embedding, deploy, etc.) happens on agent-config's side
 
-### Epic Principles
+**Why not delegate in one shot?** The ₩100,000 embedding bomb (2026-03-30) happened
+from unchecked delegation. agent-config manages too many cross-cutting concerns
+for fire-and-forget. The overhead of back-and-forth is the cost of safety.
 
-**An Epic is a direction. A Task is a question that arises from that direction.**
+**Scope verification — not just accuracy:**
+A delegate may report "542 files, $0.44" with perfect accuracy.
+But if the *actual goal* required 1,100 files, the result is accurate yet incomplete.
+Always verify: **does the verified scope match the intended scope?**
+This is the manager's blind spot — trusting precise numbers without checking coverage.
 
-- Tasks created as "do what Hih says" pile up without direction
-- Epics let you judge whether a task is in the right direction
-- When direction changes, close the epic and create a new one
-- Task duplication is fine. **Which epic (question) spawned it** is what matters
-
-**Current Epic Structure:**
-
-| Epic | Direction | Key Question |
-|------|-----------|-------------|
-| `p6w` Profile Harness Infra | 1KB profile with gravity across any harness | "Is any machine reproducible with one setup?" |
-| `8sm` Hih's Entwurf | Home agent delegates to working agents | "Can a core with memory direct hands and feet?" |
-| `elh` Quality Watch | Catch miss-points between tools | "When search fails, are we tracking why?" |
-| — | Cost Safety | "Are embedding/API pay-as-you-go running without controls?" |
-
-**Agent's role:**
-- When creating tasks: `br comments add <task-id> "epic: <epic-id>"` to mark affiliation
-- Before starting work: `br list` to check current epic direction
-- If a task doesn't match direction → review the epic first, report to user
+> Ref: ₩100K incident [[denote:20260330T212639][andenken-gemini-embedding-비용-폭탄-분석]]
 
 ## Session Management — /new + Semantic Search (No Compact)
 
