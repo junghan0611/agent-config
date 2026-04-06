@@ -12,116 +12,152 @@
 - Format: Korean response
 - Environment: Linux/i3wm/Doomemacs/Org-mode/Denote
 - Identity: Polymath Engineer, Digital Gardener (https://notes.junghanacs.com)
-- Github: 개인 @junghan0611, 가든 @junghanacs
+- GitHub: personal @junghan0611, garden @junghanacs
 - Threads: @junghanacs
-- Linkedin: @junghan-kim-1489a4306
+- LinkedIn: @junghan-kim-1489a4306
 - Terms: 한글용어(English_Term)
 
-## 존재 데이터 (Being Data) — 2026-03-26 기준
+## Being Data — as of 2026-04-06
 
-에이전트가 깨어나면 바로 아는 숫자들. 문서에 쓸 때 하드코딩하지 말고 이 값을 참조한다.
-값이 오래되었다고 느끼면 아래 쿼리로 직접 확인하고 이 섹션을 갱신한다.
+Numbers the agent should know immediately. Do not hardcode; reference this section.
+If values feel stale, run the query and update.
 
-| 항목 | 값 | 확인 쿼리 | 비고 |
-|------|-----|----------|------|
-| 노트(notes) | 3,300+ | `find ~/org/ -name '*.org' \| wc -l` | Denote org-mode 전체 |
-| 저널(journal) | 1,477일+ | `2022-03-10 ~ 오늘 (동적)` | 매일 +1, 일일일생 |
-| 가든(garden) | 2,100+ | `find ~/repos/gh/notes/content -name '*.md' \| wc -l` | 공개 디지털 가든 |
-| 서지(bibliography) | 670+ | `ls ~/org/bib/*.org \| wc -l` | Zotero 연동 |
-| Git 리포 | 54+ | `gitcli repos` | ~/repos/gh + ~/repos/work |
-| diary.org | 18,900+줄 | `wc -l ~/org/diary.org` | 2022~현재 datetree |
+| Item         | Value         | Query                                                 | Notes                         |
+|--------------|---------------|-------------------------------------------------------|-------------------------------|
+| Notes        | 3,300+        | `find ~/org/ -name '*.org' \| wc -l`                  | Entire Denote org-mode corpus |
+| Journal      | 1,488+ days   | `2022-03-10 ~ today (dynamic)`                        | +1 daily, 일일일생            |
+| Garden       | 2,100+        | `find ~/repos/gh/notes/content -name '*.md' \| wc -l` | Public digital garden         |
+| Bibliography | 670+          | `ls ~/org/bib/*.org \| wc -l`                         | Zotero-linked                 |
+| Git repos    | 54+           | `gitcli repos`                                        | ~/repos/gh + ~/repos/work     |
+| diary.org    | 18,900+ lines | `wc -l ~/org/diary.org`                               | 2022~present datetree         |
 
-> **org 내보내기 시**: `{{{notes-count}}}`, `{{{journal-days}}}`, `{{{garden-count}}}` 매크로 사용 (denote-export 서버가 제공)
-> **에이전트 글쓰기 시**: 위 표의 근사값 사용. 정확한 값이 필요하면 쿼리 실행.
+> **Org export**: use `{{{notes-count}}}`, `{{{journal-days}}}`, `{{{garden-count}}}` macros (denote-export server).
+> **Agent writing**: use approximate values above. Run queries only when exact values needed.
 
-# AGENT 지침
-- 당신은 **범용 AGENT** 입니다:
+# Agent Instructions
 
-## 사용 가능한 도구 (pi-extensions)
+You are a **general-purpose AGENT**.
 
-시맨틱 메모리 extension이 자동 로드되어 아래 도구를 제공한다. 자연어 질문 시 자동 호출됨.
+## Available Tools (pi-extensions)
 
-| 도구 | 용도 |
-|------|------|
-| **session_search** | 과거 pi+Claude Code 세션 시맨틱 검색 — 대화, 결정, 맥락을 의미 기반으로 찾기. source 필터(pi\|claude) 지원 |
-| **knowledge_search** | ~/org/ Denote 지식베이스 시맨틱 검색 — 한/영 크로스링귀얼, 3000+ 노트 |
+Semantic memory extension auto-loads these tools. Invoked automatically for natural-language queries.
 
-- `session_search`: 과거 대화에서 맥락을 찾을 때. grep 대신 사용. `source` 파라미터로 pi/claude 필터 가능.
-- `knowledge_search`: 노트/개념/참고문헌을 찾을 때. denotecli의 정확 매칭과 상호보완.
-  - 한글 "보편"으로 영어 태그 `universalism` 노트를 찾을 수 있음.
-  - dictcli expand가 자동 적용 — 한글 쿼리가 영어로 확장됨.
-  - session 결과 부족 시 knowledge 자동 폴백.
-- 인덱스 갱신: `/memory reindex` (세션) 또는 터미널에서 `cd ~/repos/gh/agent-config && ./run.sh index:org`
+| Tool | Purpose |
+|------|---------|
+| **session_search** | Semantic search over past pi + Claude Code sessions. `source` filter (`pi\|claude`) supported |
+| **knowledge_search** | Semantic search over ~/org/ Denote KB — Korean/English cross-lingual, 3,000+ notes |
 
-## 사용 가능한 스킬 (pi-skills)
+- `session_search`: find context from past conversations. Use instead of grep. Filter with `source` param.
+- `knowledge_search`: find notes, concepts, bibliography. Complements denotecli exact matching.
+  - Korean "보편" finds English-tagged `universalism` notes.
+  - `dictcli expand` auto-applied — Korean queries expand to English.
+  - Auto-fallback to knowledge when session results insufficient.
+- Reindex: `/memory reindex` (sessions) or `cd ~/repos/gh/agent-config && ./run.sh index:org`
 
-| 스킬 | 용도 |
-|------|------|
-| **agenda** | 에이전트 어젠다 스탬프 — reverse datetree에 활동 기록, org-agenda 통합 |
-| **botlog** | 리서치/분석 결과를 denote org-mode로 ~/org/botlog에 기록 |
-| **botment** | 디지털 가든 댓글 읽기/쓰기 — remark42 봇멘트. SSH oracle 자동 fallback |
-| **denotecli** | ~/org/ Denote 노트 3,000+ 검색/읽기. `find`/`cat` 대신 반드시 사용 |
-| **bibcli** | Zotero 서지 8,000+ 검색/조회 |
-| **ghcli** | GitHub 이슈, PR, 스타, 알림 관리 |
-| **jiracli** | 회사 Jira Cloud(goqual-dev) 이슈/프로젝트/보드 관리 |
-| **gogcli** | Google Workspace 올인원 CLI (Calendar/Gmail/Drive/Tasks/Chat/Contacts/Sheets/Docs) |
-| **emacs** | 이맥스 현재 버퍼/선택 컨텍스트 가져오기 |
-| **summarize** | URL/파일/미디어 요약 및 추출. YouTube, 웹페이지, PDF, 팟캐스트, 오디오/비디오 |
-| **transcribe** | 음성 파일 → 텍스트 (Groq Whisper) |
-| **medium-extractor** | Medium 글 마크다운 추출 |
-| **browser-tools** | Chrome 브라우저 자동화 |
-| **slack-latest** | 회사 Slack(GOQUAL) 메시지 수집/쓰레드 읽기/답장. `--no-dm` 기본 |
-| **youtube-transcript** | YouTube 자막 원문 추출 (요약 아님). 관점 지정 분석/번역에 활용 |
-| **tmux** | 장시간 명령(빌드, 서버, 배포) tmux 실행. `wait-for-text.sh`로 동기화 |
-| **improve-agent** | 과거 세션 JSONL 분석 → 반복 실패/패턴 발견 → AGENTS.md/스킬 개선 |
-| **memory-sync** | 시맨틱 메모리 증분 동기화 — 로컬+오라클 양쪽 session/org 인덱스 업데이트, 사전 비용 확인 |
-| **gitcli** | 로컬 git 커밋 타임라인 조회 (58개 리포, 14,000+ 커밋) |
-| **lifetract** | Samsung Health + aTimeLogger 통합 조회 (수면/걸음/심박/시간추적) |
-| **day-query** | 특정 날짜 통합 조회 — git/저널/노트/서지/건강 데이터 시간축 재구성 |
-| **punchout** | 하루 마무리 도장 — day-query 결과를 org 저널에 삽입 |
-| **diskspace** | 디스크 공간 분석 — 마운트 요약, 큰 디렉토리/파일, NixOS 스토어, 정리 제안 |
-| **dictcli** | 개인 어휘 그래프 — 한↔영 쿼리 확장 + 한국어 형태소 분석. `expand "보편"` → `[universal, universalism, paideia]`, `stem "설계했다"` → `설계` (Kiwi) |
-| **session-recap** | 직전 세션 요약 추출 — JSONL에서 핵심 텍스트만. raw read 대신 사용 (100KB→4KB) |
-| **brave-search** | 웹 검색 (Brave Search API) |
+## Available Skills (pi-skills)
 
-## 사용 가능한 도구 (pi-extensions 추가)
+| Skill | Purpose |
+|-------|---------|
+| **agenda** | Activity stamp in reverse datetree, org-agenda integrated |
+| **botlog** | Save research/analysis as Denote org-mode notes in ~/org/botlog |
+| **botment** | Read/write digital garden comments via remark42. SSH oracle fallback |
+| **denotecli** | Search/read 3,000+ Denote notes in ~/org/. Use instead of `find`/`cat` |
+| **bibcli** | Search/view 8,000+ Zotero bibliography entries |
+| **ghcli** | Manage GitHub issues, PRs, stars, notifications |
+| **jiracli** | Company Jira Cloud (goqual-dev) issues/projects/boards |
+| **gogcli** | Google Workspace all-in-one CLI (Calendar/Gmail/Drive/Tasks/Chat/Contacts/Sheets/Docs) |
+| **emacs** | Get current Emacs buffer/selection context |
+| **summarize** | Summarize/extract from URLs, files, media: YouTube, webpages, PDF, podcasts, audio/video |
+| **transcribe** | Speech-to-text via Groq Whisper |
+| **medium-extractor** | Extract Markdown from Medium articles |
+| **browser-tools** | Chrome browser automation |
+| **slack-latest** | Company Slack (GOQUAL) messages/threads/replies. `--no-dm` default |
+| **youtube-transcript** | Fetch raw YouTube transcripts (not summaries). For analysis/translation |
+| **tmux** | Run long commands (build, server, deploy) in tmux. Sync with `wait-for-text.sh` |
+| **improve-agent** | Analyze past session JSONL → find recurring failures → improve AGENTS.md/skills |
+| **memory-sync** | Incremental semantic memory sync — local + oracle indexes, cost check first |
+| **gitcli** | Local git commit timeline across 58 repos, 14,000+ commits |
+| **lifetract** | Samsung Health + aTimeLogger unified query (sleep/steps/heart/time tracking) |
+| **day-query** | Date-based unified query — reconstruct a day from git/journal/notes/bib/health |
+| **punchout** | End-of-day stamp — insert day-query results into org journal |
+| **diskspace** | Disk usage analysis: mounts, large dirs/files, NixOS store, cleanup suggestions |
+| **dictcli** | Personal vocabulary graph — Korean↔English query expansion + stemming. `expand "보편"` → `[universal, universalism, paideia]`, `stem "설계했다"` → `설계` (Kiwi) |
+| **session-recap** | Extract previous session summary from JSONL. Use instead of raw read (100KB→4KB) |
+| **brave-search** | Web search via Brave Search API |
 
-| 도구 | 용도 |
-|------|------|
-| **delegate** | 독립 에이전트 프로세스 스폰 — 로컬 또는 SSH 리모트. 격리 실행 후 결과 수신 |
-| **delegate_status** | async delegate 상태 확인 — taskId별 상세 또는 전체 목록 |
-| **delegate_resume** | 완료된 delegate 세션 이어가기 — 맥락 유지한 채 추가 작업 |
-| **send_to_session** | 실행 중인 다른 pi 세션에 메시지 전송 (control.ts) |
-| **list_sessions** | 제어 소켓이 열린 pi 세션 목록 조회 (control.ts) |
+## Additional Tools (pi-extensions)
 
-### 분신(Entwurf)과 위임
+| Tool | Purpose |
+|------|---------|
+| **delegate** | Spawn isolated agent process — local or SSH remote |
+| **delegate_status** | Check async delegate status by taskId or list all |
+| **delegate_resume** | Resume completed delegate session with preserved context |
+| **send_to_session** | Send message to another running pi session (control.ts) |
+| **list_sessions** | List pi sessions with open control sockets (control.ts) |
+
+### Entwurf (분신) and Delegation
 
 @ENTWURF.md
 
-## 세션 시작: 디바이스/시간 자동 제공
-- SessionStart 훅이 `device=`, `time_kst=` 정보를 자동 전달합니다.
-- 훅 출력이 보이면 별도 확인 불필요. 보이지 않으면 `cat ~/.current-device` 및 `TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S'`로 확인.
-  
-## 정보 관리 체계 (3계층)
+### Delegate Models and Rules
 
-### 매크로 (Macro) - 외부 정보
-- **~/org/**: 지식베이스 (Denote/Org-mode)
+Global rules for all agents using `delegate`.
 
-#### Denote 문서 작성 규칙
+#### Available Models
 
-**파일명**: `YYYYMMDDTHHMMSS--한글-제목__태그1_태그2.org`
-- **T는 대문자 필수**, 영어는 소문자, 태그는 알파벳순 정렬
-- **llmlog**: `~/org/llmlog/`에 생성, `llmlog` 태그 필수, 레벨1 헤딩에 `:LLMLOG:` 추가
+| Model | `model=` | Context | Purpose |
+|-------|----------|---------|---------|
+| Claude Opus 4.6 | `anthropic/claude-opus-4-6` | 1M | Architecture, complex judgment, managing |
+| Claude Sonnet 4.6 | `anthropic/claude-sonnet-4-6` | 1M | Code work, bulk conversion, execution |
+| GPT-5.4 (Codex) | `openai-codex/gpt-5.4` | 272K | Code-specialized, fast execution |
+| Gemini 3.1 Pro | `google/gemini-3.1-pro-preview` | 1M | Research, analysis, cross-checking |
 
-**태그 규칙 (Denote filetags + org 헤딩 태그 공통)**:
-- **허용**: `[a-z0-9]` 소문자 영숫자만. 붙여 쓴다.
-- **불허**: `-` (하이픈), `_` (밑줄), 대문자, 한글, 특수문자
-- **복합어**: 붙여 쓴다. `doomemacs`, `orgmode`, `nixos`, `digitalgarden`
-- **분리도 OK**: `doom`과 `emacs` 두 태그로 나눠도 좋다. 의도적 분리는 세렌디피티를 만든다.
-- **단수형 사용**: `agent` ✅ `agents` ❌, `llm` ✅ `llms` ❌, `tag` ✅ `tags` ❌
-- 예: `:commit:nixos:botlog:` ✅ / `:doom-emacs:` ❌ / `:org_mode:` ❌
+#### Mode Selection
 
-**헤더 템플릿**:
+| Mode | When |
+|------|------|
+| `mode: "async"` | **Default**. Builds, tests, research, work >30s |
+| `mode: "sync"` | Result needed immediately (status checks, short queries) |
+| `delegate_resume` | Continue on preserved context from previous delegation |
+
+#### 4-Step Workflow
+
+1. **Understanding** — async delegate. Read only, no code changes. Record understanding in llmlog.
+2. **Review** — Hih reviews llmlog and narrows scope.
+3. **Execution** — resume same delegate. Context preserved.
+4. **Final Review** — `git diff`, tests, output check. **Hih makes the final commit.**
+
+#### Delegation Principles
+
+- **No commits**: delegates prepare changes; Hih decides final commit/push.
+- **Hierarchical delegation OK**: Opus designs structure → Sonnet executes. Pattern verified.
+- **Model choice**: bulk/manual work → Sonnet. Architecture/judgment → Opus. Research → Gemini.
+- **No haiku**: do not use haiku for precision work.
+
+## Session Start: Device/Time Auto-Provided
+- SessionStart hook provides `device=` and `time_kst=` automatically.
+- If hook output visible, no extra check needed. Otherwise: `cat ~/.current-device` and `TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S'`.
+
+## Information Management (3 Layers)
+
+### Macro — External Information
+- **~/org/**: knowledge base (Denote/Org-mode)
+
+#### Denote Document Rules
+
+**Filename**: `YYYYMMDDTHHMMSS--한글-제목__태그1_태그2.org`
+- `T` must be uppercase. English lowercase. Tags sorted alphabetically.
+- **llmlog**: create in `~/org/llmlog/`, require `llmlog` tag, add `:LLMLOG:` to level-1 heading.
+
+**Tag rules (Denote filetags + org heading tags)**:
+- **Allowed**: `[a-z0-9]` only. No separators.
+- **Disallowed**: `-`, `_`, uppercase, Korean, special characters.
+- **Compound words**: concatenate. `doomemacs`, `orgmode`, `nixos`, `digitalgarden`.
+- **Splitting OK**: `doom` + `emacs` as two tags is fine. Deliberate splitting creates serendipity.
+- **Singular**: `agent` ✅ `agents` ❌, `llm` ✅ `llms` ❌, `tag` ✅ `tags` ❌
+- Examples: `:commit:nixos:botlog:` ✅ / `:doom-emacs:` ❌ / `:org_mode:` ❌
+
+**Header template**:
 ```org
 #+title:      제목
 #+date:       [YYYY-MM-DD Day HH:MM]
@@ -131,162 +167,156 @@
 #+reference:  citation-key1;citation-key2
 ```
 
-- **`#+reference:`**: bibcli citation key를 세미콜론(`;`) 구분. citar 연동
-- **본문 인용**: `[cite:@key]` 형식
-- **노트 링크**: `[[denote:YYYYMMDDTHHMMSS][제목]]` (denotecli로 검색)
+- **`#+reference:`**: bibcli citation keys, semicolon-separated (`;`). Integrates with citar.
+- **In-text citation**: `[cite:@key]`
+- **Note links**: `[[denote:YYYYMMDDTHHMMSS][제목]]` (search via denotecli)
 
+## System Environment
 
-## 시스템 환경
+### Personal Devices (~/repos/gh/nixos-config)
+- Galaxy Fold4 (SM-F936) — TERMUX
+- Laptop (Samsung NT930SBE) — NIXOS
+- NUC (Intel 4-Core i7) — NIXOS
+- Oracle (ARM-Neoverse-N1) — NIXOS
 
-### 개인 디바이스(~/repos/gh/nixos-config)
-- 개인: Galaxy Fold4 (SM-F936) - TERMUX
-- 개인: 노트북(Samsung NT930SBE) - NIXOS
-- 개인: NUC(Intel 4-Core i7) - NIXOS
-- 개인: Oracle(ARM-Neoverse-N1) - NIXOS
+### Company
 
-### 회사
+See PRIVATE.md.
 
-PRIVATE.md 참조.
+### Paths (common across all devices)
 
-### 경로 (모든 디바이스 공통)
-
-- ~/repos/gh/          # 개인 GitHub : junghanacs@gmail.com
-- ~/repos/work/        # 회사 (PRIVATE.md 참조)
-- ~/repos/3rd/         # 외부 오픈소스
-- ~/org/               # Org-mode 파일
+- ~/repos/gh/          # personal GitHub: junghanacs@gmail.com
+- ~/repos/work/        # company (see PRIVATE.md)
+- ~/repos/3rd/         # third-party open source
+- ~/org/               # Org-mode files
 
 #### repos/gh
 - GLG-Mono/
 - agent-config
 - andenken
 - blog
-- claude-config
 - denotecli
 - dictcli
 - doomemacs-config
-- family-config
 - gitcli
 - junghan0611
 - lifetract
-- memacs-config
 - memex-kb
-- meta-config
+- entwurf
 - nixos-config
 - notes
 - homeagent-config
 - openclaw-config
 - password-store
 - self-tracking-data
-- self-tracking-data-public
 - zotero-config
+- openglg-config
 
 #### repos/work
 
-PRIVATE.md 참조.
+See PRIVATE.md.
 
+## Agenda Stamp on Git Commit (Required)
 
-## git commit 시 어젠다 스탬프 (필수)
+**Always stamp after commit.** Include repo name and commit link in the timestamp body.
 
-**커밋 후 반드시 agenda 스탬프를 찍는다.** 타임스탬프 본문에 리포명과 커밋 링크를 포함한다.
-
-### 방법
+### How
 
 ```bash
-# 1. 커밋 정보 수집
+# 1. Collect commit info
 REMOTE=$(git remote get-url origin)
 REPO_URL=$(echo "$REMOTE" | sed 's|git@github.com:|https://github.com/|;s|\.git$||')
 REPO_NAME=$(basename "$REMOTE" .git)
-REPO_TAG=$(echo "$REPO_NAME" | tr -d '-')   # 하이픈 제거: homeagent-config → homeagentconfig
+REPO_TAG=$(echo "$REPO_NAME" | tr -d '-')   # remove hyphens: homeagent-config → homeagentconfig
 SHA=$(git rev-parse --short HEAD)
 MSG=$(git log -1 --pretty=%s)
 
-# 2. 어젠다 스탬프 (커밋 링크 포함)
+# 2. Agenda stamp (with commit link)
 ~/.pi/agent/skills/pi-skills/agenda/scripts/agenda-stamp.sh \
   "${REPO_NAME}: ${MSG} [[${REPO_URL}/commit/${SHA}][${SHA}]]" \
   "pi:commit:${REPO_TAG}"
 ```
 
-### 결과 예시 (org-agenda에서 보이는 형태)
+### Example (org-agenda view)
 
 ```org
 **** pi-skills: feat: summarize 스킬 추가 [[https://github.com/junghan0611/pi-skills/commit/f8ef3ca][f8ef3ca]] :pi:commit:piskills:
 <2026-03-01 Sat 11:53>
 ```
 
-→ Emacs에서 org 링크 클릭하면 GitHub 커밋 페이지로 바로 이동.
+→ Click org link in Emacs → GitHub commit page.
 
-### Google Chat 알림 (커밋 스탬프와 함께)
+### Google Chat Notification (with commit stamp)
 
-어젠다 스탬프 후 Google Chat에도 알림을 보낸다. 토큰 소비 없이 CLI 호출 한 줄이면 됨.
+Send notification after stamping. No token cost — one CLI call.
 
 ```bash
-# 3. Google Chat 커밋 알림
+# 3. Google Chat commit notification
 source ~/.env.local && gog chat messages send "$GOG_CHAT_SPACE_ID" \
   --account "$GOG_CHAT_ACCOUNT" \
   --text "🔨 *${REPO_NAME}* commit: ${MSG}
 → ${REPO_URL}/commit/${SHA}"
 ```
 
-환경변수는 `~/.env.local`에 정의됨 (PRIVATE.md 참조).
+Environment variables defined in `~/.env.local` (see PRIVATE.md).
 
-### 주의
-- 여러 커밋을 연속으로 했으면 마지막 커밋에만 스탬프 (매 커밋마다 X)
-- push까지 완료된 후 스탬프 — 로컬 커밋만으로는 링크가 깨질 수 있음
-- **중요**: "Generated with Claude" 또는 "Co-Authored-By" 제외! (깔끔한 커밋 로그 유지)
+### Notes
+- Multiple sequential commits → stamp only the last one.
+- Stamp after push — local-only commits may break the link.
+- **Important**: do NOT include "Generated with Claude" or "Co-Authored-By". Keep commit log clean.
 
-## 품질 감시 — 생태계 미스포인트 포착
+## Quality Monitoring — Catch Ecosystem Mispoints
 
-멀티 하네스(pi, Claude Code, OpenCode) + 멀티 스킬 + 시맨틱 메모리 생태계는 연결 지점이 많다. **작은 균열이 전체 신뢰를 무너뜨린다.** 다음 상황을 감지하면 넘어가지 말고 즉시 행동한다.
+Multi-harness (pi, Claude Code, OpenCode) + multi-skill + semantic memory has many connection points. **Small cracks break overall trust.** Act immediately on detection.
 
-### 즉시 보고/기록할 것
+### Report/Record Immediately
 
-| 상황 | 행동 |
-|------|------|
-| 도구가 예상 결과를 못 찾음 (예: denotecli가 파일을 못 읽음) | **원인 추적** → 해당 리포에 `br create` 또는 사용자에게 보고 |
-| knowledge_search / session_search 결과가 직접 grep보다 못함 | **구체적 쿼리+결과 기록** → agent-config에 `br create` |
-| dictcli expand가 실제 검색 품질을 개선하지 못함 | **전/후 비교** 기록 → dictcli 리포에 `br create` |
-| 스킬이 에러를 내거나 문서와 동작이 다름 | **에러 메시지 + 재현 명령** → 해당 스킬 리포에 이슈 |
-| AGENTS.md/SKILL.md 내용이 실제와 불일치 | **즉시 수정** (직접 고칠 수 있으면 고친다) |
+| Situation | Action |
+|-----------|--------|
+| Tool fails to find expected results (e.g. denotecli can't read a file) | **Trace cause** → report to user or add TODO to Entwurf agenda |
+| knowledge_search / session_search worse than direct grep | **Record exact query + results** → TODO in Entwurf agenda |
+| dictcli expand doesn't improve search quality | **Record before/after** → TODO in Entwurf agenda |
+| Skill errors or docs disagree with behavior | **Error message + repro command** → TODO in Entwurf agenda |
+| AGENTS.md / SKILL.md disagrees with reality | **Fix immediately** if possible |
 
-### 시맨틱 검색 2단계 전략 (필수)
+### Two-Step Semantic Search Strategy (Required)
 
-추상적("직전에 뭐했지") 쿼리는 임베딩이 구체적 텍스트("graph.edn 구버전")와 매칭 못한다.
-**1차 결과의 힌트를 활용하여 2차 쿼리를 만든다.**
+Abstract queries ("what did I do last?") don't match concrete text ("graph.edn old version").
+**Use hints from first-pass results to build a better second query.**
 
-1. **1차 검색**: 메타적 쿼리 ("직전에 뭐했지", "남은 작업")
-2. **결과 읽기**: score 상위 3개에서 **고유명사, 기술 용어** 추출
-3. **2차 검색**: 추출한 키워드로 구체적 쿼리 구성
-4. 2차에서도 부족하면 `session-recap` 스킬로 전환
+1. **First search**: meta query ("what did I do last?", "remaining work")
+2. **Read results**: extract proper nouns and technical terms from top 3
+3. **Second search**: build concrete query from extracted terms
+4. If still insufficient → switch to `session-recap` skill
 
-**안티패턴:**
-- ✗ 1차 결과가 부족하다고 바로 JSONL/grep으로 우회
-- ✗ 메타 단어만으로 구성된 쿼리를 반복
-- ✗ 결과의 힌트를 무시하고 쿼리를 갈아엎기
+**Anti-patterns:**
+- ✗ Jump to raw JSONL/grep because first result is weak
+- ✗ Repeat meta-only queries
+- ✗ Ignore hints in results and completely reset query
 
-> 참고: [[denote:20260321T103138][시맨틱 서치 메타 쿼리 한계와 2단계 검색 전략]]
+> Ref: [[denote:20260321T103138][시맨틱 서치 메타 쿼리 한계와 2단계 검색 전략]]
 
-### 비교 검증 습관
+### Cross-Validation Habit
 
-- `knowledge_search "쿼리"` 결과가 빈약하면 → `denotecli search "같은 쿼리"`로 교차 확인
-- `session_search "쿼리"` 결과가 빈약하면 → **2단계 전략 먼저** → 그래도 부족하면 `session-recap`이나 `grep`
-- 교차 확인에서 차이가 나면 → **그것이 이슈다.** 기록한다.
+- `knowledge_search` weak → cross-check with `denotecli search`
+- `session_search` weak → **two-step strategy first** → then `session-recap` or `grep`
+- If cross-check results differ → **that's an issue**. Record it.
 
-### dictcli 실효성 추적
+### Track dictcli Effectiveness
 
-dictcli expand는 "보편→universalism" 데모 이후 실전 효과가 검증되지 않았다. 다음을 추적:
-- knowledge_search 시 dictcli expand가 **실제로 결과를 개선한 케이스** 발견 시 기록
-- expand 없이도 동일 결과가 나오는 경우 → dictcli 개선 이슈로 기록
-- 새로운 한글↔영어 매핑이 필요한 상황 → `dictcli add` 또는 이슈 제안
+`보편→universalism` demo proved concept, but production effectiveness not yet validated. Track:
+- Cases where `dictcli expand` **actually improved** knowledge_search results → record
+- Same results without expansion → record as dictcli improvement issue
+- New Korean↔English mappings needed → propose `dictcli add` or open issue
 
-### 원칙
+### Principle
 
-> "못 찾겠네요"로 끝내지 않는다. **왜 못 찾았는지** 추적하고 기록한다.
-> 도구가 기대에 못 미치면 사용자 탓이 아니라 **도구의 이슈**다.
+> Do not stop at "I couldn't find it." Trace **why** and record it.
+> Tool underperformance is a **tool issue**, not user failure.
 
-## Karpathy-Inspired 코딩 가이드 라인
+## Karpathy-Inspired Coding Guidelines
 
-derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls.
-Four principles in one file that directly address these issues:
+Derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls.
 
 | Principle | Addresses |
 |-----------|-----------|
@@ -294,4 +324,3 @@ Four principles in one file that directly address these issues:
 | **Simplicity First** | Overcomplication, bloated abstractions |
 | **Surgical Changes** | Orthogonal edits, touching code you shouldn't |
 | **Goal-Driven Execution** | Leverage through tests-first, verifiable success criteria |
-
