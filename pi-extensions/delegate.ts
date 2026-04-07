@@ -408,7 +408,7 @@ async function runDelegateAsync(
       const stats = getSessionStats(localSessionFile);
       info.output = lastMsg ?? stderr ?? "(no output)";
       const summary = lastMsg
-        ? lastMsg.slice(0, 500) + (lastMsg.length > 500 ? "..." : "")
+        ? lastMsg.slice(0, 2000) + (lastMsg.length > 2000 ? "\n(truncated, full: session-recap)" : "")
         : `exit code ${code}`;
 
       // 분신 세션에 followUp 메시지 주입
@@ -642,7 +642,7 @@ export default function (pi: ExtensionAPI) {
                 `Cost: $${stats.cost.toFixed(4)}`,
                 `Session: ${info.sessionFile}`,
                 info.exitCode !== undefined ? `Exit: ${info.exitCode}` : null,
-                lastMessage ? `\nLast message:\n${lastMessage.slice(0, 800)}` : null,
+                lastMessage ? `\nLast message:\n${lastMessage.slice(0, 3000)}` : null,
               ]
                 .filter(Boolean)
                 .join("\n"),
@@ -854,7 +854,7 @@ export default function (pi: ExtensionAPI) {
           const stats = getSessionStats(sessionFile!);
           resumeInfo.output = lastMsg ?? stderr ?? "(no output)";
           const summary = lastMsg
-            ? lastMsg.slice(0, 500) + (lastMsg.length > 500 ? "..." : "")
+            ? lastMsg.slice(0, 2000) + (lastMsg.length > 2000 ? "\n(truncated, full: session-recap)" : "")
             : `exit code ${code}`;
 
           try {
