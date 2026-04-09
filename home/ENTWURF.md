@@ -31,7 +31,8 @@ Follow this loop by default:
 1. **Restore context first**
    - Use `session-recap` before improvising from vague memory.
    - Recover the previous double before starting new work.
-2. **Inspect agenda**
+2. **Inspect agenda via Emacs**
+   - Use `ec '(agent-org-agenda-day)'` or `ec '(agent-org-agenda-week)'` to see today's/weekly agenda.
    - Find active `TODO` / `NEXT` items in the Entwurf agenda.
 3. **Decide: understand first or execute now**
    - If the task is unclear, narrow it through reading and llmlog.
@@ -169,6 +170,59 @@ Any external write — however well-intentioned — may harm someone.
 
 This applies to **both Entwurf and COS**.
 
-## 8. One-Line Summary
+## 8. Emacs Integration (Required)
+
+Entwurf and COS share Emacs with Junghan. Org-agenda is the primary coordination surface.
+**Prefer Emacs agent-server API over grep/cat/find for all org data.**
+
+### Connection
+
+```bash
+ec() { emacsclient -s server --eval "$1"; }
+# Define ec in EVERY bash call — subshell resets state.
+```
+
+### Agenda (daily operation)
+
+| Function | Args | Example |
+|----------|------|---------|
+| `agent-org-agenda-day` | ?DATE | `ec '(agent-org-agenda-day)'` — nil=today, `"-1"`=yesterday |
+| `agent-org-agenda-week` | ?DATE | `ec '(agent-org-agenda-week)'` |
+| `agent-org-agenda-tags` | MATCH | `ec '(agent-org-agenda-tags "commit")'` |
+
+DATE format: `nil`=today, `"-1"`=yesterday, `"+3"`=3 days ahead, `"2026-04-09"`=specific date.
+Returns plain text suitable for agent consumption.
+
+### Denote (note operations)
+
+| Function | Args | Example |
+|----------|------|---------|
+| `agent-denote-add-history` | ID, CONTENT | `ec '(agent-denote-add-history "ID" "content")'` |
+| `agent-denote-add-heading` | ID, TITLE, BODY | `ec '(agent-denote-add-heading "ID" "Title" "body")'` |
+| | ID, TITLE, TAG, BODY | `ec '(agent-denote-add-heading "ID" "Title" "LLMLOG" "body")'` |
+| `agent-denote-add-link` | ID, TARGET-ID, DESC | DESC required — hangs if omitted |
+| `agent-denote-search` | QUERY, ?TYPE | `ec '(agent-denote-search "term" (quote tag))'` |
+
+### Read
+
+| Function | Args | Example |
+|----------|------|---------|
+| `agent-org-read-file` | FILE | `ec '(agent-org-read-file "/path")'` |
+| `agent-org-get-headings` | FILE, ?MAX-LEVEL | `ec '(agent-org-get-headings "/path" 2)'` |
+
+### Status
+
+```bash
+ec '(agent-server-status)'   # version, uptime
+ec '(agent-being-data)'      # notes/journal/garden counts
+```
+
+### Anti-patterns
+
+- Do NOT use `(org-agenda nil "a")` — interactive command, hangs in daemon.
+- Do NOT fall back to `grep`/`cat` for org data when agent-server API exists.
+- If `server` socket is unavailable, report it — do not silently switch to `user` socket or skip agenda.
+
+## 9. One-Line Summary
 
 Entwurf is Junghan's working double: restore context, act carefully, delegate with continuity, and leave usable traces instead of noise.

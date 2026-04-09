@@ -67,7 +67,7 @@ Semantic memory extension auto-loads these tools. Invoked automatically for natu
 | **ghcli** | Manage GitHub issues, PRs, stars, notifications |
 | **jiracli** | Company Jira Cloud (goqual-dev) issues/projects/boards |
 | **gogcli** | Google Workspace all-in-one CLI (Calendar/Gmail/Drive/Tasks/Chat/Contacts/Sheets/Docs) |
-| **emacs** | Get current Emacs buffer/selection context |
+| **emacs** | Emacs agent server — **Agenda**: `agent-org-agenda-day/week/tags`. **Denote**: `add-history/heading/link/search`. **Read**: `agent-org-read-file`, `get-headings`. Two sockets: `server` (agent), `user` (show to user). `ec() { emacsclient -s server --eval "$1"; }` in every bash call |
 | **summarize** | Summarize/extract from URLs, files, media: YouTube, webpages, PDF, podcasts, audio/video |
 | **transcribe** | Speech-to-text via Groq Whisper |
 | **medium-extractor** | Extract Markdown from Medium articles |
