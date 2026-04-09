@@ -336,11 +336,11 @@ setup_npm() {
   local ENTWURF_DIR="$REPOS/entwurf"
   if [ -f "$ENTWURF_DIR/package.json" ]; then
     log "entwurf: installing + building..."
-    (cd "$ENTWURF_DIR" && npm install --silent 2>/dev/null && npm run build --silent 2>/dev/null)
+    (cd "$ENTWURF_DIR" && npm install --silent && npm run build --silent)
     if [ -f "$ENTWURF_DIR/dist/index.js" ]; then
       ok "entwurf (dist/index.js)"
     else
-      warn "entwurf: build failed (dist/index.js missing)"
+      fail "entwurf: build failed (dist/index.js missing)"
     fi
   else
     warn "entwurf: repo not found at $ENTWURF_DIR"
@@ -350,12 +350,15 @@ setup_npm() {
   local CLAUDE_AGENT_SDK_PI_DIR="$REPOS/claude-agent-sdk-pi"
   if [ -f "$CLAUDE_AGENT_SDK_PI_DIR/package.json" ]; then
     log "claude-agent-sdk-pi: installing..."
-    (cd "$CLAUDE_AGENT_SDK_PI_DIR" && npm install --silent 2>/dev/null)
-    if [ -f "$CLAUDE_AGENT_SDK_PI_DIR/run.sh" ]; then
-      (cd "$CLAUDE_AGENT_SDK_PI_DIR" && ./run.sh sync-auth >/dev/null 2>&1 || true)
-      (cd "$CLAUDE_AGENT_SDK_PI_DIR" && ./run.sh smoke "$SCRIPT_DIR" >/dev/null 2>&1 || true)
+    if (cd "$CLAUDE_AGENT_SDK_PI_DIR" && npm install --silent); then
+      if [ -f "$CLAUDE_AGENT_SDK_PI_DIR/run.sh" ]; then
+        (cd "$CLAUDE_AGENT_SDK_PI_DIR" && ./run.sh sync-auth >/dev/null 2>&1 || true)
+        (cd "$CLAUDE_AGENT_SDK_PI_DIR" && ./run.sh smoke "$SCRIPT_DIR" >/dev/null 2>&1 || true)
+      fi
+      ok "claude-agent-sdk-pi"
+    else
+      fail "claude-agent-sdk-pi: npm install failed"
     fi
-    ok "claude-agent-sdk-pi"
   else
     warn "claude-agent-sdk-pi: repo not found at $CLAUDE_AGENT_SDK_PI_DIR"
   fi
@@ -377,16 +380,24 @@ setup_npm() {
   local ext_dir="$SCRIPT_DIR/pi-extensions"
   if [ -f "$ext_dir/package.json" ]; then
     log "pi-extensions: installing..."
-    (cd "$ext_dir" && npm install --silent 2>/dev/null)
-    ok "pi-extensions"
+    if (cd "$ext_dir" && npm install --silent); then
+      ok "pi-extensions"
+    else
+      fail "pi-extensions: npm install failed"
+    fi
   fi
 
   # Skills with package.json
   for pkg_dir in "$SKILLS_DIR"/*/; do
     if [ -f "$pkg_dir/package.json" ] && [ ! -d "$pkg_dir/node_modules" ]; then
-      log "$(basename "$pkg_dir"): installing..."
-      (cd "$pkg_dir" && npm install --silent 2>/dev/null)
-      ok "$(basename "$pkg_dir")"
+      local sname
+      sname=$(basename "$pkg_dir")
+      log "$sname: installing..."
+      if (cd "$pkg_dir" && npm install --silent); then
+        ok "$sname"
+      else
+        fail "$sname: npm install failed"
+      fi
     fi
   done
 }
