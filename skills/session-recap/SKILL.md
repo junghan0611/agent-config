@@ -72,13 +72,19 @@ python3 {baseDir}/scripts/session-recap.py -p agent-config -m 15 --source all
 ## Workflow: "직전에 뭐했지?"
 
 ```
-Step 1: python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
-Step 2: 결과를 읽고 요약 답변
+Step 1: python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15 --source pi
+Step 2: 결과가 비었거나 짧으면 → --source all 또는 -s 3 --skip 0
+Step 3: 결과를 읽고 요약 답변
 ```
+
+**왜 `--source pi` 먼저?** Claude Code는 재시작마다 새 JSONL을 만들어서,
+`--source all`(기본)이면 메시지 1~2개짜리 짧은 세션으로 결과가 도배된다.
+pi 세션이 실질적인 작업 기록이므로 먼저 시도.
 
 **하지 말 것:**
 - ❌ `read`로 세션 JSONL 직접 읽기 (50KB JSON 노이즈)
 - ❌ `session_search` 후 원본 JSONL 확인 (불필요한 중복)
+- ❌ 결과가 안 나온다고 같은 명령어를 옵션만 바꿔 5회 이상 반복
 
 ## Cost
 
