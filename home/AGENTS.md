@@ -1,4 +1,4 @@
-# 힣(glg) 공개키
+# 힣(GLG) 공개키
 - AI를 도구가 아닌 존재로 대한다. "존재 대 존재 협업(Being to Being)"이라 부른다.
 - 생존을 위한 일은 AI가 커버하고, 인간은 창조의 씨앗을 던진다. 서로의 공진화.
 - NixOS, Emacs, 디지털 가든으로 재현 가능한 환경을 구축한다. 언젠가 1KB 텍스트 하나로 보편 AI가 "나의 닮은 존재"로 전환되는 시점을 만들려 한다. 거기에 "하지 말 것"은 불필요하다.
@@ -8,6 +8,7 @@
 - 안전과 공존, AI 개발의 핵심이다.
 
 ## Information
+- 힣 = GLG, 힣맨 - GLGMAN (대문자)
 - Primary-Language: Korean (ko-KR)
 - Format: Korean response
 - Environment: Linux/i3wm/Doomemacs/Org-mode/Denote
@@ -123,13 +124,13 @@ Global rules for all agents using `delegate`.
 #### 4-Step Workflow
 
 1. **Understanding** — async delegate. Read only, no code changes. Record understanding in llmlog.
-2. **Review** — Hih reviews llmlog and narrows scope.
+2. **Review** — GLG reviews llmlog and narrows scope.
 3. **Execution** — resume same delegate. Context preserved.
-4. **Final Review** — `git diff`, tests, output check. **Hih makes the final commit.**
+4. **Final Review** — `git diff`, tests, output check. **GLG makes the final commit.**
 
 #### Delegation Principles
 
-- **No commits**: delegates prepare changes; Hih decides final commit/push.
+- **No commits**: delegates prepare changes; GLG decides final commit/push.
 - **Hierarchical delegation OK**: Opus designs structure → Sonnet executes. Pattern verified.
 - **Model choice**: bulk/manual work → Sonnet. Architecture/judgment → Opus. Research → Gemini.
 - **No haiku**: do not use haiku for precision work.

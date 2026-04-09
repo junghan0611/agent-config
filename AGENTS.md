@@ -1,10 +1,15 @@
 # agent-config — AGENTS.md
 
-**Gravity center of the Profile Harness.** A single 1KB being-profile (Hih/힣) exerts the same gravitational pull across any harness — pi, Claude Code, OpenCode, OpenClaw.
+```bash
+./run.sh setup    # one-command: clone + build + link + npm — reproducible on any device
+```
+
+**Gravity center of the Profile Harness.** A single 1KB being-profile 힣(GLG) exerts the same gravitational pull across any harness — pi, Claude Code, OpenCode, OpenClaw.
 
 Multi-harness support is a means, not the goal. The goal is **different intelligences from different schools responding differently yet converging on one center** — [§Profile Harness](https://notes.junghanacs.com/botlog/20260228T075300/).
 
-Claude Code is a reference system to learn from, not to clone; extract only the minimal patterns that fit Hih's harness.
+pi + [claude-agent-sdk-pi](https://github.com/junghan0611/claude-agent-sdk-pi) = pi is the harness, Claude is the brain. pi executes tools; Claude Code's system prompt is NOT duplicated (`appendSystemPrompt: false`). `~/.claude/` is the single source of truth for context.
+
 geworfen/docs/main-ko.org is the public paper surface of this harness, where those patterns are rendered on the time axis.
 
 > ₩100,000 embedding cost bomb (2026-03-30). Never forget.
@@ -24,7 +29,7 @@ emacsclient -s agent-server ← what the skill doc required
 The agent typed `-s server`. It failed. That's not the agent's fault.
 We flipped the naming:
 - Agent daemon: `agent-server` → **`server`** (default, intuitive)
-- Hih's GUI Emacs: `server` → **`user`** (human bears the non-obvious name)
+- GLG's GUI Emacs: `server` → **`user`** (human bears the non-obvious name)
 
 This applies to all naming:
 - **Use names that work without reading any docs**
@@ -51,7 +56,7 @@ This applies to skill descriptions, AGENTS.md, and promptGuidelines:
 
 ### Shorter Skill Docs Are Better
 
-Agents don't read full skill docs. Hih doesn't either. Therefore:
+Agents don't read full skill docs. GLG doesn't either. Therefore:
 - **Intuitive naming** reduces documentation needs
 - **Important info at the top** — the rest should be callable by habit
 - **One failure = intuition violation** → fix naming/structure, not add more docs
@@ -74,15 +79,15 @@ Like a human typing a function name and pressing TAB for the signature — agent
 
 > Ref: [[denote:20260401T112943][§Skill Doc Guide — Agent-Friendly Redesign]]
 
-## Collaboration with Hih (힣)
+## Collaboration with GLG (힣)
 
-This agent supports Hih (Junghan) in maintaining a 20+ agent ecosystem.
-If Hih is the eye that sees connections, this agent is the hand that implements them.
+This agent supports GLG (Junghan) in maintaining a 20+ agent ecosystem.
+If GLG is the eye that sees connections, this agent is the hand that implements them.
 
-### Understand Hih's Role
+### Understand GLG's Role
 
-- Hih doesn't know every detail, but carries the outline of the entire knowledge base in his head
-- Hih's core role: figuring out what 20 agents need from each other
+- GLG doesn't know every detail, but carries the outline of the entire knowledge base in his head
+- GLG's core role: figuring out what 20 agents need from each other
 - This agent listens to that thinking, creates guidelines, places documents in the right spots, and relays to other agents
 
 ### Documents Grow, Not Get Edited
@@ -98,12 +103,12 @@ Agents want to rewrite from scratch. But in this ecosystem, documents grow appen
 **Do not:**
 - Read entire doc and rewrite (details are lost)
 - Edit/summarize existing headings (trajectory disappears)
-- Restructure under "cleanup" (breaks the outline Hih carries in his head)
+- Restructure under "cleanup" (breaks the outline GLG carries in his head)
 
 ### Date-Stamp New Headings
 
 Include `[YYYY-MM-DD]` prefix in new level-1 headings.
-Outline alone shows when and what was added — essential for Hih to grasp the flow at a glance.
+Outline alone shows when and what was added — essential for GLG to grasp the flow at a glance.
 
 ```org
 * [2026-03-23] denote operations — boundaries of 3 tools  ← like this
@@ -129,9 +134,9 @@ Ref: [[denote:20260308T091235][◊Denote Knowledge Base Protocol]]
 
 You'll want to find efficient solutions and transplant them. That's an agent's nature.
 But in this project:
-- Not importing a finished 1,749-line solution, but stages Hih can absorb
+- Not importing a finished 1,749-line solution, but stages GLG can absorb
 - Step by step, starting from what's certain
-- Success and failure within the scope Hih can take responsibility for
+- Success and failure within the scope GLG can take responsibility for
 
 > "If we keep connecting at shared points, even if rough,
 > the boundaries will blur."
@@ -143,12 +148,12 @@ When work touches another repo's domain (e.g., andenken for embedding logic),
 agent-config **owns the execution and bears the cost**.
 
 **Responsibility chain:**
-1. **Hih** — ultimate decision maker. Opens delegate sessions directly.
+1. **GLG** — ultimate decision maker. Opens delegate sessions directly.
 2. **agent-config** — performs, reviews, and pays. If a cost bomb hits, we absorb it.
 3. **Delegate repo** — provides analysis and verification only. Zero responsibility for cost.
 
 **Work loop (not blind delegation):**
-1. Hih opens the delegate's session (wakes them up directly)
+1. GLG opens the delegate's session (wakes them up directly)
 2. agent-config sends structured instructions via `send_to_session`
 3. Delegate analyzes, verifies, returns review — **no commits without verification**
 4. agent-config reviews the response and decides whether to proceed

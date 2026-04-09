@@ -83,6 +83,11 @@ declare -A CLI_REPOS=(
   [dictcli]="https://github.com/junghan0611/dictcli.git"
 )
 
+# External pi packages managed by agent-config
+declare -A PACKAGE_REPOS=(
+  [claude-agent-sdk-pi]="https://github.com/junghan0611/claude-agent-sdk-pi.git"
+)
+
 # Go src subdirectory within each repo
 declare -A CLI_GO_SRC=(
   [denotecli]="denotecli"
@@ -97,6 +102,11 @@ setup_repos() {
   section "Git Repositories"
   for name in "${!CLI_REPOS[@]}"; do
     ensure_repo "$name" "${CLI_REPOS[$name]}"
+  done
+
+  section "External Package Repositories"
+  for name in "${!PACKAGE_REPOS[@]}"; do
+    ensure_repo "$name" "${PACKAGE_REPOS[$name]}"
   done
 }
 
@@ -260,6 +270,8 @@ TGJSON
 
   section "Claude Code Config"
   mkdir -p "$HOME/.claude/hooks"
+  # CLAUDE.md — Claude Code가 non-append 모드에서 읽는 진입점 (@AGENTS.md include)
+  ensure_link "$SCRIPT_DIR/home/CLAUDE.md"              "$HOME/.claude/CLAUDE.md"
   ensure_link "$SCRIPT_DIR/claude/settings.json"        "$HOME/.claude/settings.json"
   ensure_link "$SCRIPT_DIR/claude/settings.local.json"  "$HOME/.claude/settings.local.json"
   ensure_link "$SCRIPT_DIR/claude/keybindings.json"     "$HOME/.claude/keybindings.json"
@@ -316,6 +328,20 @@ setup_npm() {
     fi
   else
     warn "entwurf: repo not found at $ENTWURF_DIR"
+  fi
+
+  # claude-agent-sdk-pi (external pi package — managed from agent-config)
+  local CLAUDE_AGENT_SDK_PI_DIR="$REPOS/claude-agent-sdk-pi"
+  if [ -f "$CLAUDE_AGENT_SDK_PI_DIR/package.json" ]; then
+    log "claude-agent-sdk-pi: installing..."
+    (cd "$CLAUDE_AGENT_SDK_PI_DIR" && npm install --silent 2>/dev/null)
+    if [ -f "$CLAUDE_AGENT_SDK_PI_DIR/run.sh" ]; then
+      (cd "$CLAUDE_AGENT_SDK_PI_DIR" && ./run.sh sync-auth >/dev/null 2>&1 || true)
+      (cd "$CLAUDE_AGENT_SDK_PI_DIR" && ./run.sh smoke "$SCRIPT_DIR" >/dev/null 2>&1 || true)
+    fi
+    ok "claude-agent-sdk-pi"
+  else
+    warn "claude-agent-sdk-pi: repo not found at $CLAUDE_AGENT_SDK_PI_DIR"
   fi
 
   # pi-telegram (production Telegram bridge by pi author)

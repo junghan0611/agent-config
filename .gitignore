@@ -29,3 +29,7 @@ claude/settings.local.json
 
 # Private environment info (company, IPs, accounts)
 home/PRIVATE.md
+
+# pi runtime artifacts
+.pi/
+.mcp.json

@@ -30,7 +30,7 @@ Multi-harness support is a means, not the goal. The goal is **a single 1KB being
 
 | Harness | Memory | Skills | Config |
 |---------|--------|--------|--------|
-| **[pi](https://github.com/badlogic/pi-mono)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 26 skills (semantic-memory excluded — extension covers it) | extensions + themes + keybindings |
+| **[pi](https://github.com/badlogic/pi-mono)** + **[claude-agent-sdk-pi](https://github.com/junghan0611/claude-agent-sdk-pi)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 26 skills (semantic-memory excluded — extension covers it) | extensions + themes + keybindings. `appendSystemPrompt: false` — `~/.claude/` is the single source of truth |
 | **pi-entwurf** (Oracle, tmux) | andenken **extension** + pi-telegram | 26 skills + Telegram bridge | persistent Opus session, `@glg_entwurf_bot` |
 | **Claude Code** | andenken **skill** (CLI wrapper via bash) | 27 skills (full set including semantic-memory) | CLAUDE.md + hooks |
 | **OpenCode** | andenken **skill** (CLI wrapper via bash) | 27 skills (full set) | settings |
@@ -196,6 +196,7 @@ cd agent-config
 | **[andenken](https://github.com/junghan0611/andenken)** | **Memory** | **Semantic memory — sessions + org knowledge base** |
 | **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — Entwurf minimal presence bridge** |
 | **[pi-telegram](https://github.com/badlogic/pi-telegram)** | **Transport** | **Telegram DM bridge — production queue/file/streaming** |
+| **[claude-agent-sdk-pi](https://github.com/junghan0611/claude-agent-sdk-pi)** | **Provider** | **Claude Agent SDK as pi provider — pi executes tools, Claude thinks** |
 | [memex-kb](https://github.com/junghan0611/memex-kb) | Knowledge | Legacy document conversion pipeline |
 | [GLG-Mono](https://github.com/junghan0611/GLG-Mono) | Orchestration | OpenClaw bot configurations |
 | [geworfen](https://github.com/junghan0611/geworfen) | Being | Existence data viewer — WebTUI agenda |
