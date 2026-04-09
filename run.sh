@@ -210,6 +210,13 @@ setup_links() {
     ensure_link "$skill_dir" "$HOME/.pi/agent/skills/pi-skills/$sname"
   done
 
+  # .bak.* 정리 — ensure_link가 만든 백업이 pi 스킬 스캔에 잡히지 않도록
+  for bak_dir in "$HOME/.pi/agent/skills/pi-skills"/*.bak.*; do
+    [ -d "$bak_dir" ] || continue
+    rm -rf "$bak_dir"
+    log "cleaned up: $(basename "$bak_dir")"
+  done
+
   section "PATH Binaries (~/.local/bin)"
   mkdir -p "$HOME/.local/bin"
   # dictcli 제외 — CWD에 graph.edn 필요하므로 PATH 심링크 불가. 스킬 디렉토리에서만 실행.
@@ -272,7 +279,16 @@ TGJSON
   mkdir -p "$HOME/.claude/hooks"
   # CLAUDE.md — Claude Code가 non-append 모드에서 읽는 진입점 (@AGENTS.md include)
   ensure_link "$SCRIPT_DIR/home/CLAUDE.md"              "$HOME/.claude/CLAUDE.md"
-  ensure_link "$SCRIPT_DIR/claude/settings.json"        "$HOME/.claude/settings.json"
+  # 디바이스별 설정: 서버(oracle 등)는 hooks/소리 없는 server 버전 사용
+  local DEVICE
+  DEVICE=$(cat "$HOME/.current-device" 2>/dev/null || echo "unknown")
+  local SERVER_DEVICES="oracle"  # 서버 디바이스 목록 (공백 구분)
+  local SETTINGS_FILE="$SCRIPT_DIR/claude/settings.json"
+  if echo "$SERVER_DEVICES" | grep -qw "$DEVICE"; then
+    SETTINGS_FILE="$SCRIPT_DIR/claude/settings.server.json"
+    log "device=$DEVICE → server settings (no hooks/sound)"
+  fi
+  ensure_link "$SETTINGS_FILE"                          "$HOME/.claude/settings.json"
   ensure_link "$SCRIPT_DIR/claude/settings.local.json"  "$HOME/.claude/settings.local.json"
   ensure_link "$SCRIPT_DIR/claude/keybindings.json"     "$HOME/.claude/keybindings.json"
   ensure_link "$SCRIPT_DIR/claude/statusline.sh"        "$HOME/.claude/statusline.sh"
