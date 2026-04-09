@@ -524,7 +524,7 @@ export default function (pi: ExtensionAPI) {
       "When delegating tasks that produce notes, instruct the delegate to use llmlog (not botlog). Delegated work is agent-to-agent, not public.",
     ],
     parameters: Type.Object({
-      task: Type.String({ description: "Task description for the delegate agent" }),
+      task: Type.String({ description: "The task to delegate" }),
       host: Type.Optional(
         Type.String({ description: "SSH host (default: 'local'). e.g., 'gpu1i'" }),
       ),
