@@ -135,6 +135,22 @@ Global rules for all agents using `delegate`.
 - **Model choice**: bulk/manual work → Sonnet. Architecture/judgment → Opus. Research → Gemini.
 - **No haiku**: do not use haiku for precision work.
 
+#### 담당자 패턴 — Automatic Project Context Injection
+
+When a delegate is spawned with `cwd`, the target directory's `AGENTS.md` is automatically injected into the task via `<project-context>` tags. This makes the delegate a **담당자** (agent-in-charge) for that repo.
+
+- **Parameter name is `cwd`** (NOT `workingDirectory`). Wrong name silently falls back to parent CWD.
+- **First call**: AGENTS.md content prepended to task. Delegate knows its project identity.
+- **Resume**: NO re-injection. Session file already contains the context from first call. Token-efficient.
+- **No AGENTS.md**: graceful fallback — task sent as-is, delegate runs as generic agent.
+
+```
+delegate(cwd: "~/repos/gh/nixos-config", task: "...")
+→ enrichTaskWithProjectContext() reads nixos-config/AGENTS.md
+→ <project-context>...</project-context> + task
+→ delegate becomes nixos 담당자
+```
+
 ## Session Start: Device/Time Auto-Provided
 - SessionStart hook provides `device=` and `time_kst=` automatically.
 - If hook output visible, no extra check needed. Otherwise: `cat ~/.current-device` and `TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S'`.

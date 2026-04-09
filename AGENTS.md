@@ -180,6 +180,7 @@ Instead:
 2. `/new` auto-indexes current session + recent 24h sessions (session_before_switch hook)
 3. In the new session, recover context:
    - `session-recap -p <repo> -m 15` → previous session 4KB summary (instant)
+   - `session-recap --source pi` / `--source claude` / `--source all` (default) — multi-harness
    - `session_search` → meaning-based search (all sessions)
    - `knowledge_search` → org knowledge base search (3-layer expansion)
 

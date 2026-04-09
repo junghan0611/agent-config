@@ -4,6 +4,8 @@
 raw JSONL을 직접 read하면 50KB JSON 노이즈가 컨텍스트에 들어감.
 이 스크립트는 user/assistant 텍스트만 뽑아서 에이전트가 빠르게 맥락을 파악하게 한다.
 
+멀티 하네스 지원: pi와 Claude Code 세션 모두 처리.
+
 Usage:
   session-recap.py                     # 직전 1개 세션, 마지막 20개 메시지
   session-recap.py --sessions 3        # 직전 3개 세션
@@ -13,6 +15,8 @@ Usage:
   session-recap.py --project config    # 특정 프로젝트
   session-recap.py --commits           # git 커밋 정보도 추출
   session-recap.py --cost              # 세션별 비용 요약
+  session-recap.py --source pi         # pi 세션만
+  session-recap.py --source claude     # Claude Code 세션만
 """
 
 import argparse
@@ -28,6 +32,7 @@ def _extract_project(dirname: str) -> str:
     """세션 디렉토리명에서 프로젝트명 추출.
 
     pi는 CWD를 --{path}-- 형식으로 인코딩 (/ → -).
+    Claude Code는 -{path} 형식 (/ → -).
     유저·컨테이너 경로를 제거하고 프로젝트명만 남긴다.
 
     경로 구조:
@@ -67,36 +72,39 @@ def _extract_project(dirname: str) -> str:
     return rest
 
 
-def get_sessions_dir() -> Path:
-    return Path.home() / ".pi" / "agent" / "sessions"
+def get_sessions_dirs(source: str = "all") -> list[tuple[Path, str]]:
+    """하네스별 세션 디렉토리 반환. (path, source_name) 튜플 리스트."""
+    dirs = []
+    pi_dir = Path.home() / ".pi" / "agent" / "sessions"
+    claude_dir = Path.home() / ".claude" / "projects"
+    if source in ("all", "pi") and pi_dir.exists():
+        dirs.append((pi_dir, "pi"))
+    if source in ("all", "claude") and claude_dir.exists():
+        dirs.append((claude_dir, "claude"))
+    return dirs
 
 
 def find_session_files(
-    sessions_dir: Path, project: str | None = None
-) -> list[tuple[float, Path, str]]:
-    """(mtime, path, project_name) 목록을 최신순 반환."""
+    source: str = "all", project: str | None = None
+) -> list[tuple[float, Path, str, str]]:
+    """(mtime, path, project_name, source) 목록을 최신순 반환."""
     results = []
-    if not sessions_dir.exists():
-        return results
+    for sessions_dir, src in get_sessions_dirs(source):
+        for subdir in sessions_dir.iterdir():
+            if not subdir.is_dir():
+                continue
+            # 프로젝트 이름 추출: strip("-")로 양쪽 하이픈 제거
+            # pi:    --home-junghan-repos-gh-agent-config-- → home-junghan-repos-gh-agent-config
+            # claude: -home-junghan-repos-gh-agent-config   → home-junghan-repos-gh-agent-config
+            dirname = subdir.name.strip("-")
+            proj = _extract_project(dirname)
 
-    for subdir in sessions_dir.iterdir():
-        if not subdir.is_dir():
-            continue
-        # 프로젝트 이름 추출: 세션 디렉토리명 → 프로젝트명
-        # home-junghan-repos-gh-agent-config → agent-config
-        # home-junghan-sync-org → org
-        # home-junghan-sync-emacs-doomemacs-config → doomemacs-config
-        # home-goqual-repos-gh-homeagent-config → homeagent-config (리모트)
-        # delegate → delegate
-        dirname = subdir.name.strip("-")
-        proj = _extract_project(dirname)
+            if project and project != proj:
+                continue
 
-        if project and project != proj:
-            continue
-
-        for f in subdir.iterdir():
-            if f.suffix == ".jsonl":
-                results.append((f.stat().st_mtime, f, proj))
+            for f in subdir.iterdir():
+                if f.suffix == ".jsonl":
+                    results.append((f.stat().st_mtime, f, proj, src))
 
     results.sort(key=lambda x: x[0], reverse=True)
     return results
@@ -105,7 +113,7 @@ def find_session_files(
 def extract_messages(
     filepath: Path, max_messages: int, max_chars: int, include_commits: bool, include_cost: bool
 ) -> dict:
-    """세션 파일에서 핵심 정보 추출."""
+    """세션 파일에서 핵심 정보 추출. pi와 Claude Code JSONL 포맷 모두 지원."""
     messages = []
     commits = []
     total_cost = 0.0
@@ -121,26 +129,41 @@ def extract_messages(
             except (json.JSONDecodeError, ValueError):
                 continue
 
-            # 세션 메타
-            if d.get("type") == "session":
+            msg_type = d.get("type", "")
+
+            # 세션 메타 — pi: "session", Claude Code: "queue-operation"
+            if msg_type in ("session", "queue-operation"):
                 ts = d.get("timestamp", "")
                 if ts:
                     session_start = ts
-
-            if d.get("type") != "message":
                 continue
 
-            msg = d.get("message", {})
+            # 메시지 추출
+            # pi:         type="message", message.role="user"/"assistant"
+            # Claude Code: type="user"/"assistant", message.role="user"/"assistant"
+            if msg_type == "message":
+                msg = d.get("message", {})
+            elif msg_type in ("user", "assistant"):
+                msg = d.get("message", {})
+            else:
+                continue
+
             role = msg.get("role", "")
             ts = d.get("timestamp", "")
 
+            # 세션 시작 fallback (session/queue-operation이 없을 때)
+            if not session_start and ts:
+                session_start = ts
+
             # 비용 집계
+            # pi:         usage.input / usage.output / usage.cost.total
+            # Claude Code: usage.input_tokens / usage.output_tokens (cost 없음)
             usage = msg.get("usage", {})
             if usage:
                 cost_info = usage.get("cost", {})
                 total_cost += cost_info.get("total", 0)
-                total_input += usage.get("input", 0)
-                total_output += usage.get("output", 0)
+                total_input += usage.get("input", 0) or usage.get("input_tokens", 0)
+                total_output += usage.get("output", 0) or usage.get("output_tokens", 0)
 
             if role not in ("user", "assistant"):
                 continue
@@ -157,11 +180,12 @@ def extract_messages(
                         continue
                     if c.get("type") == "text" and c.get("text"):
                         texts.append(c["text"])
-                    elif c.get("type") == "toolCall":
+                    elif c.get("type") in ("toolCall", "tool_use"):
                         tools.append(c.get("name", ""))
                         # git commit 추출
-                        if include_commits and c.get("name") == "bash":
-                            args = c.get("arguments", {})
+                        if include_commits and c.get("name") in ("bash", "Bash"):
+                            # pi: arguments.command, Claude Code: input.command
+                            args = c.get("arguments", {}) or c.get("input", {})
                             cmd = args.get("command", "")
                             if "git commit" in cmd or "git push" in cmd:
                                 commits.append(cmd[:200])
@@ -216,7 +240,8 @@ def format_output(sessions_data: list[dict], output_format: str) -> str:
         data = sd["data"]
         stats = data["stats"]
 
-        lines.append(f"═══ {meta['project']} ({meta['file'][:40]}...) ═══")
+        source_label = f" [{meta['source']}]" if meta.get("source") else ""
+        lines.append(f"═══ {meta['project']}{source_label} ({meta['file'][:40]}...) ═══")
         lines.append(f"  기간: {stats.get('start', '?')[:19]} → {stats.get('end', '?')[:19]}")
         if "cost" in stats:
             lines.append(f"  비용: {stats['cost']} (in:{stats['input_tokens']:,} out:{stats['output_tokens']:,})")
@@ -233,7 +258,7 @@ def format_output(sessions_data: list[dict], output_format: str) -> str:
                 lines.append(f"  {icon} [{ts_short}] {text}")
 
         if data.get("commits"):
-            lines.append("\n  📦 커밋:")
+            lines.append("\n  commits:")
             for c in data["commits"]:
                 lines.append(f"    {c[:120]}")
 
@@ -273,11 +298,17 @@ def main():
     parser.add_argument(
         "--skip", type=int, default=1, help="최신 N개 세션 건너뛰기 (기본: 1, 현재 세션)"
     )
+    parser.add_argument(
+        "--source", choices=["pi", "claude", "all"], default="all",
+        help="세션 소스 필터 (기본: all). pi=pi 세션만, claude=Claude Code 세션만"
+    )
 
     args = parser.parse_args()
 
-    sessions_dir = get_sessions_dir()
-    files = find_session_files(sessions_dir, args.project if not args.all_projects else None)
+    files = find_session_files(
+        source=args.source,
+        project=args.project if not args.all_projects else None,
+    )
 
     if not files:
         print("세션 파일 없음", file=sys.stderr)
@@ -292,7 +323,7 @@ def main():
         sys.exit(1)
 
     sessions_data = []
-    for mtime, fpath, proj in files:
+    for mtime, fpath, proj, src in files:
         data = extract_messages(
             fpath, args.messages, args.chars, args.commits, args.cost
         )
@@ -301,6 +332,7 @@ def main():
                 "meta": {
                     "project": proj,
                     "file": fpath.name,
+                    "source": src,
                     "size_kb": fpath.stat().st_size // 1024,
                     "mtime": datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat(),
                 },
