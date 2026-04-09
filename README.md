@@ -131,7 +131,7 @@ A persistent pi session on Oracle VM, accessible via Telegram `@glg_entwurf_bot`
 | Component | Detail |
 |-----------|--------|
 | tmux session | `pi-entwurf` |
-| Model | `anthropic/claude-opus-4-6` (direct API) |
+| Model | `claude-agent-sdk/claude-opus-4-6` |
 | Telegram bot | `@glg_entwurf_bot` (pi-telegram bridge) |
 | Working dir | `~` (home) |
 | Skills | Full 26 skills + semantic memory |

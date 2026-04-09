@@ -108,8 +108,8 @@ Global rules for all agents using `delegate`.
 
 | Model | `model=` | Context | Purpose |
 |-------|----------|---------|---------|
-| Claude Opus 4.6 | `anthropic/claude-opus-4-6` | 1M | Architecture, complex judgment, managing |
-| Claude Sonnet 4.6 | `anthropic/claude-sonnet-4-6` | 1M | Code work, bulk conversion, execution |
+| Claude Opus 4.6 | `claude-agent-sdk/claude-opus-4-6` | 1M | Architecture, complex judgment, managing |
+| Claude Sonnet 4.6 | `claude-agent-sdk/claude-sonnet-4-6` | 1M | Code work, bulk conversion, execution |
 | GPT-5.4 (Codex) | `openai-codex/gpt-5.4` | 272K | Code-specialized, fast execution |
 | Gemini 3.1 Pro | `google/gemini-3.1-pro-preview` | 1M | Research, analysis, cross-checking |
 

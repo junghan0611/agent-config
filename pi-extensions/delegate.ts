@@ -185,6 +185,33 @@ function isProcessAlive(pid: number): boolean {
 }
 
 // ============================================================================
+// Project context injection — 담당자 패턴
+// ============================================================================
+
+/** 대상 cwd의 AGENTS.md를 읽어 태스크에 프로젝트 컨텍스트를 주입한다.
+ *  delegate가 해당 리포의 "담당자"로 동작하려면 AGENTS.md가 시스템 프롬프트에
+ *  포함되어야 하지만, `pi -p --no-extensions`는 프로젝트 컨텍스트를 로드하지 않는다.
+ *  따라서 태스크 앞에 AGENTS.md 내용을 명시적으로 삽입한다.
+ */
+function enrichTaskWithProjectContext(task: string, cwd: string): string {
+  const agentsPath = path.join(cwd, "AGENTS.md");
+  try {
+    if (!fs.existsSync(agentsPath)) return task;
+    const content = fs.readFileSync(agentsPath, "utf-8");
+    if (!content.trim()) return task;
+    return [
+      `<project-context path="${agentsPath}">`,
+      content.trim(),
+      `</project-context>`,
+      "",
+      task,
+    ].join("\n");
+  } catch {
+    return task; // 읽기 실패 시 원본 태스크 유지
+  }
+}
+
+// ============================================================================
 // Sync delegate (기존 동작, --no-session 제거)
 // ============================================================================
 
@@ -201,6 +228,7 @@ async function runDelegateSync(
   const host = options.host ?? "local";
   const isRemote = host !== "local";
   const effectiveCwd = options.cwd ?? process.cwd();
+  const enrichedTask = enrichTaskWithProjectContext(task, effectiveCwd);
   const taskId = crypto.randomUUID().slice(0, 8);
 
   // cwd 기반 세션 디렉토리 + delegate 파일명
@@ -212,7 +240,7 @@ async function runDelegateSync(
   // pi 실행 인자 — 세션 저장 + extensions 비활성화 (exit 방해 방지)
   const piArgs = ["--mode", "json", "-p", "--no-extensions", "--session", sessionFile];
   if (options.model) piArgs.push("--model", options.model);
-  piArgs.push(task);
+  piArgs.push(enrichedTask);
 
   let command: string;
   let args: string[];
@@ -312,6 +340,7 @@ async function runDelegateAsync(
   const isRemote = host !== "local";
   const taskId = crypto.randomUUID().slice(0, 8);
   const cwd = options.cwd ?? process.cwd();
+  const enrichedTask = enrichTaskWithProjectContext(task, cwd);
 
   // cwd 기반 세션 디렉토리 + delegate 파일명
   const sessionDir = cwdToSessionDir(cwd);
@@ -330,7 +359,7 @@ async function runDelegateAsync(
     "--session", sessionFile,
   ];
   if (options.model) piArgs.push("--model", options.model);
-  piArgs.push(task);
+  piArgs.push(enrichedTask);
 
   // 부모 세션 ID (control.ts가 설정한 환경변수)
   const parentSessionId = process.env.PI_SESSION_ID;
@@ -503,7 +532,7 @@ export default function (pi: ExtensionAPI) {
         Type.String({ description: "Working directory for the delegate" }),
       ),
       model: Type.Optional(
-        Type.String({ description: "Model override (e.g., 'anthropic/claude-sonnet-4-6' or 'anthropic/claude-opus-4-6')" }),
+        Type.String({ description: "Model override (e.g., 'claude-agent-sdk/claude-sonnet-4-6' or 'claude-agent-sdk/claude-opus-4-6')" }),
       ),
       mode: Type.Optional(
         Type.Union([Type.Literal("sync"), Type.Literal("async")], {
