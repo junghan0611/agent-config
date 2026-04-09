@@ -146,9 +146,9 @@ setup_build() {
   log "--- dictcli (GraalVM native-image + Kiwi stem) ---"
   if [ -d "$REPOS/dictcli" ]; then
     # Kiwi jar + 모델 다운로드 (stem용 — JVM 모드)
-    (cd "$REPOS/dictcli" && ./run.sh stem-setup)
+    (cd "$REPOS/dictcli" && ./run.sh stem-setup) || true
     # binary + graph.edn 세트 복사 (SSOT: dictcli 리포)
-    (cd "$REPOS/dictcli" && ./run.sh build --output "$SKILLS_DIR/dictcli/dictcli")
+    (cd "$REPOS/dictcli" && ./run.sh build --output "$SKILLS_DIR/dictcli/dictcli") || true
     if [ -f "$SKILLS_DIR/dictcli/dictcli" ]; then
       ok "dictcli $(du -h "$SKILLS_DIR/dictcli/dictcli" | cut -f1)"
     else
