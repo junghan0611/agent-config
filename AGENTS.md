@@ -8,7 +8,9 @@
 
 Multi-harness support is a means, not the goal. The goal is **different intelligences from different schools responding differently yet converging on one center** — [§Profile Harness](https://notes.junghanacs.com/botlog/20260228T075300/).
 
-pi + [claude-agent-sdk-pi](https://github.com/junghan0611/claude-agent-sdk-pi) = pi is the harness, Claude is the brain. pi executes tools; Claude Code's system prompt is NOT duplicated (`appendSystemPrompt: false`). `~/.claude/` is the single source of truth for context.
+Today the default Claude path in pi is **anthropic + [@benvargas/pi-claude-code-use](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)** — the smallest Claude Code compatibility patch while pi still owns tool execution and the harness semantics.
+
+In parallel, [claude-agent-sdk-pi](https://github.com/junghan0611/claude-agent-sdk-pi) remains the vertical ACP path under active development: pi as harness, Claude Code as engine, non-append, `~/.claude/` as the single source of truth for context.
 
 geworfen/docs/main-ko.org is the public paper surface of this harness, where those patterns are rendered on the time axis.
 

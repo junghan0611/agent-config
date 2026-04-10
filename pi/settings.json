@@ -1,20 +1,23 @@
 {
   "lastChangelogVersion": "0.66.1",
-  "defaultProvider": "claude-agent-sdk",
-  "defaultModel": "claude-opus-4-6",
-  "defaultThinkingLevel": "medium",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-sonnet-4-6",
+  "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "defaultTheme": "glg-dark",
   "theme": "glg-dark",
   "claudeAgentSdkProvider": {
     "appendSystemPrompt": false,
-    "settingSources": ["user"],
+    "settingSources": [
+      "user"
+    ],
     "strictMcpConfig": true
   },
   "packages": [
     "../../repos/gh/andenken",
     "../../repos/gh/entwurf",
     "../../repos/gh/claude-agent-sdk-pi",
+    "../../repos/3rd/pi-packages/packages/pi-claude-code-use",
     "git:github.com/badlogic/pi-telegram"
   ]
 }

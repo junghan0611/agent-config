@@ -33,3 +33,7 @@ home/PRIVATE.md
 # pi runtime artifacts
 .pi/
 .mcp.json
+
+# Python cache artifacts
+__pycache__/
+*.pyc

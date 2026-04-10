@@ -11,6 +11,7 @@ SM_DIR="$HOME/repos/gh/andenken"
 SKILLS_DIR="$SCRIPT_DIR/skills"
 ENV_FILE="$HOME/.env.local"
 REPOS="$HOME/repos/gh"
+THIRD_REPOS="$HOME/repos/3rd"
 ARCH="$(uname -m)"  # aarch64 / x86_64
 
 # --- Helpers ---
@@ -33,6 +34,19 @@ section() { echo ""; echo "=== $* ==="; }
 ensure_repo() {
   local name=$1 url=$2
   local dir="$REPOS/$name"
+  if [ -d "$dir" ]; then
+    log "$name: exists"
+  else
+    log "$name: cloning..."
+    git clone "$url" "$dir"
+    ok "$name: cloned"
+  fi
+}
+
+ensure_repo_at() {
+  local base_dir=$1 name=$2 url=$3
+  local dir="$base_dir/$name"
+  mkdir -p "$base_dir"
   if [ -d "$dir" ]; then
     log "$name: exists"
   else
@@ -88,6 +102,13 @@ declare -A PACKAGE_REPOS=(
   [claude-agent-sdk-pi]="https://github.com/junghan0611/claude-agent-sdk-pi.git"
 )
 
+# Third-party packages used by the harness
+# ben-vargas/pi-claude-code-use is currently the default Claude path in pi:
+# anthropic provider + smallest Claude Code compatibility patch, with pi still owning tool execution.
+declare -A THIRD_PARTY_PACKAGE_REPOS=(
+  [pi-packages]="https://github.com/ben-vargas/pi-packages.git"
+)
+
 # Go src subdirectory within each repo
 declare -A CLI_GO_SRC=(
   [denotecli]="denotecli"
@@ -107,6 +128,11 @@ setup_repos() {
   section "External Package Repositories"
   for name in "${!PACKAGE_REPOS[@]}"; do
     ensure_repo "$name" "${PACKAGE_REPOS[$name]}"
+  done
+
+  section "Third-Party Package Repositories"
+  for name in "${!THIRD_PARTY_PACKAGE_REPOS[@]}"; do
+    ensure_repo_at "$THIRD_REPOS" "$name" "${THIRD_PARTY_PACKAGE_REPOS[$name]}"
   done
 }
 
@@ -361,6 +387,19 @@ setup_npm() {
     fi
   else
     warn "claude-agent-sdk-pi: repo not found at $CLAUDE_AGENT_SDK_PI_DIR"
+  fi
+
+  # pi-packages (ben-vargas) — default Claude path in pi via pi-claude-code-use
+  local PI_PACKAGES_DIR="$THIRD_REPOS/pi-packages"
+  if [ -f "$PI_PACKAGES_DIR/package.json" ]; then
+    log "pi-packages: installing workspace dependencies..."
+    if (cd "$PI_PACKAGES_DIR" && npm install --silent); then
+      ok "pi-packages (pi-claude-code-use available)"
+    else
+      fail "pi-packages: npm install failed"
+    fi
+  else
+    warn "pi-packages: repo not found at $PI_PACKAGES_DIR"
   fi
 
   # pi-telegram (production Telegram bridge by pi author)
