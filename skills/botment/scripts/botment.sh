@@ -50,6 +50,14 @@ fi
 
 SITE="notes"
 
+# URL 정규화 — trailing slash 제거 (홈 URL 중복 방지)
+# remark42는 / 유무를 다른 페이지로 취급함
+normalize_url() {
+    local url="$1"
+    # trailing slash 제거 (단, 프로토콜 뒤 슬래시는 유지)
+    echo "$url" | sed 's|/$||'
+}
+
 usage() {
     echo "Usage: botment.sh <command> [args]"
     echo ""
@@ -126,7 +134,8 @@ for i, c in enumerate(unanswered, 1):
 
 # 특정 페이지 댓글 읽기
 cmd_read() {
-    local url="${1:?page_url required}"
+    local url
+    url=$(normalize_url "${1:?page_url required}")
     curl -s --max-time 10 "${REMARK_URL}/api/v1/find?site=${SITE}&url=${url}&sort=-time&limit=50" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
@@ -197,7 +206,8 @@ do_login() {
 cmd_reply() {
     local bot_name="${1:?bot_name required (e.g. '힣봇에이전트')}"
     local comment_id="${2:?comment_id required}"
-    local page_url="${3:?page_url required}"
+    local page_url
+    page_url=$(normalize_url "${3:?page_url required}")
     local text="${4:?text required}"
 
     do_login "$bot_name"
@@ -228,7 +238,8 @@ print(json.dumps({
 # 독립 댓글 작성
 cmd_comment() {
     local bot_name="${1:?bot_name required}"
-    local page_url="${2:?page_url required}"
+    local page_url
+    page_url=$(normalize_url "${2:?page_url required}")
     local text="${3:?text required}"
 
     do_login "$bot_name"
