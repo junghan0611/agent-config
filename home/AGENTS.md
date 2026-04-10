@@ -59,19 +59,17 @@ Semantic memory extension auto-loads these tools. Invoked automatically for natu
 
 | Skill | Purpose |
 |-------|---------|
+| **emacs** | Emacs agent server — **Agenda**: `agent-org-agenda-day/week/tags`. **Denote**: `add-history/heading/link/search`. **Read**: `agent-org-read-file`, `get-headings`. Two sockets: `server` (agent), `user` (show to user). `ec() { emacsclient -s server --eval "$1"; }` in every bash call |
+| **denotecli** | Search/read 3,000+ Denote notes in ~/org/. Use instead of `find`/`cat` |
 | **agenda** | Activity stamp in reverse datetree, org-agenda integrated |
 | **botlog** | Save research/analysis as Denote org-mode notes in ~/org/botlog |
 | **botment** | Read/write digital garden comments via remark42. SSH oracle fallback |
-| **denotecli** | Search/read 3,000+ Denote notes in ~/org/. Use instead of `find`/`cat` |
 | **bibcli** | Search/view 8,000+ Zotero bibliography entries |
 | **ghcli** | Manage GitHub issues, PRs, stars, notifications |
 | **jiracli** | Company Jira Cloud (goqual-dev) issues/projects/boards |
 | **gogcli** | Google Workspace all-in-one CLI (Calendar/Gmail/Drive/Tasks/Chat/Contacts/Sheets/Docs) |
-| **emacs** | Emacs agent server — **Agenda**: `agent-org-agenda-day/week/tags`. **Denote**: `add-history/heading/link/search`. **Read**: `agent-org-read-file`, `get-headings`. Two sockets: `server` (agent), `user` (show to user). `ec() { emacsclient -s server --eval "$1"; }` in every bash call |
+| **dictcli** | Personal vocabulary graph — Korean↔English query expansion + stemming. `expand "보편"` → `[universal, universalism, paideia]`, `stem "설계했다"` → `설계` (Kiwi) |
 | **summarize** | Summarize/extract from URLs, files, media: YouTube, webpages, PDF, podcasts, audio/video |
-| **transcribe** | Speech-to-text via Groq Whisper |
-| **medium-extractor** | Extract Markdown from Medium articles |
-| **browser-tools** | Chrome browser automation |
 | **slack-latest** | Company Slack (GOQUAL) messages/threads/replies. `--no-dm` default |
 | **youtube-transcript** | Fetch raw YouTube transcripts (not summaries). For analysis/translation |
 | **tmux** | Run long commands (build, server, deploy) in tmux. Sync with `wait-for-text.sh` |
@@ -82,9 +80,11 @@ Semantic memory extension auto-loads these tools. Invoked automatically for natu
 | **day-query** | Date-based unified query — reconstruct a day from git/journal/notes/bib/health |
 | **punchout** | End-of-day stamp — insert day-query results into org journal |
 | **diskspace** | Disk usage analysis: mounts, large dirs/files, NixOS store, cleanup suggestions |
-| **dictcli** | Personal vocabulary graph — Korean↔English query expansion + stemming. `expand "보편"` → `[universal, universalism, paideia]`, `stem "설계했다"` → `설계` (Kiwi) |
 | **session-recap** | Extract previous session summary from JSONL. Use instead of raw read (100KB→4KB) |
 | **brave-search** | Web search via Brave Search API |
+| **transcribe** | Speech-to-text via Groq Whisper |
+| **medium-extractor** | Extract Markdown from Medium articles |
+| **browser-tools** | Chrome browser automation |
 
 ## Additional Tools (pi-extensions)
 

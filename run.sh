@@ -123,6 +123,8 @@ setup_repos() {
   for name in "${!THIRD_PARTY_PACKAGE_REPOS[@]}"; do
     ensure_repo_at "$THIRD_REPOS" "$name" "${THIRD_PARTY_PACKAGE_REPOS[$name]}"
   done
+
+  return 0
 }
 
 # --- setup:build — Build all CLI binaries ---
@@ -172,6 +174,8 @@ setup_build() {
   else
     warn "dictcli: repo not found at $REPOS/dictcli"
   fi
+
+  return 0
 }
 
 # --- setup:links — Symlinks for pi, claude, opencode ---
@@ -332,6 +336,8 @@ TGJSON
     [ -L "$HOME/.codex/skills/$old" ] && rm "$HOME/.codex/skills/$old"
     [ -d "$HOME/.codex/skills/$old" ] && rm -rf "$HOME/.codex/skills/$old"
   done
+
+  return 0
 }
 
 # --- setup:npm — npm install for extensions/skills ---
@@ -411,6 +417,8 @@ setup_npm() {
       fi
     fi
   done
+
+  return 0
 }
 
 # --- setup — 원커맨드: clone + build + link + npm ---
