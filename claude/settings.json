@@ -1,11 +1,6 @@
 {
   "cleanupPeriodDays": 365,
   "env": {},
-  "mcpServers": {
-    "session-bridge": {
-      "command": "/home/junghan/repos/gh/agent-config/mcp/session-bridge/start.sh"
-    }
-  },
   "permissions": {
     "allow": [
       "Bash(*)",

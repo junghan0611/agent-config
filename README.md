@@ -79,6 +79,53 @@ Semantic memory extension lives in [andenken](https://github.com/junghan0611/and
 Telegram bridge lives in [entwurf](https://github.com/junghan0611/entwurf) (separate repo, loaded as pi package).
 Production Telegram bridge uses [pi-telegram](https://github.com/badlogic/pi-telegram) (by pi author, `pi install` package) — queuing, file I/O, stop/abort, streaming preview.
 
+### MCP Servers ([`mcp/`](mcp/))
+
+#### session-bridge — Cross-Session Communication
+
+When Claude Code is the primary harness, it needs a way to reach other running sessions — pi sessions with `steer`/`follow_up`, other Claude Code instances, or future ACP agents. `session-bridge` is a lightweight MCP server that provides this via Unix domain sockets.
+
+**How it works:**
+
+Each Claude Code session spawns a `session-bridge` MCP server process. The server creates a Unix socket at `~/.claude/session-bridge/<session-id>.sock` and registers an alias symlink from the session name (derived from CWD).
+
+```
+Claude Code (agent-config)          Claude Code (cos)
+  ├── session-bridge MCP              ├── session-bridge MCP
+  │   socket: <uuid>.sock             │   socket: <uuid>.sock
+  │   alias: agent-config.alias       │   alias: cos.alias
+  │                                    │
+  └── send_message ──────────────────> └── messageQueue → receive_messages
+```
+
+**Tools:**
+
+| Tool | Purpose | PI equivalent |
+|------|---------|---------------|
+| `list_sessions` | Discover live sessions | `list_sessions` |
+| `send_message` | Send to another session by name or ID | `send_to_session` (send) |
+| `receive_messages` | Poll queued incoming messages | `send_to_session` (get_message) |
+| `session_info` | This session's identity (ID + name) | — |
+
+**Key difference from PI:** PI's `control.ts` can `steer` messages directly into the conversation loop. MCP servers cannot inject into Claude Code's conversation — receiving is poll-based. This means:
+
+- **Claude Code → PI:** works seamlessly. PI receives via `steer`, acts immediately.
+- **Claude Code → Claude Code:** sender fires and forgets. Receiver polls `receive_messages` when ready.
+- **PI → Claude Code:** message queued, retrieved on next interaction.
+
+In practice, the primary flow is Claude Code dispatching work to PI sessions (which have richer control), then checking results later. The loose coupling is intentional — "엉성한 결합" over tight orchestration.
+
+**Wire protocol** is compatible with PI's `control.ts`: newline-delimited JSON over Unix sockets.
+
+```json
+{"type":"send","message":"...","sender":"agent-config"}
+{"type":"response","command":"send","success":true}
+```
+
+**Configuration:** Registered in `~/.mcp.json`. `SESSION_NAME` is auto-derived from the working directory by `start.sh`.
+
+**Relationship to ACP:** session-bridge is horizontal (session ↔ session), ACP is vertical (pi → Claude Code as provider). They are complementary, not competing.
+
 ### Skills ([`skills/`](skills/)) — 27 skills
 
 | Category | Skills |
