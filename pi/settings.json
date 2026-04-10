@@ -6,17 +6,9 @@
   "hideThinkingBlock": false,
   "defaultTheme": "glg-dark",
   "theme": "glg-dark",
-  "claudeAgentSdkProvider": {
-    "appendSystemPrompt": false,
-    "settingSources": [
-      "user"
-    ],
-    "strictMcpConfig": true
-  },
   "packages": [
     "../../repos/gh/andenken",
     "../../repos/gh/entwurf",
-    "../../repos/gh/claude-agent-sdk-pi",
     "../../repos/3rd/pi-packages/packages/pi-claude-code-use",
     "git:github.com/badlogic/pi-telegram"
   ]

@@ -245,7 +245,7 @@ cd agent-config
 | **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — Entwurf minimal presence bridge** |
 | **[pi-telegram](https://github.com/badlogic/pi-telegram)** | **Transport** | **Telegram DM bridge — production queue/file/streaming** |
 | **[@benvargas/pi-claude-code-use](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)** | **Provider patch** | **Default Claude path in pi today — keep anthropic provider, keep pi tool execution, patch payloads minimally for Claude Code-style subscription use** |
-| **[claude-agent-sdk-pi](https://github.com/junghan0611/claude-agent-sdk-pi)** | **Provider** | **Vertical ACP path — Claude Code as actual engine, pi as harness** |
+| **[claude-agent-sdk-pi](https://github.com/junghan0611/claude-agent-sdk-pi)** | **Provider (parallel path)** | **Vertical ACP path — Claude Code as actual engine, pi as harness. Not the default Claude path in `pi/settings.json` today** |
 | [memex-kb](https://github.com/junghan0611/memex-kb) | Knowledge | Legacy document conversion pipeline |
 | [GLG-Mono](https://github.com/junghan0611/GLG-Mono) | Orchestration | OpenClaw bot configurations |
 | [geworfen](https://github.com/junghan0611/geworfen) | Being | Existence data viewer — WebTUI agenda |

@@ -63,7 +63,6 @@ ensure_link() {
     local current
     current=$(readlink "$link")
     if [ "$current" = "$target" ]; then
-      ok "$(basename "$link") → (already correct)"
       return
     fi
     rm "$link"
@@ -97,11 +96,6 @@ declare -A CLI_REPOS=(
   [dictcli]="https://github.com/junghan0611/dictcli.git"
 )
 
-# External pi packages managed by agent-config
-declare -A PACKAGE_REPOS=(
-  [claude-agent-sdk-pi]="https://github.com/junghan0611/claude-agent-sdk-pi.git"
-)
-
 # Third-party packages used by the harness
 # ben-vargas/pi-claude-code-use is currently the default Claude path in pi:
 # anthropic provider + smallest Claude Code compatibility patch, with pi still owning tool execution.
@@ -123,11 +117,6 @@ setup_repos() {
   section "Git Repositories"
   for name in "${!CLI_REPOS[@]}"; do
     ensure_repo "$name" "${CLI_REPOS[$name]}"
-  done
-
-  section "External Package Repositories"
-  for name in "${!PACKAGE_REPOS[@]}"; do
-    ensure_repo "$name" "${PACKAGE_REPOS[$name]}"
   done
 
   section "Third-Party Package Repositories"
@@ -372,23 +361,6 @@ setup_npm() {
     warn "entwurf: repo not found at $ENTWURF_DIR"
   fi
 
-  # claude-agent-sdk-pi (external pi package — managed from agent-config)
-  local CLAUDE_AGENT_SDK_PI_DIR="$REPOS/claude-agent-sdk-pi"
-  if [ -f "$CLAUDE_AGENT_SDK_PI_DIR/package.json" ]; then
-    log "claude-agent-sdk-pi: installing..."
-    if (cd "$CLAUDE_AGENT_SDK_PI_DIR" && npm install --silent); then
-      if [ -f "$CLAUDE_AGENT_SDK_PI_DIR/run.sh" ]; then
-        (cd "$CLAUDE_AGENT_SDK_PI_DIR" && ./run.sh sync-auth >/dev/null 2>&1 || true)
-        (cd "$CLAUDE_AGENT_SDK_PI_DIR" && ./run.sh smoke "$SCRIPT_DIR" >/dev/null 2>&1 || true)
-      fi
-      ok "claude-agent-sdk-pi"
-    else
-      fail "claude-agent-sdk-pi: npm install failed"
-    fi
-  else
-    warn "claude-agent-sdk-pi: repo not found at $CLAUDE_AGENT_SDK_PI_DIR"
-  fi
-
   # pi-packages (ben-vargas) — default Claude path in pi via pi-claude-code-use
   local PI_PACKAGES_DIR="$THIRD_REPOS/pi-packages"
   if [ -f "$PI_PACKAGES_DIR/package.json" ]; then
@@ -480,10 +452,13 @@ setup_all() {
   echo "  Binaries: $pass/$total"
   echo "  Skills:   $(find "$SKILLS_DIR" -name "SKILL.md" | wc -l)"
   echo "  Arch:     $ARCH"
+  echo "  Claude in pi (default): anthropic + pi-claude-code-use"
   echo "  Pi ext:   $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo 'not linked')"
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null && echo ' + skills' || echo 'not linked')"
   echo "  OpenCode: $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo 'not linked')"
+  echo ""
+  echo "DONE: agent-config setup complete"
 }
 
 # --- help ---
