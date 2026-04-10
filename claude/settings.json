@@ -1,6 +1,11 @@
 {
   "cleanupPeriodDays": 365,
   "env": {},
+  "mcpServers": {
+    "session-bridge": {
+      "command": "/home/junghan/repos/gh/agent-config/mcp/session-bridge/start.sh"
+    }
+  },
   "permissions": {
     "allow": [
       "Bash(*)",
@@ -13,9 +18,11 @@
       "WebSearch(*)",
       "mcp__*"
     ],
-    "deny": []
+    "deny": [
+      "Agent"
+    ]
   },
-  "model": "opus[1m]",
+  "model": "opus",
   "hooks": {
     "Notification": [
       {
@@ -137,24 +144,23 @@
     "command": "/home/junghan/.claude/statusline.sh"
   },
   "enabledPlugins": {
-    "commit-commands@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": false,
     "feature-dev@claude-plugins-official": false,
-    "code-review@claude-plugins-official": true,
+    "code-review@claude-plugins-official": false,
     "pr-review-toolkit@claude-plugins-official": false,
-    "context7@claude-plugins-official": true,
-    "explanatory-output-style@claude-plugins-official": true,
+    "context7@claude-plugins-official": false,
+    "explanatory-output-style@claude-plugins-official": false,
     "claude-md-management@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": false,
     "agent-sdk-dev@claude-plugins-official": false,
     "github@claude-plugins-official": false,
     "claude-code-setup@claude-plugins-official": false,
-    "gopls-lsp@claude-plugins-official": false,
     "atlassian@claude-plugins-official": false,
     "telegram@claude-plugins-official": true
   },
   "language": "Korean",
   "alwaysThinkingEnabled": true,
-  "effortLevel": "medium",
+  "effortLevel": "high",
   "voiceEnabled": true,
   "skipDangerousModePermissionPrompt": true,
   "verbose": true
