@@ -532,7 +532,7 @@ export default function (pi: ExtensionAPI) {
         Type.String({ description: "Working directory for the delegate" }),
       ),
       model: Type.Optional(
-        Type.String({ description: "Model override (e.g., 'claude-agent-sdk/claude-sonnet-4-6' or 'claude-agent-sdk/claude-opus-4-6')" }),
+        Type.String({ description: "Model override (e.g., 'claude-sonnet-4-6' or 'claude-opus-4-6')" }),
       ),
       mode: Type.Optional(
         Type.Union([Type.Literal("sync"), Type.Literal("async")], {

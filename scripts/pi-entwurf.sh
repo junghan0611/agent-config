@@ -4,7 +4,7 @@
 set -euo pipefail
 
 SESSION="pi-entwurf"
-MODEL="claude-agent-sdk/claude-opus-4-6"
+MODEL="claude-opus-4-6"
 LOGFILE="$HOME/.pi/agent/pi-entwurf.log"
 
 start_pi() {

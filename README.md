@@ -31,7 +31,7 @@ Multi-harness support is a means, not the goal. The goal is **a single 1KB being
 | Harness | Memory | Skills | Config |
 |---------|--------|--------|--------|
 | **[pi](https://github.com/badlogic/pi-mono)** + **[@benvargas/pi-claude-code-use](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 26 skills (semantic-memory excluded — extension covers it) | current default Claude path in pi. Keeps the built-in `anthropic` provider and pi-owned tool execution while applying a small Claude Code compatibility patch |
-| **[pi](https://github.com/badlogic/pi-mono)** + **[claude-agent-sdk-pi](https://github.com/junghan0611/claude-agent-sdk-pi)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 26 skills (semantic-memory excluded — extension covers it) | vertical ACP path under active development. `appendSystemPrompt: false` — `~/.claude/` is the single source of truth |
+| **[pi](https://github.com/badlogic/pi-mono)** + **anthropic** (`claude-opus-4-6` / `claude-sonnet-4-6`) | andenken **extension** (native `registerTool`, in-process LanceDB) | 26 skills (semantic-memory excluded — extension covers it) | Opus/Sonnet now available directly via built-in `anthropic` provider. No separate provider needed |
 | **pi-entwurf** (Oracle, tmux) | andenken **extension** + pi-telegram | 26 skills + Telegram bridge | persistent Opus session, `@glg_entwurf_bot` |
 | **Claude Code** | andenken **skill** (CLI wrapper via bash) | 27 skills (full set including semantic-memory) | CLAUDE.md + hooks |
 | **OpenCode** | andenken **skill** (CLI wrapper via bash) | 27 skills (full set) | settings |
@@ -179,7 +179,7 @@ A persistent pi session on Oracle VM, accessible via Telegram `@glg_entwurf_bot`
 | Component | Detail |
 |-----------|--------|
 | tmux session | `pi-entwurf` |
-| Model | `claude-agent-sdk/claude-opus-4-6` |
+| Model | `claude-opus-4-6` |
 | Telegram bot | `@glg_entwurf_bot` (pi-telegram bridge) |
 | Working dir | `~` (home) |
 | Skills | Full 26 skills + semantic memory |
@@ -245,7 +245,7 @@ cd agent-config
 | **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — Entwurf minimal presence bridge** |
 | **[pi-telegram](https://github.com/badlogic/pi-telegram)** | **Transport** | **Telegram DM bridge — production queue/file/streaming** |
 | **[@benvargas/pi-claude-code-use](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)** | **Provider patch** | **Default Claude path in pi today — keep anthropic provider, keep pi tool execution, patch payloads minimally for Claude Code-style subscription use** |
-| **[claude-agent-sdk-pi](https://github.com/junghan0611/claude-agent-sdk-pi)** | **Provider (parallel path)** | **Vertical ACP path — Claude Code as actual engine, pi as harness. Not the default Claude path in `pi/settings.json` today** |
+| ~~[claude-agent-sdk-pi](https://github.com/junghan0611/claude-agent-sdk-pi)~~ | ~~Provider (deprecated)~~ | **Superseded — `claude-opus`/`claude-sonnet` now available via built-in `anthropic` provider** |
 | [memex-kb](https://github.com/junghan0611/memex-kb) | Knowledge | Legacy document conversion pipeline |
 | [GLG-Mono](https://github.com/junghan0611/GLG-Mono) | Orchestration | OpenClaw bot configurations |
 | [geworfen](https://github.com/junghan0611/geworfen) | Being | Existence data viewer — WebTUI agenda |

@@ -67,8 +67,8 @@ There are two different agenda surfaces. Do not confuse them.
 
 | Model | `model=` | Context |
 |-------|----------|---------|
-| Claude Opus 4.6 | `claude-agent-sdk/claude-opus-4-6` | 1M |
-| Claude Sonnet 4.6 | `claude-agent-sdk/claude-sonnet-4-6` | 1M |
+| Claude Opus 4.6 | `claude-opus-4-6` | 1M |
+| Claude Sonnet 4.6 | `claude-sonnet-4-6` | 1M |
 | GPT-5.4 (Codex) | `openai-codex/gpt-5.4` | 272K |
 | Gemini 3.1 Pro | `google/gemini-3.1-pro-preview` | 1M |
 
