@@ -151,13 +151,14 @@ setup_build() {
   go_build "$REPOS/lifetract/lifetract" "$SKILLS_DIR/lifetract/lifetract"
   ok "lifetract $(du -h "$SKILLS_DIR/lifetract/lifetract" | cut -f1)"
 
-  log "--- gog (go install) ---"
-  CGO_ENABLED=0 go install github.com/steipete/gogcli/cmd/gog@latest 2>&1 || true
-  if [ -f "$HOME/go/bin/gog" ]; then
-    cp "$HOME/go/bin/gog" "$SKILLS_DIR/gogcli/gog"
+  log "--- gog (junghan0611/gogcli fork) ---"
+  ensure_repo gogcli https://github.com/junghan0611/gogcli.git
+  if [ -d "$REPOS/gogcli" ]; then
+    (cd "$REPOS/gogcli" && git checkout feat/searchconsole 2>/dev/null || true)
+    go_build "$REPOS/gogcli/cmd/gog" "$SKILLS_DIR/gogcli/gog"
     ok "gog $(du -h "$SKILLS_DIR/gogcli/gog" | cut -f1)"
   else
-    warn "gog: go install failed"
+    warn "gog: repo not found"
   fi
 
   log "--- dictcli (GraalVM native-image + Kiwi stem) ---"
