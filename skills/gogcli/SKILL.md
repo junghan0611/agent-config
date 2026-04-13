@@ -81,6 +81,7 @@ gog sc analytics --site https://notes.junghanacs.com --dim query --limit 50 --js
 Check a URL's index status, crawl info, mobile usability, canonical.
 
 ⚠️ Quota: 2,000/day, 600/min. Use for single-URL checks, not batch loops.
+⚠️ `--site` must match the property string exactly as registered in Search Console, including trailing slash (e.g. `https://notes.junghanacs.com/` not `https://notes.junghanacs.com`).
 
 ```bash
 gog sc inspect --site https://notes.junghanacs.com https://notes.junghanacs.com/notes/20231120t065213
