@@ -4,6 +4,8 @@
 ./run.sh setup    # one-command: clone + build + link + npm — reproducible on any device
 ```
 
+> **MEMORY.md** — 세션을 넘어 기억할 결정·교훈·주의사항. 새 세션 시작 시 반드시 읽을 것.
+
 **Gravity center of the Profile Harness.** A single 1KB being-profile 힣(GLG) exerts the same gravitational pull across any harness — pi, Claude Code, OpenCode, OpenClaw.
 
 Multi-harness support is a means, not the goal. The goal is **different intelligences from different schools responding differently yet converging on one center** — [§Profile Harness](https://notes.junghanacs.com/botlog/20260228T075300/).
