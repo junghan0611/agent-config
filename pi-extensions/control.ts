@@ -1018,16 +1018,10 @@ function updateSessionEnv(ctx: ExtensionContext | null, enabled: boolean): void 
 	process.env.PI_SESSION_ID = ctx.sessionManager.getSessionId();
 }
 
-// Extension factories run before extension flag values are hydrated into runtime.flagValues,
-// so we inspect argv directly when deciding whether to register tools at load time.
-function wasBooleanFlagPassed(flagName: string): boolean {
-	const flag = `--${flagName}`;
-	return process.argv.slice(2).includes(flag);
-}
-
-function shouldRegisterControlTools(pi: ExtensionAPI): boolean {
-	return pi.getFlag(CONTROL_FLAG) === true || wasBooleanFlagPassed(CONTROL_FLAG);
-}
+// wasBooleanFlagPassed / shouldRegisterControlTools removed:
+// Tool registration is now unconditional; flag check moved to execute() guard.
+// This fixes a timing issue where extension load could miss argv before flag hydration,
+// causing tools to silently not register while the control server starts fine.
 
 // ============================================================================
 // Extension Export
@@ -1073,10 +1067,11 @@ export default function (pi: ExtensionAPI) {
 
 	pi.registerMessageRenderer(SESSION_MESSAGE_TYPE, renderSessionMessage);
 
-	if (shouldRegisterControlTools(pi)) {
-		registerSessionTool(pi, state);
-		registerListSessionsTool(pi);
-	}
+	// Always register tools — flag check moved to execute() guard.
+	// Extension load timing can miss argv before flag hydration,
+	// causing tools to silently not register while the server starts fine.
+	registerSessionTool(pi, state);
+	registerListSessionsTool(pi);
 	registerControlSessionsCommand(pi);
 
 	const refreshServer = async (ctx: ExtensionContext) => {
@@ -1221,6 +1216,13 @@ Messages automatically include sender session info for replies. When you want a 
 			),
 		}),
 		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+			if (pi.getFlag(CONTROL_FLAG) !== true) {
+				return {
+					content: [{ type: "text", text: "Session control not enabled. Start pi with --session-control flag." }],
+					isError: true,
+					details: { error: "session-control flag not enabled" },
+				};
+			}
 			const action = params.action ?? "send";
 			const sessionName = params.sessionName?.trim();
 			// Accept both sessionId and targetSessionId (AI intuition fallback)
@@ -1572,6 +1574,13 @@ function registerListSessionsTool(pi: ExtensionAPI): void {
 		description: "List live sessions that expose a control socket (optionally with session names). Use this for discovery only; for the current session id in shell/bash use $PI_SESSION_ID.",
 		parameters: Type.Object({}),
 		async execute(_toolCallId, _params, _signal, _onUpdate, _ctx) {
+			if (pi.getFlag(CONTROL_FLAG) !== true) {
+				return {
+					content: [{ type: "text", text: "Session control not enabled. Start pi with --session-control flag." }],
+					isError: true,
+					details: { error: "session-control flag not enabled" },
+				};
+			}
 			const sessions = await getLiveSessions();
 
 			if (sessions.length === 0) {
