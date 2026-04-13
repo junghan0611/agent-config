@@ -197,16 +197,8 @@ setup_links() {
     ensure_link "$ext_file" "$HOME/.pi/agent/extensions/$(basename "$ext_file")"
   done
 
-  # 3rd-party extensions (agent-stuff)
-  local AGENT_STUFF_DIR="$HOME/repos/3rd/agent-stuff/pi-extensions"
-  local AGENT_STUFF_EXTS="control.ts"  # 필요한 것만
-  for ext_name in $AGENT_STUFF_EXTS; do
-    if [ -f "$AGENT_STUFF_DIR/$ext_name" ]; then
-      ensure_link "$AGENT_STUFF_DIR/$ext_name" "$HOME/.pi/agent/extensions/$ext_name"
-    else
-      log "WARN: agent-stuff/$ext_name not found (clone repos/3rd/agent-stuff)"
-    fi
-  done
+  # control.ts: formerly from 3rd-party agent-stuff, now managed in agent-config/pi-extensions/
+  # (2026-04-13: forked with targetSessionId fallback + gcStaleSockets)
 
   # Settings + Keybindings
   ensure_link "$SCRIPT_DIR/pi/settings.json" "$HOME/.pi/agent/settings.json"
