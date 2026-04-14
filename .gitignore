@@ -7,7 +7,7 @@ dist/
 *.d.ts
 !package.json
 pi-extensions/package-lock.json
-.beads/.br_history/
+.beads
 # benchmark-log.jsonl — 공개 추적
 
 # Go CLI binaries (built from source repos, copied by run.sh setup)
@@ -37,3 +37,4 @@ home/PRIVATE.md
 # Python cache artifacts
 __pycache__/
 *.pyc
+/.agent-shell/

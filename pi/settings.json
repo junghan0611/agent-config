@@ -1,8 +1,8 @@
 {
-  "lastChangelogVersion": "0.66.1",
-  "defaultProvider": "anthropic",
-  "defaultModel": "claude-opus-4-6",
-  "defaultThinkingLevel": "medium",
+  "lastChangelogVersion": "0.67.1",
+  "defaultProvider": "github-copilot",
+  "defaultModel": "gpt-5.4",
+  "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "defaultTheme": "glg-dark",
   "theme": "glg-dark",
