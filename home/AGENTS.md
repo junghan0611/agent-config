@@ -104,15 +104,6 @@ Semantic memory extension auto-loads these tools. Invoked automatically for natu
 
 Global rules for all agents using `delegate`.
 
-#### Available Models
-
-| Model | `model=` | Context | Purpose |
-|-------|----------|---------|---------|
-| Claude Opus 4.6 | `claude-opus-4-6` | 1M | Architecture, complex judgment, managing |
-| Claude Sonnet 4.6 | `claude-sonnet-4-6` | 1M | Code work, bulk conversion, execution |
-| GPT-5.4 (Codex) | `openai-codex/gpt-5.4` | 272K | Code-specialized, fast execution |
-| Gemini 3.1 Pro | `google/gemini-3.1-pro-preview` | 1M | Research, analysis, cross-checking |
-
 #### Mode Selection
 
 | Mode | When |
@@ -132,7 +123,8 @@ Global rules for all agents using `delegate`.
 
 - **No commits**: delegates prepare changes; GLG decides final commit/push.
 - **Hierarchical delegation OK**: Opus designs structure → Sonnet executes. Pattern verified.
-- **Model choice**: bulk/manual work → Sonnet. Architecture/judgment → Opus. Research → Gemini.
+- **Model choice**: bulk/manual work → Sonnet. Architecture/judgment → Opus. Research → 코파일럿 제미나이.
+- **GPT/Gemini naming is fixed**: use only `github-copilot/gpt-5.4` and `github-copilot/gemini-3.1-pro-preview`.
 - **No haiku**: do not use haiku for precision work.
 
 #### 담당자 패턴 — Automatic Project Context Injection
