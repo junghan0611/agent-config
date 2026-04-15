@@ -41,6 +41,7 @@ import * as fs from "node:fs";
 
 const SESSIONS_BASE = path.join(os.homedir(), ".pi", "agent", "sessions");
 const DELEGATE_ENTRY_TYPE = "delegate-task";
+const DEFAULT_DELEGATE_MODEL = "claude-sonnet-4-6";
 
 /** cwd → 세션 디렉토리 경로 변환 (pi의 네이밍 규칙 준수)
  *  /home/junghan/repos/gh/dictcli → ~/.pi/agent/sessions/--home-junghan-repos-gh-dictcli--/
@@ -87,7 +88,10 @@ interface DelegateResult {
   cost: number;
   model?: string;
   error?: string;
+  stopReason?: string;
   sessionFile?: string;
+  explicitExtensions: string[];
+  warnings: string[];
 }
 
 interface AsyncDelegateInfo {
@@ -102,6 +106,34 @@ interface AsyncDelegateInfo {
   status: "running" | "completed" | "failed";
   exitCode?: number;
   output?: string;
+  error?: string;
+  stopReason?: string;
+  explicitExtensions?: string[];
+  warnings?: string[];
+}
+
+interface AssistantMessageLike {
+  role?: string;
+  content?: unknown;
+  usage?: { cost?: { total?: number } };
+  model?: string;
+  stopReason?: string;
+  errorMessage?: string;
+}
+
+interface SessionAnalysis {
+  lastAssistantText: string | null;
+  lastError: string | null;
+  lastStopReason: string | null;
+  lastModel: string | null;
+  turns: number;
+  cost: number;
+}
+
+interface ExplicitExtensionSpec {
+  name: string;
+  localPath: string;
+  remotePath: string;
 }
 
 // ============================================================================
@@ -109,69 +141,155 @@ interface AsyncDelegateInfo {
 // ============================================================================
 
 const activeDelegates = new Map<string, AsyncDelegateInfo & { proc?: ChildProcess }>();
+const AGENT_DIR = path.join(os.homedir(), ".pi", "agent");
+const PI_SETTINGS_PATH = path.join(AGENT_DIR, "settings.json");
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-function parseMessages(messages: Array<{ role: string; content: unknown }>): string {
+function extractTextContent(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+
   const texts: string[] = [];
-  for (const msg of messages) {
-    if (msg.role !== "assistant") continue;
-    const content = msg.content;
-    if (typeof content === "string") {
-      texts.push(content);
-    } else if (Array.isArray(content)) {
-      for (const block of content) {
-        if (block.type === "text" && block.text) texts.push(block.text);
-      }
+  for (const block of content) {
+    if (
+      typeof block === "object" &&
+      block !== null &&
+      "type" in block &&
+      block.type === "text" &&
+      "text" in block &&
+      typeof block.text === "string"
+    ) {
+      texts.push(block.text);
     }
   }
   return texts.join("\n\n");
 }
 
-/** 세션 JSONL에서 마지막 어시스턴트 메시지 추출 */
-function getLastAssistantFromSession(sessionFile: string): string | null {
-  try {
-    const content = fs.readFileSync(sessionFile, "utf-8");
-    const lines = content.trim().split("\n").reverse();
-    for (const line of lines) {
-      try {
-        const entry = JSON.parse(line);
-        if (entry.type === "message" && entry.message?.role === "assistant") {
-          const msg = entry.message;
-          if (typeof msg.content === "string") return msg.content;
-          if (Array.isArray(msg.content)) {
-            return msg.content
-              .filter((b: { type: string; text?: string }) => b.type === "text" && b.text)
-              .map((b: { text: string }) => b.text)
-              .join("\n\n");
-          }
-        }
-      } catch { /* skip malformed lines */ }
-    }
-  } catch { /* file not readable */ }
-  return null;
+function parseMessages(messages: AssistantMessageLike[]): string {
+  return messages
+    .filter((msg) => msg.role === "assistant")
+    .map((msg) => extractTextContent(msg.content).trim())
+    .filter(Boolean)
+    .join("\n\n");
 }
 
-/** 세션 JSONL에서 비용/턴 수 집계 */
-function getSessionStats(sessionFile: string): { turns: number; cost: number } {
-  let turns = 0;
-  let cost = 0;
+function analyzeSessionFile(sessionFile: string): SessionAnalysis {
+  const analysis: SessionAnalysis = {
+    lastAssistantText: null,
+    lastError: null,
+    lastStopReason: null,
+    lastModel: null,
+    turns: 0,
+    cost: 0,
+  };
+
   try {
     const content = fs.readFileSync(sessionFile, "utf-8");
     for (const line of content.trim().split("\n")) {
       try {
         const entry = JSON.parse(line);
-        if (entry.type === "message" && entry.message?.role === "assistant") {
-          turns++;
-          const c = entry.message?.usage?.cost?.total;
-          if (typeof c === "number") cost += c;
+        if (entry.type !== "message" || entry.message?.role !== "assistant") continue;
+
+        const msg = entry.message as AssistantMessageLike;
+        analysis.turns++;
+
+        const text = extractTextContent(msg.content).trim();
+        if (text) analysis.lastAssistantText = text;
+        if (typeof msg.errorMessage === "string" && msg.errorMessage.trim()) {
+          analysis.lastError = msg.errorMessage.trim();
         }
-      } catch { /* skip */ }
+        if (typeof msg.stopReason === "string") analysis.lastStopReason = msg.stopReason;
+        if (typeof msg.model === "string") analysis.lastModel = msg.model;
+
+        const c = msg.usage?.cost?.total;
+        if (typeof c === "number") analysis.cost += c;
+      } catch { /* skip malformed lines */ }
     }
   } catch { /* file not readable */ }
-  return { turns, cost };
+
+  return analysis;
+}
+
+function resolveDelegateModel(model?: string): string {
+  const trimmed = model?.trim();
+  return trimmed ? trimmed : DEFAULT_DELEGATE_MODEL;
+}
+
+function isClaudeModel(model?: string): boolean {
+  return typeof model === "string" && /(^|\/)claude-/.test(model);
+}
+
+function resolveConfiguredPackageSource(packageNeedle: string): string | null {
+  try {
+    if (!fs.existsSync(PI_SETTINGS_PATH)) return null;
+    const settings = JSON.parse(fs.readFileSync(PI_SETTINGS_PATH, "utf-8")) as { packages?: unknown };
+    const packages = Array.isArray(settings.packages) ? settings.packages : [];
+    for (const pkg of packages) {
+      if (typeof pkg === "string" && pkg.includes(packageNeedle)) return pkg;
+    }
+  } catch { /* invalid settings */ }
+  return null;
+}
+
+function resolveExplicitExtensionSpec(packageNeedle: string): ExplicitExtensionSpec | null {
+  const source = resolveConfiguredPackageSource(packageNeedle);
+  if (!source || source.startsWith("git:") || source.startsWith("npm:")) return null;
+
+  const localRoot = path.resolve(AGENT_DIR, source);
+  const remoteRoot = source.startsWith("/") ? source : `$HOME/.pi/agent/${source}`;
+  const candidates = [
+    {
+      localPath: path.join(localRoot, "extensions", "index.ts"),
+      remotePath: `${remoteRoot}/extensions/index.ts`,
+    },
+    {
+      localPath: path.join(localRoot, "dist", "extensions", "index.js"),
+      remotePath: `${remoteRoot}/dist/extensions/index.js`,
+    },
+    {
+      localPath: path.join(localRoot, "dist", "index.js"),
+      remotePath: `${remoteRoot}/dist/index.js`,
+    },
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate.localPath)) {
+      return {
+        name: packageNeedle,
+        localPath: candidate.localPath,
+        remotePath: candidate.remotePath,
+      };
+    }
+  }
+
+  return null;
+}
+
+function getDelegateExplicitExtensions(model: string | undefined, isRemote: boolean): {
+  args: string[];
+  names: string[];
+  warnings: string[];
+} {
+  const args: string[] = [];
+  const names: string[] = [];
+  const warnings: string[] = [];
+
+  if (!isClaudeModel(model)) return { args, names, warnings };
+
+  const compat = resolveExplicitExtensionSpec("pi-claude-code-use");
+  if (!compat) {
+    warnings.push(
+      "Claude delegate requested but pi-claude-code-use extension could not be resolved. Anthropic OAuth may fall back to extra-usage classification.",
+    );
+    return { args, names, warnings };
+  }
+
+  args.push("-e", isRemote ? compat.remotePath : compat.localPath);
+  names.push(compat.name);
+  return { args, names, warnings };
 }
 
 /** 프로세스가 살아있는지 확인 */
@@ -228,6 +346,7 @@ async function runDelegateSync(
   const host = options.host ?? "local";
   const isRemote = host !== "local";
   const effectiveCwd = options.cwd ?? process.cwd();
+  const effectiveModel = resolveDelegateModel(options.model);
   const enrichedTask = enrichTaskWithProjectContext(task, effectiveCwd);
   const taskId = crypto.randomUUID().slice(0, 8);
 
@@ -236,10 +355,17 @@ async function runDelegateSync(
   fs.mkdirSync(sessionDir, { recursive: true });
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const sessionFile = path.join(sessionDir, `${timestamp}_delegate-${taskId}.jsonl`);
+  const explicitExtensions = getDelegateExplicitExtensions(effectiveModel, isRemote);
 
   // pi 실행 인자 — 세션 저장 + extensions 비활성화 (exit 방해 방지)
-  const piArgs = ["--mode", "json", "-p", "--no-extensions", "--session", sessionFile];
-  if (options.model) piArgs.push("--model", options.model);
+  const piArgs = [
+    "--mode", "json",
+    "-p",
+    "--no-extensions",
+    ...explicitExtensions.args,
+    "--session", sessionFile,
+  ];
+  piArgs.push("--model", effectiveModel);
   piArgs.push(enrichedTask);
 
   let command: string;
@@ -253,8 +379,18 @@ async function runDelegateSync(
     args = piArgs;
   }
 
-  const result: DelegateResult = { task, host, exitCode: 0, output: "", turns: 0, cost: 0, sessionFile };
-  const messages: Array<{ role: string; content: unknown }> = [];
+  const result: DelegateResult = {
+    task,
+    host,
+    exitCode: 0,
+    output: "",
+    turns: 0,
+    cost: 0,
+    sessionFile,
+    explicitExtensions: [...explicitExtensions.names],
+    warnings: [...explicitExtensions.warnings],
+  };
+  const messages: AssistantMessageLike[] = [];
 
   return new Promise((resolve) => {
     const proc = spawn(command, args, {
@@ -270,7 +406,7 @@ async function runDelegateSync(
       if (!line.trim()) return;
       let event: {
         type: string;
-        message?: { role: string; content: unknown; usage?: { cost?: { total?: number } }; model?: string };
+        message?: AssistantMessageLike;
         [k: string]: unknown;
       };
       try { event = JSON.parse(line); } catch { return; }
@@ -280,9 +416,14 @@ async function runDelegateSync(
         if (event.message.role === "assistant") {
           result.turns++;
           const usage = event.message.usage;
-          if (usage?.cost?.total) result.cost += usage.cost.total;
+          if (typeof usage?.cost?.total === "number") result.cost += usage.cost.total;
           if (event.message.model) result.model = event.message.model;
-          const latest = parseMessages([event.message]);
+          if (typeof event.message.stopReason === "string") result.stopReason = event.message.stopReason;
+          if (typeof event.message.errorMessage === "string" && event.message.errorMessage.trim()) {
+            result.error = event.message.errorMessage.trim();
+          }
+
+          const latest = extractTextContent(event.message.content).trim();
           if (latest && options.onUpdate) options.onUpdate(latest);
         }
       }
@@ -300,8 +441,13 @@ async function runDelegateSync(
     proc.on("close", (code) => {
       if (buffer.trim()) processLine(buffer);
       result.exitCode = code ?? 0;
-      result.output = parseMessages(messages) || stderr || "(no output)";
-      if (code !== 0 && stderr) result.error = stderr.slice(0, 500);
+      if (!result.error && result.stopReason === "error") {
+        result.error = "Delegate model returned stopReason=error";
+      }
+      const assistantText = parseMessages(messages).trim();
+      result.output = assistantText || result.error || stderr || "(no output)";
+      if (code !== 0 && stderr && !result.error) result.error = stderr.slice(0, 500);
+      if ((result.error || result.stopReason === "error") && result.exitCode === 0) result.exitCode = 1;
       resolve(result);
     });
 
@@ -340,6 +486,7 @@ async function runDelegateAsync(
   const isRemote = host !== "local";
   const taskId = crypto.randomUUID().slice(0, 8);
   const cwd = options.cwd ?? process.cwd();
+  const effectiveModel = resolveDelegateModel(options.model);
   const enrichedTask = enrichTaskWithProjectContext(task, cwd);
 
   // cwd 기반 세션 디렉토리 + delegate 파일명
@@ -348,6 +495,7 @@ async function runDelegateAsync(
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const sessionFile = path.join(sessionDir, `${timestamp}_delegate-${taskId}.jsonl`);
+  const explicitExtensions = getDelegateExplicitExtensions(effectiveModel, isRemote);
 
   // pi 실행 인자
   // --no-extensions: global extensions가 이벤트 루프를 잡아 pi -p exit을 막음
@@ -356,9 +504,10 @@ async function runDelegateAsync(
     "--mode", "json",
     "-p",
     "--no-extensions",
+    ...explicitExtensions.args,
     "--session", sessionFile,
   ];
-  if (options.model) piArgs.push("--model", options.model);
+  piArgs.push("--model", effectiveModel);
   piArgs.push(enrichedTask);
 
   // 부모 세션 ID (control.ts가 설정한 환경변수)
@@ -401,9 +550,11 @@ async function runDelegateAsync(
     host,
     task,
     cwd,
-    model: options.model,
+    model: effectiveModel,
     startTime: Date.now(),
     status: "running",
+    explicitExtensions: [...explicitExtensions.names],
+    warnings: [...explicitExtensions.warnings],
     proc,
   };
   activeDelegates.set(taskId, info);
@@ -416,8 +567,10 @@ async function runDelegateAsync(
     host,
     task,
     cwd,
-    model: options.model,
+    model: effectiveModel,
     startTime: info.startTime,
+    explicitExtensions: info.explicitExtensions,
+    warnings: info.warnings,
   });
 
   // stderr 수집 (에러 진단용)
@@ -433,21 +586,48 @@ async function runDelegateAsync(
     // 결과 추출
     const localSessionFile = isRemote ? null : info.sessionFile;
     if (localSessionFile && fs.existsSync(localSessionFile)) {
-      const lastMsg = getLastAssistantFromSession(localSessionFile);
-      const stats = getSessionStats(localSessionFile);
-      info.output = lastMsg ?? stderr ?? "(no output)";
-      const summary = lastMsg
-        ? lastMsg.slice(0, 2000) + (lastMsg.length > 2000 ? "\n(truncated, full: session-recap)" : "")
-        : `exit code ${code}`;
+      const analysis = analyzeSessionFile(localSessionFile);
+      if (analysis.lastModel) info.model = analysis.lastModel;
+      info.stopReason = analysis.lastStopReason ?? undefined;
+      info.error = analysis.lastError ?? undefined;
+      if (!info.error && info.stopReason === "error") {
+        info.error = "Delegate model returned stopReason=error";
+      }
+      if ((info.error || info.stopReason === "error") && info.exitCode === 0) {
+        info.exitCode = 1;
+      }
+      if (info.error || info.stopReason === "error") info.status = "failed";
+
+      info.output = analysis.lastAssistantText ?? info.error ?? stderr ?? "(no output)";
+      const summaryText = analysis.lastAssistantText ?? info.error ?? `exit code ${info.exitCode}`;
+      const summary = summaryText.slice(0, 2000) + (summaryText.length > 2000 ? "\n(truncated, full: session-recap)" : "");
+      const meta = [
+        info.explicitExtensions?.length ? `Compat: ${info.explicitExtensions.join(", ")}` : null,
+        info.warnings?.length ? `Warnings: ${info.warnings.join(" | ")}` : null,
+      ].filter(Boolean).join("\n");
 
       // 분신 세션에 followUp 메시지 주입
       try {
         pi.sendMessage(
           {
             customType: "delegate-complete",
-            content: `🏁 delegate \`${taskId}\` ${info.status} (${host}, ${stats.turns} turns, $${stats.cost.toFixed(4)})\n\n${summary}`,
+            content: [
+              `${info.status === "failed" ? "❌" : "🏁"} delegate \`${taskId}\` ${info.status} (${host}, ${analysis.turns} turns, $${analysis.cost.toFixed(4)})`,
+              meta || null,
+              summary,
+            ].filter(Boolean).join("\n\n"),
             display: true,
-            details: { taskId, host, status: info.status, turns: stats.turns, cost: stats.cost },
+            details: {
+              taskId,
+              host,
+              status: info.status,
+              turns: analysis.turns,
+              cost: analysis.cost,
+              error: info.error,
+              stopReason: info.stopReason,
+              explicitExtensions: info.explicitExtensions,
+              warnings: info.warnings,
+            },
           },
           { triggerTurn: true, deliverAs: "followUp" },
         );
@@ -455,14 +635,23 @@ async function runDelegateAsync(
         // 분신 세션이 이미 종료된 경우 무시
       }
     } else if (stderr) {
-      info.output = stderr.slice(0, 500);
+      info.error = stderr.slice(0, 500);
+      info.output = info.error;
+      info.status = "failed";
       try {
         pi.sendMessage(
           {
             customType: "delegate-complete",
             content: `❌ delegate \`${taskId}\` failed (${host}): ${stderr.slice(0, 300)}`,
             display: true,
-            details: { taskId, host, status: "failed", error: stderr.slice(0, 500) },
+            details: {
+              taskId,
+              host,
+              status: "failed",
+              error: stderr.slice(0, 500),
+              explicitExtensions: info.explicitExtensions,
+              warnings: info.warnings,
+            },
           },
           { triggerTurn: true, deliverAs: "followUp" },
         );
@@ -517,6 +706,7 @@ export default function (pi: ExtensionAPI) {
       "Use delegate for tasks that should run in isolation — different cwd, different machine, or resource-intensive work.",
       "For SSH remote: set host to SSH config name (e.g., 'gpu1i'). The remote must have pi installed.",
       "mode='sync' (default): Wait for completion, return result. Use for quick checks, git status, simple commands.",
+      "Default delegate model: claude-sonnet-4-6.",
       "mode='async': Spawn and return immediately. Get notified on completion. Use delegate_status to check progress.",
       "async delegates save sessions — use delegate_status to check, or resume later.",
       "When a task involves research, analysis, writing, or anything that takes more than a few seconds → use async.",
@@ -532,7 +722,7 @@ export default function (pi: ExtensionAPI) {
         Type.String({ description: "Working directory for the delegate" }),
       ),
       model: Type.Optional(
-        Type.String({ description: "Model override (e.g., 'claude-sonnet-4-6' or 'claude-opus-4-6')" }),
+        Type.String({ description: "Model override (default: 'claude-sonnet-4-6'). e.g., 'claude-sonnet-4-6' or 'claude-opus-4-6'" }),
       ),
       mode: Type.Optional(
         Type.Union([Type.Literal("sync"), Type.Literal("async")], {
@@ -595,6 +785,9 @@ export default function (pi: ExtensionAPI) {
         `Turns: ${result.turns}`,
         `Cost: $${result.cost.toFixed(4)}`,
         result.model ? `Model: ${result.model}` : null,
+        result.stopReason ? `Stop reason: ${result.stopReason}` : null,
+        result.explicitExtensions.length ? `Compat: ${result.explicitExtensions.join(", ")}` : null,
+        result.warnings.length ? `Warnings: ${result.warnings.join(" | ")}` : null,
         result.error ? `Error: ${result.error}` : null,
         "",
         result.output,
@@ -604,6 +797,7 @@ export default function (pi: ExtensionAPI) {
 
       return {
         content: [{ type: "text", text: summary }],
+        isError: result.exitCode !== 0,
         details: {
           task: result.task,
           host: result.host,
@@ -612,6 +806,10 @@ export default function (pi: ExtensionAPI) {
           cost: result.cost,
           model: result.model,
           sessionFile: result.sessionFile,
+          error: result.error,
+          stopReason: result.stopReason,
+          explicitExtensions: result.explicitExtensions,
+          warnings: result.warnings,
         },
       };
     },
@@ -641,19 +839,26 @@ export default function (pi: ExtensionAPI) {
           };
         }
 
-        // 상태 갱신
-        if (info.status === "running" && info.pid > 0) {
-          if (!isProcessAlive(info.pid)) {
-            info.status = "completed";
-          }
+        const alive = info.pid > 0 && isProcessAlive(info.pid);
+        if (info.status === "running" && !alive) {
+          info.status = "completed";
         }
 
         // 세션 파일에서 결과 추출 (로컬만)
         let lastMessage: string | null = null;
         let stats = { turns: 0, cost: 0 };
         if (info.host === "local" && fs.existsSync(info.sessionFile)) {
-          lastMessage = getLastAssistantFromSession(info.sessionFile);
-          stats = getSessionStats(info.sessionFile);
+          const analysis = analyzeSessionFile(info.sessionFile);
+          lastMessage = analysis.lastAssistantText;
+          stats = { turns: analysis.turns, cost: analysis.cost };
+          if (analysis.lastModel) info.model = analysis.lastModel;
+          info.stopReason = analysis.lastStopReason ?? info.stopReason;
+          info.error = analysis.lastError ?? info.error;
+          if (!info.error && info.stopReason === "error") {
+            info.error = "Delegate model returned stopReason=error";
+          }
+          if (info.error || info.stopReason === "error") info.status = "failed";
+          if ((info.error || info.stopReason === "error") && info.exitCode === 0) info.exitCode = 1;
         }
 
         const elapsed = Math.round((Date.now() - info.startTime) / 1000);
@@ -670,7 +875,12 @@ export default function (pi: ExtensionAPI) {
                 `Turns: ${stats.turns}`,
                 `Cost: $${stats.cost.toFixed(4)}`,
                 `Session: ${info.sessionFile}`,
+                info.model ? `Model: ${info.model}` : null,
                 info.exitCode !== undefined ? `Exit: ${info.exitCode}` : null,
+                info.stopReason ? `Stop reason: ${info.stopReason}` : null,
+                info.explicitExtensions?.length ? `Compat: ${info.explicitExtensions.join(", ")}` : null,
+                info.warnings?.length ? `Warnings: ${info.warnings.join(" | ")}` : null,
+                info.error ? `Error: ${info.error}` : null,
                 lastMessage ? `\nLast message:\n${lastMessage.slice(0, 3000)}` : null,
               ]
                 .filter(Boolean)
@@ -685,6 +895,11 @@ export default function (pi: ExtensionAPI) {
             turns: stats.turns,
             cost: stats.cost,
             exitCode: info.exitCode,
+            model: info.model,
+            error: info.error,
+            stopReason: info.stopReason,
+            explicitExtensions: info.explicitExtensions,
+            warnings: info.warnings,
           },
         };
       }
@@ -699,13 +914,25 @@ export default function (pi: ExtensionAPI) {
 
       const lines: string[] = [];
       for (const [id, info] of activeDelegates) {
-        // 상태 갱신
-        if (info.status === "running" && info.pid > 0 && !isProcessAlive(info.pid)) {
+        const alive = info.pid > 0 && isProcessAlive(info.pid);
+        if (info.status === "running" && !alive) {
           info.status = "completed";
+        }
+        if (info.host === "local" && fs.existsSync(info.sessionFile)) {
+          const analysis = analyzeSessionFile(info.sessionFile);
+          if (analysis.lastModel) info.model = analysis.lastModel;
+          info.stopReason = analysis.lastStopReason ?? info.stopReason;
+          info.error = analysis.lastError ?? info.error;
+          if (!info.error && info.stopReason === "error") {
+            info.error = "Delegate model returned stopReason=error";
+          }
+          if (info.error || info.stopReason === "error") info.status = "failed";
+          if ((info.error || info.stopReason === "error") && info.exitCode === 0) info.exitCode = 1;
         }
         const elapsed = Math.round((Date.now() - info.startTime) / 1000);
         const icon = info.status === "running" ? "⏳" : info.status === "completed" ? "✅" : "❌";
-        lines.push(`${icon} ${id} [${info.host}] ${info.status} (${elapsed}s) — ${info.task.slice(0, 60)}`);
+        const suffix = info.error ? ` — ${info.error.slice(0, 80)}` : "";
+        lines.push(`${icon} ${id} [${info.host}] ${info.status} (${elapsed}s) — ${info.task.slice(0, 60)}${suffix}`);
       }
 
       return {
@@ -810,11 +1037,19 @@ export default function (pi: ExtensionAPI) {
         };
       }
 
+      const sessionAnalysis = !isRemote && fs.existsSync(sessionFile)
+        ? analyzeSessionFile(sessionFile)
+        : null;
+      const resumeModel = info?.model ?? sessionAnalysis?.lastModel ?? DEFAULT_DELEGATE_MODEL;
+      const explicitExtensions = getDelegateExplicitExtensions(resumeModel, isRemote);
+
       // resume = 기존 세션에 추가 prompt로 스폰. delegate와 동일 패턴.
       const piArgs = [
         "--mode", "json",
         "-p",
         "--no-extensions",
+        ...explicitExtensions.args,
+        "--model", resumeModel,
         "--session", sessionFile,
         params.prompt,
       ];
@@ -851,9 +1086,11 @@ export default function (pi: ExtensionAPI) {
         host,
         task: `resume:${params.taskId} — ${params.prompt.slice(0, 60)}`,
         cwd,
-        model: info?.model,
+        model: resumeModel,
         startTime: Date.now(),
         status: "running",
+        explicitExtensions: [...explicitExtensions.names],
+        warnings: [...explicitExtensions.warnings],
         proc,
       };
       activeDelegates.set(resumeTaskId, resumeInfo);
@@ -866,6 +1103,9 @@ export default function (pi: ExtensionAPI) {
         task: resumeInfo.task,
         cwd,
         startTime: resumeInfo.startTime,
+        model: resumeInfo.model,
+        explicitExtensions: resumeInfo.explicitExtensions,
+        warnings: resumeInfo.warnings,
       });
 
       // stderr 수집
@@ -879,20 +1119,45 @@ export default function (pi: ExtensionAPI) {
         delete resumeInfo.proc;
 
         if (!isRemote && fs.existsSync(sessionFile!)) {
-          const lastMsg = getLastAssistantFromSession(sessionFile!);
-          const stats = getSessionStats(sessionFile!);
-          resumeInfo.output = lastMsg ?? stderr ?? "(no output)";
-          const summary = lastMsg
-            ? lastMsg.slice(0, 2000) + (lastMsg.length > 2000 ? "\n(truncated, full: session-recap)" : "")
-            : `exit code ${code}`;
+          const analysis = analyzeSessionFile(sessionFile!);
+          if (analysis.lastModel) resumeInfo.model = analysis.lastModel;
+          resumeInfo.stopReason = analysis.lastStopReason ?? undefined;
+          resumeInfo.error = analysis.lastError ?? undefined;
+          if (!resumeInfo.error && resumeInfo.stopReason === "error") {
+            resumeInfo.error = "Delegate model returned stopReason=error";
+          }
+          if ((resumeInfo.error || resumeInfo.stopReason === "error") && resumeInfo.exitCode === 0) {
+            resumeInfo.exitCode = 1;
+          }
+          if (resumeInfo.error || resumeInfo.stopReason === "error") resumeInfo.status = "failed";
+
+          resumeInfo.output = analysis.lastAssistantText ?? resumeInfo.error ?? stderr ?? "(no output)";
+          const summaryText = analysis.lastAssistantText ?? resumeInfo.error ?? `exit code ${resumeInfo.exitCode}`;
+          const summary = summaryText.slice(0, 2000) + (summaryText.length > 2000 ? "\n(truncated, full: session-recap)" : "");
+          const meta = [
+            resumeInfo.explicitExtensions?.length ? `Compat: ${resumeInfo.explicitExtensions.join(", ")}` : null,
+            resumeInfo.warnings?.length ? `Warnings: ${resumeInfo.warnings.join(" | ")}` : null,
+          ].filter(Boolean).join("\n");
 
           try {
             pi.sendMessage(
               {
                 customType: "delegate-complete",
-                content: `🏁 resume \`${resumeTaskId}\` (← ${params.taskId}) ${resumeInfo.status} (${stats.turns} turns, $${stats.cost.toFixed(4)})\n\n${summary}`,
+                content: [
+                  `${resumeInfo.status === "failed" ? "❌" : "🏁"} resume \`${resumeTaskId}\` (← ${params.taskId}) ${resumeInfo.status} (${analysis.turns} turns, $${analysis.cost.toFixed(4)})`,
+                  meta || null,
+                  summary,
+                ].filter(Boolean).join("\n\n"),
                 display: true,
-                details: { taskId: resumeTaskId, originalTaskId: params.taskId, status: resumeInfo.status },
+                details: {
+                  taskId: resumeTaskId,
+                  originalTaskId: params.taskId,
+                  status: resumeInfo.status,
+                  error: resumeInfo.error,
+                  stopReason: resumeInfo.stopReason,
+                  explicitExtensions: resumeInfo.explicitExtensions,
+                  warnings: resumeInfo.warnings,
+                },
               },
               { triggerTurn: true, deliverAs: "followUp" },
             );
@@ -902,6 +1167,7 @@ export default function (pi: ExtensionAPI) {
 
       proc.on("error", (err) => {
         resumeInfo.status = "failed";
+        resumeInfo.error = err.message;
         resumeInfo.output = err.message;
         delete resumeInfo.proc;
       });
@@ -936,12 +1202,24 @@ export default function (pi: ExtensionAPI) {
       }
       const lines: string[] = [];
       for (const [id, info] of activeDelegates) {
-        if (info.status === "running" && info.pid > 0 && !isProcessAlive(info.pid)) {
+        const alive = info.pid > 0 && isProcessAlive(info.pid);
+        if (info.status === "running" && !alive) {
           info.status = "completed";
+        }
+        if (info.host === "local" && fs.existsSync(info.sessionFile)) {
+          const analysis = analyzeSessionFile(info.sessionFile);
+          if (analysis.lastModel) info.model = analysis.lastModel;
+          info.stopReason = analysis.lastStopReason ?? info.stopReason;
+          info.error = analysis.lastError ?? info.error;
+          if (!info.error && info.stopReason === "error") {
+            info.error = "Delegate model returned stopReason=error";
+          }
+          if (info.error || info.stopReason === "error") info.status = "failed";
         }
         const elapsed = Math.round((Date.now() - info.startTime) / 1000);
         const icon = info.status === "running" ? "⏳" : info.status === "completed" ? "✅" : "❌";
-        lines.push(`${icon} ${id} [${info.host}] ${info.status} (${elapsed}s) — ${info.task.slice(0, 60)}`);
+        const suffix = info.error ? ` — ${info.error.slice(0, 80)}` : "";
+        lines.push(`${icon} ${id} [${info.host}] ${info.status} (${elapsed}s) — ${info.task.slice(0, 60)}${suffix}`);
       }
       ctx.ui.notify(lines.join("\n"), "info");
     },

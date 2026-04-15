@@ -65,12 +65,15 @@ There are two different agenda surfaces. Do not confuse them.
 
 ### Delegate models
 
-| Model | `model=` | Context |
-|-------|----------|---------|
-| Claude Opus 4.6 | `claude-opus-4-6` | 1M |
-| Claude Sonnet 4.6 | `claude-sonnet-4-6` | 1M |
-| GPT-5.4 (Codex) | `openai-codex/gpt-5.4` | 272K |
-| Gemini 3.1 Pro | `google/gemini-3.1-pro-preview` | 1M |
+Default: `claude-sonnet-4-6`
+Summon repo 담당자: `claude-opus-4-6`
+
+| Model             | `model=`                                | Context |
+|-------------------|-----------------------------------------|---------|
+| Claude Sonnet 4.6 | `claude-sonnet-4-6`                     | 1M      |
+| GPT-5.4           | `github-copilot/gpt-5.4`                | 272K    |
+| Gemini 3.1 Pro    | `github-copilot/gemini-3.1-pro-preview` | 128K    |
+| Claude Opus 4.6   | `claude-opus-4-6`                       | 1M      |
 
 ### Mode selection
 - **`mode: "async"`** — default for builds, tests, research, long-running work

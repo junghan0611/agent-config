@@ -122,10 +122,17 @@ Global rules for all agents using `delegate`.
 #### Delegation Principles
 
 - **No commits**: delegates prepare changes; GLG decides final commit/push.
-- **Hierarchical delegation OK**: Opus designs structure → Sonnet executes. Pattern verified.
-- **Model choice**: bulk/manual work → Sonnet. Architecture/judgment → Opus. Research → 코파일럿 제미나이.
-- **GPT/Gemini naming is fixed**: use only `github-copilot/gpt-5.4` and `github-copilot/gemini-3.1-pro-preview`.
 - **No haiku**: do not use haiku for precision work.
+
+#### Delegate models
+
+Default: `claude-sonnet-4-6`
+
+| Model             | `model=`                                | Context |
+|-------------------|-----------------------------------------|---------|
+| Claude Sonnet 4.6 | `claude-sonnet-4-6`                     | 1M      |
+| GPT-5.4           | `github-copilot/gpt-5.4`                | 272K    |
+| Gemini 3.1 Pro    | `github-copilot/gemini-3.1-pro-preview` | 128K    |
 
 #### 담당자 패턴 — Automatic Project Context Injection
 
