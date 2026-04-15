@@ -166,11 +166,13 @@ setup_build() {
     # Kiwi jar + 모델 다운로드 (stem용 — JVM 모드)
     (cd "$REPOS/dictcli" && ./run.sh stem-setup) || true
     # binary + graph.edn 세트 복사 (SSOT: dictcli 리포)
-    (cd "$REPOS/dictcli" && ./run.sh build --output "$SKILLS_DIR/dictcli/dictcli") || true
+    if ! (cd "$REPOS/dictcli" && ./run.sh build --output "$SKILLS_DIR/dictcli/dictcli"); then
+      warn "dictcli: build failed (기존 바이너리 유지)"
+    fi
     if [ -f "$SKILLS_DIR/dictcli/dictcli" ]; then
       ok "dictcli $(du -h "$SKILLS_DIR/dictcli/dictcli" | cut -f1)"
     else
-      warn "dictcli: build failed"
+      fail "dictcli: binary missing"
     fi
   else
     warn "dictcli: repo not found at $REPOS/dictcli"

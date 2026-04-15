@@ -3,124 +3,75 @@ name: dictcli
 description: "개인 어휘 그래프 — 한↔영 크로스링귀얼 쿼리 확장 + 한국어 형태소 분석. expand로 한글 단어에서 영어 태그 후보를 찾고, stem으로 한국어 어간을 추출한다. knowledge_search의 3층 역할. '단어 확장', '태그 찾기', '한영 매핑', 'expand', 'stem', '형태소'."
 ---
 
-# dictcli — 개인 어휘 그래프 (3층)
+# dictcli — Personal Vocabulary Graph (Layer 3)
 
-한↔영 트리플 그래프. 한글 단어를 영어 Denote 태그로 확장한다.
-knowledge_search의 크로스링귀얼 정확도를 높이는 3층 역할.
+Korean↔English triple graph. Expands Korean words to English Denote tags.
+Layer 3 of knowledge_search — cross-lingual query enrichment.
 
-## When to Use
+## API
 
-- knowledge_search 결과가 부족할 때 — expand로 쿼리 확장 후 재검색
-- 한글 개념에 대응하는 영어 태그를 모를 때
-- Denote 노트에 영어 태그를 붙일 때 후보 확인
-- "보편"이 영어로 뭔지, 관련 개념이 뭔지 궁금할 때
+Binary bundled in skill directory. **Must cd to {baseDir}** (reads CWD/graph.edn).
 
-## 사용법
+| Command | Usage | Output |
+|---------|-------|--------|
+| **expand** | `cd {baseDir} && ./dictcli expand "보편" --json` | `["universal","universalism","particular","paideia"]` |
+| graph | `cd {baseDir} && ./dictcli graph "보편"` | All triples for the word |
+| stats | `cd {baseDir} && ./dictcli stats` | Graph statistics |
+| validate | `cd {baseDir} && ./dictcli validate` | Invariant check |
 
-### expand — 쿼리 확장 (핵심)
+### expand — Core Command
 
-Binary is bundled in the skill directory. Invoke via `{baseDir}/dictcli`.
-graph.edn is co-located — **must cd to {baseDir} before calling** (GraalVM native binary reads CWD/graph.edn).
-
-```bash
-cd {baseDir} && ./dictcli expand "보편" --json
-# → ["universal","universalism","particular","special","generalpurpose","general","paideia"]
-
-{baseDir}/dictcli expand "기술" --json
-# → ["art","technology","technique"]
-
-{baseDir}/dictcli expand "도피" --json
-# → ["escape","flight","avoidance","evasion"]
-```
-
-한글 단어에서:
-1. 직접 번역 (:trans)
-2. 대극의 번역 (보편→특수→particular)
-3. 관련어의 번역 (보편→파이데이아→paideia)
-
-### knowledge_search 연동 패턴
+Traverses the graph: direct translation → opposite's translation → related word's translation.
 
 ```bash
-# 1. 사용자: "보편 학문 관련 노트"
-# 2. expand로 영어 키워드 확보
-EXPANDED=$({baseDir}/dictcli expand "보편" --json)
-# → ["universal","universalism","particular","paideia"...]
-
-# 3. knowledge_search에 확장 키워드 포함
-# "보편 학문 universal universalism paideia"로 검색
+cd {baseDir} && ./dictcli expand "기술" --json   # → ["art","technology","technique"]
+cd {baseDir} && ./dictcli expand "도피" --json   # → ["escape","flight","avoidance","evasion"]
 ```
 
-에이전트가 자율적으로:
-1. 한글 쿼리에서 핵심 개념어 추출
-2. expand로 영어 확장
-3. 원래 쿼리 + 확장 키워드로 knowledge_search
+Empty array = word not in graph.edn. Fall back to original query.
 
-### lookup — 단어 조회
+### knowledge_search Integration Pattern
+
+```
+1. User: "보편 학문 관련 노트"
+2. expand "보편" → ["universal","universalism","paideia"...]
+3. Search: "보편 학문 universal universalism paideia"
+```
+
+Agent autonomously: extract concept words → expand → enrich query → knowledge_search.
+
+## stem — Korean Morphological Analysis
+
+**JVM-only** (Kiwi JNI — not in native binary). Called via dictcli repo's `run.sh stem`.
+Agents rarely call directly — andenken batch-indexes via `--batch` / `--serve` mode.
 
 ```bash
-{baseDir}/dictcli lookup "보편"
-# 해당 단어의 모든 트리플 (trans, opposite, related, source 등)
+cd ~/repos/gh/dictcli && ./run.sh stem "설계했다"     # → 설계
+cd ~/repos/gh/dictcli && ./run.sh stem --serve 9876   # socket server (1ms/query)
 ```
 
-### stats — 그래프 통계
+Pipeline: `"설계했다" → stem → "설계" → expand → ["design","architecture"]`
 
-```bash
-{baseDir}/dictcli stats
-# 트리플 수, 단어 수, 클러스터 수, 관계별 분포
-```
+## Data
 
-### stem — 한국어 어간 추출 (Kiwi 형태소 분석)
+- `graph.edn`: 3,971 triples, 2,449 `:trans` mappings, 4,728 words, 526 clusters
+- Sources: meta-note clusters, Syntopicon 102 Great Ideas, philosophy glossary
+- Relations: `:trans`(2449), `:source`(1422), `:related`(44), `:synonym`(44)
 
-Kiwi(C++ 엔진, JNI 바인딩)로 한국어 문장에서 명사 어간을 추출한다.
-graph.edn의 2,255개 트리플이 Kiwi 사용자 사전에 자동 주입된다.
-expand와 파이프라인 — stem이 어간을 뽑고, expand가 한↔영 확장.
+## Architecture Note
 
-**⚠️ JVM 모드 전용** — GraalVM native-image 불가(JNI). dictcli 리포의 `run.sh stem` 으로 실행.
-에이전트가 직접 호출할 일은 거의 없다 — andenken이 인덱싱 시 배치 호출한다.
+| Component | Runtime | Latency |
+|-----------|---------|---------|
+| expand/lookup/stats | GraalVM native-image | ~9ms |
+| stem | JVM (Kiwi JNI) | ~1ms (server) / ~3s (cold start) |
 
-```bash
-# 단건
-cd ~/repos/gh/dictcli && ./run.sh stem "설계했다"
-# → 🌱 stem: 설계
+Native binary cannot include stem (JNI incompatible with native-image).
+Two separate execution paths — no conflict.
 
-cd ~/repos/gh/dictcli && ./run.sh stem "하네스 엔지니어링의 본질"
-# → 🌱 stem: 하네스, 엔지니어링, 본질
-# → 🔍 하네스 → harness
-# → 🔍 본질 → essence
+## Layer 3 in the Stack
 
-# 배치 (andenken 인덱싱 파이프라인용)
-echo -e "설계했다\n검토하셨습니다" | cd ~/repos/gh/dictcli && ./run.sh stem --batch
-# → ["설계"]
-# → ["검토"]
-```
-
-stem + expand 파이프라인:
-```
-"설계했다" → stem → "설계" → expand → [design, architecture]
-"봇멘트를 달았다" → stem → "봇멘트" → expand → [botment]
-"에이전틱 엔지니어링" → stem → "에이전틱", "엔지니어링" → expand → [agentic]
-```
-
-graph.edn에 등록된 단어(봇멘트, 에이전틱, 하네스 등)는 Kiwi 사전에 주입되어 OOV 없이 정확히 추출된다.
-
-## 데이터
-
-- `graph.edn` — 2,400+ 트리플, 2,255 사전 주입 단어
-- 소스: 메타노트 클러스터, 신토피콘 102 Great Ideas, philosophy glossary 2,035개
-- 관계: :trans(835), :source(233), :synonym(44), :related(26), :opposite(8)
-
-## 3층 모델에서의 위치
-
-| 층 | 도구 | 역할 |
-|----|------|------|
-| 1층 | knowledge_search | 임베딩 벡터 검색 (Hit 100%, MRR 0.872) |
-| 2층 | denotecli + dblock | 정확 매칭 + 그래프 링크 |
-| **3층** | **dictcli expand + stem** | **한→영 쿼리 확장 + 한국어 어간 추출** |
-
-1층만으로 "보편" MRR 0.13. expand 적용 시 "보편 universal universalism paideia"로 MRR 상승 예상.
-
-## 주의
-
-- expand 결과가 빈 배열이면 — 아직 graph.edn에 없는 단어. 그냥 원래 쿼리로 검색.
-- 바이너리: GraalVM native-image. 0.009초. 체감 지연 없음.
-- graph.edn은 dictcli 리포에서 관리. 여기는 복사본.
+| Layer | Tool | Role |
+|-------|------|------|
+| 1 | knowledge_search | Embedding vector search |
+| 2 | denotecli | Exact match + graph links |
+| **3** | **dictcli expand + stem** | **Korean→English query expansion + stemming** |
