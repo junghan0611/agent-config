@@ -34,9 +34,12 @@ Define ec/eu in EVERY bash call (subshell resets).
 | `agent-org-agenda-day` | ?DATE | `ec '(agent-org-agenda-day "-1")'` — nil=today |
 | `agent-org-agenda-week` | ?DATE | `ec '(agent-org-agenda-week)'` |
 | `agent-org-agenda-tags` | MATCH | `ec '(agent-org-agenda-tags "commit")'` |
+| `agent-org-agenda-todos` | ?PROJECT, ?PRIORITY | `ec '(agent-org-agenda-todos "andenken")'` |
 | `agent-citar-lookup` | QUERY, ?MAX | `ec '(agent-citar-lookup "karpathy" 5)'` |
 | `agent-server-status` | — | `ec '(agent-server-status)'` → version, uptime |
 | `agent-being-data` | ?AS-JSON | `ec '(agent-being-data)'` → notes/journal/garden counts |
+
+agent-org-agenda-todos: PROJECT is level-2 heading name in Entwurf agenda (e.g. "andenken", "blog", "agent-config"). PRIORITY is "A"/"B"/"C". Both optional — nil returns all TODOs grouped by project.
 
 add-heading: 3rd arg is TAG if UPPERCASE (e.g. "LLMLOG"), BODY otherwise. ⚠️ Never pass `nil` — body silently drops. No tag? Put body as 3rd arg directly.
 
