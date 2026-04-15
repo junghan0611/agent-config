@@ -1,15 +1,14 @@
 {
   "lastChangelogVersion": "0.67.2",
-  "defaultProvider": "anthropic",
-  "defaultModel": "claude-opus-4-6",
-  "defaultThinkingLevel": "medium",
+  "defaultProvider": "github-copilot",
+  "defaultModel": "gpt-5.4",
+  "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "defaultTheme": "glg-dark",
   "theme": "glg-dark",
   "packages": [
     "../../repos/gh/andenken",
     "../../repos/gh/entwurf",
-    "../../repos/3rd/pi-packages/packages/pi-claude-code-use",
     "git:github.com/badlogic/pi-telegram"
   ]
 }

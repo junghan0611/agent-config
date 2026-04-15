@@ -97,11 +97,9 @@ declare -A CLI_REPOS=(
 )
 
 # Third-party packages used by the harness
-# ben-vargas/pi-claude-code-use is currently the default Claude path in pi:
-# anthropic provider + smallest Claude Code compatibility patch, with pi still owning tool execution.
-declare -A THIRD_PARTY_PACKAGE_REPOS=(
-  [pi-packages]="https://github.com/ben-vargas/pi-packages.git"
-)
+# pi-packages (ben-vargas/pi-claude-code-use) is intentionally disabled for now.
+# Reason: pause the Claude Code-style compatibility patch path until account-risk is clearer.
+declare -A THIRD_PARTY_PACKAGE_REPOS=()
 
 # Go src subdirectory within each repo
 declare -A CLI_GO_SRC=(
@@ -362,18 +360,8 @@ setup_npm() {
     warn "entwurf: repo not found at $ENTWURF_DIR"
   fi
 
-  # pi-packages (ben-vargas) — default Claude path in pi via pi-claude-code-use
-  local PI_PACKAGES_DIR="$THIRD_REPOS/pi-packages"
-  if [ -f "$PI_PACKAGES_DIR/package.json" ]; then
-    log "pi-packages: installing workspace dependencies..."
-    if (cd "$PI_PACKAGES_DIR" && npm install --silent); then
-      ok "pi-packages (pi-claude-code-use available)"
-    else
-      fail "pi-packages: npm install failed"
-    fi
-  else
-    warn "pi-packages: repo not found at $PI_PACKAGES_DIR"
-  fi
+  # pi-packages (ben-vargas) intentionally disabled for now.
+  log "pi-packages: disabled (skipping pi-claude-code-use install)"
 
   # pi-telegram (production Telegram bridge by pi author)
   # Installed as pi package — no local clone needed
@@ -455,7 +443,7 @@ setup_all() {
   echo "  Binaries: $pass/$total"
   echo "  Skills:   $(find "$SKILLS_DIR" -name "SKILL.md" | wc -l)"
   echo "  Arch:     $ARCH"
-  echo "  Claude in pi (default): anthropic + pi-claude-code-use"
+  echo "  Claude in pi (default): built-in anthropic only (pi-claude-code-use disabled)"
   echo "  Pi ext:   $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo 'not linked')"
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null && echo ' + skills' || echo 'not linked')"

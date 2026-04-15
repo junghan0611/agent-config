@@ -282,7 +282,7 @@ function getDelegateExplicitExtensions(model: string | undefined, isRemote: bool
   const compat = resolveExplicitExtensionSpec("pi-claude-code-use");
   if (!compat) {
     warnings.push(
-      "Claude delegate requested but pi-claude-code-use extension could not be resolved. Anthropic OAuth may fall back to extra-usage classification.",
+      "Claude delegate requested but pi-claude-code-use extension could not be resolved. It may be intentionally disabled by default; Anthropic OAuth may fall back to extra-usage classification.",
     );
     return { args, names, warnings };
   }
