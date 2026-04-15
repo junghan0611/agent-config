@@ -242,6 +242,14 @@ function resolveExplicitExtensionSpec(packageNeedle: string): ExplicitExtensionS
   const remoteRoot = source.startsWith("/") ? source : `$HOME/.pi/agent/${source}`;
   const candidates = [
     {
+      localPath: localRoot,
+      remotePath: remoteRoot,
+    },
+    {
+      localPath: path.join(localRoot, "index.ts"),
+      remotePath: `${remoteRoot}/index.ts`,
+    },
+    {
       localPath: path.join(localRoot, "extensions", "index.ts"),
       remotePath: `${remoteRoot}/extensions/index.ts`,
     },
@@ -272,6 +280,7 @@ function getDelegateExplicitExtensions(model: string | undefined, isRemote: bool
   args: string[];
   names: string[];
   warnings: string[];
+  provider?: string;
 } {
   const args: string[] = [];
   const names: string[] = [];
@@ -279,16 +288,23 @@ function getDelegateExplicitExtensions(model: string | undefined, isRemote: bool
 
   if (!isClaudeModel(model)) return { args, names, warnings };
 
+  const acpBridge = resolveExplicitExtensionSpec("claude-agent-sdk-pi");
+  if (acpBridge) {
+    args.push("-e", isRemote ? acpBridge.remotePath : acpBridge.localPath);
+    names.push(acpBridge.name);
+    return { args, names, warnings, provider: "claude-agent-sdk" };
+  }
+
   const compat = resolveExplicitExtensionSpec("pi-claude-code-use");
-  if (!compat) {
-    warnings.push(
-      "Claude delegate requested but pi-claude-code-use extension could not be resolved. It may be intentionally disabled by default; Anthropic OAuth may fall back to extra-usage classification.",
-    );
+  if (compat) {
+    args.push("-e", isRemote ? compat.remotePath : compat.localPath);
+    names.push(compat.name);
     return { args, names, warnings };
   }
 
-  args.push("-e", isRemote ? compat.remotePath : compat.localPath);
-  names.push(compat.name);
+  warnings.push(
+    "Claude delegate requested but neither claude-agent-sdk-pi nor pi-claude-code-use could be resolved. Claude delegates may fail without an explicit provider bridge.",
+  );
   return { args, names, warnings };
 }
 
@@ -365,6 +381,7 @@ async function runDelegateSync(
     ...explicitExtensions.args,
     "--session", sessionFile,
   ];
+  if (explicitExtensions.provider) piArgs.push("--provider", explicitExtensions.provider);
   piArgs.push("--model", effectiveModel);
   piArgs.push(enrichedTask);
 
@@ -507,6 +524,7 @@ async function runDelegateAsync(
     ...explicitExtensions.args,
     "--session", sessionFile,
   ];
+  if (explicitExtensions.provider) piArgs.push("--provider", explicitExtensions.provider);
   piArgs.push("--model", effectiveModel);
   piArgs.push(enrichedTask);
 
@@ -1049,10 +1067,9 @@ export default function (pi: ExtensionAPI) {
         "-p",
         "--no-extensions",
         ...explicitExtensions.args,
-        "--model", resumeModel,
-        "--session", sessionFile,
-        params.prompt,
       ];
+      if (explicitExtensions.provider) piArgs.push("--provider", explicitExtensions.provider);
+      piArgs.push("--model", resumeModel, "--session", sessionFile, params.prompt);
 
       let command: string;
       let args: string[];

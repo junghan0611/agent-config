@@ -10,9 +10,9 @@
 
 Multi-harness support is a means, not the goal. The goal is **different intelligences from different schools responding differently yet converging on one center** — [§Profile Harness](https://notes.junghanacs.com/botlog/20260228T075300/).
 
-The ben-vargas Claude compatibility path ([`pi-claude-code-use`](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)) is currently **disabled by default** while account-risk is being observed.
+The current default Claude path in pi is **[`claude-agent-sdk-pi`](https://github.com/junghan0611/claude-agent-sdk-pi)** via ACP.
 
-Claude Opus/Sonnet are available directly via the built-in `anthropic` provider (`claude-opus`, `claude-sonnet`). The separate `claude-agent-sdk-pi` provider is no longer needed for model access.
+The ben-vargas compatibility path ([`pi-claude-code-use`](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)) is currently **disabled by default** while account-risk is being observed.
 
 geworfen/docs/main-ko.org is the public paper surface of this harness, where those patterns are rendered on the time axis.
 

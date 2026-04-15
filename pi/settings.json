@@ -1,14 +1,22 @@
 {
   "lastChangelogVersion": "0.67.2",
-  "defaultProvider": "github-copilot",
-  "defaultModel": "gpt-5.4",
-  "defaultThinkingLevel": "high",
+  "defaultProvider": "claude-agent-sdk",
+  "defaultModel": "claude-opus-4-6",
+  "defaultThinkingLevel": "medium",
   "hideThinkingBlock": false,
   "defaultTheme": "glg-dark",
   "theme": "glg-dark",
   "packages": [
     "../../repos/gh/andenken",
     "../../repos/gh/entwurf",
+    "../../repos/gh/claude-agent-sdk-pi",
     "git:github.com/badlogic/pi-telegram"
-  ]
+  ],
+  "claudeAgentSdkProvider": {
+    "appendSystemPrompt": false,
+    "settingSources": [
+      "user"
+    ],
+    "strictMcpConfig": false
+  }
 }
