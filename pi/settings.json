@@ -1,7 +1,7 @@
 {
   "lastChangelogVersion": "0.67.2",
   "defaultProvider": "claude-agent-sdk",
-  "defaultModel": "claude-opus-4-6",
+  "defaultModel": "claude-sonnet-4-6",
   "defaultThinkingLevel": "medium",
   "hideThinkingBlock": false,
   "defaultTheme": "glg-dark",

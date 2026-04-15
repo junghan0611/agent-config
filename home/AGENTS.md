@@ -126,13 +126,13 @@ Global rules for all agents using `delegate`.
 
 #### Delegate models
 
-Default: `claude-sonnet-4-6`
+Default: `github-copilot/gpt-5.4`
+Alternative: `github-copilot/gemini-3.1-pro-preview`
 
-| Model             | `model=`                                | Context |
-|-------------------|-----------------------------------------|---------|
-| Claude Sonnet 4.6 | `claude-sonnet-4-6`                     | 1M      |
-| GPT-5.4           | `github-copilot/gpt-5.4`                | 272K    |
-| Gemini 3.1 Pro    | `github-copilot/gemini-3.1-pro-preview` | 128K    |
+| Model          | `model=`                                | Context |
+|----------------|-----------------------------------------|---------|
+| GPT-5.4        | `github-copilot/gpt-5.4`                | 272K    |
+| Gemini 3.1 Pro | `github-copilot/gemini-3.1-pro-preview` | 128K    |
 
 #### 담당자 패턴 — Automatic Project Context Injection
 

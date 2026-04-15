@@ -41,7 +41,7 @@ import * as fs from "node:fs";
 
 const SESSIONS_BASE = path.join(os.homedir(), ".pi", "agent", "sessions");
 const DELEGATE_ENTRY_TYPE = "delegate-task";
-const DEFAULT_DELEGATE_MODEL = "claude-sonnet-4-6";
+const DEFAULT_DELEGATE_MODEL = "github-copilot/gpt-5.4";
 
 /** cwd → 세션 디렉토리 경로 변환 (pi의 네이밍 규칙 준수)
  *  /home/junghan/repos/gh/dictcli → ~/.pi/agent/sessions/--home-junghan-repos-gh-dictcli--/
@@ -724,7 +724,7 @@ export default function (pi: ExtensionAPI) {
       "Use delegate for tasks that should run in isolation — different cwd, different machine, or resource-intensive work.",
       "For SSH remote: set host to SSH config name (e.g., 'gpu1i'). The remote must have pi installed.",
       "mode='sync' (default): Wait for completion, return result. Use for quick checks, git status, simple commands.",
-      "Default delegate model: claude-sonnet-4-6.",
+      "Default delegate model: github-copilot/gpt-5.4.",
       "mode='async': Spawn and return immediately. Get notified on completion. Use delegate_status to check progress.",
       "async delegates save sessions — use delegate_status to check, or resume later.",
       "When a task involves research, analysis, writing, or anything that takes more than a few seconds → use async.",
@@ -740,7 +740,7 @@ export default function (pi: ExtensionAPI) {
         Type.String({ description: "Working directory for the delegate" }),
       ),
       model: Type.Optional(
-        Type.String({ description: "Model override (default: 'claude-sonnet-4-6'). e.g., 'claude-sonnet-4-6' or 'claude-opus-4-6'" }),
+        Type.String({ description: "Model override (default: 'github-copilot/gpt-5.4'). e.g., 'github-copilot/gpt-5.4' or 'github-copilot/gemini-3.1-pro-preview'" }),
       ),
       mode: Type.Optional(
         Type.Union([Type.Literal("sync"), Type.Literal("async")], {
