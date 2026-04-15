@@ -17,7 +17,6 @@
       "Agent"
     ]
   },
-  "model": "opus",
   "hooks": {
     "Notification": [
       {
@@ -156,7 +155,7 @@
   "language": "Korean",
   "alwaysThinkingEnabled": true,
   "effortLevel": "high",
-  "voiceEnabled": true,
   "skipDangerousModePermissionPrompt": true,
+  "voiceEnabled": true,
   "verbose": true
 }

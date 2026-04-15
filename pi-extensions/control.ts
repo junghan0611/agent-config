@@ -1097,22 +1097,17 @@ export default function (pi: ExtensionAPI) {
 		updateSessionEnv(ctx, true);
 	};
 
-	pi.on("session_start", async (_event, ctx) => {
+	// session_switch/session_fork removed in pi 0.65.0 → unified into session_start with event.reason
+	pi.on("session_start", async (event, ctx) => {
 		await refreshServer(ctx);
-		// GC stale sockets on startup (best-effort, non-blocking)
-		gcStaleSockets().catch(() => {});
+		// GC stale sockets on startup only (not on switch/fork)
+		if ((event as any).reason === "startup" || (event as any).reason === "reload") {
+			gcStaleSockets().catch(() => {});
+		}
 		if (!cliSendHandled) {
 			cliSendHandled = true;
 			await maybeHandleStartupControlSend(pi, ctx);
 		}
-	});
-
-	pi.on("session_switch", async (_event, ctx) => {
-		await refreshServer(ctx);
-	});
-
-	pi.on("session_fork", async (_event, ctx) => {
-		await refreshServer(ctx);
 	});
 
 	pi.on("session_shutdown", async () => {

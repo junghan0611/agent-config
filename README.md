@@ -293,6 +293,16 @@ cd agent-config
 
 Total indexing: **~$0.13**. Each query: effectively free.
 
+## Changelog
+
+### 2026-04-15 — pi 0.67.2 호환 업데이트
+
+- **control.ts**: `session_switch`/`session_fork` 이벤트 제거 → `session_start` + `event.reason`으로 통합 (pi 0.65.0 breaking change)
+- **context.ts**: `SlashCommandInfo.path` → `sourceInfo.path`로 마이그레이션 (pi 0.62.0 breaking change)
+- **node_modules**: pi-coding-agent 0.62.0 → 0.67.2 업데이트
+- **pi/settings.json**: pi 0.67.2 반영
+- delegate sync/async 기능 검증 완료 (GPT-5.4)
+
 ## License
 
 MIT
