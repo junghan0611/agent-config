@@ -30,12 +30,12 @@ Multi-harness support is a means, not the goal. The goal is **a single 1KB being
 
 | Harness | Memory | Skills | Config |
 |---------|--------|--------|--------|
-| **[pi](https://github.com/badlogic/pi-mono)** + **[@benvargas/pi-claude-code-use](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 26 skills (semantic-memory excluded — extension covers it) | current default Claude path in pi. Keeps the built-in `anthropic` provider and pi-owned tool execution while applying a small Claude Code compatibility patch |
-| **[pi](https://github.com/badlogic/pi-mono)** + **anthropic** (`claude-opus-4-6` / `claude-sonnet-4-6`) | andenken **extension** (native `registerTool`, in-process LanceDB) | 26 skills (semantic-memory excluded — extension covers it) | Opus/Sonnet now available directly via built-in `anthropic` provider. No separate provider needed |
+| **[pi](https://github.com/badlogic/pi-mono)** + **[@benvargas/pi-claude-code-use](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 27 skills (semantic-memory excluded — extension covers it) | current default Claude path in pi. Keeps the built-in `anthropic` provider and pi-owned tool execution while applying a small Claude Code compatibility patch |
+| **[pi](https://github.com/badlogic/pi-mono)** + **anthropic** (`claude-opus-4-6` / `claude-sonnet-4-6`) | andenken **extension** (native `registerTool`, in-process LanceDB) | 27 skills (semantic-memory excluded — extension covers it) | Opus/Sonnet now available directly via built-in `anthropic` provider. No separate provider needed |
 | **pi-entwurf** (Oracle, tmux) | andenken **extension** + pi-telegram | 26 skills + Telegram bridge | persistent Opus session, `@glg_entwurf_bot` |
-| **Claude Code** | andenken **skill** (CLI wrapper via bash) | 27 skills (full set including semantic-memory) | CLAUDE.md + hooks |
-| **OpenCode** | andenken **skill** (CLI wrapper via bash) | 27 skills (full set) | settings |
-| **OpenClaw** (Oracle VM) | andenken **skill** (same skills/ via symlink mount) | 27 skills (Nix store mount in Docker) | openclaw.json |
+| **Claude Code** | andenken **skill** (CLI wrapper via bash) | 28 skills (full set including semantic-memory) | CLAUDE.md + hooks |
+| **OpenCode** | andenken **skill** (CLI wrapper via bash) | 28 skills (full set) | settings |
+| **OpenClaw** (Oracle VM) | andenken **skill** (same skills/ via symlink mount) | 28 skills (Nix store mount in Docker) | openclaw.json |
 
 Session JSONL from all harnesses flows into [andenken](https://github.com/junghan0611/andenken)'s unified index. Each chunk carries a `source` field (`"pi"` | `"claude"`) so you can filter, compare, or roll back across harnesses.
 
@@ -59,7 +59,7 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 | **1. Embedding** | Gemini multilingual vectors | "보편" ≈ "universalism" |
 | **2. dblock** | Denote regex link graph | 22 notes linked in meta-note |
 | **1.5 BM25** | Korean josa removal (dual emit) | "위임의" → "위임" + "위임의" (BM25 both) |
-| **3. dictcli** | Personal vocabulary graph (2,400+ triples) | `expand("보편")` → `[universal, universalism, paideia]` |
+| **3. dictcli** | Personal vocabulary graph (3,971 triples) | `expand("보편")` → `[universal, universalism, paideia]` |
 
 Pi loads andenken as a **compiled pi package** (`pi install`), not a symlinked `.ts` file. This bypasses jiti parsing limitations and allows direct LanceDB access in-process. Claude Code and OpenCode use the CLI wrapper skill instead.
 
@@ -127,7 +127,7 @@ In practice, the primary flow is Claude Code dispatching work to PI sessions (wh
 
 **Relationship to ACP:** session-bridge is horizontal (session ↔ session), ACP is vertical (pi → Claude Code as provider). They are complementary, not competing.
 
-### Skills ([`skills/`](skills/)) — 27 skills
+### Skills ([`skills/`](skills/)) — 28 skills
 
 | Category | Skills |
 |----------|--------|
@@ -182,7 +182,7 @@ A persistent pi session on Oracle VM, accessible via Telegram `@glg_entwurf_bot`
 | Model | `claude-opus-4-6` |
 | Telegram bot | `@glg_entwurf_bot` (pi-telegram bridge) |
 | Working dir | `~` (home) |
-| Skills | Full 26 skills + semantic memory |
+| Skills | Full 27 skills + semantic memory |
 | Role | Life-support agent, research, note-taking, agenda |
 
 **Two Telegram bridges coexist:**
@@ -199,7 +199,7 @@ A persistent pi session on Oracle VM, accessible via Telegram `@glg_entwurf_bot`
 | Runtime | Docker sandbox | NixOS host direct |
 | Model routing | GitHub Copilot relay | Anthropic API direct |
 | Multi-bot | 4 bots (main/glg/gpt/gemini) | 1 persistent session |
-| Skills | Same 27 skills (mounted) | Same 26 skills (native) |
+| Skills | Same 28 skills (mounted) | Same 27 skills (native) |
 | Use case | Family/public service | Personal deep work |
 
 ## Shell Aliases (`~/.bashrc.local`)
@@ -257,7 +257,7 @@ cd agent-config
 | denotecli | [junghan0611/denotecli](https://github.com/junghan0611/denotecli) | Go | Denote knowledge base search (3000+ notes) |
 | gitcli | [junghan0611/gitcli](https://github.com/junghan0611/gitcli) | Go | Local git commit timeline (50+ repos) |
 | lifetract | [junghan0611/lifetract](https://github.com/junghan0611/lifetract) | Go | Samsung Health + aTimeLogger tracking |
-| dictcli | [junghan0611/dictcli](https://github.com/junghan0611/dictcli) | Clojure/GraalVM | Personal vocabulary graph (2,400+ triples) |
+| dictcli | [junghan0611/dictcli](https://github.com/junghan0611/dictcli) | Clojure/GraalVM | Personal vocabulary graph (3,971 triples, 2,449 trans) |
 | bibcli | [junghan0611/zotero-config](https://github.com/junghan0611/zotero-config) | Go | BibTeX search (8,000+ entries) |
 
 ### Archived
@@ -294,6 +294,14 @@ cd agent-config
 Total indexing: **~$0.13**. Each query: effectively free.
 
 ## Changelog
+
+### 2026-04-15 — dictcli/emacs 스킬 정비 + 빌드 안전성 강화
+
+- **dictcli SKILL.md**: 한글→영문 재작성 (LSP 패턴, 140줄→77줄), lookup→graph 커맨드 수정, 실측 데이터 반영
+- **emacs SKILL.md**: `agent-org-agenda-todos` API 추가
+- **run.sh**: dictcli 빌드 실패 `|| true` → `if !` 패턴으로 가시화
+- **dictcli 리포(ded6c81)**: 캐시 validate 검증, NixOS patchelf 건너뛰기, 양쪽(local+oracle) 재현 완료
+- Skills: 27→28 (telegram 추가 반영)
 
 ### 2026-04-15 — pi 0.67.2 호환 업데이트
 
