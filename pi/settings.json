@@ -1,18 +1,18 @@
 {
   "lastChangelogVersion": "0.67.2",
-  "defaultProvider": "claude-agent-sdk",
-  "defaultModel": "claude-sonnet-4-6",
-  "defaultThinkingLevel": "medium",
+  "defaultProvider": "github-copilot",
+  "defaultModel": "gpt-5.4",
+  "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "defaultTheme": "glg-dark",
   "theme": "glg-dark",
   "packages": [
     "../../repos/gh/andenken",
     "../../repos/gh/entwurf",
-    "../../repos/gh/claude-agent-sdk-pi",
+    "../../repos/gh/pi-shell-acp",
     "git:github.com/badlogic/pi-telegram"
   ],
-  "claudeAgentSdkProvider": {
+  "piShellAcpProvider": {
     "appendSystemPrompt": false,
     "settingSources": [
       "user"

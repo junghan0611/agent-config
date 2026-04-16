@@ -30,7 +30,7 @@ Multi-harness support is a means, not the goal. The goal is **a single 1KB being
 
 | Harness | Memory | Skills | Config |
 |---------|--------|--------|--------|
-| **[pi](https://github.com/badlogic/pi-mono)** + **[claude-agent-sdk-pi](https://github.com/junghan0611/claude-agent-sdk-pi)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 27 skills (semantic-memory excluded — extension covers it) | current default Claude path in pi via ACP bridge. Claude Code auth/capabilities stay on the Claude side |
+| **[pi](https://github.com/badlogic/pi-mono)** + **[pi-shell-acp](https://github.com/junghan0611/claude-agent-sdk-pi)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 27 skills (semantic-memory excluded — extension covers it) | current default Claude path in pi via ACP bridge. Claude Code auth/capabilities stay on the Claude side |
 | **[pi](https://github.com/badlogic/pi-mono)** + **[@benvargas/pi-claude-code-use](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 27 skills (semantic-memory excluded — extension covers it) | currently disabled by default. Keep only as an optional Claude Code compatibility patch path when explicitly re-enabled |
 | **[pi](https://github.com/badlogic/pi-mono)** + **anthropic** (`claude-opus-4-6` / `claude-sonnet-4-6`) | andenken **extension** (native `registerTool`, in-process LanceDB) | 27 skills (semantic-memory excluded — extension covers it) | direct built-in provider path remains available, but is not the current default Claude route |
 | **pi-entwurf** (Oracle, tmux) | andenken **extension** + pi-telegram | 26 skills + Telegram bridge | persistent Opus session, `@glg_entwurf_bot` |
@@ -226,7 +226,7 @@ cd agent-config
 ```
 
 `./run.sh setup` does:
-- Clone source repos (if missing) — including andenken and `claude-agent-sdk-pi`
+- Clone source repos (if missing) — including andenken and `pi-shell-acp`
 - Build 6 native CLI binaries (Go + GraalVM)
 - Symlink: pi extensions + skills (semantic-memory excluded) + themes + settings + keybindings
 - Install: andenken as pi package (compiled extension)
@@ -245,7 +245,7 @@ cd agent-config
 | **[andenken](https://github.com/junghan0611/andenken)** | **Memory** | **Semantic memory — sessions + org knowledge base** |
 | **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — Entwurf minimal presence bridge** |
 | **[pi-telegram](https://github.com/badlogic/pi-telegram)** | **Transport** | **Telegram DM bridge — production queue/file/streaming** |
-| **[claude-agent-sdk-pi](https://github.com/junghan0611/claude-agent-sdk-pi)** | **Provider (ACP bridge)** | **Current default Claude path in pi. Thin ACP bridge to Claude Code, with Claude-side auth/capability loading preserved** |
+| **[pi-shell-acp](https://github.com/junghan0611/claude-agent-sdk-pi)** | **Provider (ACP bridge)** | **Current default Claude path in pi. Thin ACP bridge to Claude Code, with Claude-side auth/capability loading preserved** |
 | **[@benvargas/pi-claude-code-use](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)** | **Provider patch** | **Currently disabled by default pending account-risk observation. Optional compatibility patch only if manually re-enabled** |
 | [memex-kb](https://github.com/junghan0611/memex-kb) | Knowledge | Legacy document conversion pipeline |
 | [GLG-Mono](https://github.com/junghan0611/GLG-Mono) | Orchestration | OpenClaw bot configurations |

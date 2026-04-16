@@ -288,11 +288,13 @@ function getDelegateExplicitExtensions(model: string | undefined, isRemote: bool
 
   if (!isClaudeModel(model)) return { args, names, warnings };
 
-  const acpBridge = resolveExplicitExtensionSpec("claude-agent-sdk-pi");
+  const acpBridge =
+    resolveExplicitExtensionSpec("pi-shell-acp") ??
+    resolveExplicitExtensionSpec("claude-agent-sdk-pi");
   if (acpBridge) {
     args.push("-e", isRemote ? acpBridge.remotePath : acpBridge.localPath);
     names.push(acpBridge.name);
-    return { args, names, warnings, provider: "claude-agent-sdk" };
+    return { args, names, warnings, provider: "pi-shell-acp" };
   }
 
   const compat = resolveExplicitExtensionSpec("pi-claude-code-use");
@@ -303,7 +305,7 @@ function getDelegateExplicitExtensions(model: string | undefined, isRemote: bool
   }
 
   warnings.push(
-    "Claude delegate requested but neither claude-agent-sdk-pi nor pi-claude-code-use could be resolved. Claude delegates may fail without an explicit provider bridge.",
+    "Claude delegate requested but neither pi-shell-acp nor legacy claude-agent-sdk-pi nor pi-claude-code-use could be resolved. Claude delegates may fail without an explicit provider bridge.",
   );
   return { args, names, warnings };
 }

@@ -102,9 +102,9 @@ declare -A CLI_REPOS=(
 declare -A THIRD_PARTY_PACKAGE_REPOS=()
 
 # Local provider/package repos used by the harness
-# claude-agent-sdk-pi is the current Claude path in pi via ACP.
+# pi-shell-acp is the current Claude path in pi via ACP.
 declare -A PACKAGE_REPOS=(
-  [claude-agent-sdk-pi]="https://github.com/junghan0611/claude-agent-sdk-pi.git"
+  [pi-shell-acp]="https://github.com/junghan0611/claude-agent-sdk-pi.git"
 )
 
 # Go src subdirectory within each repo
@@ -374,22 +374,22 @@ setup_npm() {
   # pi-packages (ben-vargas) intentionally disabled for now.
   log "pi-packages: disabled (skipping pi-claude-code-use install)"
 
-  # claude-agent-sdk-pi (ACP bridge provider)
-  local CLAUDE_AGENT_SDK_PI_DIR="$REPOS/claude-agent-sdk-pi"
-  if [ -f "$CLAUDE_AGENT_SDK_PI_DIR/package.json" ]; then
-    log "claude-agent-sdk-pi: installing..."
-    if (cd "$CLAUDE_AGENT_SDK_PI_DIR" && npm install --silent); then
-      ok "claude-agent-sdk-pi"
-      if (cd "$CLAUDE_AGENT_SDK_PI_DIR" && ./run.sh sync-auth); then
-        ok "claude-agent-sdk-pi auth alias"
+  # pi-shell-acp (ACP bridge provider)
+  local PI_SHELL_ACP_DIR="$REPOS/pi-shell-acp"
+  if [ -f "$PI_SHELL_ACP_DIR/package.json" ]; then
+    log "pi-shell-acp: installing..."
+    if (cd "$PI_SHELL_ACP_DIR" && npm install --silent); then
+      ok "pi-shell-acp"
+      if (cd "$PI_SHELL_ACP_DIR" && ./run.sh sync-auth); then
+        ok "pi-shell-acp auth alias"
       else
-        warn "claude-agent-sdk-pi: auth sync skipped/failed"
+        warn "pi-shell-acp: auth sync skipped/failed"
       fi
     else
-      fail "claude-agent-sdk-pi: npm install failed"
+      fail "pi-shell-acp: npm install failed"
     fi
   else
-    warn "claude-agent-sdk-pi: repo not found at $CLAUDE_AGENT_SDK_PI_DIR"
+    warn "pi-shell-acp: repo not found at $PI_SHELL_ACP_DIR"
   fi
 
   # pi-telegram (production Telegram bridge by pi author)
@@ -472,7 +472,7 @@ setup_all() {
   echo "  Binaries: $pass/$total"
   echo "  Skills:   $(find "$SKILLS_DIR" -name "SKILL.md" | wc -l)"
   echo "  Arch:     $ARCH"
-  echo "  Claude in pi (default): claude-agent-sdk-pi via ACP (pi-claude-code-use disabled)"
+  echo "  Claude in pi (default): pi-shell-acp via ACP (pi-claude-code-use disabled)"
   echo "  Pi ext:   $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo 'not linked')"
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null && echo ' + skills' || echo 'not linked')"
