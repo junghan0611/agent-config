@@ -104,7 +104,7 @@ declare -A THIRD_PARTY_PACKAGE_REPOS=()
 # Local provider/package repos used by the harness
 # pi-shell-acp is the current Claude path in pi via ACP.
 declare -A PACKAGE_REPOS=(
-  [pi-shell-acp]="https://github.com/junghan0611/claude-agent-sdk-pi.git"
+  [pi-shell-acp]="https://github.com/junghan0611/pi-shell-acp.git"
 )
 
 # Go src subdirectory within each repo

@@ -10,7 +10,7 @@
 
 Multi-harness support is a means, not the goal. The goal is **different intelligences from different schools responding differently yet converging on one center** — [§Profile Harness](https://notes.junghanacs.com/botlog/20260228T075300/).
 
-The current default Claude path in pi is **[`pi-shell-acp`](https://github.com/junghan0611/claude-agent-sdk-pi)** via ACP.
+The current default Claude path in pi is **[`pi-shell-acp`](https://github.com/junghan0611/pi-shell-acp)** via ACP.
 
 The ben-vargas compatibility path ([`pi-claude-code-use`](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)) is currently **disabled by default** while account-risk is being observed.
 
