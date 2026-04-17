@@ -1,7 +1,7 @@
 ;; graph.edn — 힣의 어휘 연결체
 ;; 형식: [entity relation value]
-;; 생성: 2026-03-30T16:38:35.405414219
-;; 트리플: 3971개
+;; 생성: 2026-04-17T14:08:57.328114909
+;; 트리플: 3977개
 
 [
  ["보편" :trans "universal"]
@@ -3975,4 +3975,10 @@
  ["비극" :trans "tragedy"]
  ["파토스" :trans "pathos"]
  ["봇멘트" :trans "botment"]
+ ["조테로" :trans "zotero"]
+ ["안덴켄" :trans "andenken"]
+ ["앤덴켄" :trans "andenken"]
+ ["바네바부시" :trans "vannevarbush"]
+ ["바네바" :related "바네바부시"]
+ ["바네바부시" :related "바네바"]
 ]
