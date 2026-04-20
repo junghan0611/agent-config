@@ -59,6 +59,7 @@ python3 {baseDir}/scripts/session-recap.py -p agent-config -m 15 --source all
 
 ## -p 프로젝트명 결정
 
+기본 규칙은 **CWD의 마지막 디렉토리명**이다.
 프로젝트명 = 리포 디렉토리명 (~/repos/gh/**agent-config** → `agent-config`).
 
 | CWD | `-p` value |
@@ -67,24 +68,78 @@ python3 {baseDir}/scripts/session-recap.py -p agent-config -m 15 --source all
 | `~/repos/work/some-proj` | `some-proj` |
 | `/home/junghan` (홈) | `home` |
 
+### 중요: CWD 규칙보다 사용자 의도가 우선
+
+다음 경우는 CWD basename을 기계적으로 쓰지 말고, **사용자가 가리킨 맥락의 프로젝트명**을 넣는다.
+
+- "home 디렉토리 분신", "Entwurf", "분신 기록" → `-p home`
+- "COS" / 비서실장 세션 → `-p cos`
+- 특정 리포 담당자 세션을 명시 → 그 리포명 (`andenken`, `notes`, `pi-shell-acp` 등)
+
+확실하지 않으면:
+
+```bash
+ls -lt ~/.pi/agent/sessions/ | head
+```
+
+로 최근 세션 디렉토리를 보고, **사용자가 말한 작업명과 최근 세션명이 일치하는지 확인**한다.
+
 `-p` 없으면 전체 프로젝트에서 최신 1개 — 다른 리포 세션이 나올 수 있다.
 
 ## Workflow: "직전에 뭐했지?"
 
 ```
+Step 0: 사용자가 말한 맥락이 home/Entwurf/COS/특정 repo 담당자인지 먼저 판별
 Step 1: python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15 --source pi
-Step 2: 결과가 비었거나 짧으면 → --source all 또는 -s 3 --skip 0
-Step 3: 결과를 읽고 요약 답변
+Step 2: 출력 헤더(`═══ project [source] (file...) ═══`)와 첫 1~3개 메시지로 대상 세션이 맞는지 검증
+Step 3: 결과가 비었거나 짧으면 → --source all 또는 -s 3 --skip 0
+Step 4: 검증된 출력만 요약 답변
 ```
 
 **왜 `--source pi` 먼저?** Claude Code는 재시작마다 새 JSONL을 만들어서,
 `--source all`(기본)이면 메시지 1~2개짜리 짧은 세션으로 결과가 도배된다.
 pi 세션이 실질적인 작업 기록이므로 먼저 시도.
 
+## 답변 규칙 (중요)
+
+요약 답변에는 최소한 다음 두 줄을 포함한다.
+
+- `조회 프로젝트: <PROJECT>`
+- `대상 세션: ═══ ... ═══` 의 헤더 정보
+
+그리고 요약 내용은 **반드시 실제 출력 텍스트에만 근거**해야 한다.
+기억, 다른 세션, 비슷한 작업을 섞어 추론 요약하지 말 것.
+
+### 권장 응답 템플릿
+
+```text
+조회 프로젝트: home
+대상 세션: ═══ home [pi] (2026-04-19T23-53-12-415Z_...) ═══
+
+요약:
+- ...
+- ...
+- ...
+```
+
+헤더를 먼저 적으면, **지금 무엇을 보고 말하는지**가 답변에 고정된다.
+
+### 기대 주제와 출력이 다를 때
+
+사용자가 기대한 주제(예: denote wrapper)가 출력에 없으면, 억지로 이어붙여 요약하지 말고 먼저 이렇게 말한다.
+
+- `현재 조회된 세션에는 denote wrapper 맥락이 없습니다.`
+- `지금 출력은 모델 확인/인사 세션입니다.`
+- `원하면 -p home 또는 -s 3으로 다시 확인하겠습니다.`
+
+즉, **불일치는 실패가 아니라 신호**다. 먼저 보고하고, 그 다음 범위를 넓힌다.
+
 **하지 말 것:**
 - ❌ `read`로 세션 JSONL 직접 읽기 (50KB JSON 노이즈)
 - ❌ `session_search` 후 원본 JSONL 확인 (불필요한 중복)
 - ❌ 결과가 안 나온다고 같은 명령어를 옵션만 바꿔 5회 이상 반복
+- ❌ 스크립트 출력 헤더를 확인하지 않고 기억에 의존해 요약
+- ❌ 사용자가 말한 맥락(home/Entwurf/COS/특정 repo 담당자)을 무시하고 CWD basename만 기계적으로 사용
 
 ## Cost
 
