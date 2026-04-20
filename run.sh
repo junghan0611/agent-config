@@ -628,6 +628,12 @@ setup_npm() {
       return 1
     fi
     ok "pi-shell-acp smoke-all"
+
+    if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh smoke-continuity "$SCRIPT_DIR"); then
+      fail "pi-shell-acp: smoke-continuity (strict persisted bootstrap) failed"
+      return 1
+    fi
+    ok "pi-shell-acp smoke-continuity"
   else
     fail "pi-shell-acp: repo not found at $PI_SHELL_ACP_DIR"
     return 1
