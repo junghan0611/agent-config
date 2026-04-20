@@ -15,7 +15,6 @@
     ],
     "deny": []
   },
-  "model": "opus[1m]",
   "hooks": {},
   "enabledPlugins": {
     "commit-commands@claude-plugins-official": true,

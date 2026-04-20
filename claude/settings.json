@@ -18,6 +18,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "opus",
   "hooks": {
     "Notification": [
       {
@@ -155,9 +156,10 @@
   },
   "language": "Korean",
   "alwaysThinkingEnabled": true,
-  "voiceEnabled": true,
+  "effortLevel": "high",
   "skipDangerousModePermissionPrompt": true,
   "skipAutoPermissionPrompt": true,
-  "autoUpdates": false,
+  "voiceEnabled": true,
+  "autoUpdates": true,
   "verbose": true
 }
