@@ -386,6 +386,74 @@ TGJSON
 
 # --- ACP/MCP bridge validation ---
 
+pi_tools_bridge_require_tools() {
+  local raw="$1"
+  local backend_label="$2"
+  local tool
+
+  if [[ "$raw" == *"NOT_VISIBLE"* ]]; then
+    echo "$raw" >&2
+    fail "pi-tools-bridge: $backend_label returned NOT_VISIBLE"
+    return 1
+  fi
+
+  if [[ "$raw" != *"pi-tools-bridge"* ]] && [[ "$raw" != *"pi_tools_bridge"* ]]; then
+    echo "$raw" >&2
+    fail "pi-tools-bridge: $backend_label visibility output missing pi-tools-bridge prefix"
+    return 1
+  fi
+
+  for tool in session_search knowledge_search send_to_session delegate; do
+    if [[ "$raw" != *"$tool"* ]]; then
+      echo "$raw" >&2
+      fail "pi-tools-bridge: $backend_label missing tool $tool"
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+validate_pi_tools_bridge_backend() {
+  local backend_label="$1"
+  local model="$2"
+  local raw
+
+  if ! raw=$(cd "$SCRIPT_DIR" && pi -e "$REPOS/pi-shell-acp" --provider pi-shell-acp --model "$model" -p '지금 이 세션에서 보이는 MCP 도구 중 pi-tools-bridge 관련 도구가 있으면 정확한 도구 이름만 쉼표로 나열해. 설명 금지. 없으면 정확히 NOT_VISIBLE 만 답해.'); then
+    fail "pi-tools-bridge: $backend_label visibility smoke failed"
+    return 1
+  fi
+  pi_tools_bridge_require_tools "$raw" "$backend_label" || return 1
+  ok "pi-tools-bridge visibility via pi-shell-acp ($backend_label: $raw)"
+
+  if ! raw=$(cd "$SCRIPT_DIR" && pi -e "$REPOS/pi-shell-acp" --provider pi-shell-acp --model "$model" -p 'send_to_session 도구가 보이면 반드시 그 도구를 실제로 1회 호출해. target은 __definitely_does_not_exist__, message는 "ping", mode는 follow_up 으로 해. functions.send_input 같은 다른 도구는 절대 쓰지 마. 응답은 두 줄만: 1) TOOL:<사용한 도구명 또는 NONE> 2) RESULT:<성공/실패 핵심 메시지 한 줄>. 도구가 안 보이면 TOOL:NONE / RESULT:not visible 로만 답해.' ); then
+    fail "pi-tools-bridge: $backend_label invocation smoke failed"
+    return 1
+  fi
+
+  if [[ "$raw" != *"send_to_session"* ]]; then
+    echo "$raw" >&2
+    fail "pi-tools-bridge: $backend_label invocation did not use send_to_session"
+    return 1
+  fi
+
+  if [[ "$raw" != *"[tool:failed]"* ]] && [[ "$raw" != *"RESULT:실패"* ]] && [[ "$raw" != *"RESULT:failure"* ]]; then
+    echo "$raw" >&2
+    fail "pi-tools-bridge: $backend_label invocation did not clearly surface a failure result"
+    return 1
+  fi
+
+  if [[ "$raw" != *"No pi control socket"* ]] && \
+     [[ "$raw" != *"control socket"* ]] && \
+     [[ "$raw" != *"대상 세션"* ]] && \
+     [[ "$raw" != *"미존재"* ]]; then
+    echo "$raw" >&2
+    fail "pi-tools-bridge: $backend_label invocation did not surface the expected missing-target boundary"
+    return 1
+  fi
+  ok "pi-tools-bridge invocation via pi-shell-acp ($backend_label)"
+}
+
 validate_pi_tools_bridge() {
   local bridge_dir="$SCRIPT_DIR/mcp/pi-tools-bridge"
   local raw
@@ -429,7 +497,7 @@ function finishOk(trimmed) {
     process.exit(1);
   }
   const names = tools.map((t) => t?.name).sort();
-  const expected = ['knowledge_search', 'send_to_session', 'session_search'];
+  const expected = ['delegate', 'knowledge_search', 'send_to_session', 'session_search'];
   for (const name of expected) {
     if (!names.includes(name)) {
       console.error(`missing MCP tool: ${name}`);
@@ -486,19 +554,8 @@ JS
   fi
   ok "pi-tools-bridge test.sh"
 
-  if ! raw=$(cd "$SCRIPT_DIR" && pi -e "$REPOS/pi-shell-acp" --provider pi-shell-acp --model claude-sonnet-4-6 -p '지금 사용 가능한 MCP 관련 도구 중 session_search, knowledge_search, send_to_session 가 보이면 정확한 도구 이름만 쉼표로 나열하고, 안 보이면 정확히 NOT_VISIBLE 만 답해.'); then
-    fail "pi-tools-bridge: pi-shell-acp visibility smoke failed"
-    return 1
-  fi
-
-  if [[ "$raw" != *"mcp__pi-tools-bridge__session_search"* ]] || \
-     [[ "$raw" != *"mcp__pi-tools-bridge__knowledge_search"* ]] || \
-     [[ "$raw" != *"mcp__pi-tools-bridge__send_to_session"* ]]; then
-    echo "$raw" >&2
-    fail "pi-tools-bridge: MCP tools not visible through pi-shell-acp"
-    return 1
-  fi
-  ok "pi-tools-bridge visibility via pi-shell-acp"
+  validate_pi_tools_bridge_backend "claude" "claude-sonnet-4-6" || return 1
+  validate_pi_tools_bridge_backend "codex" "gpt-5.4" || return 1
 }
 
 # --- setup:npm — npm install for extensions/skills ---

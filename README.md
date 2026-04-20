@@ -233,7 +233,7 @@ cd agent-config
 - Symlink: Claude Code + OpenCode + Codex skills (full set including semantic-memory) + prompts
 - Symlink: ~/.local/bin PATH binaries
 - npm install for extensions and skills
-- Fail-fast validate the ACP/MCP bridge chain: `pi-shell-acp` (`typecheck` + `check-mcp` + smoke) and `mcp/pi-tools-bridge` (build + direct `tools/list` + visibility through pi)
+- Fail-fast validate the ACP/MCP bridge chain: `pi-shell-acp` (`typecheck` + `check-mcp` + dual-backend smoke) and `mcp/pi-tools-bridge` (build + direct `tools/list` + protocol tests + Claude/Codex visibility + bridged invocation smoke through pi)
 
 ## The -config Ecosystem
 
