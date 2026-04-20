@@ -445,6 +445,7 @@ validate_pi_tools_bridge_backend() {
 
   if [[ "$raw" != *"No pi control socket"* ]] && \
      [[ "$raw" != *"control socket"* ]] && \
+     [[ "$raw" != *"컨트롤 소켓"* ]] && \
      [[ "$raw" != *"대상 세션"* ]] && \
      [[ "$raw" != *"미존재"* ]]; then
     echo "$raw" >&2
@@ -634,6 +635,12 @@ setup_npm() {
       return 1
     fi
     ok "pi-shell-acp smoke-continuity"
+
+    if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh smoke-cancel "$SCRIPT_DIR"); then
+      fail "pi-shell-acp: smoke-cancel (cancel cleanup observability) failed"
+      return 1
+    fi
+    ok "pi-shell-acp smoke-cancel"
   else
     fail "pi-shell-acp: repo not found at $PI_SHELL_ACP_DIR"
     return 1

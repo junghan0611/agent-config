@@ -314,8 +314,13 @@ export async function runDelegateSync(task: string, options: DelegateSyncOptions
   let args: string[];
   if (isRemote) {
     command = "ssh";
+    const connectTimeout = Number.parseInt(process.env.PI_DELEGATE_SSH_CONNECT_TIMEOUT ?? "10", 10);
+    const sshOptions = [
+      "-o", "BatchMode=yes",
+      "-o", `ConnectTimeout=${Number.isFinite(connectTimeout) && connectTimeout > 0 ? connectTimeout : 10}`,
+    ];
     const remoteCmd = `cd ${options.cwd ?? "~"} && pi ${piArgs.map((a) => JSON.stringify(a)).join(" ")}`;
-    args = [host, remoteCmd];
+    args = [...sshOptions, host, remoteCmd];
   } else {
     command = "pi";
     args = piArgs;
