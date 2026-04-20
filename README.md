@@ -221,18 +221,19 @@ alias pi-home='command pi --session-control --telegram'
 ```bash
 git clone https://github.com/junghan0611/agent-config.git
 cd agent-config
-./run.sh setup    # clone repos + build CLIs + symlink everything + npm install
+./run.sh setup    # clone/pull repos + build CLIs + symlink everything + npm install + ACP/MCP bridge validation
 ./run.sh env      # verify: system, API keys, links, binaries, memory index
 ```
 
 `./run.sh setup` does:
-- Clone source repos (if missing) — including andenken and `pi-shell-acp`
+- Clone missing repos and fast-forward pull existing ones — including andenken and `pi-shell-acp`
 - Build 6 native CLI binaries (Go + GraalVM)
 - Symlink: pi extensions + skills (semantic-memory excluded) + themes + settings + keybindings
 - Install: andenken as pi package (compiled extension)
-- Symlink: Claude Code + OpenCode skills (full set including semantic-memory) + prompts
+- Symlink: Claude Code + OpenCode + Codex skills (full set including semantic-memory) + prompts
 - Symlink: ~/.local/bin PATH binaries
 - npm install for extensions and skills
+- Fail-fast validate the ACP/MCP bridge chain: `pi-shell-acp` (`typecheck` + `check-mcp` + smoke) and `mcp/pi-tools-bridge` (build + direct `tools/list` + visibility through pi)
 
 ## The -config Ecosystem
 

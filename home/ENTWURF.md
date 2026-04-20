@@ -65,13 +65,11 @@ There are two different agenda surfaces. Do not confuse them.
 
 ### Delegate models
 
-Default: `github-copilot/gpt-5.4`
-Alternative: `github-copilot/gemini-3.1-pro-preview`
+Default: `openai-codex/gpt-5.4`
 
-| Model          | `model=`                                | Context |
-|----------------|-----------------------------------------|---------|
-| GPT-5.4        | `github-copilot/gpt-5.4`                | 272K    |
-| Gemini 3.1 Pro | `github-copilot/gemini-3.1-pro-preview` | 128K    |
+| Model   | `model=`                  | Context |
+|---------|---------------------------|---------|
+| GPT-5.4 | `openai-codex/gpt-5.4`    | 272K    |
 
 ### Mode selection
 - **`mode: "async"`** — default for builds, tests, research, long-running work

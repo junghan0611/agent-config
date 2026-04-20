@@ -1,6 +1,6 @@
 {
-  "lastChangelogVersion": "0.67.2",
-  "defaultProvider": "github-copilot",
+  "lastChangelogVersion": "0.67.68",
+  "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.4",
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
@@ -17,6 +17,11 @@
     "settingSources": [
       "user"
     ],
-    "strictMcpConfig": false
+    "strictMcpConfig": false,
+    "mcpServers": {
+      "pi-tools-bridge": {
+        "command": "/home/junghan/repos/gh/agent-config/mcp/pi-tools-bridge/start.sh"
+      }
+    }
   }
 }

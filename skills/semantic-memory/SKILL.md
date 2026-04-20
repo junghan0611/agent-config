@@ -1,6 +1,6 @@
 ---
 name: semantic-memory
-description: "Semantic search over past sessions (pi + Claude Code, 15K+ chunks) and org-mode knowledge base (100K+ chunks). Uses Gemini Embedding 2 + LanceDB + hybrid retrieval (vector + FTS). Korean morphological analysis via Kiwi (dictcli stem) + Korean↔English cross-lingual via dictcli expand. Supports --source filter (pi|claude) for harness-specific search. Use when searching for past conversations, decisions, context, or knowledge base concepts."
+description: "Semantic search over past sessions (pi + Claude Code) and org-mode knowledge base (95K+ chunks, Qwen3-4B 2560d). Uses local embedding (ollama/vLLM) + LanceDB + hybrid retrieval (vector + FTS with score normalization). Korean morphological analysis via Kiwi (dictcli stem) + Korean↔English cross-lingual via dictcli expand. Recall tracking for memory consolidation. Use when searching for past conversations, decisions, context, or knowledge base concepts."
 ---
 
 # semantic-memory — Semantic Memory CLI
@@ -15,10 +15,11 @@ All output is JSON.
 
 1. **Semantic search** — "NixOS GPU 설정" finds "RTX 5080 cluster configuration" even without keyword overlap
 2. **Cross-lingual** — Korean "보편" finds English-tagged "universalism" notes via dictcli expand
-2.5. **Korean morphology** — "설계했다" → stem "설계" via Kiwi (dictcli stem). 동사 활용형, 존경어, 복합명사 해체. 인덱싱 시 자동 적용
-3. **Session memory** — Search past pi + Claude Code conversations, decisions, context across all projects. Filter by `--source pi` or `--source claude`
-4. **Hybrid retrieval** — Vector similarity (0.7) + BM25 full-text (0.3), with temporal decay and MMR diversity
-5. **Auto-fallback** — When session results are thin, automatically includes knowledge base results
+3. **Korean morphology** — "설계했다" → stem "설계" via Kiwi (dictcli stem). 동사 활용형, 존경어, 복합명사 해체. 인덱싱 시 자동 적용
+4. **Session memory** — Search past pi + Claude Code conversations, decisions, context across all projects. Filter by `--source pi` or `--source claude`
+5. **Hybrid retrieval** — Vector similarity (0.7) + BM25 full-text (0.3), with score normalization, temporal decay, and MMR diversity. Cross-signal agreement bonus for results found by both methods.
+6. **Auto-fallback** — When session results are thin, automatically includes knowledge base results
+7. **Recall tracking** — Every search logged to `recalls.jsonl` for memory consolidation analysis
 
 ## Commands
 
@@ -67,8 +68,9 @@ All output is JSON.
 {baseDir}/semantic-memory search-knowledge "digital garden"
 ```
 
-- Searches 3,000+ Denote org-mode notes (100K+ chunks)
-- Uses 768-dim Gemini embeddings (Matryoshka)
+- Searches 3,000+ Denote org-mode notes (95K+ chunks)
+- Uses Qwen3-Embedding-4B 2560d via ollama (local, $0)
+- Score normalization: vector + FTS on equal footing with cross-signal bonus
 - MMR diversity re-ranking enabled by default
 - Korean↔English cross-lingual via dictcli expand
 
@@ -142,9 +144,9 @@ All output is JSON.
 
 ```
 CLI (cli.ts)
-  ├── gemini-embeddings.ts  — Gemini Embedding 2 API (768/3072 dim)
+  ├── embedding-provider.ts — Provider abstraction (ollama/vLLM/Gemini) + CachingProvider
   ├── store.ts              — LanceDB vector store (search + FTS)
-  ├── retriever.ts          — Hybrid retrieval (weighted/RRF + decay + MMR)
+  ├── retriever.ts          — Hybrid retrieval (weighted/RRF + decay + MMR + score normalization)
   ├── session-indexer.ts    — Session JSONL parser
   └── org-chunker.ts        — Org-mode note chunker
 ```
@@ -157,8 +159,11 @@ Index locations:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GOOGLE_AI_API_KEY` | Yes | Gemini API key for embeddings |
-| `GEMINI_API_KEY` | Alt | Alternative env var name |
+| `ANDENKEN_PROVIDER` | Yes | `vllm` (ollama/vLLM) or `gemini` |
+| `ANDENKEN_VLLM_ENDPOINT` | vllm | Endpoint URL (e.g. `http://localhost:11434`) |
+| `ANDENKEN_VLLM_MODEL` | vllm | Model name (e.g. `qwen3-embedding:4b`) |
+| `ANDENKEN_VLLM_PRESET` | vllm | Preset (e.g. `ollama/qwen3-embedding:4b`) |
+| `GOOGLE_AI_API_KEY` | gemini | Gemini API key (fallback provider) |
 
 ## Relationship to Other Skills
 
