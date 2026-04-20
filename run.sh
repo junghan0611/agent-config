@@ -419,7 +419,7 @@ validate_pi_tools_bridge_backend() {
   local model="$2"
   local raw
 
-  if ! raw=$(cd "$SCRIPT_DIR" && pi -e "$REPOS/pi-shell-acp" --provider pi-shell-acp --model "$model" -p '지금 이 세션에서 보이는 MCP 도구 중 pi-tools-bridge 관련 도구가 있으면 정확한 도구 이름만 쉼표로 나열해. 설명 금지. 없으면 정확히 NOT_VISIBLE 만 답해.'); then
+  if ! raw=$(cd "$SCRIPT_DIR" && pi -e "$REPOS/pi-shell-acp" --provider pi-shell-acp --model "$model" -p '지금 이 세션에서 보이는 MCP 도구 중 이름에 pi-tools-bridge 또는 pi_tools_bridge 가 포함된 도구가 있으면 정확한 도구 이름만 쉼표로 나열해. 설명 금지. 없으면 정확히 NOT_VISIBLE 만 답해.'); then
     fail "pi-tools-bridge: $backend_label visibility smoke failed"
     return 1
   fi
