@@ -8,6 +8,7 @@ dist/
 !package.json
 pi-extensions/package-lock.json
 .beads
+.codex
 # benchmark-log.jsonl — 공개 추적
 
 # Go CLI binaries (built from source repos, copied by run.sh setup)
@@ -33,6 +34,10 @@ home/PRIVATE.md
 # pi runtime artifacts
 .pi/
 .mcp.json
+
+# ACP/MCP subpackage build artifacts
+mcp/pi-tools-bridge/node_modules/
+mcp/pi-tools-bridge/dist/
 
 # Python cache artifacts
 __pycache__/

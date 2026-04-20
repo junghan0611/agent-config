@@ -1,7 +1,7 @@
 # agent-config — AGENTS.md
 
 ```bash
-./run.sh setup    # one-command: clone + build + link + npm — reproducible on any device
+./run.sh setup    # one-command: clone/pull + build + link + npm + ACP/MCP validation — reproducible on any device
 ```
 
 > **MEMORY.md** — 세션을 넘어 기억할 결정·교훈·주의사항. 새 세션 시작 시 반드시 읽을 것.
@@ -193,6 +193,28 @@ Instead:
 ## Extensions
 
 Located in `./pi-extensions/`. Loaded by pi runtime, registering tools + commands.
+
+### ACP/MCP bridge layout inside this repo
+
+This repo keeps the pi-native surface and the ACP-facing MCP adapter **together in one project**.
+Do not split them mentally into separate repos unless there is a very strong reason.
+
+- `pi-extensions/` — pi-native extensions loaded by pi runtime
+- `pi-extensions/lib/` — shared internal TypeScript modules used by multiple extension/MCP surfaces
+  - current example: `delegate-core.ts`
+  - purpose: one implementation, multiple surfaces (`delegate.ts` and MCP adapter)
+- `mcp/pi-tools-bridge/` — stdio MCP adapter package that exposes selected pi tools to ACP hosts through explicit `mcpServers` wiring
+  - this is a **subpackage inside agent-config**, not an independent repo
+  - keep it thin and explicit; no ambient tool promotion
+  - if its design rules matter, record them here in the root `AGENTS.md`, not in a nested `AGENTS.md`
+
+Repository hygiene for this layout:
+- commit source files under `mcp/pi-tools-bridge/` and `pi-extensions/lib/`
+- do **not** commit `mcp/pi-tools-bridge/node_modules/` or `mcp/pi-tools-bridge/dist/`
+- root `.gitignore` should guard generated artifacts even if the subpackage has its own `.gitignore`
+- when changing shared delegate logic, verify both surfaces that consume it
+  - pi-native: `pi-extensions/delegate.ts`
+  - MCP-facing: `mcp/pi-tools-bridge/`
 
 ### semantic-memory → [andenken](https://github.com/junghan0611/andenken)
 

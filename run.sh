@@ -30,12 +30,39 @@ warn() { echo "  ⚠ $*"; }
 fail() { echo "  ❌ $*"; }
 section() { echo ""; echo "=== $* ==="; }
 
-# Ensure git repo exists — clone if missing
+# Ensure git repo exists — clone if missing, otherwise fetch + fast-forward pull
+sync_repo_checkout() {
+  local dir=$1 name=$2
+
+  if [ ! -d "$dir/.git" ]; then
+    fail "$name: expected git repo at $dir"
+    return 1
+  fi
+
+  log "$name: updating..."
+  (
+    cd "$dir"
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+      echo "$name: working tree not clean; commit/stash before ./run.sh setup" >&2
+      exit 1
+    fi
+    git fetch --all --prune
+    local upstream
+    upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)
+    if [ -z "$upstream" ]; then
+      echo "$name: no upstream configured; cannot fast-forward pull during setup" >&2
+      exit 1
+    fi
+    git pull --ff-only
+  )
+  ok "$name: up to date"
+}
+
 ensure_repo() {
   local name=$1 url=$2
   local dir="$REPOS/$name"
   if [ -d "$dir" ]; then
-    log "$name: exists"
+    sync_repo_checkout "$dir" "$name"
   else
     log "$name: cloning..."
     git clone "$url" "$dir"
@@ -48,7 +75,7 @@ ensure_repo_at() {
   local dir="$base_dir/$name"
   mkdir -p "$base_dir"
   if [ -d "$dir" ]; then
-    log "$name: exists"
+    sync_repo_checkout "$dir" "$name"
   else
     log "$name: cloning..."
     git clone "$url" "$dir"
@@ -161,9 +188,15 @@ setup_build() {
   ok "lifetract $(du -h "$SKILLS_DIR/lifetract/lifetract" | cut -f1)"
 
   log "--- gog (junghan0611/gogcli fork) ---"
-  ensure_repo gogcli https://github.com/junghan0611/gogcli.git
+  # gogcli는 로컬 수정본 + feature 브랜치(feat/searchconsole) 워크플로우.
+  # upstream sync는 사용자가 직접 수행 — setup에서는 클론 유무만 확인하고 빌드만 한다.
+  if [ ! -d "$REPOS/gogcli/.git" ]; then
+    log "gogcli: cloning (first time only)..."
+    git clone https://github.com/junghan0611/gogcli.git "$REPOS/gogcli"
+  else
+    log "gogcli: skip auto-sync (local fork — run pull manually in $REPOS/gogcli)"
+  fi
   if [ -d "$REPOS/gogcli" ]; then
-    (cd "$REPOS/gogcli" && git checkout feat/searchconsole 2>/dev/null || true)
     go_build "$REPOS/gogcli/cmd/gog" "$SKILLS_DIR/gogcli/gog"
     ok "gog $(du -h "$SKILLS_DIR/gogcli/gog" | cut -f1)"
   else
@@ -208,6 +241,13 @@ setup_links() {
     [ -f "$ext_file" ] || continue
     ensure_link "$ext_file" "$HOME/.pi/agent/extensions/$(basename "$ext_file")"
   done
+
+  # Shared helper modules used by extensions (e.g. delegate.ts imports ./lib/delegate-core.js).
+  # Node ESM preserves symlinks, so relative imports resolve against ~/.pi/agent/extensions/,
+  # not the realpath — the lib/ directory must be visible there.
+  if [ -d "$SCRIPT_DIR/pi-extensions/lib" ]; then
+    ensure_link "$SCRIPT_DIR/pi-extensions/lib" "$HOME/.pi/agent/extensions/lib"
+  fi
 
   # control.ts: formerly from 3rd-party agent-stuff, now managed in agent-config/pi-extensions/
   # (2026-04-13: forked with targetSessionId fallback + gcStaleSockets)
@@ -344,6 +384,123 @@ TGJSON
   return 0
 }
 
+# --- ACP/MCP bridge validation ---
+
+validate_pi_tools_bridge() {
+  local bridge_dir="$SCRIPT_DIR/mcp/pi-tools-bridge"
+  local raw
+
+  if [ ! -f "$bridge_dir/package.json" ]; then
+    fail "pi-tools-bridge: repo content missing at $bridge_dir"
+    return 1
+  fi
+
+  log "pi-tools-bridge: install + build + validate..."
+
+  if ! (cd "$bridge_dir" && npm install --silent); then
+    fail "pi-tools-bridge: npm install failed"
+    return 1
+  fi
+  ok "pi-tools-bridge npm install"
+
+  if ! (cd "$bridge_dir" && npm run build); then
+    fail "pi-tools-bridge: build failed"
+    return 1
+  fi
+  ok "pi-tools-bridge build"
+
+  if ! raw=$(cd "$bridge_dir" && node --input-type=module <<'JS'
+import { spawn } from 'node:child_process';
+
+const child = spawn('./start.sh');
+let stdout = '';
+let stderr = '';
+let done = false;
+
+function finishOk(trimmed) {
+  if (done) return;
+  done = true;
+  clearTimeout(timer);
+  if (stderr.trim()) console.error(stderr.trim());
+  const msg = JSON.parse(trimmed);
+  const tools = msg?.result?.tools;
+  if (!Array.isArray(tools)) {
+    console.error('tools/list response missing result.tools');
+    process.exit(1);
+  }
+  const names = tools.map((t) => t?.name).sort();
+  const expected = ['knowledge_search', 'send_to_session', 'session_search'];
+  for (const name of expected) {
+    if (!names.includes(name)) {
+      console.error(`missing MCP tool: ${name}`);
+      process.exit(1);
+    }
+  }
+  console.log(names.join(','));
+  child.kill('SIGTERM');
+  process.exit(0);
+}
+
+child.stdout.on('data', (d) => {
+  stdout += d.toString();
+  const trimmed = stdout.trim();
+  if (trimmed) finishOk(trimmed);
+});
+child.stderr.on('data', (d) => { stderr += d.toString(); });
+child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }) + '\n');
+
+const timer = setTimeout(() => {
+  child.kill('SIGKILL');
+  console.error('pi-tools-bridge direct smoke timeout');
+  process.exit(1);
+}, 3000);
+
+child.on('error', (err) => {
+  if (done) return;
+  clearTimeout(timer);
+  console.error(String(err));
+  process.exit(1);
+});
+
+child.on('close', () => {
+  if (done) return;
+  clearTimeout(timer);
+  const trimmed = stdout.trim();
+  if (!trimmed) {
+    if (stderr.trim()) console.error(stderr.trim());
+    console.error('empty tools/list response');
+    process.exit(1);
+  }
+  finishOk(trimmed);
+});
+JS
+  ); then
+    fail "pi-tools-bridge: direct MCP smoke failed"
+    return 1
+  fi
+  ok "pi-tools-bridge direct MCP smoke ($raw)"
+
+  if ! (cd "$bridge_dir" && ./test.sh >/dev/null); then
+    fail "pi-tools-bridge: protocol/negative-path tests failed"
+    return 1
+  fi
+  ok "pi-tools-bridge test.sh"
+
+  if ! raw=$(cd "$SCRIPT_DIR" && pi -e "$REPOS/pi-shell-acp" --provider pi-shell-acp --model claude-sonnet-4-6 -p '지금 사용 가능한 MCP 관련 도구 중 session_search, knowledge_search, send_to_session 가 보이면 정확한 도구 이름만 쉼표로 나열하고, 안 보이면 정확히 NOT_VISIBLE 만 답해.'); then
+    fail "pi-tools-bridge: pi-shell-acp visibility smoke failed"
+    return 1
+  fi
+
+  if [[ "$raw" != *"mcp__pi-tools-bridge__session_search"* ]] || \
+     [[ "$raw" != *"mcp__pi-tools-bridge__knowledge_search"* ]] || \
+     [[ "$raw" != *"mcp__pi-tools-bridge__send_to_session"* ]]; then
+    echo "$raw" >&2
+    fail "pi-tools-bridge: MCP tools not visible through pi-shell-acp"
+    return 1
+  fi
+  ok "pi-tools-bridge visibility via pi-shell-acp"
+}
+
 # --- setup:npm — npm install for extensions/skills ---
 
 setup_npm() {
@@ -377,19 +534,50 @@ setup_npm() {
   # pi-shell-acp (ACP bridge provider)
   local PI_SHELL_ACP_DIR="$REPOS/pi-shell-acp"
   if [ -f "$PI_SHELL_ACP_DIR/package.json" ]; then
-    log "pi-shell-acp: installing..."
-    if (cd "$PI_SHELL_ACP_DIR" && npm install --silent); then
-      ok "pi-shell-acp"
-      if (cd "$PI_SHELL_ACP_DIR" && ./run.sh sync-auth); then
-        ok "pi-shell-acp auth alias"
-      else
-        warn "pi-shell-acp: auth sync skipped/failed"
-      fi
-    else
+    log "pi-shell-acp: install + validate..."
+
+    if ! (cd "$PI_SHELL_ACP_DIR" && npm install --silent); then
       fail "pi-shell-acp: npm install failed"
+      return 1
     fi
+    ok "pi-shell-acp npm install"
+
+    if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh sync-auth); then
+      fail "pi-shell-acp: auth sync failed"
+      return 1
+    fi
+    ok "pi-shell-acp auth alias"
+
+    if ! (cd "$PI_SHELL_ACP_DIR" && npm run typecheck); then
+      fail "pi-shell-acp: typecheck failed"
+      return 1
+    fi
+    ok "pi-shell-acp typecheck"
+
+    if ! (cd "$PI_SHELL_ACP_DIR" && npm run check-mcp); then
+      fail "pi-shell-acp: check-mcp failed"
+      return 1
+    fi
+    ok "pi-shell-acp check-mcp"
+
+    if ! (cd "$PI_SHELL_ACP_DIR" && npm run check-backends); then
+      fail "pi-shell-acp: check-backends failed"
+      return 1
+    fi
+    ok "pi-shell-acp check-backends"
+
+    if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh smoke-all "$SCRIPT_DIR"); then
+      fail "pi-shell-acp: smoke-all failed"
+      return 1
+    fi
+    ok "pi-shell-acp smoke-all"
   else
-    warn "pi-shell-acp: repo not found at $PI_SHELL_ACP_DIR"
+    fail "pi-shell-acp: repo not found at $PI_SHELL_ACP_DIR"
+    return 1
+  fi
+
+  if ! validate_pi_tools_bridge; then
+    return 1
   fi
 
   # pi-telegram (production Telegram bridge by pi author)
@@ -472,7 +660,7 @@ setup_all() {
   echo "  Binaries: $pass/$total"
   echo "  Skills:   $(find "$SKILLS_DIR" -name "SKILL.md" | wc -l)"
   echo "  Arch:     $ARCH"
-  echo "  Claude in pi (default): pi-shell-acp via ACP (pi-claude-code-use disabled)"
+  echo "  Claude in pi (default): pi-shell-acp via ACP + pi-tools-bridge MCP"
   echo "  Pi ext:   $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo 'not linked')"
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null && echo ' + skills' || echo 'not linked')"
