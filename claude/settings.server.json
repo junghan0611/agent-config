@@ -15,6 +15,10 @@
     ],
     "deny": []
   },
+  "statusLine": {
+    "type": "command",
+    "command": "/home/junghan/.claude/statusline.sh"
+  },
   "hooks": {},
   "enabledPlugins": {
     "commit-commands@claude-plugins-official": true,
@@ -34,8 +38,8 @@
   },
   "language": "Korean",
   "alwaysThinkingEnabled": true,
-  "effortLevel": "medium",
-  "voiceEnabled": false,
+  "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
+  "voiceEnabled": false,
   "verbose": true
 }
