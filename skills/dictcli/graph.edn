@@ -1,7 +1,7 @@
 ;; graph.edn — 힣의 어휘 연결체
 ;; 형식: [entity relation value]
-;; 생성: 2026-04-17T14:16:56.829271985
-;; 트리플: 3977개
+;; 생성: 2026-04-21T09:26:02.182355451
+;; 트리플: 3989개
 
 [
  ["보편" :trans "universal"]
@@ -3981,4 +3981,16 @@
  ["바네바부시" :trans "vannevarbush"]
  ["바네바" :related "바네바부시"]
  ["바네바부시" :related "바네바"]
+ ["정보철학" :related "정보"]
+ ["정보" :related "정보철학"]
+ ["정보철학" :related "철학"]
+ ["철학" :related "정보철학"]
+ ["정보이론" :related "정보"]
+ ["정보" :related "정보이론"]
+ ["정보이론" :related "이론"]
+ ["이론" :related "정보이론"]
+ ["분석철학" :related "분석"]
+ ["분석" :related "분석철학"]
+ ["분석철학" :related "철학"]
+ ["철학" :related "분석철학"]
 ]

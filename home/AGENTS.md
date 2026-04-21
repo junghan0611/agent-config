@@ -169,6 +169,9 @@ delegate(cwd: "~/repos/gh/nixos-config", task: "...")
 - **Compound words**: concatenate. `doomemacs`, `orgmode`, `nixos`, `digitalgarden`.
 - **Splitting OK**: `doom` + `emacs` as two tags is fine. Deliberate splitting creates serendipity.
 - **Singular**: `agent` ✅ `agents` ❌, `llm` ✅ `llms` ❌, `tag` ✅ `tags` ❌
+- **Retrieval-first rule**: when choosing English tags, prefer **magnet words / atomic concepts** over long fused names. `information`, `ethics`, `philosophy` is usually better than one long tag like `philosophyofinformation`. English person/work names and long phrases belong primarily in the **title**, `#+description:`, or an upper body section like `English Names / Retrieval`, not only in filetags.
+- **Name-in-title rule**: if a person/work/organization name is removed from filetags but still matters for search, put the canonical English form directly in the **title** as well. Bilingual title surfaces like `@제프베이조스 @JeffBezos ...`, `@마리오제크너 @mariozechner ...` are valid. This is especially important when Korean transliteration is unstable (`카너먼/캐너먼`, etc.).
+- **Proper noun exception**: use a fused proper-name tag only when it is already part of the garden ecology or clearly the best retrieval handle. Otherwise prefer concept words that can connect unexpectedly across notes.
 - Examples: `:commit:nixos:botlog:` ✅ / `:doom-emacs:` ❌ / `:org_mode:` ❌
 
 **Header template**:
