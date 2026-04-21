@@ -18,7 +18,6 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus",
   "hooks": {
     "Notification": [
       {
@@ -161,5 +160,6 @@
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
   "autoUpdates": true,
-  "verbose": true
+  "verbose": true,
+  "model": "opus"
 }
