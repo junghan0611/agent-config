@@ -555,8 +555,11 @@ JS
   fi
   ok "pi-tools-bridge test.sh"
 
-  validate_pi_tools_bridge_backend "claude" "claude-sonnet-4-6" || return 1
-  validate_pi_tools_bridge_backend "codex" "gpt-5.4" || return 1
+  # Qualified model ids here: the validation routes through pi-shell-acp explicitly.
+  # The prefix stays redundant with the function's internal `--provider pi-shell-acp`
+  # pin, but it documents intent at the call site.
+  validate_pi_tools_bridge_backend "claude" "pi-shell-acp/claude-sonnet-4-6" || return 1
+  validate_pi_tools_bridge_backend "codex" "pi-shell-acp/gpt-5.4" || return 1
 }
 
 # --- setup:npm — npm install for extensions/skills ---

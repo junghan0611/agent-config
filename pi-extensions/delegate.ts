@@ -157,7 +157,7 @@ async function runDelegateAsync(
     "--session", sessionFile,
   ];
   if (explicitExtensions.provider) piArgs.push("--provider", explicitExtensions.provider);
-  piArgs.push("--model", effectiveModel);
+  piArgs.push("--model", explicitExtensions.modelOverride ?? effectiveModel);
   piArgs.push(enrichedTask);
 
   const parentSessionId = process.env.PI_SESSION_ID;
@@ -343,7 +343,8 @@ export default function (pi: ExtensionAPI) {
       "Use delegate for tasks that should run in isolation — different cwd, different machine, or resource-intensive work.",
       "For SSH remote: set host to SSH config name (e.g., 'gpu1i'). The remote must have pi installed.",
       "mode='sync' (default): Wait for completion, return result. Use for quick checks, git status, simple commands.",
-      "Default delegate model: openai-codex/gpt-5.4.",
+      "Default delegate model: openai-codex/gpt-5.4. Qualified-id convention: pi-shell-acp/claude-sonnet-4-6 for Claude via ACP bridge, openai-codex/gpt-5.4 for direct Codex.",
+      "Claude delegates are always routed through pi-shell-acp (the provider bridge). Codex delegates go direct through the openai-codex provider by default; set PI_DELEGATE_ACP_FOR_CODEX=1 in the environment to opt-in to routing Codex through pi-shell-acp as well (delegate-core normalizes openai-codex/gpt-5.4 → gpt-5.4 before spawning).",
       "mode='async': Spawn and return immediately. Get notified on completion. Use delegate_status to check progress.",
       "async delegates save sessions — use delegate_status to check, or resume later.",
       "When a task involves research, analysis, writing, or anything that takes more than a few seconds → use async.",
@@ -359,7 +360,7 @@ export default function (pi: ExtensionAPI) {
         Type.String({ description: "Working directory for the delegate" }),
       ),
       model: Type.Optional(
-        Type.String({ description: "Model override (default: 'openai-codex/gpt-5.4'). e.g., 'openai-codex/gpt-5.4'" }),
+        Type.String({ description: "Model override (default: 'openai-codex/gpt-5.4'). Qualified forms recommended: 'pi-shell-acp/claude-sonnet-4-6' (Claude via ACP), 'openai-codex/gpt-5.4' (direct Codex). For Codex via pi-shell-acp, set PI_DELEGATE_ACP_FOR_CODEX=1." }),
       ),
       mode: Type.Optional(
         Type.Union([Type.Literal("sync"), Type.Literal("async")], {
@@ -665,7 +666,7 @@ export default function (pi: ExtensionAPI) {
         ...explicitExtensions.args,
       ];
       if (explicitExtensions.provider) piArgs.push("--provider", explicitExtensions.provider);
-      piArgs.push("--model", resumeModel, "--session", sessionFile, params.prompt);
+      piArgs.push("--model", explicitExtensions.modelOverride ?? resumeModel, "--session", sessionFile, params.prompt);
 
       let command: string;
       let args: string[];

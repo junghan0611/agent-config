@@ -14,7 +14,19 @@
  *   - sync execution (spawn pi, collect message_end events, return summary)
  *   - local and SSH-remote hosts
  *   - project-context injection (cwd/AGENTS.md)
- *   - explicit compat extension resolution for claude-* models (pi-shell-acp etc.)
+ *   - explicit compat extension resolution for Claude models + opt-in Codex ACP routing
+ *
+ * Provider bridge routing contract:
+ *   - Claude models (claude-*)            — always routed through pi-shell-acp.
+ *     If pi-shell-acp can't be resolved, falls back to pi-claude-code-use, then warns.
+ *   - Codex models (openai-codex/*, gpt-5*) — default is the direct openai-codex provider.
+ *     Opt-in via env var `PI_DELEGATE_ACP_FOR_CODEX=1` routes Codex through pi-shell-acp,
+ *     in which case `normalizeCodexDelegateModelForAcp()` strips the `openai-codex/`
+ *     prefix because the bridge forwards the model id verbatim to codex-acp, which
+ *     only accepts the bare backend id (e.g. `gpt-5.4`) on ChatGPT accounts.
+ *
+ * The `modelOverride` return field communicates this normalization to the caller so
+ * the spawned pi --model matches what the downstream ACP backend expects.
  */
 
 import { spawn } from "node:child_process";
@@ -31,6 +43,7 @@ const AGENT_DIR = path.join(os.homedir(), ".pi", "agent");
 const PI_SETTINGS_PATH = path.join(AGENT_DIR, "settings.json");
 const SESSIONS_BASE = path.join(AGENT_DIR, "sessions");
 export const DEFAULT_DELEGATE_MODEL = "openai-codex/gpt-5.4";
+export const DELEGATE_CODEX_ACP_ENV = "PI_DELEGATE_ACP_FOR_CODEX";
 
 // ============================================================================
 // Types
@@ -100,6 +113,24 @@ export function resolveDelegateModel(model?: string): string {
 
 export function isClaudeModel(model?: string): boolean {
   return typeof model === "string" && /(^|\/)claude-/.test(model);
+}
+
+export function isCodexModel(model?: string): boolean {
+  if (typeof model !== "string") return false;
+  const trimmed = model.trim();
+  if (!trimmed) return false;
+
+  const [provider, basename = trimmed] = trimmed.includes("/") ? trimmed.split("/", 2) : ["", trimmed];
+  return provider === "openai-codex" || /^gpt-5([.-]|$)/.test(basename) || basename.includes("codex");
+}
+
+export function shouldRouteCodexViaAcp(model?: string): boolean {
+  return isCodexModel(model) && process.env[DELEGATE_CODEX_ACP_ENV] === "1";
+}
+
+export function normalizeCodexDelegateModelForAcp(model?: string): string | undefined {
+  if (!isCodexModel(model) || typeof model !== "string") return model;
+  return model.startsWith("openai-codex/") ? model.slice("openai-codex/".length) : model;
 }
 
 // ============================================================================
@@ -179,7 +210,7 @@ export function analyzeSessionFileLike(sessionFile: string): SessionAnalysis {
 }
 
 // ============================================================================
-// Explicit compat extensions (claude-* models need a provider bridge)
+// Explicit compat extensions (Claude + opt-in Codex ACP bridge routing)
 // ============================================================================
 
 function resolveConfiguredPackageSource(packageNeedle: string): string | null {
@@ -230,29 +261,44 @@ function resolveExplicitExtensionSpec(packageNeedle: string): ExplicitExtensionS
 export function getDelegateExplicitExtensions(
   model: string | undefined,
   isRemote: boolean,
-): { args: string[]; names: string[]; warnings: string[]; provider?: string } {
+): { args: string[]; names: string[]; warnings: string[]; provider?: string; modelOverride?: string } {
   const args: string[] = [];
   const names: string[] = [];
   const warnings: string[] = [];
 
-  if (!isClaudeModel(model)) return { args, names, warnings };
+  const wantsClaudeBridge = isClaudeModel(model);
+  const wantsCodexBridge = shouldRouteCodexViaAcp(model);
+  if (!wantsClaudeBridge && !wantsCodexBridge) return { args, names, warnings };
 
   const acpBridge = resolveExplicitExtensionSpec("pi-shell-acp");
   if (acpBridge) {
     args.push("-e", isRemote ? acpBridge.remotePath : acpBridge.localPath);
     names.push(acpBridge.name);
-    return { args, names, warnings, provider: "pi-shell-acp" };
+    return {
+      args,
+      names,
+      warnings,
+      provider: "pi-shell-acp",
+      modelOverride: wantsCodexBridge ? normalizeCodexDelegateModelForAcp(model) : undefined,
+    };
   }
 
-  const compat = resolveExplicitExtensionSpec("pi-claude-code-use");
-  if (compat) {
-    args.push("-e", isRemote ? compat.remotePath : compat.localPath);
-    names.push(compat.name);
+  if (wantsClaudeBridge) {
+    const compat = resolveExplicitExtensionSpec("pi-claude-code-use");
+    if (compat) {
+      args.push("-e", isRemote ? compat.remotePath : compat.localPath);
+      names.push(compat.name);
+      return { args, names, warnings };
+    }
+
+    warnings.push(
+      "Claude delegate requested but pi-shell-acp could not be resolved. Claude delegates may fail without an explicit provider bridge.",
+    );
     return { args, names, warnings };
   }
 
   warnings.push(
-    "Claude delegate requested but pi-shell-acp could not be resolved. Claude delegates may fail without an explicit provider bridge.",
+    `Codex delegate requested with ${DELEGATE_CODEX_ACP_ENV}=1 but pi-shell-acp could not be resolved. Codex delegates will fall back to the default provider path.`,
   );
   return { args, names, warnings };
 }
@@ -307,7 +353,7 @@ export async function runDelegateSync(task: string, options: DelegateSyncOptions
     sessionFile,
   ];
   if (explicitExtensions.provider) piArgs.push("--provider", explicitExtensions.provider);
-  piArgs.push("--model", effectiveModel);
+  piArgs.push("--model", explicitExtensions.modelOverride ?? effectiveModel);
   piArgs.push(enrichedTask);
 
   let command: string;

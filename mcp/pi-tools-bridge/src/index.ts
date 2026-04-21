@@ -3,14 +3,22 @@
  *
  * Registered only via piShellAcpProvider.mcpServers in pi settings. No ambient discovery.
  *
- * Phase-1 scope:
+ * Phase-1 scope (currently exposed):
  *   - session_search   → andenken cli.js search-sessions
  *   - knowledge_search → andenken cli.js search-knowledge
  *   - send_to_session  → pi control.ts Unix-socket RPC
- *   - delegate         → pi-extensions/lib/delegate-core (sync-only; single source of truth)
+ *   - delegate         → pi-extensions/lib/delegate-core (sync mode only; single source of truth)
  *
  * Phase-2 (deferred; separate design pass required):
  *   - delegate_status, delegate_resume, list_sessions
+ *   - async mode for delegate (requires taskId tracking + completion notification that MCP
+ *     currently has no surface for)
+ *
+ * Model routing for delegate:
+ *   - Claude (`claude-*`) is always routed through pi-shell-acp.
+ *   - Codex (`openai-codex/*`, `gpt-5*`) goes through the built-in openai-codex provider
+ *     by default; opt-in env var `PI_DELEGATE_ACP_FOR_CODEX=1` on this MCP server routes it
+ *     through pi-shell-acp (with model id normalization handled by delegate-core).
  *
  * Principles:
  *   - explicit forwarding, no dynamic tool discovery
@@ -293,15 +301,30 @@ server.tool(
 
 server.tool(
   "delegate",
-  "Delegate a task to an independent pi agent process (sync). Spawns a fresh pi -p run, " +
-    "waits for completion, returns stdout + turns + cost. Use for isolated work (different cwd, " +
-    "different machine via SSH, or resource-intensive jobs) where you want the result inline. " +
-    `Default model: ${DEFAULT_DELEGATE_MODEL}.`,
+  "Delegate a task to an independent pi agent process (sync mode only — Phase-1 MCP scope). " +
+    "Spawns a fresh pi -p run, waits for completion, returns stdout + turns + cost. Use for " +
+    "isolated work (different cwd, different machine via SSH, or resource-intensive jobs) " +
+    "where you want the result inline. " +
+    "For async spawn / taskId tracking / delegate_status / delegate_resume, use the pi native " +
+    "surface (pi-extensions/delegate.ts) directly — those are deferred to Phase-2 and not yet " +
+    "exposed here. " +
+    "Claude delegates are always routed through pi-shell-acp. Codex delegates go through the " +
+    "built-in openai-codex provider by default; set PI_DELEGATE_ACP_FOR_CODEX=1 in this MCP " +
+    "server's environment to route Codex through pi-shell-acp (delegate-core normalizes the " +
+    "model id, e.g. openai-codex/gpt-5.4 → gpt-5.4, before handing to the bridge). " +
+    `Default model: ${DEFAULT_DELEGATE_MODEL}. Recommended qualified forms: ` +
+    "pi-shell-acp/claude-sonnet-4-6 for Claude, openai-codex/gpt-5.4 for Codex.",
   {
     task: z.string().min(1).describe("The task to delegate (plain text prompt)"),
     host: z.string().min(1).optional().describe("SSH host name (omit or 'local' for local)"),
     cwd: z.string().min(1).optional().describe("Working directory for the delegate"),
-    model: z.string().min(1).optional().describe("Model override (e.g., openai-codex/gpt-5.4)"),
+    model: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Model override. Prefer qualified: pi-shell-acp/claude-sonnet-4-6 or openai-codex/gpt-5.4.",
+      ),
   },
   async ({ task, host, cwd, model }) => {
     try {
