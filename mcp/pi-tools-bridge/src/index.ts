@@ -1,20 +1,36 @@
 /**
- * pi-tools-bridge — MCP adapter exposing selected pi-side tools to Claude Code.
+ * pi-tools-bridge — MCP adapter exposing selected pi-side tools to ACP hosts.
  *
- * Registered only via piShellAcpProvider.mcpServers in pi settings. No ambient discovery.
+ * Ownership: this adapter lives inside `agent-config` (the consuming harness).
+ * It is NOT part of `pi-shell-acp` (the thin bridge product). Do not move it
+ * into the bridge repo — see agent-config/AGENTS.md "Two-Repo Contract" and
+ * pi-shell-acp/README.md "Product boundary".
  *
- * Phase-1 scope (currently exposed):
+ * Wiring: registered only via piShellAcpProvider.mcpServers in pi settings.
+ * No ambient discovery. The bridge never auto-promotes pi extension tools.
+ *
+ * Phase-1 (currently exposed):
  *   - session_search   → andenken cli.js search-sessions
  *   - knowledge_search → andenken cli.js search-knowledge
  *   - send_to_session  → pi control.ts Unix-socket RPC
- *   - delegate         → pi-extensions/lib/delegate-core (sync mode only; single source of truth)
+ *   - delegate         → pi-extensions/lib/delegate-core (sync mode only)
  *
- * Phase-2 (deferred; separate design pass required):
- *   - delegate_status, delegate_resume, list_sessions
- *   - async mode for delegate (requires taskId tracking + completion notification that MCP
- *     currently has no surface for)
+ * Phase-2a (this round, additive):
+ *   - list_sessions    — active pi control sockets only (see control.ts getLiveSessions)
+ *   - delegate_resume  — saved delegate session revival by taskId (sync only)
  *
- * Model routing for delegate:
+ * Phase-2b deferred to a separate design round:
+ *   - delegate_status + mode=async — couples with completion-notification contract that MCP
+ *     currently has no surface for; design after the resume contract has settled in use.
+ *
+ * Layer separation (PM-mandated, do not blur):
+ *   - list_sessions     = active control-socket discovery (control.ts world)
+ *   - delegate_resume   = saved delegate-session revival (delegate.ts world)
+ *   These are different lookup layers with different sources of truth. delegate_resume
+ *   must NOT depend on a live control socket; the original delegate process may be dead
+ *   and that is the normal case.
+ *
+ * Model routing (delegate + delegate_resume):
  *   - Claude (`claude-*`) is always routed through pi-shell-acp.
  *   - Codex (`openai-codex/*`, `gpt-5*`) goes through the built-in openai-codex provider
  *     by default; opt-in env var `PI_DELEGATE_ACP_FOR_CODEX=1` on this MCP server routes it
@@ -39,6 +55,7 @@ import * as process from "node:process";
 
 import {
   runDelegateSync,
+  runDelegateResumeSync,
   formatSyncSummary,
   DEFAULT_DELEGATE_MODEL,
 } from "../../../pi-extensions/lib/delegate-core.js";
@@ -208,6 +225,90 @@ function rpcCall(socketPath: string, payload: Record<string, unknown>): Promise<
 }
 
 // ============================================================================
+// Live control-socket discovery (for list_sessions)
+//
+// PM-mandated layer separation: this is the *active* control-socket world
+// (~/.pi/session-control/*.sock). It is NOT used by delegate_resume — that
+// layer lives over saved delegate session JSONL files in ~/.pi/agent/sessions
+// and must not depend on a live socket.
+// ============================================================================
+
+interface LiveSessionInfo {
+  sessionId: string;
+  name?: string;
+  aliases: string[];
+  socketPath: string;
+}
+
+const SOCKET_PROBE_TIMEOUT_MS = 300;
+
+async function isSocketAlive(socketPath: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const conn = net.createConnection(socketPath);
+    const timer = setTimeout(() => {
+      conn.destroy();
+      resolve(false);
+    }, SOCKET_PROBE_TIMEOUT_MS);
+    conn.once("connect", () => {
+      clearTimeout(timer);
+      conn.end();
+      resolve(true);
+    });
+    conn.once("error", () => {
+      clearTimeout(timer);
+      resolve(false);
+    });
+  });
+}
+
+async function readAliasMap(): Promise<Map<string, string[]>> {
+  const aliasMap = new Map<string, string[]>();
+  const entries = await fs.readdir(CONTROL_DIR, { withFileTypes: true }).catch(() => []);
+  for (const entry of entries) {
+    if (!entry.isSymbolicLink()) continue;
+    if (!entry.name.endsWith(".alias")) continue;
+    const aliasPath = path.join(CONTROL_DIR, entry.name);
+    let target: string;
+    try {
+      target = await fs.readlink(aliasPath);
+    } catch {
+      continue;
+    }
+    const resolvedTarget = path.resolve(CONTROL_DIR, target);
+    const aliasName = entry.name.slice(0, -".alias".length);
+    const list = aliasMap.get(resolvedTarget);
+    if (list) list.push(aliasName);
+    else aliasMap.set(resolvedTarget, [aliasName]);
+  }
+  return aliasMap;
+}
+
+async function getLiveSessions(): Promise<LiveSessionInfo[]> {
+  try {
+    await fs.access(CONTROL_DIR);
+  } catch {
+    return [];
+  }
+  const entries = await fs.readdir(CONTROL_DIR, { withFileTypes: true }).catch(() => []);
+  const aliasMap = await readAliasMap();
+  const sessions: LiveSessionInfo[] = [];
+
+  for (const entry of entries) {
+    if (!entry.name.endsWith(SOCKET_SUFFIX)) continue;
+    if (entry.isSymbolicLink()) continue;
+    const socketPath = path.join(CONTROL_DIR, entry.name);
+    if (!(await isSocketAlive(socketPath))) continue;
+    const sessionId = entry.name.slice(0, -SOCKET_SUFFIX.length);
+    if (!sessionId || sessionId.includes("/")) continue;
+    const aliases = aliasMap.get(socketPath) ?? [];
+    sessions.push({ sessionId, name: aliases[0], aliases, socketPath });
+  }
+
+  sessions.sort((a, b) => (a.name ?? a.sessionId).localeCompare(b.name ?? b.sessionId));
+  return sessions;
+}
+
+// ============================================================================
 // Helpers
 // ============================================================================
 
@@ -279,7 +380,8 @@ server.tool(
 server.tool(
   "send_to_session",
   "Send a message to another running pi session via its control socket. " +
-    "Target by sessionId or alias name. Requires the target pi to have been launched with --session-control.",
+    "Target by sessionId or alias name. Requires the target pi to have been launched with --session-control. " +
+    "Use list_sessions first if you need to discover what targets are reachable.",
   {
     target: z.string().min(1).describe("Session id or alias registered under pi control dir"),
     message: z.string().min(1).describe("Message text to deliver"),
@@ -300,14 +402,50 @@ server.tool(
 );
 
 server.tool(
+  "list_sessions",
+  "List active pi sessions that currently expose a control socket (i.e. were launched with " +
+    "--session-control). Returns sessionId + optional alias name + socket path for each live " +
+    "session. Pair with send_to_session to address a specific peer. " +
+    "Note: this is the *active* session world. It is NOT the way to discover saved delegate " +
+    "sessions — those live as JSONL files under ~/.pi/agent/sessions and are addressed by " +
+    "taskId via delegate_resume; their original processes may already have exited.",
+  {},
+  async () => {
+    try {
+      const sessions = await getLiveSessions();
+      const lines = sessions.length
+        ? sessions.map((s) => {
+            const name = s.name ? ` (${s.name})` : "";
+            return `- ${s.sessionId}${name}`;
+          })
+        : ["(no live pi sessions with --session-control found)"];
+      const payload = {
+        controlDir: CONTROL_DIR,
+        count: sessions.length,
+        sessions: sessions.map((s) => ({
+          sessionId: s.sessionId,
+          name: s.name,
+          aliases: s.aliases,
+          socketPath: s.socketPath,
+        })),
+      };
+      return textOk(`${lines.join("\n")}\n\n${JSON.stringify(payload)}`);
+    } catch (err) {
+      return textErr(`list_sessions error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  },
+);
+
+server.tool(
   "delegate",
-  "Delegate a task to an independent pi agent process (sync mode only — Phase-1 MCP scope). " +
+  "Delegate a task to an independent pi agent process (sync mode). " +
     "Spawns a fresh pi -p run, waits for completion, returns stdout + turns + cost. Use for " +
     "isolated work (different cwd, different machine via SSH, or resource-intensive jobs) " +
     "where you want the result inline. " +
-    "For async spawn / taskId tracking / delegate_status / delegate_resume, use the pi native " +
-    "surface (pi-extensions/delegate.ts) directly — those are deferred to Phase-2 and not yet " +
-    "exposed here. " +
+    "The result includes a Task ID — pass it to delegate_resume to continue this delegate's " +
+    "saved session with a follow-up prompt. " +
+    "Async spawn + delegate_status are not exposed here yet (deferred to a separate design " +
+    "round); use the pi-native surface (pi-extensions/delegate.ts) directly if you need them. " +
     "Claude delegates are always routed through pi-shell-acp. Codex delegates go through the " +
     "built-in openai-codex provider by default; set PI_DELEGATE_ACP_FOR_CODEX=1 in this MCP " +
     "server's environment to route Codex through pi-shell-acp (delegate-core normalizes the " +
@@ -333,6 +471,56 @@ server.tool(
       return result.exitCode === 0 ? textOk(text) : textErr(text);
     } catch (err) {
       return textErr(`delegate error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  },
+);
+
+server.tool(
+  "delegate_resume",
+  "Resume a saved delegate session by taskId, with a follow-up prompt (sync mode only). " +
+    "The taskId comes from a prior delegate call's output (look for 'Task ID: <id>' in the " +
+    "summary). The bridge looks up the saved session JSONL under ~/.pi/agent/sessions and " +
+    "spawns `pi --session <file>` with the new prompt; pi appends to the same file. " +
+    "Important: this works on the saved session file. The original delegate process may have " +
+    "exited and is NOT required to be alive — delegate_resume does NOT consult control sockets " +
+    "or list_sessions. The two surfaces are separate by design (active sessions vs saved " +
+    "delegate sessions). " +
+    "Routing rules match `delegate`: Claude → pi-shell-acp, Codex → direct unless " +
+    "PI_DELEGATE_ACP_FOR_CODEX=1. The session's recorded model is reused unless `model` " +
+    "overrides it. Async resume is intentionally not exposed here.",
+  {
+    taskId: z
+      .string()
+      .min(1)
+      .describe("Task ID from a prior delegate result (e.g. '3f9a8c1b')"),
+    prompt: z.string().min(1).describe("Follow-up prompt to send into the resumed session"),
+    host: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "SSH host name if the original delegate ran remote (default: 'local'). " +
+          "NOTE: remote SSH path is implemented but not yet end-to-end verified — " +
+          "use with care until the remote rollout phase.",
+      ),
+    cwd: z
+      .string()
+      .min(1)
+      .optional()
+      .describe("Working directory override for the resume spawn"),
+    model: z
+      .string()
+      .min(1)
+      .optional()
+      .describe("Model override; default = the model recorded in the saved session"),
+  },
+  async ({ taskId, prompt, host, cwd, model }) => {
+    try {
+      const result = await runDelegateResumeSync(taskId, prompt, { host, cwd, model });
+      const text = formatSyncSummary(result);
+      return result.exitCode === 0 ? textOk(text) : textErr(text);
+    } catch (err) {
+      return textErr(`delegate_resume error: ${err instanceof Error ? err.message : String(err)}`);
     }
   },
 );

@@ -403,7 +403,7 @@ pi_tools_bridge_require_tools() {
     return 1
   fi
 
-  for tool in session_search knowledge_search send_to_session delegate; do
+  for tool in session_search knowledge_search send_to_session list_sessions delegate delegate_resume; do
     if [[ "$raw" != *"$tool"* ]]; then
       echo "$raw" >&2
       fail "pi-tools-bridge: $backend_label missing tool $tool"
@@ -498,7 +498,7 @@ function finishOk(trimmed) {
     process.exit(1);
   }
   const names = tools.map((t) => t?.name).sort();
-  const expected = ['delegate', 'knowledge_search', 'send_to_session', 'session_search'];
+  const expected = ['delegate', 'delegate_resume', 'knowledge_search', 'list_sessions', 'send_to_session', 'session_search'];
   for (const name of expected) {
     if (!names.includes(name)) {
       console.error(`missing MCP tool: ${name}`);

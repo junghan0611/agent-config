@@ -67,6 +67,8 @@ export interface DelegateResult {
   model?: string;
   error?: string;
   stopReason?: string;
+  /** Short id (8 hex chars) embedded in the session filename. Use this to call delegate_resume. */
+  taskId: string;
   sessionFile?: string;
   explicitExtensions: string[];
   warnings: string[];
@@ -326,6 +328,269 @@ export function enrichTaskWithProjectContext(task: string, cwd: string): string 
 }
 
 // ============================================================================
+// Saved delegate session lookup (for delegate_resume)
+//
+// PM-mandated layer separation: this is the *saved-session* world. It must
+// NOT consult any active control-socket state. Pure filesystem walk over
+// ~/.pi/agent/sessions/**/*delegate-<taskId>*.jsonl.
+// ============================================================================
+
+const DELEGATE_FILE_RE = /delegate-([0-9a-f]+)/i;
+
+export function findDelegateSessionFile(taskId: string): string | null {
+  if (!taskId || /[/\\]|\.\./.test(taskId)) return null;
+  try {
+    const dirs = fs.readdirSync(SESSIONS_BASE);
+    for (const dir of dirs) {
+      const dirPath = path.join(SESSIONS_BASE, dir);
+      let stat: fs.Stats;
+      try {
+        stat = fs.statSync(dirPath);
+      } catch {
+        continue;
+      }
+      if (!stat.isDirectory()) continue;
+
+      let files: string[];
+      try {
+        files = fs.readdirSync(dirPath);
+      } catch {
+        continue;
+      }
+      for (const file of files) {
+        if (file.includes(`delegate-${taskId}`) && file.endsWith(".jsonl")) {
+          return path.join(dirPath, file);
+        }
+      }
+    }
+  } catch {
+    /* sessions base missing */
+  }
+  return null;
+}
+
+export interface DelegateResumeOptions {
+  host?: string;
+  cwd?: string;
+  /** Override the session's recorded model. Optional. */
+  model?: string;
+  signal?: AbortSignal;
+  onUpdate?: (text: string) => void;
+}
+
+// ============================================================================
+// Internal: spawn pi and collect message_end events.  Shared by sync + resume.
+// ============================================================================
+
+interface CollectInput {
+  command: string;
+  args: string[];
+  cwd?: string;
+  signal?: AbortSignal;
+  onUpdate?: (text: string) => void;
+  result: DelegateResult;
+}
+
+function collectPiRun({ command, args, cwd, signal, onUpdate, result }: CollectInput): Promise<DelegateResult> {
+  const messages: AssistantMessageLike[] = [];
+
+  return new Promise<DelegateResult>((resolve) => {
+    const proc = spawn(command, args, { cwd, shell: false, stdio: ["ignore", "pipe", "pipe"] });
+
+    let buffer = "";
+    let stderr = "";
+
+    const processLine = (line: string) => {
+      if (!line.trim()) return;
+      let event: { type: string; message?: AssistantMessageLike; [k: string]: unknown };
+      try {
+        event = JSON.parse(line);
+      } catch {
+        return;
+      }
+
+      if (event.type === "message_end" && event.message) {
+        messages.push(event.message);
+        if (event.message.role === "assistant") {
+          result.turns++;
+          const usage = event.message.usage;
+          if (typeof usage?.cost?.total === "number") result.cost += usage.cost.total;
+          if (event.message.model) result.model = event.message.model;
+          if (typeof event.message.stopReason === "string") result.stopReason = event.message.stopReason;
+          if (typeof event.message.errorMessage === "string" && event.message.errorMessage.trim()) {
+            result.error = event.message.errorMessage.trim();
+          }
+
+          const latest = extractTextContent(event.message.content).trim();
+          if (latest && onUpdate) onUpdate(latest);
+        }
+      }
+    };
+
+    proc.stdout.on("data", (data: Buffer) => {
+      buffer += data.toString();
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) processLine(line);
+    });
+
+    proc.stderr.on("data", (data: Buffer) => {
+      stderr += data.toString();
+    });
+
+    proc.on("close", (code) => {
+      if (buffer.trim()) processLine(buffer);
+      result.exitCode = code ?? 0;
+      if (!result.error && result.stopReason === "error") {
+        result.error = "Delegate model returned stopReason=error";
+      }
+      const assistantText = parseMessages(messages).trim();
+      result.output = assistantText || result.error || stderr || "(no output)";
+      if (code !== 0 && stderr && !result.error) result.error = stderr.slice(0, 500);
+      if ((result.error || result.stopReason === "error") && result.exitCode === 0) result.exitCode = 1;
+      resolve(result);
+    });
+
+    proc.on("error", (err) => {
+      result.exitCode = 1;
+      result.error = err.message;
+      result.output = "(spawn failed)";
+      resolve(result);
+    });
+
+    if (signal) {
+      const kill = () => {
+        proc.kill("SIGTERM");
+        setTimeout(() => {
+          if (!proc.killed) proc.kill("SIGKILL");
+        }, 5000);
+      };
+      if (signal.aborted) kill();
+      else signal.addEventListener("abort", kill, { once: true });
+    }
+  });
+}
+
+// ============================================================================
+// runDelegateResumeSync — revive a saved delegate session by taskId
+//
+// Contract:
+//   - Input: taskId (8 hex chars from a prior delegate result) + prompt
+//   - Looks up sessionFile via findDelegateSessionFile (pure filesystem walk)
+//   - Reuses the existing session's recorded model unless caller overrides
+//   - Spawns sync `pi --session <file> ... <prompt>` and waits for completion
+//   - Does NOT touch ~/.pi/session-control; works regardless of whether the
+//     original delegate process is still alive
+//
+// Verification status (planned rollout, see MEMORY.md verification roadmap):
+//   1. local + Claude   — implemented, awaiting manual smoke
+//   2. local + Codex    — same code path, awaiting smoke
+//   3. async on Claude  — not implemented (separate design round)
+//   4. async on Codex   — not implemented
+//   5. remote (SSH)     — code path implemented but UNVERIFIED.
+//                         Marked here because the SSH branch (cd <cwd> && pi ...)
+//                         has not been exercised end-to-end against a real
+//                         remote pi yet. Treat with care until smoke covers it.
+// ============================================================================
+
+export async function runDelegateResumeSync(
+  taskId: string,
+  prompt: string,
+  options: DelegateResumeOptions,
+): Promise<DelegateResult> {
+  const host = options.host ?? "local";
+  const isRemote = host !== "local";
+
+  const sessionFile = findDelegateSessionFile(taskId);
+  if (!sessionFile) {
+    return {
+      task: prompt,
+      host,
+      exitCode: 1,
+      output: `No saved delegate session found for taskId "${taskId}" under ${SESSIONS_BASE}`,
+      turns: 0,
+      cost: 0,
+      taskId,
+      sessionFile: undefined,
+      explicitExtensions: [],
+      warnings: [],
+      error: "session_not_found",
+    };
+  }
+
+  if (!isRemote && !fs.existsSync(sessionFile)) {
+    return {
+      task: prompt,
+      host,
+      exitCode: 1,
+      output: `Session file vanished between lookup and spawn: ${sessionFile}`,
+      turns: 0,
+      cost: 0,
+      taskId,
+      sessionFile,
+      explicitExtensions: [],
+      warnings: [],
+      error: "session_file_missing",
+    };
+  }
+
+  const recordedModel = !isRemote ? analyzeSessionFileLike(sessionFile).lastModel ?? undefined : undefined;
+  const effectiveModel = resolveDelegateModel(options.model ?? recordedModel);
+  const explicitExtensions = getDelegateExplicitExtensions(effectiveModel, isRemote);
+
+  const piArgs = [
+    "--mode",
+    "json",
+    "-p",
+    "--no-extensions",
+    ...explicitExtensions.args,
+    "--session",
+    sessionFile,
+  ];
+  if (explicitExtensions.provider) piArgs.push("--provider", explicitExtensions.provider);
+  piArgs.push("--model", explicitExtensions.modelOverride ?? effectiveModel);
+  piArgs.push(prompt);
+
+  let command: string;
+  let args: string[];
+  if (isRemote) {
+    command = "ssh";
+    const connectTimeout = Number.parseInt(process.env.PI_DELEGATE_SSH_CONNECT_TIMEOUT ?? "10", 10);
+    const sshOptions = [
+      "-o", "BatchMode=yes",
+      "-o", `ConnectTimeout=${Number.isFinite(connectTimeout) && connectTimeout > 0 ? connectTimeout : 10}`,
+    ];
+    const remoteCmd = `cd ${options.cwd ?? "~"} && pi ${piArgs.map((a) => JSON.stringify(a)).join(" ")}`;
+    args = [...sshOptions, host, remoteCmd];
+  } else {
+    command = "pi";
+    args = piArgs;
+  }
+
+  const result: DelegateResult = {
+    task: prompt,
+    host,
+    exitCode: 0,
+    output: "",
+    turns: 0,
+    cost: 0,
+    taskId,
+    sessionFile,
+    explicitExtensions: [...explicitExtensions.names],
+    warnings: [...explicitExtensions.warnings],
+  };
+
+  return collectPiRun({
+    command,
+    args,
+    cwd: isRemote ? undefined : options.cwd,
+    signal: options.signal,
+    onUpdate: options.onUpdate,
+    result,
+  });
+}
+
+// ============================================================================
 // runDelegateSync — spawn pi and collect result
 // ============================================================================
 
@@ -379,90 +644,19 @@ export async function runDelegateSync(task: string, options: DelegateSyncOptions
     output: "",
     turns: 0,
     cost: 0,
+    taskId,
     sessionFile,
     explicitExtensions: [...explicitExtensions.names],
     warnings: [...explicitExtensions.warnings],
   };
-  const messages: AssistantMessageLike[] = [];
 
-  return new Promise<DelegateResult>((resolve) => {
-    const proc = spawn(command, args, {
-      cwd: isRemote ? undefined : effectiveCwd,
-      shell: false,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    let buffer = "";
-    let stderr = "";
-
-    const processLine = (line: string) => {
-      if (!line.trim()) return;
-      let event: { type: string; message?: AssistantMessageLike; [k: string]: unknown };
-      try {
-        event = JSON.parse(line);
-      } catch {
-        return;
-      }
-
-      if (event.type === "message_end" && event.message) {
-        messages.push(event.message);
-        if (event.message.role === "assistant") {
-          result.turns++;
-          const usage = event.message.usage;
-          if (typeof usage?.cost?.total === "number") result.cost += usage.cost.total;
-          if (event.message.model) result.model = event.message.model;
-          if (typeof event.message.stopReason === "string") result.stopReason = event.message.stopReason;
-          if (typeof event.message.errorMessage === "string" && event.message.errorMessage.trim()) {
-            result.error = event.message.errorMessage.trim();
-          }
-
-          const latest = extractTextContent(event.message.content).trim();
-          if (latest && options.onUpdate) options.onUpdate(latest);
-        }
-      }
-    };
-
-    proc.stdout.on("data", (data: Buffer) => {
-      buffer += data.toString();
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-      for (const line of lines) processLine(line);
-    });
-
-    proc.stderr.on("data", (data: Buffer) => {
-      stderr += data.toString();
-    });
-
-    proc.on("close", (code) => {
-      if (buffer.trim()) processLine(buffer);
-      result.exitCode = code ?? 0;
-      if (!result.error && result.stopReason === "error") {
-        result.error = "Delegate model returned stopReason=error";
-      }
-      const assistantText = parseMessages(messages).trim();
-      result.output = assistantText || result.error || stderr || "(no output)";
-      if (code !== 0 && stderr && !result.error) result.error = stderr.slice(0, 500);
-      if ((result.error || result.stopReason === "error") && result.exitCode === 0) result.exitCode = 1;
-      resolve(result);
-    });
-
-    proc.on("error", (err) => {
-      result.exitCode = 1;
-      result.error = err.message;
-      result.output = "(spawn failed)";
-      resolve(result);
-    });
-
-    if (options.signal) {
-      const kill = () => {
-        proc.kill("SIGTERM");
-        setTimeout(() => {
-          if (!proc.killed) proc.kill("SIGKILL");
-        }, 5000);
-      };
-      if (options.signal.aborted) kill();
-      else options.signal.addEventListener("abort", kill, { once: true });
-    }
+  return collectPiRun({
+    command,
+    args,
+    cwd: isRemote ? undefined : effectiveCwd,
+    signal: options.signal,
+    onUpdate: options.onUpdate,
+    result,
   });
 }
 
@@ -472,6 +666,7 @@ export async function runDelegateSync(task: string, options: DelegateSyncOptions
 
 export function formatSyncSummary(result: DelegateResult): string {
   return [
+    `Task ID: ${result.taskId}`,
     `Host: ${result.host}`,
     `Turns: ${result.turns}`,
     `Cost: $${result.cost.toFixed(4)}`,

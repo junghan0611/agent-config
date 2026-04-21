@@ -15,7 +15,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-EXPECTED_TOOLS=("session_search" "knowledge_search" "send_to_session" "delegate")
+EXPECTED_TOOLS=("session_search" "knowledge_search" "send_to_session" "list_sessions" "delegate" "delegate_resume")
 PASS=0
 FAIL=0
 
@@ -110,6 +110,28 @@ else
 fi
 
 # ----------------------------------------------------------------------------
+# 3b. list_sessions — must succeed (not isError) even when no live sessions exist
+# ----------------------------------------------------------------------------
+
+echo "[3b] list_sessions empty environment"
+
+LIST=$(
+  {
+    printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}'
+    printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+    printf '%s\n' '{"jsonrpc":"2.0","id":15,"method":"tools/call","params":{"name":"list_sessions","arguments":{}}}'
+    sleep 1
+  } | rpc 2>/dev/null | grep '"id":15' || true
+)
+if echo "$LIST" | grep -q '"isError":true'; then
+  fail "list_sessions reported isError on empty env: ${LIST:0:200}"
+elif echo "$LIST" | grep -qE 'controlDir'; then
+  ok "list_sessions returns controlDir + sessions payload"
+else
+  fail "list_sessions produced no payload: ${LIST:0:200}"
+fi
+
+# ----------------------------------------------------------------------------
 # 4. delegate negative path — bogus SSH host should surface isError
 # ----------------------------------------------------------------------------
 
@@ -127,6 +149,26 @@ if echo "$DELEGATE_NEG" | grep -q '"isError":true'; then
   ok "bogus SSH host returns isError"
 else
   fail "bogus SSH host did not surface isError: ${DELEGATE_NEG:0:200}"
+fi
+
+# ----------------------------------------------------------------------------
+# 4b. delegate_resume negative path — unknown taskId must surface isError
+# ----------------------------------------------------------------------------
+
+echo "[4b] delegate_resume unknown taskId"
+
+RESUME_NEG=$(
+  {
+    printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}'
+    printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+    printf '%s\n' '{"jsonrpc":"2.0","id":21,"method":"tools/call","params":{"name":"delegate_resume","arguments":{"taskId":"__definitely_does_not_exist__","prompt":"noop"}}}'
+    sleep 1
+  } | rpc 2>/dev/null | grep '"id":21' || true
+)
+if echo "$RESUME_NEG" | grep -q '"isError":true' && echo "$RESUME_NEG" | grep -q 'session_not_found'; then
+  ok "unknown taskId returns isError + session_not_found"
+else
+  fail "unknown taskId did not surface session_not_found: ${RESUME_NEG:0:200}"
 fi
 
 # ----------------------------------------------------------------------------
