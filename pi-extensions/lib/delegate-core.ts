@@ -44,7 +44,7 @@ const PI_SETTINGS_PATH = path.join(AGENT_DIR, "settings.json");
 const SESSIONS_BASE = path.join(AGENT_DIR, "sessions");
 const DELEGATE_TARGETS_PATH = process.env.PI_DELEGATE_TARGETS_PATH
   ?? path.join(AGENT_DIR, "delegate-targets.json");
-export const DEFAULT_DELEGATE_MODEL = "openai-codex/gpt-5.4";
+export const DEFAULT_DELEGATE_MODEL = "openai-codex/gpt-5.2";
 export const DELEGATE_CODEX_ACP_ENV = "PI_DELEGATE_ACP_FOR_CODEX";
 
 // ============================================================================

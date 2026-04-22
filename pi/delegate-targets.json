@@ -4,9 +4,11 @@
     { "provider": "pi-shell-acp", "model": "claude-sonnet-4-6", "enabled": true },
     { "provider": "pi-shell-acp", "model": "claude-opus-4-7",   "enabled": true },
 
+    { "provider": "openai-codex", "model": "gpt-5.2",           "enabled": true },
     { "provider": "openai-codex", "model": "gpt-5.4",           "enabled": true },
     { "provider": "openai-codex", "model": "gpt-5.4-mini",      "enabled": true },
 
+    { "provider": "pi-shell-acp", "model": "gpt-5.2",           "enabled": true, "explicitOnly": true },
     { "provider": "pi-shell-acp", "model": "gpt-5.4",           "enabled": true, "explicitOnly": true },
     { "provider": "pi-shell-acp", "model": "gpt-5.4-mini",      "enabled": true, "explicitOnly": true }
   ]

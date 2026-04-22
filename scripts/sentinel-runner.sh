@@ -63,12 +63,12 @@ Environment:
   SENTINEL_WAIT       resume polling budget seconds (default: 180)
 
 Cells:
-  1  native          → openai-codex/gpt-5.4
+  1  native          → openai-codex/gpt-5.2
   2  native          → pi-shell-acp/claude-sonnet-4-6
-  3  native          → pi-shell-acp/gpt-5.4 (explicitOnly)
-  4  acp-claude      → openai-codex/gpt-5.4
-  5  acp-claude      → pi-shell-acp/gpt-5.4 (explicitOnly)
-  6  acp-codex       → openai-codex/gpt-5.4
+  3  native          → pi-shell-acp/gpt-5.2 (explicitOnly)
+  4  acp-claude      → openai-codex/gpt-5.2
+  5  acp-claude      → pi-shell-acp/gpt-5.2 (explicitOnly)
+  6  acp-codex       → openai-codex/gpt-5.2
 
 Failure codes:
   S1 parent non-zero exit            (spawn stage)
@@ -87,12 +87,12 @@ EOF
 # id|parent_key|target_provider|target_model
 # ----------------------------------------------------------------------------
 ALL_CELLS=(
-  "1|native|openai-codex|gpt-5.4"
+  "1|native|openai-codex|gpt-5.2"
   "2|native|pi-shell-acp|claude-sonnet-4-6"
-  "3|native|pi-shell-acp|gpt-5.4"
-  "4|acp-claude|openai-codex|gpt-5.4"
-  "5|acp-claude|pi-shell-acp|gpt-5.4"
-  "6|acp-codex|openai-codex|gpt-5.4"
+  "3|native|pi-shell-acp|gpt-5.2"
+  "4|acp-claude|openai-codex|gpt-5.2"
+  "5|acp-claude|pi-shell-acp|gpt-5.2"
+  "6|acp-codex|openai-codex|gpt-5.2"
 )
 
 # ----------------------------------------------------------------------------
@@ -123,7 +123,7 @@ parent_spawn() {
     acp-codex)
       timeout "$TIMEOUT" pi --mode json -p \
         -e "$REPOS/pi-shell-acp" \
-        --provider pi-shell-acp --model gpt-5.4 \
+        --provider pi-shell-acp --model gpt-5.2 \
         "$prompt" >"$out_file" 2>&1
       ;;
     *)

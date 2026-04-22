@@ -569,7 +569,7 @@ JS
   # The prefix stays redundant with the function's internal `--provider pi-shell-acp`
   # pin, but it documents intent at the call site.
   validate_pi_tools_bridge_backend "claude" "pi-shell-acp/claude-sonnet-4-6" || return 1
-  validate_pi_tools_bridge_backend "codex" "pi-shell-acp/gpt-5.4" || return 1
+  validate_pi_tools_bridge_backend "codex" "pi-shell-acp/gpt-5.2" || return 1
 }
 
 # pi-native async delegate spawn smoke. Loads the native delegate.ts directly
