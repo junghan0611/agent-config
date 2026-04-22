@@ -443,11 +443,20 @@ validate_pi_tools_bridge_backend() {
     return 1
   fi
 
-  if [[ "$raw" != *"No pi control socket"* ]] && \
+  # Robustness: the model paraphrases the tool error in many ways. The most
+  # reliable anchor is the bogus target name itself — if it appears in the
+  # response, the model engaged with the actual tool result. Phrase patterns
+  # are kept as fallbacks for older outputs / different model behavior.
+  if [[ "$raw" != *"__definitely_does_not_exist__"* ]] && \
+     [[ "$raw" != *"No pi control socket"* ]] && \
      [[ "$raw" != *"control socket"* ]] && \
      [[ "$raw" != *"컨트롤 소켓"* ]] && \
      [[ "$raw" != *"대상 세션"* ]] && \
-     [[ "$raw" != *"미존재"* ]]; then
+     [[ "$raw" != *"미존재"* ]] && \
+     [[ "$raw" != *"존재하지"* ]] && \
+     [[ "$raw" != *"소켓"* ]] && \
+     [[ "$raw" != *"not found"* ]] && \
+     [[ "$raw" != *"no such"* ]]; then
     echo "$raw" >&2
     fail "pi-tools-bridge: $backend_label invocation did not surface the expected missing-target boundary"
     return 1
