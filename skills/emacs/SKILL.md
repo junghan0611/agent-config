@@ -23,7 +23,7 @@ Define ec/eu in EVERY bash call (subshell resets).
 | `agent-denote-add-heading` | ID, TITLE, BODY | `ec '(agent-denote-add-heading "ID" "Title" "body")'` |
 | | ID, TITLE, TAG, BODY | `ec '(agent-denote-add-heading "ID" "Title" "LLMLOG" "body")'` |
 | `agent-denote-add-link` | ID, TARGET-ID, DESC | `ec '(agent-denote-add-link "ID1" "ID2" "desc")'` ⚠️ DESC required — hang if omitted |
-| `agent-denote-set-front-matter` | ID, &rest PLIST | `ec '(agent-denote-set-front-matter "ID" :title "새 제목" :filetags (quote ("meta" "reasoning")))'` |
+| `agent-denote-set-front-matter` | ID, &rest PLIST | `ec '(agent-denote-set-front-matter "ID" :title "새 제목" :filetags (quote ("meta" "reasoning")) :rename t)'` |
 | `agent-denote-search` | QUERY, ?TYPE(title/tag/fulltext) | `ec '(agent-denote-search "term" (quote tag))'` |
 | `agent-denote-keywords` | — | `ec '(agent-denote-keywords)'` → all tags list |
 | `agent-denote-rename-by-front-matter` | FILE | `ec '(agent-denote-rename-by-front-matter "/path")'` |
@@ -50,7 +50,11 @@ If the target file lives under `~/sync/org/...`, `agent-org-read-file` may be bl
 
 add-heading: 3rd arg is TAG if UPPERCASE (e.g. "LLMLOG"), BODY otherwise. ⚠️ Never pass `nil` — body silently drops. No tag? Put body as 3rd arg directly.
 
-set-front-matter: touches only front matter / pre-heading region. Supported keys now: `:title`, `:filetags`, `:description`, `:reference`, `:date`, `:hugo_lastmod`. Missing keys are created, existing keys replaced. Unknown front matter lines are preserved.
+set-front-matter: touches only front matter / pre-heading region.
+- Supported FM keys: `:title`, `:filetags`, `:description`, `:reference`, `:date`, `:hugo_lastmod`. Missing keys are created, existing keys replaced. Unknown FM lines preserved.
+- Control key: `:rename t` → FM 갱신 후 denote 규칙대로 파일명까지 재생성. 분리 호출 불필요. rename 실패해도 FM 는 이미 저장됨 → `OK: ...; WARN: rename failed — ...` 로 분리 보고.
+- filetags 값: 문자열 `"meta reasoning"`·`"meta,reasoning"`·`":meta:reasoning:"` / 리스트 `("meta" "reasoning")` 모두 허용. lowercase + alnum 검증 + sort + dedup 자동.
+- reference 값: `";"` 또는 `","` 구분 문자열 / 리스트 둘 다 허용. 결과는 `;` 구분.
 
 ```bash
 # no tag — body as 3rd arg
@@ -60,9 +64,12 @@ ec '(agent-denote-add-heading "ID" "New Section" "LLMLOG" "body text here")'
 # insert after a specific heading
 ec '(agent-denote-add-heading "ID" "New Section" "body" "After This Heading")'
 
-# set front matter
+# set front matter — FM only
 ec '(agent-denote-set-front-matter "ID" :title "새 제목" :description "요약")'
 ec '(agent-denote-set-front-matter "ID" :filetags (quote ("meta" "reasoning")) :reference "key1;key2")'
+
+# set front matter + auto rename (원샷)
+ec '(agent-denote-set-front-matter "ID" :title "정제된 제목" :filetags (quote ("ethics" "information")) :rename t)'
 ```
 
 ## Arbitrary Elisp
