@@ -444,29 +444,38 @@ server.tool(
     "where you want the result inline. " +
     "The result includes a Task ID — pass it to delegate_resume to continue this delegate's " +
     "saved session with a follow-up prompt. " +
-    "Async spawn + delegate_status are not exposed here yet (deferred to a separate design " +
-    "round); use the pi-native surface (pi-extensions/delegate.ts) directly if you need them. " +
-    "Claude delegates are always routed through pi-shell-acp. Codex delegates go through the " +
-    "built-in openai-codex provider by default; set PI_DELEGATE_ACP_FOR_CODEX=1 in this MCP " +
-    "server's environment to route Codex through pi-shell-acp (delegate-core normalizes the " +
-    "model id, e.g. openai-codex/gpt-5.4 → gpt-5.4, before handing to the bridge). " +
-    `Default model: ${DEFAULT_DELEGATE_MODEL}. Recommended qualified forms: ` +
-    "pi-shell-acp/claude-sonnet-4-6 for Claude, openai-codex/gpt-5.4 for Codex.",
+    "Delegate Target Registry (narrow door, see agent-config/AGENTS.md): every spawn must " +
+    "resolve to an exact (provider, model) pair listed in ~/.pi/agent/delegate-targets.json. " +
+    "Caller may pass either a qualified `model` (provider/name) or both `provider` and `model` " +
+    "fields. Bare model is accepted only when unambiguous — e.g. `claude-sonnet-4-6` resolves " +
+    "to pi-shell-acp; bare `gpt-5.4` resolves to native openai-codex (the pi-shell-acp/gpt-5.4 " +
+    "entry is marked explicitOnly and skipped from auto-resolution). " +
+    "Async spawn + delegate_status are not exposed here yet (deferred to a separate design round). " +
+    `Default model when omitted: ${DEFAULT_DELEGATE_MODEL}.`,
   {
     task: z.string().min(1).describe("The task to delegate (plain text prompt)"),
     host: z.string().min(1).optional().describe("SSH host name (omit or 'local' for local)"),
     cwd: z.string().min(1).optional().describe("Working directory for the delegate"),
+    provider: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Provider id (e.g. 'pi-shell-acp', 'openai-codex'). Pair with `model` to disambiguate. " +
+          "Optional if `model` is qualified ('provider/name') or unambiguous in the registry.",
+      ),
     model: z
       .string()
       .min(1)
       .optional()
       .describe(
-        "Model override. Prefer qualified: pi-shell-acp/claude-sonnet-4-6 or openai-codex/gpt-5.4.",
+        "Model id. Either qualified ('pi-shell-acp/claude-sonnet-4-6') or bare ('claude-sonnet-4-6'). " +
+          "Bare names must resolve unambiguously in the registry; otherwise pass `provider`.",
       ),
   },
-  async ({ task, host, cwd, model }) => {
+  async ({ task, host, cwd, provider, model }) => {
     try {
-      const result = await runDelegateSync(task, { host, cwd, model });
+      const result = await runDelegateSync(task, { host, cwd, provider, model });
       const text = formatSyncSummary(result);
       return result.exitCode === 0 ? textOk(text) : textErr(text);
     } catch (err) {

@@ -42,6 +42,8 @@ import * as path from "node:path";
 const AGENT_DIR = path.join(os.homedir(), ".pi", "agent");
 const PI_SETTINGS_PATH = path.join(AGENT_DIR, "settings.json");
 const SESSIONS_BASE = path.join(AGENT_DIR, "sessions");
+const DELEGATE_TARGETS_PATH = process.env.PI_DELEGATE_TARGETS_PATH
+  ?? path.join(AGENT_DIR, "delegate-targets.json");
 export const DEFAULT_DELEGATE_MODEL = "openai-codex/gpt-5.4";
 export const DELEGATE_CODEX_ACP_ENV = "PI_DELEGATE_ACP_FOR_CODEX";
 
@@ -52,6 +54,10 @@ export const DELEGATE_CODEX_ACP_ENV = "PI_DELEGATE_ACP_FOR_CODEX";
 export interface DelegateSyncOptions {
   host?: string;
   cwd?: string;
+  /** Caller-provided provider id (e.g. "pi-shell-acp", "openai-codex"). Optional;
+   *  if model is qualified ("provider/name") or unambiguous in the registry,
+   *  this can be omitted. See resolveDelegateTarget for resolution rules. */
+  provider?: string;
   model?: string;
   signal?: AbortSignal;
   onUpdate?: (text: string) => void;
@@ -135,6 +141,216 @@ export function shouldRouteCodexViaAcp(model?: string): boolean {
 export function normalizeCodexDelegateModelForAcp(model?: string): string | undefined {
   if (!isCodexModel(model) || typeof model !== "string") return model;
   return model.startsWith("openai-codex/") ? model.slice("openai-codex/".length) : model;
+}
+
+// ============================================================================
+// Delegate Target Registry (v1) — narrow door
+//
+// SSOT for what (provider, model) pairs may be spawned via delegate.
+// File: ~/.pi/agent/delegate-targets.json (override with PI_DELEGATE_TARGETS_PATH).
+// See agent-config/AGENTS.md "Delegate Target Registry" for principle and schema.
+//
+// Spawn flow goes through this gate. Resume flow does NOT — Identity Preservation
+// Rule states that an existing being is preserved as-is, regardless of current
+// policy. Removing a target from the registry only stops new spawns; it does
+// not retroactively forbid resuming sessions that were already created.
+// ============================================================================
+
+export interface DelegateTarget {
+  provider: string;
+  model: string;
+  enabled: boolean;
+  /** When true, this target is excluded from bare-model auto-resolution. Caller
+   *  must specify provider explicitly to use it. Useful for test-only routings
+   *  (e.g. ACP GPT alongside default native GPT). */
+  explicitOnly?: boolean;
+}
+
+export interface DelegateRegistry {
+  delegateTargets: DelegateTarget[];
+}
+
+export class DelegateRegistryError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DelegateRegistryError";
+  }
+}
+
+let cachedRegistry: DelegateRegistry | DelegateRegistryError | null = null;
+
+export function loadDelegateTargets(): DelegateRegistry {
+  if (cachedRegistry instanceof DelegateRegistryError) throw cachedRegistry;
+  if (cachedRegistry) return cachedRegistry;
+
+  if (!fs.existsSync(DELEGATE_TARGETS_PATH)) {
+    const err = new DelegateRegistryError(
+      `Delegate target registry not found at ${DELEGATE_TARGETS_PATH}. ` +
+        `Without it, every delegate spawn is refused. Run \`./run.sh setup:links\` ` +
+        `or create the file manually (see agent-config/pi/delegate-targets.json).`,
+    );
+    cachedRegistry = err;
+    throw err;
+  }
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(fs.readFileSync(DELEGATE_TARGETS_PATH, "utf-8"));
+  } catch (e) {
+    const err = new DelegateRegistryError(
+      `Failed to parse ${DELEGATE_TARGETS_PATH}: ${e instanceof Error ? e.message : String(e)}`,
+    );
+    cachedRegistry = err;
+    throw err;
+  }
+
+  if (typeof raw !== "object" || raw === null || !("delegateTargets" in raw)) {
+    const err = new DelegateRegistryError(
+      `Invalid registry shape in ${DELEGATE_TARGETS_PATH}: expected { delegateTargets: [...] }`,
+    );
+    cachedRegistry = err;
+    throw err;
+  }
+
+  const targetsRaw = (raw as { delegateTargets: unknown }).delegateTargets;
+  if (!Array.isArray(targetsRaw)) {
+    const err = new DelegateRegistryError(
+      `Invalid delegateTargets in ${DELEGATE_TARGETS_PATH}: must be an array`,
+    );
+    cachedRegistry = err;
+    throw err;
+  }
+
+  const targets: DelegateTarget[] = [];
+  for (let i = 0; i < targetsRaw.length; i++) {
+    const t = targetsRaw[i];
+    if (typeof t !== "object" || t === null) {
+      const err = new DelegateRegistryError(`Entry #${i} is not an object`);
+      cachedRegistry = err;
+      throw err;
+    }
+    const obj = t as Record<string, unknown>;
+    if (typeof obj.provider !== "string" || !obj.provider.trim()) {
+      const err = new DelegateRegistryError(`Entry #${i}: provider must be a non-empty string`);
+      cachedRegistry = err;
+      throw err;
+    }
+    if (typeof obj.model !== "string" || !obj.model.trim()) {
+      const err = new DelegateRegistryError(`Entry #${i}: model must be a non-empty string`);
+      cachedRegistry = err;
+      throw err;
+    }
+    if (typeof obj.enabled !== "boolean") {
+      const err = new DelegateRegistryError(`Entry #${i}: enabled must be a boolean`);
+      cachedRegistry = err;
+      throw err;
+    }
+    if (obj.explicitOnly !== undefined && typeof obj.explicitOnly !== "boolean") {
+      const err = new DelegateRegistryError(`Entry #${i}: explicitOnly must be boolean if present`);
+      cachedRegistry = err;
+      throw err;
+    }
+    targets.push({
+      provider: obj.provider.trim(),
+      model: obj.model.trim(),
+      enabled: obj.enabled,
+      explicitOnly: obj.explicitOnly === true ? true : undefined,
+    });
+  }
+
+  cachedRegistry = { delegateTargets: targets };
+  return cachedRegistry;
+}
+
+/** Test-only hook to reset the in-memory cache (e.g. between test runs). */
+export function _resetDelegateRegistryCache(): void {
+  cachedRegistry = null;
+}
+
+export interface ResolvedTarget {
+  provider: string;
+  model: string;
+  explicitOnly: boolean;
+}
+
+/**
+ * Resolve caller input to an exact (provider, model) tuple from the registry.
+ *
+ * Resolution rules (narrow door):
+ *   1. Qualified `provider/model` in `model` → split, exact lookup.
+ *   2. `provider` + `model` both given → exact lookup.
+ *   3. Bare `model` only → registry entries matching that model name where
+ *      `explicitOnly !== true`:
+ *        - 0 candidates → reject.
+ *        - 1 candidate → use it.
+ *        - 2+ candidates → reject as ambiguous.
+ *
+ * In all paths the resolved tuple must be present in the registry with
+ * `enabled: true`. Otherwise `DelegateRegistryError` is thrown.
+ */
+export function resolveDelegateTarget(input: { provider?: string; model?: string }): ResolvedTarget {
+  const registry = loadDelegateTargets();
+  const enabled = registry.delegateTargets.filter((t) => t.enabled);
+
+  let provider = input.provider?.trim() || undefined;
+  let model = input.model?.trim() || undefined;
+
+  if (!model) {
+    throw new DelegateRegistryError("delegate: model is required");
+  }
+
+  // Path 1: qualified `provider/model` in model field
+  if (!provider && model.includes("/")) {
+    const slash = model.indexOf("/");
+    provider = model.slice(0, slash).trim();
+    model = model.slice(slash + 1).trim();
+    if (!provider || !model) {
+      throw new DelegateRegistryError(`delegate: malformed qualified model id "${input.model}"`);
+    }
+  }
+
+  // Paths 1 & 2: exact tuple lookup
+  if (provider) {
+    const found = enabled.find((t) => t.provider === provider && t.model === model);
+    if (!found) {
+      throw new DelegateRegistryError(
+        `delegate: (provider="${provider}", model="${model}") is not in the delegate target ` +
+          `registry, or is disabled. Allowed: ${describeRegistryEntries(enabled)}`,
+      );
+    }
+    return { provider: found.provider, model: found.model, explicitOnly: found.explicitOnly === true };
+  }
+
+  // Path 3: bare model — auto-resolve excluding explicitOnly
+  const candidates = enabled.filter((t) => t.model === model && t.explicitOnly !== true);
+  if (candidates.length === 0) {
+    const sameModel = enabled.filter((t) => t.model === model);
+    if (sameModel.length > 0) {
+      throw new DelegateRegistryError(
+        `delegate: model "${model}" exists in registry only as explicitOnly target(s). ` +
+          `Specify provider explicitly. Available: ${describeRegistryEntries(sameModel)}`,
+      );
+    }
+    throw new DelegateRegistryError(
+      `delegate: model "${model}" is not in the delegate target registry. ` +
+        `Allowed: ${describeRegistryEntries(enabled)}`,
+    );
+  }
+  if (candidates.length > 1) {
+    throw new DelegateRegistryError(
+      `delegate: bare model "${model}" is ambiguous (${candidates.length} candidates). ` +
+        `Specify provider explicitly. Candidates: ${describeRegistryEntries(candidates)}`,
+    );
+  }
+  const only = candidates[0];
+  return { provider: only.provider, model: only.model, explicitOnly: false };
+}
+
+function describeRegistryEntries(entries: DelegateTarget[]): string {
+  if (entries.length === 0) return "(none)";
+  return entries
+    .map((t) => `${t.provider}/${t.model}${t.explicitOnly ? " [explicitOnly]" : ""}`)
+    .join(", ");
 }
 
 // ============================================================================
@@ -307,6 +523,55 @@ export function getDelegateExplicitExtensions(
     `Codex delegate requested with ${DELEGATE_CODEX_ACP_ENV}=1 but pi-shell-acp could not be resolved. Codex delegates will fall back to the default provider path.`,
   );
   return { args, names, warnings };
+}
+
+/**
+ * Registry-driven routing — used by spawn (runDelegateSync). Replaces the
+ * heuristic getDelegateExplicitExtensions for paths that have already gone
+ * through resolveDelegateTarget (i.e., the (provider, model) tuple is known
+ * to be in the registry and is the explicit caller intent).
+ *
+ * Resume path (runDelegateResumeSync) intentionally still uses the heuristic
+ * helper — Identity Preservation Rule, no registry consultation.
+ */
+export function getRegistryRouting(
+  target: ResolvedTarget,
+  isRemote: boolean,
+): { args: string[]; names: string[]; warnings: string[]; provider: string; modelOverride?: string } {
+  const args: string[] = [];
+  const names: string[] = [];
+  const warnings: string[] = [];
+
+  // Native providers (openai-codex, anthropic, etc.) — pi handles them directly.
+  // No extension injection; just pass through provider + model.
+  if (target.provider !== "pi-shell-acp") {
+    return { args, names, warnings, provider: target.provider };
+  }
+
+  // pi-shell-acp targets need the bridge extension injected.
+  const acpBridge = resolveExplicitExtensionSpec("pi-shell-acp");
+  if (!acpBridge) {
+    warnings.push(
+      "pi-shell-acp target requested but extension spec could not be resolved. " +
+        "Spawn may fail without the bridge extension.",
+    );
+    return { args, names, warnings, provider: "pi-shell-acp" };
+  }
+
+  args.push("-e", isRemote ? acpBridge.remotePath : acpBridge.localPath);
+  names.push(acpBridge.name);
+  return {
+    args,
+    names,
+    warnings,
+    provider: "pi-shell-acp",
+    // Defensive: registry should already store bare basenames, but if a future
+    // entry slips an `openai-codex/` prefix into a pi-shell-acp model field,
+    // strip it before forwarding to codex-acp.
+    modelOverride: target.model.startsWith("openai-codex/")
+      ? target.model.slice("openai-codex/".length)
+      : undefined,
+  };
 }
 
 // ============================================================================
@@ -641,28 +906,35 @@ export async function runDelegateSync(task: string, options: DelegateSyncOptions
   const host = options.host ?? "local";
   const isRemote = host !== "local";
   const effectiveCwd = options.cwd ?? process.cwd();
-  const effectiveModel = resolveDelegateModel(options.model);
   const enrichedTask = enrichTaskWithProjectContext(task, effectiveCwd);
   const taskId = crypto.randomUUID().slice(0, 8);
+
+  // Resolve through the Delegate Target Registry. This is the spawn gate:
+  // unregistered (provider, model) pairs are rejected here. Resume path does
+  // NOT pass through this — Identity Preservation Rule.
+  const fallbackModel = options.model && options.model.trim() ? options.model : DEFAULT_DELEGATE_MODEL;
+  const target = resolveDelegateTarget({ provider: options.provider, model: fallbackModel });
 
   const sessionDir = cwdToSessionDir(effectiveCwd);
   fs.mkdirSync(sessionDir, { recursive: true });
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const sessionFile = path.join(sessionDir, `${timestamp}_delegate-${taskId}.jsonl`);
-  const explicitExtensions = getDelegateExplicitExtensions(effectiveModel, isRemote);
+  const routing = getRegistryRouting(target, isRemote);
 
   const piArgs = [
     "--mode",
     "json",
     "-p",
     "--no-extensions",
-    ...explicitExtensions.args,
+    ...routing.args,
     "--session",
     sessionFile,
+    "--provider",
+    routing.provider,
+    "--model",
+    routing.modelOverride ?? target.model,
+    enrichedTask,
   ];
-  if (explicitExtensions.provider) piArgs.push("--provider", explicitExtensions.provider);
-  piArgs.push("--model", explicitExtensions.modelOverride ?? effectiveModel);
-  piArgs.push(enrichedTask);
 
   let command: string;
   let args: string[];
@@ -689,8 +961,8 @@ export async function runDelegateSync(task: string, options: DelegateSyncOptions
     cost: 0,
     taskId,
     sessionFile,
-    explicitExtensions: [...explicitExtensions.names],
-    warnings: [...explicitExtensions.warnings],
+    explicitExtensions: [...routing.names],
+    warnings: [...routing.warnings],
   };
 
   return collectPiRun({

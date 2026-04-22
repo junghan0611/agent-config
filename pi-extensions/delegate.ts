@@ -43,6 +43,8 @@ import {
   analyzeSessionFileLike,
   cwdToSessionDir,
   resolveDelegateModel,
+  resolveDelegateTarget,
+  getRegistryRouting,
   getDelegateExplicitExtensions,
   enrichTaskWithProjectContext,
   DEFAULT_DELEGATE_MODEL,
@@ -130,6 +132,7 @@ async function runDelegateAsync(
   options: {
     host?: string;
     cwd?: string;
+    provider?: string;
     model?: string;
   },
 ): Promise<{ taskId: string; sessionFile: string; pid: number }> {
@@ -137,15 +140,21 @@ async function runDelegateAsync(
   const isRemote = host !== "local";
   const taskId = crypto.randomUUID().slice(0, 8);
   const cwd = options.cwd ?? process.cwd();
-  const effectiveModel = resolveDelegateModel(options.model);
   const enrichedTask = enrichTaskWithProjectContext(task, cwd);
+
+  // Delegate Target Registry: async spawns go through the same gate as sync.
+  // Identity Preservation Rule: only spawn paths consult the registry; resume
+  // paths preserve the recorded identity verbatim.
+  const fallbackModel = options.model && options.model.trim() ? options.model : DEFAULT_DELEGATE_MODEL;
+  const target = resolveDelegateTarget({ provider: options.provider, model: fallbackModel });
+  const effectiveModel = target.model;
 
   const sessionDir = cwdToSessionDir(cwd);
   fs.mkdirSync(sessionDir, { recursive: true });
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const sessionFile = path.join(sessionDir, `${timestamp}_delegate-${taskId}.jsonl`);
-  const explicitExtensions = getDelegateExplicitExtensions(effectiveModel, isRemote);
+  const routing = getRegistryRouting(target, isRemote);
 
   // --no-extensions: global extensions가 이벤트 루프를 잡아 pi -p exit을 막음
   // --session-control 제외: 소켓 서버가 exit을 막음
@@ -153,12 +162,12 @@ async function runDelegateAsync(
     "--mode", "json",
     "-p",
     "--no-extensions",
-    ...explicitExtensions.args,
+    ...routing.args,
     "--session", sessionFile,
+    "--provider", routing.provider,
+    "--model", routing.modelOverride ?? target.model,
+    enrichedTask,
   ];
-  if (explicitExtensions.provider) piArgs.push("--provider", explicitExtensions.provider);
-  piArgs.push("--model", explicitExtensions.modelOverride ?? effectiveModel);
-  piArgs.push(enrichedTask);
 
   const parentSessionId = process.env.PI_SESSION_ID;
 
@@ -359,8 +368,11 @@ export default function (pi: ExtensionAPI) {
       cwd: Type.Optional(
         Type.String({ description: "Working directory for the delegate" }),
       ),
+      provider: Type.Optional(
+        Type.String({ description: "Provider id (e.g. 'pi-shell-acp', 'openai-codex'). Pair with `model` to disambiguate against the Delegate Target Registry." }),
+      ),
       model: Type.Optional(
-        Type.String({ description: "Model override (default: 'openai-codex/gpt-5.4'). Qualified forms recommended: 'pi-shell-acp/claude-sonnet-4-6' (Claude via ACP), 'openai-codex/gpt-5.4' (direct Codex). For Codex via pi-shell-acp, set PI_DELEGATE_ACP_FOR_CODEX=1." }),
+        Type.String({ description: "Model id. Qualified ('pi-shell-acp/claude-sonnet-4-6') or bare ('claude-sonnet-4-6'). Bare names must resolve unambiguously in the registry; otherwise pass `provider`." }),
       ),
       mode: Type.Optional(
         Type.Union([Type.Literal("sync"), Type.Literal("async")], {
@@ -377,6 +389,7 @@ export default function (pi: ExtensionAPI) {
         const result = await runDelegateAsync(pi, params.task, {
           host: params.host,
           cwd: params.cwd,
+          provider: (params as { provider?: string }).provider,
           model: params.model,
         });
 
@@ -409,6 +422,7 @@ export default function (pi: ExtensionAPI) {
       const result = await runDelegateSync(params.task, {
         host: params.host,
         cwd: params.cwd,
+        provider: (params as { provider?: string }).provider,
         model: params.model,
         signal: signal ?? undefined,
         onUpdate: (text) => {

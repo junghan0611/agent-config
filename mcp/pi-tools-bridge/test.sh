@@ -172,12 +172,8 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# 4c. Identity Preservation Rule guard — delegate_resume schema must NOT expose
-#     a `model` parameter. Locking the model at the API layer is the policy.
-#     If a future change re-introduces it, this gate must fail loudly.
+# 4c-4e. Schema + registry gates — fetch tools/list once, then assert against it.
 # ----------------------------------------------------------------------------
-
-echo "[4c] delegate_resume schema lockdown (no model param)"
 
 SCHEMA_JSON=$(
   {
@@ -187,6 +183,9 @@ SCHEMA_JSON=$(
     sleep 0.5
   } | rpc 2>/dev/null | grep '"id":22' || true
 )
+
+# 4c. Identity Preservation Rule — delegate_resume schema must NOT expose `model`.
+echo "[4c] delegate_resume schema lockdown (no model param)"
 RESUME_SCHEMA=$(echo "$SCHEMA_JSON" | python3 -c "
 import json, sys
 try:
@@ -206,6 +205,46 @@ elif ! echo "$RESUME_SCHEMA" | grep -qw taskId; then
   fail "delegate_resume schema unexpectedly missing 'taskId': $RESUME_SCHEMA"
 else
   ok "delegate_resume schema has no 'model' (locked): $RESUME_SCHEMA"
+fi
+
+# 4d. delegate schema must expose the new `provider` field for registry-aware calls.
+echo "[4d] delegate schema exposes provider field"
+DELEGATE_SCHEMA=$(echo "$SCHEMA_JSON" | python3 -c "
+import json, sys
+try:
+  o = json.loads(sys.stdin.read())
+  t = next((x for x in o['result']['tools'] if x['name'] == 'delegate'), None)
+  if t is None: print('NOT_FOUND'); sys.exit(0)
+  print(','.join(sorted(t['inputSchema'].get('properties', {}).keys())))
+except Exception as e:
+  print('PARSE_ERROR:', e)
+")
+if [ "$DELEGATE_SCHEMA" = "NOT_FOUND" ]; then
+  fail "delegate tool not in tools/list"
+elif ! echo "$DELEGATE_SCHEMA" | grep -qw provider; then
+  fail "delegate schema missing 'provider' field: $DELEGATE_SCHEMA"
+elif ! echo "$DELEGATE_SCHEMA" | grep -qw model; then
+  fail "delegate schema missing 'model' field: $DELEGATE_SCHEMA"
+else
+  ok "delegate schema exposes provider + model: $DELEGATE_SCHEMA"
+fi
+
+# 4e. Registry runtime gate — unregistered (provider, model) must be rejected.
+echo "[4e] delegate registry — unregistered (provider, model) rejected"
+REGISTRY_NEG=$(
+  {
+    printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}'
+    printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+    printf '%s\n' '{"jsonrpc":"2.0","id":23,"method":"tools/call","params":{"name":"delegate","arguments":{"task":"noop","host":"__bogus__","provider":"__not_a_provider__","model":"__not_a_model__"}}}'
+    sleep 1
+  } | rpc 2>/dev/null | grep '"id":23' || true
+)
+if echo "$REGISTRY_NEG" | grep -q '"isError":true' \
+   && echo "$REGISTRY_NEG" | grep -q 'not in the delegate target registry' \
+   && echo "$REGISTRY_NEG" | grep -q 'Allowed:'; then
+  ok "unregistered (provider, model) rejected with allowed-list hint"
+else
+  fail "unregistered tuple did not surface registry rejection: ${REGISTRY_NEG:0:300}"
 fi
 
 # ----------------------------------------------------------------------------

@@ -252,9 +252,10 @@ setup_links() {
   # control.ts: formerly from 3rd-party agent-stuff, now managed in agent-config/pi-extensions/
   # (2026-04-13: forked with targetSessionId fallback + gcStaleSockets)
 
-  # Settings + Keybindings
+  # Settings + Keybindings + delegate target registry
   ensure_link "$SCRIPT_DIR/pi/settings.json" "$HOME/.pi/agent/settings.json"
   ensure_link "$SCRIPT_DIR/pi/keybindings.json" "$HOME/.pi/agent/keybindings.json"
+  ensure_link "$SCRIPT_DIR/pi/delegate-targets.json" "$HOME/.pi/agent/delegate-targets.json"
 
   # Skills (pi) — 개별 링크. semantic-memory는 extension(andenken 패키지)이 대체하므로 제외
   mkdir -p "$HOME/.pi/agent/skills/pi-skills"

@@ -216,6 +216,78 @@ Repository hygiene for this layout:
   - pi-native: `pi-extensions/delegate.ts`
   - MCP-facing: `mcp/pi-tools-bridge/`
 
+### Delegate Target Registry
+
+**SSOT for what may be spawned via `delegate`.** A small JSON allowlist at
+`pi/delegate-targets.json` (symlinked to `~/.pi/agent/delegate-targets.json`)
+enumerates the exact `(provider, model)` pairs the harness recognizes. Every
+`delegate` and `delegate (mode=async)` spawn passes through this gate;
+unregistered pairs are refused at the API layer with a clear error listing
+what *is* allowed.
+
+**Schema.** Minimal on purpose:
+
+```json
+{
+  "delegateTargets": [
+    { "provider": "pi-shell-acp", "model": "claude-sonnet-4-6", "enabled": true },
+    { "provider": "openai-codex", "model": "gpt-5.4",           "enabled": true },
+    { "provider": "pi-shell-acp", "model": "gpt-5.4",           "enabled": true, "explicitOnly": true }
+  ]
+}
+```
+
+- `provider` + `model` — exact tuple. Same `model` name with different
+  `provider` (e.g. native vs ACP gpt-5.4) is two separate entries.
+- `enabled` — required. Disable an entry with `false` instead of deleting,
+  to keep history meaningful.
+- `explicitOnly` — optional. Excludes the entry from bare-model
+  auto-resolution. Caller must pass `provider` to use it.
+
+**Resolution rules (narrow door).** No aliases, no symbolic ids — agents
+call exactly. The resolver accepts three input shapes:
+
+| Input | Behavior |
+|-------|----------|
+| `model: "provider/name"` (qualified) | Split, exact lookup. |
+| `provider: "..."` + `model: "..."` (separate) | Exact lookup. |
+| `model: "name"` only (bare) | Auto-resolve excluding `explicitOnly`: 1 candidate → use it; 0 or 2+ → reject. |
+
+In all paths the resolved tuple must be present in the registry with
+`enabled: true`. Otherwise the spawn is refused.
+
+**Why `explicitOnly`.** The registry encodes default routing as data, not
+code. With native pi-codex registered without the flag and pi-shell-acp
+gpt-5.4 registered with it, a bare `model: "gpt-5.4"` from the agent
+naturally goes to native (default), while testing the ACP path requires
+explicit `provider: "pi-shell-acp"` (intentional opt-in). No alias system
+needed; no priority arithmetic; just data.
+
+**Resume bypasses the registry — by design.** `delegate_resume` reads
+`(provider, model)` from the saved session JSONL and uses them verbatim,
+without consulting the registry. This is the Identity Preservation Rule
+(below): a registered being can always be revived even if the registry
+later removes that entry. The two policies compose cleanly:
+
+- *spawn* = creating a new being → registry policy applies
+- *resume* = preserving an existing being → identity inviolate
+
+**Where the registry is enforced.** `pi-extensions/lib/delegate-core.ts`
+(functions `loadDelegateTargets`, `resolveDelegateTarget`,
+`getRegistryRouting`). Both surfaces — MCP `delegate` and pi-native
+`delegate` (sync + async) — go through the resolver. `delegate_resume`
+intentionally does not.
+
+**Override path.** `PI_DELEGATE_TARGETS_PATH=<path>` env var lets tests
+point at a different file. The runtime cache resets only on process
+restart (or `_resetDelegateRegistryCache()` for tests).
+
+**`PI_DELEGATE_ACP_FOR_CODEX` env var status.** Made redundant by the
+registry — caller now picks ACP routing by passing
+`provider: "pi-shell-acp"` explicitly. Kept in code for backward
+compatibility with the heuristic `getDelegateExplicitExtensions`
+(used only by the resume path); slated for removal in a follow-up round.
+
 ### Identity Preservation Rule for delegate_resume
 
 **Policy.** When a delegate session is resumed, its **model identity is locked**
