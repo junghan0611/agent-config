@@ -216,6 +216,56 @@ Repository hygiene for this layout:
   - pi-native: `pi-extensions/delegate.ts`
   - MCP-facing: `mcp/pi-tools-bridge/`
 
+### Identity Preservation Rule for delegate_resume
+
+**Policy.** When a delegate session is resumed, its **model identity is locked**
+to whatever was recorded at first spawn. The resume API does not accept a
+`model` override. Execution environment (`host`, `cwd`) may change between
+spawn and resume; the delegate's *identity* may not.
+
+**Why it matters.** This codebase treats AI as 존재(being), not as a swappable
+function. A saved delegate session is the trace of one being's reasoning.
+Resuming it under a different model is not "reusing the same conversation
+with a better engine" — it is splicing a new identity onto a transcript that
+belongs to another. The two reasoning traces would be technically continuous
+but ontologically incoherent. We refuse that splice.
+
+A second, practical reason: this is the **mixed test matrix** guard.
+The harness supports three surfaces in parallel and they will be exercised
+together — without this rule the matrix has too many degrees of freedom to
+test or reason about safely.
+
+**Where freedom lives, where lock applies.**
+
+| Operation | What is free | What is locked |
+|-----------|--------------|----------------|
+| `delegate` (new spawn) | model, host, cwd, prompt — a new being is being created | (nothing locked yet) |
+| `delegate_resume` (existing session) | host, cwd, prompt — execution environment can shift | **model is locked to the session's recorded value** |
+
+**Mixed parent × delegate matrix (all combinations supported).**
+
+Any parent surface may delegate to any model; the routing rules
+(Claude → pi-shell-acp; Codex → direct unless `PI_DELEGATE_ACP_FOR_CODEX=1`)
+apply uniformly regardless of where the parent itself runs.
+
+| Parent (caller) | Delegate model selectable at spawn | At resume |
+|-----------------|-----------------------------------|-----------|
+| native pi (codex) | claude-* / openai-codex/gpt-* / opt-in ACP-routed Codex | locked to spawn-time model |
+| pi-shell-acp Claude session | (same set) | (same — locked) |
+| pi-shell-acp Codex session | (same set) | (same — locked) |
+
+**Implementation.** `runDelegateResumeSync` and both `delegate_resume` tool
+schemas (MCP and pi-native) intentionally **do not expose** a `model`
+parameter. The session JSONL's `message.provider` and `message.model` are
+read by `analyzeSessionFileLike()` and used verbatim. If the recorded model
+cannot be determined (e.g. session file empty or never reached an assistant
+turn) the resume is refused with a clear error rather than falling back to
+a default — preserving the principle that we never invent an identity.
+
+**Not a technical limit, a deliberate guard.** It would be trivial to allow
+a model override; the API exists pre-trimmed because the *option* itself is
+the thing we are saying no to.
+
 ### semantic-memory → [andenken](https://github.com/junghan0611/andenken)
 
 Separated into its own repo. Loaded as a **compiled package** (`pi install`) in pi.

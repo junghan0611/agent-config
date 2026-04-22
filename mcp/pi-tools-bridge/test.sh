@@ -172,6 +172,43 @@ else
 fi
 
 # ----------------------------------------------------------------------------
+# 4c. Identity Preservation Rule guard — delegate_resume schema must NOT expose
+#     a `model` parameter. Locking the model at the API layer is the policy.
+#     If a future change re-introduces it, this gate must fail loudly.
+# ----------------------------------------------------------------------------
+
+echo "[4c] delegate_resume schema lockdown (no model param)"
+
+SCHEMA_JSON=$(
+  {
+    printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}'
+    printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+    printf '%s\n' '{"jsonrpc":"2.0","id":22,"method":"tools/list"}'
+    sleep 0.5
+  } | rpc 2>/dev/null | grep '"id":22' || true
+)
+RESUME_SCHEMA=$(echo "$SCHEMA_JSON" | python3 -c "
+import json, sys
+try:
+  o = json.loads(sys.stdin.read())
+  t = next((x for x in o['result']['tools'] if x['name'] == 'delegate_resume'), None)
+  if t is None: print('NOT_FOUND'); sys.exit(0)
+  props = list(t['inputSchema'].get('properties', {}).keys())
+  print(','.join(sorted(props)))
+except Exception as e:
+  print('PARSE_ERROR:', e)
+")
+if [ "$RESUME_SCHEMA" = "NOT_FOUND" ]; then
+  fail "delegate_resume tool not in tools/list: ${SCHEMA_JSON:0:200}"
+elif echo "$RESUME_SCHEMA" | grep -qw model; then
+  fail "delegate_resume schema exposes 'model' (Identity Preservation Rule violation): $RESUME_SCHEMA"
+elif ! echo "$RESUME_SCHEMA" | grep -qw taskId; then
+  fail "delegate_resume schema unexpectedly missing 'taskId': $RESUME_SCHEMA"
+else
+  ok "delegate_resume schema has no 'model' (locked): $RESUME_SCHEMA"
+fi
+
+# ----------------------------------------------------------------------------
 # 5. E2E (opt-in) — real knowledge_search call
 # ----------------------------------------------------------------------------
 

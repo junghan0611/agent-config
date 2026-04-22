@@ -486,8 +486,13 @@ server.tool(
     "or list_sessions. The two surfaces are separate by design (active sessions vs saved " +
     "delegate sessions). " +
     "Routing rules match `delegate`: Claude → pi-shell-acp, Codex → direct unless " +
-    "PI_DELEGATE_ACP_FOR_CODEX=1. The session's recorded model is reused unless `model` " +
-    "overrides it. Async resume is intentionally not exposed here.",
+    "PI_DELEGATE_ACP_FOR_CODEX=1. " +
+    "Identity Preservation Rule: this tool intentionally does NOT accept a `model` " +
+    "parameter. The model is locked to whatever the saved session recorded at first " +
+    "spawn — resuming under a different model is treated as splicing a new identity " +
+    "onto someone else's transcript and is refused at the API layer. host and cwd may " +
+    "change (execution environment is not identity); model may not. " +
+    "Async resume is intentionally not exposed here.",
   {
     taskId: z
       .string()
@@ -508,15 +513,10 @@ server.tool(
       .min(1)
       .optional()
       .describe("Working directory override for the resume spawn"),
-    model: z
-      .string()
-      .min(1)
-      .optional()
-      .describe("Model override; default = the model recorded in the saved session"),
   },
-  async ({ taskId, prompt, host, cwd, model }) => {
+  async ({ taskId, prompt, host, cwd }) => {
     try {
-      const result = await runDelegateResumeSync(taskId, prompt, { host, cwd, model });
+      const result = await runDelegateResumeSync(taskId, prompt, { host, cwd });
       const text = formatSyncSummary(result);
       return result.exitCode === 0 ? textOk(text) : textErr(text);
     } catch (err) {

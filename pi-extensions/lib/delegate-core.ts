@@ -79,6 +79,7 @@ export interface AssistantMessageLike {
   content?: unknown;
   usage?: { cost?: { total?: number } };
   model?: string;
+  provider?: string;
   stopReason?: string;
   errorMessage?: string;
 }
@@ -88,6 +89,7 @@ export interface SessionAnalysis {
   lastError: string | null;
   lastStopReason: string | null;
   lastModel: string | null;
+  lastProvider: string | null;
   turns: number;
   cost: number;
 }
@@ -176,6 +178,7 @@ export function analyzeSessionFileLike(sessionFile: string): SessionAnalysis {
     lastError: null,
     lastStopReason: null,
     lastModel: null,
+    lastProvider: null,
     turns: 0,
     cost: 0,
   };
@@ -197,6 +200,7 @@ export function analyzeSessionFileLike(sessionFile: string): SessionAnalysis {
         }
         if (typeof msg.stopReason === "string") analysis.lastStopReason = msg.stopReason;
         if (typeof msg.model === "string") analysis.lastModel = msg.model;
+        if (typeof msg.provider === "string") analysis.lastProvider = msg.provider;
 
         const c = msg.usage?.cost?.total;
         if (typeof c === "number") analysis.cost += c;
@@ -372,8 +376,10 @@ export function findDelegateSessionFile(taskId: string): string | null {
 export interface DelegateResumeOptions {
   host?: string;
   cwd?: string;
-  /** Override the session's recorded model. Optional. */
-  model?: string;
+  // Identity Preservation Rule (see AGENTS.md): the resume API intentionally
+  // does NOT accept a `model` override. The model identity is locked to the
+  // session's recorded value. Execution environment (host, cwd) may change;
+  // identity may not.
   signal?: AbortSignal;
   onUpdate?: (text: string) => void;
 }
@@ -477,12 +483,23 @@ function collectPiRun({ command, args, cwd, signal, onUpdate, result }: CollectI
 // Contract:
 //   - Input: taskId (8 hex chars from a prior delegate result) + prompt
 //   - Looks up sessionFile via findDelegateSessionFile (pure filesystem walk)
-//   - Reuses the existing session's recorded model unless caller overrides
+//   - Reads model + provider from the session's last assistant turn
+//     (analyzeSessionFileLike) and reuses BOTH verbatim
 //   - Spawns sync `pi --session <file> ... <prompt>` and waits for completion
 //   - Does NOT touch ~/.pi/session-control; works regardless of whether the
 //     original delegate process is still alive
 //
-// Verification status (planned rollout, see MEMORY.md verification roadmap):
+// Identity Preservation Rule (AGENTS.md, intentionally hard-coded here):
+//   - This API does NOT accept a `model` override. The model identity is
+//     locked to whatever the session recorded at first spawn.
+//   - host / cwd MAY change between spawn and resume — execution environment
+//     is not identity. model MAY NOT change.
+//   - If the session has no recorded model (empty / corrupted / never had an
+//     assistant turn) we refuse the resume rather than fall back to a default.
+//   - This guard exists at the API layer, not as runtime validation, because
+//     the option itself is the thing we are saying no to.
+//
+// Verification status (planned rollout, see AGENTS.md test matrix):
 //   1. local + Claude   — implemented, awaiting manual smoke
 //   2. local + Codex    — same code path, awaiting smoke
 //   3. async on Claude  — not implemented (separate design round)
@@ -534,9 +551,35 @@ export async function runDelegateResumeSync(
     };
   }
 
-  const recordedModel = !isRemote ? analyzeSessionFileLike(sessionFile).lastModel ?? undefined : undefined;
-  const effectiveModel = resolveDelegateModel(options.model ?? recordedModel);
+  // Identity Preservation Rule (AGENTS.md): the session's recorded model is
+  // the only legitimate source of identity for a resume. We never invent one
+  // and never accept a caller override. If we cannot read it, we refuse.
+  const sessionAnalysis = !isRemote ? analyzeSessionFileLike(sessionFile) : null;
+  const recordedModel = sessionAnalysis?.lastModel ?? undefined;
+  const recordedProvider = sessionAnalysis?.lastProvider ?? undefined;
+
+  if (!isRemote && !recordedModel) {
+    return {
+      task: prompt,
+      host,
+      exitCode: 1,
+      output:
+        `Cannot resume taskId "${taskId}": session has no recorded model ` +
+        `(file empty, corrupted, or never reached an assistant turn). ` +
+        `Start a fresh delegate instead — identity must come from the session.`,
+      turns: 0,
+      cost: 0,
+      taskId,
+      sessionFile,
+      explicitExtensions: [],
+      warnings: [],
+      error: "session_identity_missing",
+    };
+  }
+
+  const effectiveModel = resolveDelegateModel(recordedModel);
   const explicitExtensions = getDelegateExplicitExtensions(effectiveModel, isRemote);
+  const resumeProvider = explicitExtensions.provider ?? recordedProvider;
 
   const piArgs = [
     "--mode",
@@ -547,7 +590,7 @@ export async function runDelegateResumeSync(
     "--session",
     sessionFile,
   ];
-  if (explicitExtensions.provider) piArgs.push("--provider", explicitExtensions.provider);
+  if (resumeProvider) piArgs.push("--provider", resumeProvider);
   piArgs.push("--model", explicitExtensions.modelOverride ?? effectiveModel);
   piArgs.push(prompt);
 

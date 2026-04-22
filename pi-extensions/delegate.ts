@@ -612,11 +612,18 @@ export default function (pi: ExtensionAPI) {
   });
 
   // --- delegate_resume tool ---
+  // Identity Preservation Rule (AGENTS.md): the parameter schema intentionally
+  // does NOT include a `model` field. The model is locked to the saved session's
+  // recorded value (or the in-process spawn-time record). host/cwd may shift
+  // between spawn and resume; identity may not.
   pi.registerTool({
     name: "delegate_resume",
     label: "Resume Delegate",
     description:
-      "Resume a completed delegate session. Runs the delegate's saved session with an additional prompt. Use to continue work from where the delegate left off.",
+      "Resume a completed delegate session. Runs the delegate's saved session with an additional prompt. " +
+      "Identity Preservation Rule: model is locked to the saved session — this tool does NOT accept a model override. " +
+      "host/cwd may change (execution environment is not identity); model may not. " +
+      "If the session has no recorded model the resume is refused rather than falling back to a default.",
     parameters: Type.Object({
       taskId: Type.String({ description: "Delegate task ID to resume" }),
       prompt: Type.String({ description: "Additional prompt to continue the work" }),
@@ -656,8 +663,25 @@ export default function (pi: ExtensionAPI) {
       const sessionAnalysis = !isRemote && fs.existsSync(sessionFile)
         ? analyzeSessionFile(sessionFile)
         : null;
-      const resumeModel = info?.model ?? sessionAnalysis?.lastModel ?? DEFAULT_DELEGATE_MODEL;
+      // Identity Preservation Rule: prefer in-process spawn-time record (most
+      // accurate), then session JSONL recorded model. Refuse if neither — we
+      // never invent an identity for a resume.
+      const resumeModel = info?.model ?? sessionAnalysis?.lastModel ?? null;
+      if (!resumeModel) {
+        return {
+          content: [{
+            type: "text",
+            text:
+              `Cannot resume ${params.taskId}: session has no recorded model ` +
+              `(file empty, corrupted, or never reached an assistant turn). ` +
+              `Start a fresh delegate instead — identity must come from the session.`,
+          }],
+          isError: true,
+          details: { error: "session_identity_missing" },
+        };
+      }
       const explicitExtensions = getDelegateExplicitExtensions(resumeModel, isRemote);
+      const resumeProvider = explicitExtensions.provider ?? sessionAnalysis?.lastProvider ?? undefined;
 
       const piArgs = [
         "--mode", "json",
@@ -665,7 +689,7 @@ export default function (pi: ExtensionAPI) {
         "--no-extensions",
         ...explicitExtensions.args,
       ];
-      if (explicitExtensions.provider) piArgs.push("--provider", explicitExtensions.provider);
+      if (resumeProvider) piArgs.push("--provider", resumeProvider);
       piArgs.push("--model", explicitExtensions.modelOverride ?? resumeModel, "--session", sessionFile, params.prompt);
 
       let command: string;
