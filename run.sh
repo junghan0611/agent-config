@@ -572,6 +572,50 @@ JS
   validate_pi_tools_bridge_backend "codex" "pi-shell-acp/gpt-5.4" || return 1
 }
 
+# pi-native async delegate spawn smoke. Loads the native delegate.ts directly
+# and asks a cheap model to invoke `delegate` in async mode against a bogus
+# host. We read pi's --mode json event stream so the gate inspects the tool's
+# *actual* sync return (which contains "Async delegate spawned" + Task ID),
+# not the model's natural-language interpretation. We also grep explicitly for
+# the regression class PM flagged: a stale `explicitExtensions` reference in
+# runDelegateAsync would surface as a ReferenceError in the tool result.
+validate_pi_native_async_delegate() {
+  local raw
+  log "pi-native: async delegate spawn smoke (model: gpt-5.4-mini)..."
+
+  if ! raw=$(cd "$SCRIPT_DIR" && pi -p \
+              --mode json \
+              --no-extensions \
+              -e "$SCRIPT_DIR/pi-extensions/delegate.ts" \
+              --provider openai-codex \
+              --model gpt-5.4-mini \
+              'delegate 도구를 task="noop", host="__native_async_smoke_bogus__", mode="async" 인수로 정확히 1회 호출하라. 도구의 첫 sync 응답을 그대로 echo하라. 그 다음에 도착하는 follow-up 메시지는 무시하고 더 출력하지 마라.' 2>&1); then
+    echo "$raw" >&2
+    fail "pi-native async delegate smoke: pi -p exited non-zero"
+    return 1
+  fi
+
+  # Regression class PM flagged: stale variable name in runDelegateAsync.
+  if echo "$raw" | grep -qE 'ReferenceError.*explicitExtensions|explicitExtensions is not defined'; then
+    echo "$raw" >&2
+    fail "pi-native async: ReferenceError on 'explicitExtensions' (stale variable resurfaced)"
+    return 1
+  fi
+
+  # The sync tool return contains these strings verbatim — independent of how
+  # the model paraphrases. Either marker proves the spawn completed cleanly.
+  if echo "$raw" | grep -qE 'Async delegate spawned|Task ID:'; then
+    local taskid
+    taskid=$(echo "$raw" | grep -oE 'Task ID: [a-f0-9]+' | head -1)
+    ok "pi-native async delegate spawn (${taskid:-Task ID present})"
+    return 0
+  fi
+
+  echo "$raw" >&2
+  fail "pi-native async delegate produced neither Task ID nor a recognized error"
+  return 1
+}
+
 # --- setup:npm — npm install for extensions/skills ---
 
 setup_npm() {
@@ -660,6 +704,10 @@ setup_npm() {
   fi
 
   if ! validate_pi_tools_bridge; then
+    return 1
+  fi
+
+  if ! validate_pi_native_async_delegate; then
     return 1
   fi
 

@@ -30,11 +30,17 @@
  *   must NOT depend on a live control socket; the original delegate process may be dead
  *   and that is the normal case.
  *
- * Model routing (delegate + delegate_resume):
- *   - Claude (`claude-*`) is always routed through pi-shell-acp.
- *   - Codex (`openai-codex/*`, `gpt-5*`) goes through the built-in openai-codex provider
- *     by default; opt-in env var `PI_DELEGATE_ACP_FOR_CODEX=1` on this MCP server routes it
- *     through pi-shell-acp (with model id normalization handled by delegate-core).
+ * Model routing:
+ *   - delegate (spawn) — the Delegate Target Registry is the SSOT. Caller passes
+ *     `provider` and/or `model`; resolveDelegateTarget normalizes to an exact
+ *     (provider, model) tuple from `pi/delegate-targets.json` and routes via
+ *     getRegistryRouting. Bare model auto-resolves only when unambiguous and
+ *     not flagged `explicitOnly`.
+ *   - delegate_resume — registry is NOT consulted. The session JSONL's recorded
+ *     (provider, model) is reused verbatim per Identity Preservation Rule.
+ *   - Legacy: PI_DELEGATE_ACP_FOR_CODEX env var still affects the heuristic
+ *     getDelegateExplicitExtensions used only by the resume path. Slated for
+ *     removal once the matrix routine settles.
  *
  * Principles:
  *   - explicit forwarding, no dynamic tool discovery
@@ -494,8 +500,8 @@ server.tool(
     "exited and is NOT required to be alive — delegate_resume does NOT consult control sockets " +
     "or list_sessions. The two surfaces are separate by design (active sessions vs saved " +
     "delegate sessions). " +
-    "Routing rules match `delegate`: Claude → pi-shell-acp, Codex → direct unless " +
-    "PI_DELEGATE_ACP_FOR_CODEX=1. " +
+    "Routing on resume comes entirely from the saved session JSONL (provider + model " +
+    "as recorded). The Delegate Target Registry that gates spawn is NOT consulted here. " +
     "Identity Preservation Rule: this tool intentionally does NOT accept a `model` " +
     "parameter. The model is locked to whatever the saved session recorded at first " +
     "spawn — resuming under a different model is treated as splicing a new identity " +

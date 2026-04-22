@@ -229,6 +229,28 @@ else
   ok "delegate schema exposes provider + model: $DELEGATE_SCHEMA"
 fi
 
+# 4f. Static guard against the PM-flagged blocker class: runDelegateAsync in
+#     pi-extensions/delegate.ts must reference the local `routing` variable, not
+#     the legacy `explicitExtensions` (which was renamed). Catches a regression
+#     class that the bridge's tsconfig cannot see (pi-extensions is outside its
+#     include path, so a stale name compiles silently and only fails at runtime).
+echo "[4d2] static guard: runDelegateAsync uses 'routing' (no stale name)"
+NATIVE_FILE="$HERE/../../pi-extensions/delegate.ts"
+if [ ! -f "$NATIVE_FILE" ]; then
+  fail "static guard: native delegate.ts not found at $NATIVE_FILE"
+else
+  STALE_REFS=$(awk '/^async function runDelegateAsync/,/^\}$/' "$NATIVE_FILE" \
+    | grep -nE '\bexplicitExtensions\.' \
+    | grep -v 'info\.explicitExtensions' \
+    | grep -v 'resumeInfo\.explicitExtensions' \
+    || true)
+  if [ -z "$STALE_REFS" ]; then
+    ok "runDelegateAsync clean (no stale 'explicitExtensions.X' references)"
+  else
+    fail "runDelegateAsync still references stale 'explicitExtensions': $STALE_REFS"
+  fi
+fi
+
 # 4e. Registry runtime gate — unregistered (provider, model) must be rejected.
 echo "[4e] delegate registry — unregistered (provider, model) rejected"
 REGISTRY_NEG=$(

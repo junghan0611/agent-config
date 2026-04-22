@@ -206,8 +206,8 @@ async function runDelegateAsync(
     model: effectiveModel,
     startTime: Date.now(),
     status: "running",
-    explicitExtensions: [...explicitExtensions.names],
-    warnings: [...explicitExtensions.warnings],
+    explicitExtensions: [...routing.names],
+    warnings: [...routing.warnings],
     proc,
   };
   activeDelegates.set(taskId, info);
@@ -352,8 +352,8 @@ export default function (pi: ExtensionAPI) {
       "Use delegate for tasks that should run in isolation — different cwd, different machine, or resource-intensive work.",
       "For SSH remote: set host to SSH config name (e.g., 'gpu1i'). The remote must have pi installed.",
       "mode='sync' (default): Wait for completion, return result. Use for quick checks, git status, simple commands.",
-      "Default delegate model: openai-codex/gpt-5.4. Qualified-id convention: pi-shell-acp/claude-sonnet-4-6 for Claude via ACP bridge, openai-codex/gpt-5.4 for direct Codex.",
-      "Claude delegates are always routed through pi-shell-acp (the provider bridge). Codex delegates go direct through the openai-codex provider by default; set PI_DELEGATE_ACP_FOR_CODEX=1 in the environment to opt-in to routing Codex through pi-shell-acp as well (delegate-core normalizes openai-codex/gpt-5.4 → gpt-5.4 before spawning).",
+      "Spawn routing comes from the Delegate Target Registry (~/.pi/agent/delegate-targets.json). Caller passes provider+model (or qualified 'provider/model'); unregistered tuples are refused with a list of allowed targets. Default when omitted: openai-codex/gpt-5.4.",
+      "Bare model auto-resolves only when the registry has exactly one non-explicitOnly match. Example: 'gpt-5.4' resolves to native openai-codex; for ACP gpt-5.4, pass provider='pi-shell-acp' explicitly.",
       "mode='async': Spawn and return immediately. Get notified on completion. Use delegate_status to check progress.",
       "async delegates save sessions — use delegate_status to check, or resume later.",
       "When a task involves research, analysis, writing, or anything that takes more than a few seconds → use async.",

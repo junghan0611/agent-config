@@ -316,15 +316,15 @@ test or reason about safely.
 
 **Mixed parent × delegate matrix (all combinations supported).**
 
-Any parent surface may delegate to any model; the routing rules
-(Claude → pi-shell-acp; Codex → direct unless `PI_DELEGATE_ACP_FOR_CODEX=1`)
-apply uniformly regardless of where the parent itself runs.
+Any parent surface may delegate to any registered target; spawn-time routing
+is decided by the Delegate Target Registry (above), not by the parent's own
+provider/model.
 
-| Parent (caller) | Delegate model selectable at spawn | At resume |
-|-----------------|-----------------------------------|-----------|
-| native pi (codex) | claude-* / openai-codex/gpt-* / opt-in ACP-routed Codex | locked to spawn-time model |
-| pi-shell-acp Claude session | (same set) | (same — locked) |
-| pi-shell-acp Codex session | (same set) | (same — locked) |
+| Parent (caller) | Delegate target selectable at spawn | At resume |
+|-----------------|-------------------------------------|-----------|
+| native pi (codex) | any registry entry; bare model auto-resolves to non-explicitOnly | locked to spawn-time identity |
+| pi-shell-acp Claude session | (same — registry is parent-agnostic) | (same — locked) |
+| pi-shell-acp Codex session | (same) | (same — locked) |
 
 **Implementation.** `runDelegateResumeSync` and both `delegate_resume` tool
 schemas (MCP and pi-native) intentionally **do not expose** a `model`
