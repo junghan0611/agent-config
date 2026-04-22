@@ -483,6 +483,7 @@ function resolveExplicitExtensionSpec(packageNeedle: string): ExplicitExtensionS
 export function getDelegateExplicitExtensions(
   model: string | undefined,
   isRemote: boolean,
+  recordedProvider?: string,
 ): { args: string[]; names: string[]; warnings: string[]; provider?: string; modelOverride?: string } {
   const args: string[] = [];
   const names: string[] = [];
@@ -490,7 +491,16 @@ export function getDelegateExplicitExtensions(
 
   const wantsClaudeBridge = isClaudeModel(model);
   const wantsCodexBridge = shouldRouteCodexViaAcp(model);
-  if (!wantsClaudeBridge && !wantsCodexBridge) return { args, names, warnings };
+  // Resume-path signal: a session whose first spawn went through pi-shell-acp
+  // MUST be resumed with the bridge extension loaded — otherwise pi cannot
+  // resolve the "pi-shell-acp" provider and the resume dies silently (no
+  // assistant turn gets appended). This guard is needed because resume
+  // deliberately bypasses the Delegate Target Registry (Identity Preservation
+  // Rule) — so routing info has to come from the session's own recordedProvider.
+  const wantsAcpByRecordedProvider = recordedProvider === "pi-shell-acp";
+  if (!wantsClaudeBridge && !wantsCodexBridge && !wantsAcpByRecordedProvider) {
+    return { args, names, warnings };
+  }
 
   const acpBridge = resolveExplicitExtensionSpec("pi-shell-acp");
   if (acpBridge) {
@@ -501,7 +511,12 @@ export function getDelegateExplicitExtensions(
       names,
       warnings,
       provider: "pi-shell-acp",
-      modelOverride: wantsCodexBridge ? normalizeCodexDelegateModelForAcp(model) : undefined,
+      // Strip `openai-codex/` prefix when routing via ACP, for both opt-in Codex
+      // routing and recorded-provider resume. For bare model ids the helper is
+      // a no-op, so this is safe regardless of whether the prefix is present.
+      modelOverride: (wantsCodexBridge || wantsAcpByRecordedProvider)
+        ? normalizeCodexDelegateModelForAcp(model)
+        : undefined,
     };
   }
 
@@ -515,6 +530,14 @@ export function getDelegateExplicitExtensions(
 
     warnings.push(
       "Claude delegate requested but pi-shell-acp could not be resolved. Claude delegates may fail without an explicit provider bridge.",
+    );
+    return { args, names, warnings };
+  }
+
+  if (wantsAcpByRecordedProvider) {
+    warnings.push(
+      "Resume recorded provider=pi-shell-acp but the bridge extension could not be resolved. " +
+        "Resume will likely fail because pi cannot load the pi-shell-acp provider without its extension.",
     );
     return { args, names, warnings };
   }
@@ -843,7 +866,10 @@ export async function runDelegateResumeSync(
   }
 
   const effectiveModel = resolveDelegateModel(recordedModel);
-  const explicitExtensions = getDelegateExplicitExtensions(effectiveModel, isRemote);
+  // Pass recordedProvider so the resume path re-injects pi-shell-acp when the
+  // original spawn went through it (registry is bypassed on resume per Identity
+  // Preservation Rule — so the bridge signal must come from the session itself).
+  const explicitExtensions = getDelegateExplicitExtensions(effectiveModel, isRemote, recordedProvider);
   const resumeProvider = explicitExtensions.provider ?? recordedProvider;
 
   const piArgs = [

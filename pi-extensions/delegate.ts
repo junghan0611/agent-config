@@ -694,7 +694,14 @@ export default function (pi: ExtensionAPI) {
           details: { error: "session_identity_missing" },
         };
       }
-      const explicitExtensions = getDelegateExplicitExtensions(resumeModel, isRemote);
+      // Pass recorded provider so ACP-routed spawns get re-injected with the
+      // pi-shell-acp bridge on resume (otherwise pi cannot resolve the provider
+      // and the resume dies silently — see getDelegateExplicitExtensions guard).
+      const explicitExtensions = getDelegateExplicitExtensions(
+        resumeModel,
+        isRemote,
+        sessionAnalysis?.lastProvider ?? undefined,
+      );
       const resumeProvider = explicitExtensions.provider ?? sessionAnalysis?.lastProvider ?? undefined;
 
       const piArgs = [
