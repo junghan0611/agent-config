@@ -596,7 +596,15 @@ validate_pi_native_async_delegate() {
   fi
 
   # Regression class PM flagged: stale variable name in runDelegateAsync.
-  if echo "$raw" | grep -qE 'ReferenceError.*explicitExtensions|explicitExtensions is not defined'; then
+  #
+  # NOTE on here-strings: $raw can exceed 800KB (pi --mode json is chatty),
+  # and `set -o pipefail` is active. The pattern `echo "$raw" | grep -q ...`
+  # races — grep -q exits 0 on first match, echo then gets SIGPIPE (rc=141),
+  # and pipefail elevates the whole pipe's rc to 141 → `if` sees "fail" even
+  # though the match happened. Observed in setup runs where raw > ~500KB.
+  # Here-strings (`<<< "$raw"`) feed stdin without a pipeline, sidestepping
+  # pipefail entirely. Keep this form for any grep check on large $raw.
+  if grep -qE 'ReferenceError.*explicitExtensions|explicitExtensions is not defined' <<< "$raw"; then
     echo "$raw" >&2
     fail "pi-native async: ReferenceError on 'explicitExtensions' (stale variable resurfaced)"
     return 1
@@ -604,9 +612,12 @@ validate_pi_native_async_delegate() {
 
   # The sync tool return contains these strings verbatim — independent of how
   # the model paraphrases. Either marker proves the spawn completed cleanly.
-  if echo "$raw" | grep -qE 'Async delegate spawned|Task ID:'; then
+  if grep -qE 'Async delegate spawned|Task ID:' <<< "$raw"; then
     local taskid
-    taskid=$(echo "$raw" | grep -oE 'Task ID: [a-f0-9]+' | head -1)
+    # `head -1` still closes its stdin early, which can send SIGPIPE back
+    # to grep under pipefail. Swallow the rc so the assignment survives —
+    # the captured string is the only thing we need.
+    taskid=$(grep -oE 'Task ID: [a-f0-9]+' <<< "$raw" | head -1 || true)
     ok "pi-native async delegate spawn (${taskid:-Task ID present})"
     return 0
   fi
@@ -796,6 +807,26 @@ setup_all() {
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null && echo ' + skills' || echo 'not linked')"
   echo "  OpenCode: $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo 'not linked')"
+
+  # Sync sentinel — delegate matrix diagonal slice (6 cells). Anchors the
+  # reproducibility claim: a fresh `./run.sh setup` on any machine must end
+  # green here before we call sync public-release-ready.
+  # Skip with SKIP_SENTINEL=1 for iterative dev loops that hit unrelated
+  # parts of setup.
+  if [ "${SKIP_SENTINEL:-0}" != "1" ]; then
+    section "Sentinel (delegate 6-cell matrix)"
+    if "$SCRIPT_DIR/scripts/sentinel-runner.sh"; then
+      ok "sentinel 6/6 PASS"
+    else
+      fail "sentinel: one or more cells failed — see table above and artifact"
+      echo ""
+      echo "DONE: agent-config setup complete (with sentinel failures)"
+      return 1
+    fi
+  else
+    warn "sentinel skipped (SKIP_SENTINEL=1)"
+  fi
+
   echo ""
   echo "DONE: agent-config setup complete"
 }
@@ -810,8 +841,9 @@ Usage: ./run.sh <command> [args]
 
 === 설치 ===
   setup                       원커맨드 전체 설치 (이것만 기억하면 됨)
-                              → clone + build + link + npm 전부 수행
+                              → clone + build + link + npm + sentinel 전부 수행
                               → 어떤 디바이스든 이것 하나로 재현
+                              → SKIP_SENTINEL=1 로 6셀 검증 생략 가능
 
   setup:repos|build|links|npm 개별 단계 (디버깅용, 보통 불필요)
 
@@ -830,6 +862,11 @@ Usage: ./run.sh <command> [args]
 === 벤치마크 ===
   bench                       전체 벤치마크 (API 필요)
   bench:dry                   드라이런
+
+=== Delegate 매트릭스 ===
+  sentinel                    6셀 diagonal slice (parent × target × sync/resume)
+  sentinel 1,3,5              부분 실행 (쉼표 구분, id 1..6)
+  sentinel --help             셀 정의 / 실패 코드
 
 === 유틸 ===
   chunk:org [--sample]        청킹 통계
@@ -866,6 +903,11 @@ case "${1:-help}" in
     exec "$SM_DIR/run.sh" status ;;
   bench|bench:dry)
     exec "$SM_DIR/run.sh" "$@" ;;
+
+  # === Sentinel — delegate matrix diagonal slice ===
+  sentinel)
+    shift
+    exec "$SCRIPT_DIR/scripts/sentinel-runner.sh" "$@" ;;
 
   # === Util ===
   chunk:org)
