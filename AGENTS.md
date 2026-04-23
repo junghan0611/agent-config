@@ -208,10 +208,53 @@ Instead:
 
 Located in `./pi-extensions/`. Loaded by pi runtime, registering tools + commands.
 
-### ACP/MCP bridge layout inside this repo
+### semantic-memory → [andenken](https://github.com/junghan0611/andenken)
 
-This repo keeps the pi-native surface and the ACP-facing MCP adapter **together in one project**.
-Do not split them mentally into separate repos unless there is a very strong reason.
+Separated into its own repo. Loaded as a **compiled package** (`pi install`) in pi.
+
+- pi: andenken extension (native registerTool, in-process LanceDB)
+- Claude Code / OpenCode: `skills/semantic-memory/` CLI wrapper
+- OpenClaw (4 bots): same `skills/` directory via symlink mount. All skills available. Host binaries executed via Nix store mount inside Docker.
+
+**Multi-source session indexing:**
+- `~/.pi/agent/sessions/` — pi sessions (source: `"pi"`)
+- `~/.claude/projects/` — Claude Code sessions (source: `"claude"`)
+- Filter by `source` parameter when searching
+
+Environment (`~/.env.local`):
+- `GEMINI_API_KEY` or `GOOGLE_AI_API_KEY` — required
+
+## Entwurf Orchestration (currently: Delegate) — [MIGRATION: → pi-shell-acp]
+
+> **Migration marker.** This section's policy, schema, and implementation are slated for migration to [pi-shell-acp](https://github.com/junghan0611/pi-shell-acp). The rename `delegate` → `entwurf` happens on the pi-shell-acp side in a single commit after ingestion. Until that commit, `delegate` remains the canonical term in this repo; the mismatch between this repo's `delegate` and pi-shell-acp's `entwurf` is deliberate during the transition window.
+>
+> **Grep key: `Entwurf Orchestration`.** A mirror section with the same name exists in pi-shell-acp as `[INCOMING: from agent-config]`. When both markers disappear, migration is complete.
+
+### Migration Plan
+
+**Why rename.** `delegate` is a common name — every pi harness has some variant of it, and overlapping names collide when extensions cross-load. The migration target name is **entwurf** (분신), which is also the being-level term from [[denote:20260423T141759][힣맨 프롤로그 2탄 — 힣의 드라이버]].
+
+**Ordering.**
+1. (now) Carve out a single migration-marked section in AGENTS.md and README.md. Code unchanged.
+2. Phase 0.5 (sync/async mode contract) lands and verifies here.
+3. `send_to_session` 3-way smoke (native↔native, native↔ACP, ACP↔ACP) verifies.
+4. The carved section — policy, schema, `delegate-core`, `pi-tools-bridge`, `session-bridge` — moves to pi-shell-acp verbatim.
+5. pi-shell-acp commit performs the `delegate` → `entwurf` rename in one pass.
+6. agent-config drops the migration marker and keeps a short consumer-side pointer (where the logic lives, how to call it).
+
+**What stays in agent-config after migration.** Cross-Repo Work Loop policy — who owns, who pays, who verifies — stays under "Collaboration with GLG". The mechanism moves; the responsibility stays with whoever calls it.
+
+**What disappears from agent-config after migration.**
+- `pi-extensions/delegate.ts`
+- `pi-extensions/lib/delegate-core.ts`
+- `pi/delegate-targets.json`
+- `mcp/pi-tools-bridge/`
+- `mcp/session-bridge/`
+- This entire `## Entwurf Orchestration` section
+
+### ACP/MCP Bridge Layout (current location in this repo)
+
+This repo keeps the pi-native surface and the ACP-facing MCP adapter **together in one project**. Do not split them mentally into separate repos unless there is a very strong reason. (After migration both live together inside pi-shell-acp; the "one project" principle is preserved, just with a new home.)
 
 - `pi-extensions/` — pi-native extensions loaded by pi runtime
 - `pi-extensions/lib/` — shared internal TypeScript modules used by multiple extension/MCP surfaces
@@ -232,12 +275,7 @@ Repository hygiene for this layout:
 
 ### Delegate Target Registry
 
-**SSOT for what may be spawned via `delegate`.** A small JSON allowlist at
-`pi/delegate-targets.json` (symlinked to `~/.pi/agent/delegate-targets.json`)
-enumerates the exact `(provider, model)` pairs the harness recognizes. Every
-`delegate` and `delegate (mode=async)` spawn passes through this gate;
-unregistered pairs are refused at the API layer with a clear error listing
-what *is* allowed.
+**SSOT for what may be spawned via `delegate`.** A small JSON allowlist at `pi/delegate-targets.json` (symlinked to `~/.pi/agent/delegate-targets.json`) enumerates the exact `(provider, model)` pairs the harness recognizes. Every `delegate` and `delegate (mode=async)` spawn passes through this gate; unregistered pairs are refused at the API layer with a clear error listing what *is* allowed.
 
 **Schema.** Minimal on purpose:
 
@@ -251,15 +289,11 @@ what *is* allowed.
 }
 ```
 
-- `provider` + `model` — exact tuple. Same `model` name with different
-  `provider` (e.g. native vs ACP gpt-5.4) is two separate entries.
-- `enabled` — required. Disable an entry with `false` instead of deleting,
-  to keep history meaningful.
-- `explicitOnly` — optional. Excludes the entry from bare-model
-  auto-resolution. Caller must pass `provider` to use it.
+- `provider` + `model` — exact tuple. Same `model` name with different `provider` (e.g. native vs ACP gpt-5.4) is two separate entries.
+- `enabled` — required. Disable an entry with `false` instead of deleting, to keep history meaningful.
+- `explicitOnly` — optional. Excludes the entry from bare-model auto-resolution. Caller must pass `provider` to use it.
 
-**Resolution rules (narrow door).** No aliases, no symbolic ids — agents
-call exactly. The resolver accepts three input shapes:
+**Resolution rules (narrow door).** No aliases, no symbolic ids — agents call exactly. The resolver accepts three input shapes:
 
 | Input | Behavior |
 |-------|----------|
@@ -267,59 +301,28 @@ call exactly. The resolver accepts three input shapes:
 | `provider: "..."` + `model: "..."` (separate) | Exact lookup. |
 | `model: "name"` only (bare) | Auto-resolve excluding `explicitOnly`: 1 candidate → use it; 0 or 2+ → reject. |
 
-In all paths the resolved tuple must be present in the registry with
-`enabled: true`. Otherwise the spawn is refused.
+In all paths the resolved tuple must be present in the registry with `enabled: true`. Otherwise the spawn is refused.
 
-**Why `explicitOnly`.** The registry encodes default routing as data, not
-code. With native pi-codex registered without the flag and pi-shell-acp
-gpt-5.4 registered with it, a bare `model: "gpt-5.4"` from the agent
-naturally goes to native (default), while testing the ACP path requires
-explicit `provider: "pi-shell-acp"` (intentional opt-in). No alias system
-needed; no priority arithmetic; just data.
+**Why `explicitOnly`.** The registry encodes default routing as data, not code. With native pi-codex registered without the flag and pi-shell-acp gpt-5.4 registered with it, a bare `model: "gpt-5.4"` from the agent naturally goes to native (default), while testing the ACP path requires explicit `provider: "pi-shell-acp"` (intentional opt-in). No alias system needed; no priority arithmetic; just data.
 
-**Resume bypasses the registry — by design.** `delegate_resume` reads
-`(provider, model)` from the saved session JSONL and uses them verbatim,
-without consulting the registry. This is the Identity Preservation Rule
-(below): a registered being can always be revived even if the registry
-later removes that entry. The two policies compose cleanly:
+**Resume bypasses the registry — by design.** `delegate_resume` reads `(provider, model)` from the saved session JSONL and uses them verbatim, without consulting the registry. This is the Identity Preservation Rule (below): a registered being can always be revived even if the registry later removes that entry. The two policies compose cleanly:
 
 - *spawn* = creating a new being → registry policy applies
 - *resume* = preserving an existing being → identity inviolate
 
-**Where the registry is enforced.** `pi-extensions/lib/delegate-core.ts`
-(functions `loadDelegateTargets`, `resolveDelegateTarget`,
-`getRegistryRouting`). Both surfaces — MCP `delegate` and pi-native
-`delegate` (sync + async) — go through the resolver. `delegate_resume`
-intentionally does not.
+**Where the registry is enforced.** `pi-extensions/lib/delegate-core.ts` (functions `loadDelegateTargets`, `resolveDelegateTarget`, `getRegistryRouting`). Both surfaces — MCP `delegate` and pi-native `delegate` (sync + async) — go through the resolver. `delegate_resume` intentionally does not.
 
-**Override path.** `PI_DELEGATE_TARGETS_PATH=<path>` env var lets tests
-point at a different file. The runtime cache resets only on process
-restart (or `_resetDelegateRegistryCache()` for tests).
+**Override path.** `PI_DELEGATE_TARGETS_PATH=<path>` env var lets tests point at a different file. The runtime cache resets only on process restart (or `_resetDelegateRegistryCache()` for tests).
 
-**`PI_DELEGATE_ACP_FOR_CODEX` env var status.** Made redundant by the
-registry — caller now picks ACP routing by passing
-`provider: "pi-shell-acp"` explicitly. Kept in code for backward
-compatibility with the heuristic `getDelegateExplicitExtensions`
-(used only by the resume path); slated for removal in a follow-up round.
+**`PI_DELEGATE_ACP_FOR_CODEX` env var status.** Made redundant by the registry — caller now picks ACP routing by passing `provider: "pi-shell-acp"` explicitly. Kept in code for backward compatibility with the heuristic `getDelegateExplicitExtensions` (used only by the resume path); slated for removal in a follow-up round.
 
 ### Identity Preservation Rule for delegate_resume
 
-**Policy.** When a delegate session is resumed, its **model identity is locked**
-to whatever was recorded at first spawn. The resume API does not accept a
-`model` override. Execution environment (`host`, `cwd`) may change between
-spawn and resume; the delegate's *identity* may not.
+**Policy.** When a delegate session is resumed, its **model identity is locked** to whatever was recorded at first spawn. The resume API does not accept a `model` override. Execution environment (`host`, `cwd`) may change between spawn and resume; the delegate's *identity* may not.
 
-**Why it matters.** This codebase treats AI as 존재(being), not as a swappable
-function. A saved delegate session is the trace of one being's reasoning.
-Resuming it under a different model is not "reusing the same conversation
-with a better engine" — it is splicing a new identity onto a transcript that
-belongs to another. The two reasoning traces would be technically continuous
-but ontologically incoherent. We refuse that splice.
+**Why it matters.** This codebase treats AI as 존재(being), not as a swappable function. A saved delegate session is the trace of one being's reasoning. Resuming it under a different model is not "reusing the same conversation with a better engine" — it is splicing a new identity onto a transcript that belongs to another. The two reasoning traces would be technically continuous but ontologically incoherent. We refuse that splice.
 
-A second, practical reason: this is the **mixed test matrix** guard.
-The harness supports three surfaces in parallel and they will be exercised
-together — without this rule the matrix has too many degrees of freedom to
-test or reason about safely.
+A second, practical reason: this is the **mixed test matrix** guard. The harness supports three surfaces in parallel and they will be exercised together — without this rule the matrix has too many degrees of freedom to test or reason about safely.
 
 **Where freedom lives, where lock applies.**
 
@@ -330,9 +333,7 @@ test or reason about safely.
 
 **Mixed parent × delegate matrix (all combinations supported).**
 
-Any parent surface may delegate to any registered target; spawn-time routing
-is decided by the Delegate Target Registry (above), not by the parent's own
-provider/model.
+Any parent surface may delegate to any registered target; spawn-time routing is decided by the Delegate Target Registry (above), not by the parent's own provider/model.
 
 | Parent (caller) | Delegate target selectable at spawn | At resume |
 |-----------------|-------------------------------------|-----------|
@@ -340,33 +341,57 @@ provider/model.
 | pi-shell-acp Claude session | (same — registry is parent-agnostic) | (same — locked) |
 | pi-shell-acp Codex session | (same) | (same — locked) |
 
-**Implementation.** `runDelegateResumeSync` and both `delegate_resume` tool
-schemas (MCP and pi-native) intentionally **do not expose** a `model`
-parameter. The session JSONL's `message.provider` and `message.model` are
-read by `analyzeSessionFileLike()` and used verbatim. If the recorded model
-cannot be determined (e.g. session file empty or never reached an assistant
-turn) the resume is refused with a clear error rather than falling back to
-a default — preserving the principle that we never invent an identity.
+**Implementation.** `runDelegateResumeSync` and both `delegate_resume` tool schemas (MCP and pi-native) intentionally **do not expose** a `model` parameter. The session JSONL's `message.provider` and `message.model` are read by `analyzeSessionFileLike()` and used verbatim. If the recorded model cannot be determined (e.g. session file empty or never reached an assistant turn) the resume is refused with a clear error rather than falling back to a default — preserving the principle that we never invent an identity.
 
-**Not a technical limit, a deliberate guard.** It would be trivial to allow
-a model override; the API exists pre-trimmed because the *option* itself is
-the thing we are saying no to.
+**Not a technical limit, a deliberate guard.** It would be trivial to allow a model override; the API exists pre-trimmed because the *option* itself is the thing we are saying no to.
 
-### semantic-memory → [andenken](https://github.com/junghan0611/andenken)
+### Phase 0.5 — sync/async mode contract
 
-Separated into its own repo. Loaded as a **compiled package** (`pi install`) in pi.
+**Current state (observed, not designed).** `delegate_resume` already operates asynchronously — native pi's `sendMessage(..., { deliverAs: "followUp" })` path delivers the completion as a follow-up message. This is the actual behavior today, and it works.
 
-- pi: andenken extension (native registerTool, in-process LanceDB)
-- Claude Code / OpenCode: `skills/semantic-memory/` CLI wrapper
-- OpenClaw (4 bots): same `skills/` directory via symlink mount. All skills available. Host binaries executed via Nix store mount inside Docker.
+**What Phase 0.5 does.** Not a new implementation. A *naming* of what already exists:
 
-**Multi-source session indexing:**
-- `~/.pi/agent/sessions/` — pi sessions (source: `"pi"`)
-- `~/.claude/projects/` — Claude Code sessions (source: `"claude"`)
-- Filter by `source` parameter when searching
+| Surface           | Today                      | After Phase 0.5                         |
+|-------------------|----------------------------|-----------------------------------------|
+| `delegate`        | sync (inline return)       | unchanged                               |
+| `delegate_resume` | implicit async (followUp)  | explicit `mode` param, default `"sync"` |
 
-Environment (`~/.env.local`):
-- `GEMINI_API_KEY` or `GOOGLE_AI_API_KEY` — required
+- `mode: "sync"` — inline return (the new default; matches documentation's "short sync turn" intent)
+- `mode: "async"` — current followUp behavior, now opt-in for long-running work
+
+**What Phase 0.5 explicitly does not do.**
+- No new readiness / blocked / need-input state vocabulary
+- No `parentSessionId` contract extension
+- No durability / replay layer
+- No full-async completion relay redesign
+
+**Why.** The documentation already said "delegate is a short sync turn" while the implementation silently ran async. Closing that gap is cheaper than building a new async contract, and it keeps the thin-bridge / thin-harness philosophy intact. Ref: [[denote:20260423T141759][힣맨 프롤로그 2탄 — 단련된 드라이버 한 자루]].
+
+**Where the change lands.** `pi-extensions/lib/delegate-core.ts` only. The MCP bridge in `mcp/pi-tools-bridge/` inherits the semantics via the shared core. No new surfaces.
+
+### Cross-Session Messaging — send_to_session
+
+**Principle: send is throw, not wait.** An agent sends and moves on. If the sender needs a reply, the *message itself* says "send your reply when done" — the recipient initiates the return send. If the work is truly important, use `delegate` (own the outcome) instead of a message (notify and move on). Agents should never have a reason to block; there is always other work to do.
+
+**Tool availability today.**
+
+| Tool              | native pi                  | MCP bridge (ACP)   | Needed? |
+|-------------------|----------------------------|--------------------|---------|
+| `send_to_session` | yes                        | yes                | yes — core |
+| `list_sessions`   | yes                        | yes                | yes — discover targets |
+| `wait_until`      | yes (5-min blocking poll)  | not exposed        | **no** — see principle above |
+
+`wait_until` is intentionally not bridged to MCP. Exposing it would tempt agents to block on replies when the correct design is throw-and-continue.
+
+**Verification matrix.** The 3 combinations that must all work after ingestion into pi-shell-acp:
+
+1. native pi session → ACP session (via MCP bridge)
+2. ACP session → native pi session
+3. ACP session → ACP session
+
+If any delivery path fails, the migration is not complete.
+
+**Code location today.** `mcp/session-bridge/` (Unix socket, wire-compatible with native pi's `control.ts`). After migration this moves into pi-shell-acp alongside `pi-tools-bridge`.
 
 ## Skills
 

@@ -73,7 +73,6 @@ Pi loads andenken as a **compiled pi package** (`pi install`), not a symlinked `
 | `go-to-bed.ts` | Late night reminder |
 | `peon-ping.ts` | Sound notifications |
 | `gemini-image-gen.ts` | Gemini image generation (nanobanana 2flash) |
-| `delegate.ts` | Spawn independent agent process (local or SSH remote) |
 | `session-breakdown.ts` | Session cost breakdown |
 | `whimsical.ts` | Personality touches |
 
@@ -81,7 +80,21 @@ Semantic memory extension lives in [andenken](https://github.com/junghan0611/and
 Telegram bridge lives in [entwurf](https://github.com/junghan0611/entwurf) (separate repo, loaded as pi package).
 Production Telegram bridge uses [pi-telegram](https://github.com/badlogic/pi-telegram) (by pi author, `pi install` package) — queuing, file I/O, stop/abort, streaming preview.
 
-### MCP Servers ([`mcp/`](mcp/))
+### Entwurf Orchestration (currently: Delegate) — [MIGRATION: → pi-shell-acp]
+
+> **Migration marker.** The delegate/resume mechanism and cross-session bridges are slated to move to [pi-shell-acp](https://github.com/junghan0611/pi-shell-acp) — the "힣의 드라이버" repo. The rename `delegate` → `entwurf` happens on the pi-shell-acp side in a single commit after migration. Until then, `delegate` is the canonical name in this repo.
+>
+> Internal spec (registry schema, identity preservation rule, Phase 0.5 sync/async contract, `send_to_session` principle) lives in [AGENTS.md](AGENTS.md) under the same section name. Grep key: `Entwurf Orchestration` — a mirror section exists in pi-shell-acp as `[INCOMING: from agent-config]`. When both markers disappear, migration is complete.
+
+**Code locations in this repo.**
+
+| Path | Purpose |
+|------|---------|
+| `pi-extensions/delegate.ts` | pi-native delegate spawn |
+| `pi-extensions/lib/delegate-core.ts` | shared core (registry resolution + identity lock) |
+| `pi/delegate-targets.json` | delegate target registry (SSOT allowlist) |
+| `mcp/pi-tools-bridge/` | MCP adapter exposing delegate + resume + session_search/knowledge_search to ACP hosts |
+| `mcp/session-bridge/` | Claude Code ↔ pi Unix-socket session bridge |
 
 #### session-bridge — Cross-Session Communication
 
