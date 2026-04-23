@@ -12,6 +12,12 @@ input=$(cat)
 device=$(cat ~/.current-device 2>/dev/null || echo 'UNKNOWN')
 
 cwd=$(echo "$input" | jq -r '.workspace.current_dir // "?"')
+# Shorten $HOME to ~ so the path doesn't eat the status line width.
+if [[ "$cwd" == "$HOME" ]]; then
+  cwd="~"
+elif [[ "$cwd" == "$HOME"/* ]]; then
+  cwd="~${cwd#$HOME}"
+fi
 style=$(echo "$input" | jq -r '.output_style.name // "?"')
 model_id=$(echo "$input" | jq -r '.model.id // "?"')
 
