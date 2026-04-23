@@ -50,6 +50,7 @@ import {
   ensureDelegateOncePerTarget,
   markDelegateTargetUsed,
   resolveGuardTargetKey,
+  mirrorChildStderr,
   DEFAULT_DELEGATE_MODEL,
 } from "./lib/delegate-core.js";
 
@@ -201,6 +202,7 @@ async function runDelegateAsync(
       ...(parentSessionId ? { PARENT_SESSION_ID: parentSessionId } : {}),
     },
   });
+  mirrorChildStderr(proc);
 
   const pid = proc.pid ?? 0;
 
@@ -750,6 +752,7 @@ export default function (pi: ExtensionAPI) {
         detached: true,
         stdio: ["ignore", "ignore", "pipe"],
       });
+      mirrorChildStderr(proc);
 
       const pid = proc.pid ?? 0;
 

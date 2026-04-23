@@ -76,10 +76,31 @@ Failure codes:
   S3 session file not found for taskId
   S4 session has no assistant turn
   S5 identity mismatch (lastModel vs target)
+  S6 bridge path != new             (child stderr, ACP-target only)
   R1 parent non-zero exit            (resume stage)
   R2 turns did not increase within SENTINEL_WAIT
   R3 identity drift on resume (lastModel changed)
+  R4 bridge path != resume|load      (child stderr, ACP-target only)
+  R5 semantic recall missed          (token not in last assistant turn)
 EOF
+}
+
+# ----------------------------------------------------------------------------
+# Prompt hygiene — 운영 룰 (2026-04-23 wording 오염 사건 교훈)
+#
+# 두 층은 별개다. 한 층의 통과를 다른 층의 통과로 외삽하지 말 것:
+#   - bridge continuity : child stderr `[pi-shell-acp:bootstrap]` path=resume|load
+#   - semantic continuity : 이전 turn의 사실을 다음 turn에서 회수
+#
+# 기억 토큰 선택 규칙:
+#   - 반드시 의미 중립 명사(동물/식물/자연/사물). 문화·정치 함의 없는 것.
+#   - 금지: "test-token-*", "password", "secret", "api key",
+#           "credential", 영숫자 식별자 형태 전반. safety 해석을 유발함.
+#   - 첫 turn 응답은 짧은 ack(READY)로 강제해 모델이 산만해지지 않게.
+# ----------------------------------------------------------------------------
+TOKEN_POOL=(올빼미 해바라기 단풍나무 갈대 벚꽃 호수 구름 바다 사슴 고래 보름달 소나무 매화 등불 돌탑)
+pick_token() {
+  echo "${TOKEN_POOL[$(( RANDOM % ${#TOKEN_POOL[@]} ))]}"
 }
 
 # ----------------------------------------------------------------------------
@@ -99,9 +120,20 @@ ALL_CELLS=(
 # Parent spawn — runs pi with the chosen parent surface, captures stdout.
 # Uses `pi --mode json` so the tool_result payloads reach stdout verbatim,
 # giving us a paraphrase-free anchor for `Task ID: <8hex>`.
+#
+# child_stderr_log (4th arg, optional): when set, exported to the parent pi as
+# PI_DELEGATE_CHILD_STDERR_LOG so delegate-core's mirrorChildStderr() appends
+# the delegate child's stderr to that file. This is the only way to observe
+# child-side `[pi-shell-acp:bootstrap]` bridge markers — parent stderr can't
+# see the bridge when target provider is pi-shell-acp (bridge lives in child).
 # ----------------------------------------------------------------------------
 parent_spawn() {
-  local parent_key="$1" prompt="$2" out_file="$3"
+  local parent_key="$1" prompt="$2" out_file="$3" child_stderr_log="${4:-}"
+  if [ -n "$child_stderr_log" ]; then
+    export PI_DELEGATE_CHILD_STDERR_LOG="$child_stderr_log"
+  else
+    unset PI_DELEGATE_CHILD_STDERR_LOG
+  fi
   case "$parent_key" in
     native)
       # --no-extensions -e delegate.ts: load only our delegate tool. This is the
@@ -135,16 +167,21 @@ parent_spawn() {
 # ----------------------------------------------------------------------------
 # Prompts. Deliberately terse: we only need the model to call the tool once.
 # The model's post-call prose is irrelevant — we read raw JSON and session JSONL.
+#
+# The spawn task plants a neutral memory token and asks the child for a fixed
+# ack (READY). The resume task asks the child to recall the token in one word.
+# Token neutrality + short ack protects the check from safety-filter contamination
+# (see Prompt hygiene rules at the top of this file).
 # ----------------------------------------------------------------------------
 build_spawn_prompt() {
-  local provider="$1" model="$2"
-  printf 'delegate 도구를 정확히 1회 호출하라. 인수: { task: "OK 한 단어만 답해라", provider: "%s", model: "%s", mode: "sync" }. 도구 호출이 끝나면 설명이나 요약 없이 즉시 턴을 종료하라.' \
-    "$provider" "$model"
+  local provider="$1" model="$2" token="$3"
+  printf 'delegate 도구를 정확히 1회 호출하라. 인수: { task: "기억 단어는 %s 다. READY 한 단어만 답해라.", provider: "%s", model: "%s", mode: "sync" }. 도구 호출이 끝나면 설명이나 요약 없이 즉시 턴을 종료하라.' \
+    "$token" "$provider" "$model"
 }
 
 build_resume_prompt() {
   local task_id="$1"
-  printf 'delegate_resume 도구를 정확히 1회 호출하라. 인수: { taskId: "%s", prompt: "SECOND 한 단어만 답해라" }. 도구 호출이 끝나면 설명이나 요약 없이 즉시 턴을 종료하라.' \
+  printf 'delegate_resume 도구를 정확히 1회 호출하라. 인수: { taskId: "%s", prompt: "기억 단어를 한 단어로만 답해라." }. 도구 호출이 끝나면 설명이나 요약 없이 즉시 턴을 종료하라.' \
     "$task_id"
 }
 
@@ -257,6 +294,41 @@ wait_for_turns_gt() {
   return 1
 }
 
+# Last assistant turn's textual content from a delegate session JSONL.
+# Used for semantic recall assertion (R5). We concatenate text blocks only.
+last_assistant_text() {
+  SENTINEL_FILE="$1" node -e '
+const fs = require("fs");
+const f = process.env.SENTINEL_FILE;
+let last = "";
+try {
+  const content = fs.readFileSync(f, "utf-8");
+  for (const line of content.trim().split("\n")) {
+    try {
+      const e = JSON.parse(line);
+      if (e.type !== "message" || e.message?.role !== "assistant") continue;
+      const c = e.message.content;
+      if (typeof c === "string") { last = c; continue; }
+      if (Array.isArray(c)) {
+        const text = c.filter(b => b && b.type === "text").map(b => b.text || "").join("\n").trim();
+        if (text) last = text;
+      }
+    } catch {}
+  }
+} catch {}
+console.log(last);
+'
+}
+
+# Bridge continuity anchor — grep the child stderr mirror for pi-shell-acp's
+# bootstrap marker. Returns the path= value (new|resume|load|invalidated) or
+# empty if no marker is present.
+bridge_path_from_log() {
+  local log="$1"
+  [ -f "$log" ] || return 0
+  grep -oE '^\[pi-shell-acp:bootstrap\] path=[a-z-]+' "$log" | tail -1 | sed 's/^.*path=//'
+}
+
 # Identity pass: session's recorded model equals the registry target,
 # modulo the known ACP prefix stripping. See PM-confirmed normalization:
 #   openai-codex/X   → session may record "X" or "openai-codex/X"
@@ -283,13 +355,34 @@ run_cell() {
   local SPAWN_TURNS=0 SPAWN_PROV="" SPAWN_MODEL="" SPAWN_STOP="" SPAWN_COST=0
   local RESUME_TB=0 RESUME_TA=0 RESUME_PROV="" RESUME_MODEL="" RESUME_STOP="" RESUME_COST=0
   local PARENT_COST=0
+  # Per-cell neutral token for semantic recall (R5). Fresh each cell so we
+  # can't accidentally pass via cached state from a prior run.
+  local CELL_TOKEN
+  CELL_TOKEN=$(pick_token)
+  # Whether this cell's delegate child uses pi-shell-acp bridge — decides
+  # if S6/R4 bridge-path anchors apply. Only ACP target provider qualifies;
+  # native target provider means no bridge in the child.
+  local CELL_BRIDGE_CHILD=0
+  [ "$CELL_TP" = "pi-shell-acp" ] && CELL_BRIDGE_CHILD=1
+  # For Codex via ACP the second-load path is "load" (persisted state hydrate),
+  # for Claude via ACP it is "resume" (live ACP session reuse). See pi-shell-acp
+  # smoke-continuity for the canonical mapping.
+  local CELL_EXPECTED_RESUME_PATH=""
+  if [ "$CELL_BRIDGE_CHILD" -eq 1 ]; then
+    case "$CELL_TM" in
+      claude-*) CELL_EXPECTED_RESUME_PATH="resume" ;;
+      gpt-*)    CELL_EXPECTED_RESUME_PATH="load" ;;
+      *)        CELL_EXPECTED_RESUME_PATH="resume" ;;
+    esac
+  fi
 
-  printf '%s▶ cell %s: parent=%s → %s/%s%s\n' \
-    "$C_BOLD" "$CELL_ID" "$CELL_PARENT" "$CELL_TP" "$CELL_TM" "$C_RESET" >&2
+  printf '%s▶ cell %s: parent=%s → %s/%s  token=%s%s\n' \
+    "$C_BOLD" "$CELL_ID" "$CELL_PARENT" "$CELL_TP" "$CELL_TM" "$CELL_TOKEN" "$C_RESET" >&2
 
   # --- Spawn stage --------------------------------------------------------
   local spawn_prompt spawn_log="$LOG_DIR/cell${CELL_ID}-spawn.log"
-  spawn_prompt=$(build_spawn_prompt "$CELL_TP" "$CELL_TM")
+  local spawn_child_log="$LOG_DIR/cell${CELL_ID}-spawn-child.log"
+  spawn_prompt=$(build_spawn_prompt "$CELL_TP" "$CELL_TM" "$CELL_TOKEN")
 
   # Snapshot the pre-spawn wall clock (minus a second for race safety).
   # Used by the S2 fallback to find a freshly-created delegate session file
@@ -297,7 +390,7 @@ run_cell() {
   local spawn_threshold=$(( $(date +%s) - 1 ))
 
   local rc=0
-  parent_spawn "$CELL_PARENT" "$spawn_prompt" "$spawn_log" || rc=$?
+  parent_spawn "$CELL_PARENT" "$spawn_prompt" "$spawn_log" "$spawn_child_log" || rc=$?
   if [ "$rc" -ne 0 ]; then
     CELL_FCODE="S1"
     CELL_NOTE="parent exit rc=$rc (timeout or crash) — see $spawn_log"
@@ -353,13 +446,27 @@ run_cell() {
     finalize_cell; return
   fi
 
+  # Bridge continuity on spawn (ACP-target only): child's pi-shell-acp should
+  # announce path=new for the fresh session. If missing or different, the
+  # bridge did not engage as expected.
+  if [ "$CELL_BRIDGE_CHILD" -eq 1 ]; then
+    local spawn_bridge_path
+    spawn_bridge_path=$(bridge_path_from_log "$spawn_child_log")
+    if [ "$spawn_bridge_path" != "new" ]; then
+      CELL_FCODE="S6"
+      CELL_NOTE="bridge spawn path expected=new, got=${spawn_bridge_path:-<absent>} — see $spawn_child_log"
+      finalize_cell; return
+    fi
+  fi
+
   # --- Resume stage -------------------------------------------------------
   RESUME_TB="$SPAWN_TURNS"
   local resume_prompt resume_log="$LOG_DIR/cell${CELL_ID}-resume.log"
+  local resume_child_log="$LOG_DIR/cell${CELL_ID}-resume-child.log"
   resume_prompt=$(build_resume_prompt "$SPAWN_TASK_ID")
 
   rc=0
-  parent_spawn "$CELL_PARENT" "$resume_prompt" "$resume_log" || rc=$?
+  parent_spawn "$CELL_PARENT" "$resume_prompt" "$resume_log" "$resume_child_log" || rc=$?
   if [ "$rc" -ne 0 ]; then
     CELL_FCODE="R1"
     CELL_NOTE="resume parent exit rc=$rc — see $resume_log"
@@ -396,6 +503,33 @@ run_cell() {
   if [ "$RESUME_MODEL" != "$SPAWN_MODEL" ]; then
     CELL_FCODE="R3"
     CELL_NOTE="identity drift: spawn recorded $SPAWN_MODEL, resume recorded $RESUME_MODEL"
+    finalize_cell; return
+  fi
+
+  # Bridge continuity on resume (ACP-target only): child's pi-shell-acp must
+  # announce path=resume (Claude) or path=load (Codex). Anything else — new,
+  # invalidated, absent — means the bridge did not reconnect the session and
+  # we're seeing structural turn growth over a freshly replayed history rather
+  # than true continuity. R3 identity check alone cannot distinguish these.
+  if [ "$CELL_BRIDGE_CHILD" -eq 1 ]; then
+    local resume_bridge_path
+    resume_bridge_path=$(bridge_path_from_log "$resume_child_log")
+    if [ "$resume_bridge_path" != "$CELL_EXPECTED_RESUME_PATH" ]; then
+      CELL_FCODE="R4"
+      CELL_NOTE="bridge resume path expected=$CELL_EXPECTED_RESUME_PATH, got=${resume_bridge_path:-<absent>} — see $resume_child_log"
+      finalize_cell; return
+    fi
+  fi
+
+  # Semantic continuity: the token planted on spawn must appear in the last
+  # assistant turn after resume. This is the layer that R2/R3 cannot cover
+  # (a cache-miss replay can still pass R2/R3). Neutral token + short ack
+  # prompt design — see Prompt hygiene rules at top of file.
+  local last_text
+  last_text=$(last_assistant_text "$SPAWN_SESSION")
+  if [[ "$last_text" != *"$CELL_TOKEN"* ]]; then
+    CELL_FCODE="R5"
+    CELL_NOTE="semantic recall missed: token='$CELL_TOKEN' not in last assistant turn — got: ${last_text:0:120}"
     finalize_cell; return
   fi
 

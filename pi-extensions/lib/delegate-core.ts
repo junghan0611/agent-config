@@ -29,7 +29,7 @@
  * the spawned pi --model matches what the downstream ACP backend expects.
  */
 
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -265,6 +265,31 @@ export function loadDelegateTargets(): DelegateRegistry {
 /** Test-only hook to reset the in-memory cache (e.g. between test runs). */
 export function _resetDelegateRegistryCache(): void {
   cachedRegistry = null;
+}
+
+// ============================================================================
+// Child stderr mirror (opt-in, sentinel observability)
+//
+// Gated by env PI_DELEGATE_CHILD_STDERR_LOG. When set, any delegate child pi
+// process spawned here also has its stderr appended to the given path. The
+// sentinel uses this to grep for child-side `[pi-shell-acp:bootstrap]` bridge
+// markers when asserting continuity — parent stderr can't see that signal
+// because the bridge lives in the child when target provider is pi-shell-acp.
+//
+// Opt-in (env unset → no-op) so production runs pay nothing. A write failure
+// surfaces on console.error instead of being silently swallowed (see the "No
+// 면피" invariant in AGENTS.md): a misconfigured diagnostic should be visible.
+// ============================================================================
+
+export function mirrorChildStderr(proc: ChildProcess): void {
+  const logPath = process.env.PI_DELEGATE_CHILD_STDERR_LOG;
+  if (!logPath || !proc.stderr) return;
+  const writer = fs.createWriteStream(logPath, { flags: "a" });
+  writer.on("error", (err) => {
+    console.error(`[delegate] child stderr mirror failed (${logPath}): ${err.message}`);
+  });
+  proc.stderr.on("data", (data: Buffer) => writer.write(data));
+  proc.on("close", () => writer.end());
 }
 
 // ============================================================================
@@ -734,6 +759,7 @@ function collectPiRun({ command, args, cwd, signal, onUpdate, result }: CollectI
 
   return new Promise<DelegateResult>((resolve) => {
     const proc = spawn(command, args, { cwd, shell: false, stdio: ["ignore", "pipe", "pipe"] });
+    mirrorChildStderr(proc);
 
     let buffer = "";
     let stderr = "";
