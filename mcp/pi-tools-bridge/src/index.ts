@@ -515,7 +515,9 @@ server.tool(
     "spawn — resuming under a different model is treated as splicing a new identity " +
     "onto someone else's transcript and is refused at the API layer. host and cwd may " +
     "change (execution environment is not identity); model may not. " +
-    "Async resume is intentionally not exposed here.",
+    "Async resume is intentionally not exposed on this MCP surface; " +
+    "the pi-native delegate_resume exposes mode=\"async\" for long-running resumes " +
+    "with followUp delivery into the parent session (see Phase 0.5 in AGENTS.md).",
   {
     taskId: z
       .string()

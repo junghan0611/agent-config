@@ -349,6 +349,8 @@ Any parent surface may delegate to any registered target; spawn-time routing is 
 
 **Current state (observed, not designed).** `delegate_resume` already operates asynchronously — native pi's `sendMessage(..., { deliverAs: "followUp" })` path delivers the completion as a follow-up message. This is the actual behavior today, and it works.
 
+**Observed asymmetry across the two surfaces.** Before Phase 0.5 the two `delegate_resume` surfaces disagreed silently: pi-native (`pi-extensions/delegate.ts`) was always async (detached spawn + followUp delivery), while the MCP bridge (`mcp/pi-tools-bridge/src/index.ts`) was already sync (direct `runDelegateResumeSync` call). An agent calling "the same tool" got different completion semantics depending on which surface resolved the call. Phase 0.5 unifies both surfaces on **sync default**, making the pi-native surface match what the MCP bridge already did, and exposes the old pi-native behavior as explicit `mode: "async"` opt-in.
+
 **What Phase 0.5 does.** Not a new implementation. A *naming* of what already exists:
 
 | Surface           | Today                      | After Phase 0.5                         |

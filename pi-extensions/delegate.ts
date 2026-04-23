@@ -39,6 +39,7 @@ import * as os from "node:os";
 import * as fs from "node:fs";
 import {
   runDelegateSync,
+  runDelegateResumeSync,
   formatSyncSummary,
   analyzeSessionFileLike,
   cwdToSessionDir,
@@ -656,11 +657,21 @@ export default function (pi: ExtensionAPI) {
   // does NOT include a `model` field. The model is locked to the saved session's
   // recorded value (or the in-process spawn-time record). host/cwd may shift
   // between spawn and resume; identity may not.
+  //
+  // Phase 0.5: `mode` parameter, default "sync". Before Phase 0.5 this surface
+  // was implicitly async (detached spawn + followUp); the MCP bridge surface
+  // was already sync via runDelegateResumeSync. Default-sync unifies the two
+  // surfaces on what the docs always claimed ("short sync turn"); async stays
+  // available as explicit opt-in for long-running resumes. See AGENTS.md
+  // § Entwurf Orchestration § Phase 0.5.
   pi.registerTool({
     name: "delegate_resume",
     label: "Resume Delegate",
     description:
-      "Resume a completed delegate session. Runs the delegate's saved session with an additional prompt. " +
+      "Resume a completed delegate session. Runs the delegate's saved session with an additional prompt.\n\n" +
+      "Modes:\n" +
+      "- sync (default): wait for completion, return result inline. Matches MCP bridge surface.\n" +
+      "- async: spawn detached, deliver completion as followUp message to this session. For long-running resumes.\n\n" +
       "Identity Preservation Rule: model is locked to the saved session — this tool does NOT accept a model override. " +
       "host/cwd may change (execution environment is not identity); model may not. " +
       "If the session has no recorded model the resume is refused rather than falling back to a default.",
@@ -668,9 +679,56 @@ export default function (pi: ExtensionAPI) {
       taskId: Type.String({ description: "Delegate task ID to resume" }),
       prompt: Type.String({ description: "Additional prompt to continue the work" }),
       host: Type.Optional(Type.String({ description: "SSH host override (for remote delegates)" })),
+      mode: Type.Optional(
+        Type.Union([Type.Literal("sync"), Type.Literal("async")], {
+          description: "sync (default): wait for completion, return result inline. async: spawn detached, deliver completion as followUp.",
+          default: "sync",
+        }),
+      ),
     }),
 
     async execute(_toolCallId, params, signal, onUpdate) {
+      const mode = params.mode ?? "sync";
+
+      // Phase 0.5 sync branch — delegate to core, return inline (mirrors the
+      // MCP bridge surface which already used runDelegateResumeSync directly).
+      if (mode === "sync") {
+        const info = activeDelegates.get(params.taskId);
+        const syncHost = params.host ?? info?.host;
+        const syncCwd = info?.cwd;
+        const result = await runDelegateResumeSync(params.taskId, params.prompt, {
+          host: syncHost,
+          cwd: syncCwd,
+          signal: signal ?? undefined,
+          onUpdate: (text) => {
+            onUpdate?.({
+              content: [{ type: "text", text: `[${syncHost ?? "local"}] ${text.slice(0, 200)}...` }],
+            });
+          },
+        });
+        return {
+          content: [{ type: "text", text: formatSyncSummary(result) }],
+          isError: result.exitCode !== 0,
+          details: {
+            task: result.task,
+            host: result.host,
+            exitCode: result.exitCode,
+            turns: result.turns,
+            cost: result.cost,
+            model: result.model,
+            sessionFile: result.sessionFile,
+            taskId: result.taskId,
+            originalTaskId: params.taskId,
+            error: result.error,
+            stopReason: result.stopReason,
+            explicitExtensions: result.explicitExtensions,
+            warnings: result.warnings,
+          },
+        };
+      }
+
+      // Async branch — unchanged pre-Phase-0.5 behavior. Detached spawn,
+      // immediate return, completion delivered as followUp message.
       const info = activeDelegates.get(params.taskId);
 
       let sessionFile: string | null = null;
