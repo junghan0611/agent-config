@@ -202,6 +202,13 @@ async function runDelegateAsync(
       ...(parentSessionId ? { PARENT_SESSION_ID: parentSessionId } : {}),
     },
   });
+  // Fire-and-forget async: don't let the child's stderr pipe keep the parent's
+  // event loop alive. Interactive parents stay alive on their own (REPL), so
+  // the `close` listener below still fires and delivers the followUp. In
+  // `pi -p`, once the parent's turn ends the loop empties and the parent
+  // exits cleanly — the child continues detached and the listener simply
+  // doesn't fire (no session left to notify, which is the right outcome).
+  proc.unref();
   mirrorChildStderr(proc);
 
   const pid = proc.pid ?? 0;
@@ -752,6 +759,8 @@ export default function (pi: ExtensionAPI) {
         detached: true,
         stdio: ["ignore", "ignore", "pipe"],
       });
+      // Same rationale as runDelegateAsync — see the comment there.
+      proc.unref();
       mirrorChildStderr(proc);
 
       const pid = proc.pid ?? 0;
