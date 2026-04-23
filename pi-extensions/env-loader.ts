@@ -78,8 +78,6 @@ export default function (pi: ExtensionAPI) {
 		const total = homeCount + projectCount;
 		if (total > 0) {
 			ctx.ui.setStatus("env", `env: ${total} vars loaded`);
-			// Clear status after 3 seconds
-			setTimeout(() => ctx.ui.setStatus("env", undefined), 3000);
 		}
 	});
 }

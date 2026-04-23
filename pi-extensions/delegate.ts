@@ -263,55 +263,49 @@ async function runDelegateAsync(
         info.warnings?.length ? `Warnings: ${info.warnings.join(" | ")}` : null,
       ].filter(Boolean).join("\n");
 
-      try {
-        pi.sendMessage(
-          {
-            customType: "delegate-complete",
-            content: [
-              `${info.status === "failed" ? "❌" : "🏁"} delegate \`${taskId}\` ${info.status} (${host}, ${analysis.turns} turns, $${analysis.cost.toFixed(4)})`,
-              meta || null,
-              summary,
-            ].filter(Boolean).join("\n\n"),
-            display: true,
-            details: {
-              taskId,
-              host,
-              status: info.status,
-              turns: analysis.turns,
-              cost: analysis.cost,
-              error: info.error,
-              stopReason: info.stopReason,
-              explicitExtensions: info.explicitExtensions,
-              warnings: info.warnings,
-            },
+      pi.sendMessage(
+        {
+          customType: "delegate-complete",
+          content: [
+            `${info.status === "failed" ? "❌" : "🏁"} delegate \`${taskId}\` ${info.status} (${host}, ${analysis.turns} turns, $${analysis.cost.toFixed(4)})`,
+            meta || null,
+            summary,
+          ].filter(Boolean).join("\n\n"),
+          display: true,
+          details: {
+            taskId,
+            host,
+            status: info.status,
+            turns: analysis.turns,
+            cost: analysis.cost,
+            error: info.error,
+            stopReason: info.stopReason,
+            explicitExtensions: info.explicitExtensions,
+            warnings: info.warnings,
           },
-          { triggerTurn: true, deliverAs: "followUp" },
-        );
-      } catch {
-        /* 분신 세션이 이미 종료된 경우 무시 */
-      }
+        },
+        { triggerTurn: true, deliverAs: "followUp" },
+      );
     } else if (stderr) {
       info.error = stderr.slice(0, 500);
       info.output = info.error;
       info.status = "failed";
-      try {
-        pi.sendMessage(
-          {
-            customType: "delegate-complete",
-            content: `❌ delegate \`${taskId}\` failed (${host}): ${stderr.slice(0, 300)}`,
-            display: true,
-            details: {
-              taskId,
-              host,
-              status: "failed",
-              error: stderr.slice(0, 500),
-              explicitExtensions: info.explicitExtensions,
-              warnings: info.warnings,
-            },
+      pi.sendMessage(
+        {
+          customType: "delegate-complete",
+          content: `❌ delegate \`${taskId}\` failed (${host}): ${stderr.slice(0, 300)}`,
+          display: true,
+          details: {
+            taskId,
+            host,
+            status: "failed",
+            error: stderr.slice(0, 500),
+            explicitExtensions: info.explicitExtensions,
+            warnings: info.warnings,
           },
-          { triggerTurn: true, deliverAs: "followUp" },
-        );
-      } catch { /* ignore */ }
+        },
+        { triggerTurn: true, deliverAs: "followUp" },
+      );
     }
   });
 
@@ -817,29 +811,27 @@ export default function (pi: ExtensionAPI) {
             resumeInfo.warnings?.length ? `Warnings: ${resumeInfo.warnings.join(" | ")}` : null,
           ].filter(Boolean).join("\n");
 
-          try {
-            pi.sendMessage(
-              {
-                customType: "delegate-complete",
-                content: [
-                  `${resumeInfo.status === "failed" ? "❌" : "🏁"} resume \`${resumeTaskId}\` (← ${params.taskId}) ${resumeInfo.status} (${analysis.turns} turns, $${analysis.cost.toFixed(4)})`,
-                  meta || null,
-                  summary,
-                ].filter(Boolean).join("\n\n"),
-                display: true,
-                details: {
-                  taskId: resumeTaskId,
-                  originalTaskId: params.taskId,
-                  status: resumeInfo.status,
-                  error: resumeInfo.error,
-                  stopReason: resumeInfo.stopReason,
-                  explicitExtensions: resumeInfo.explicitExtensions,
-                  warnings: resumeInfo.warnings,
-                },
+          pi.sendMessage(
+            {
+              customType: "delegate-complete",
+              content: [
+                `${resumeInfo.status === "failed" ? "❌" : "🏁"} resume \`${resumeTaskId}\` (← ${params.taskId}) ${resumeInfo.status} (${analysis.turns} turns, $${analysis.cost.toFixed(4)})`,
+                meta || null,
+                summary,
+              ].filter(Boolean).join("\n\n"),
+              display: true,
+              details: {
+                taskId: resumeTaskId,
+                originalTaskId: params.taskId,
+                status: resumeInfo.status,
+                error: resumeInfo.error,
+                stopReason: resumeInfo.stopReason,
+                explicitExtensions: resumeInfo.explicitExtensions,
+                warnings: resumeInfo.warnings,
               },
-              { triggerTurn: true, deliverAs: "followUp" },
-            );
-          } catch { /* session already closed */ }
+            },
+            { triggerTurn: true, deliverAs: "followUp" },
+          );
         }
       });
 
