@@ -63,6 +63,9 @@ import {
   runDelegateSync,
   runDelegateResumeSync,
   formatSyncSummary,
+  ensureDelegateOncePerTarget,
+  markDelegateTargetUsed,
+  resolveGuardTargetKey,
   DEFAULT_DELEGATE_MODEL,
 } from "../../../pi-extensions/lib/delegate-core.js";
 
@@ -481,7 +484,12 @@ server.tool(
   },
   async ({ task, host, cwd, provider, model }) => {
     try {
+      const guardSessionId = process.pid.toString();
+      const guardTargetKey = resolveGuardTargetKey(provider, model);
+      ensureDelegateOncePerTarget(guardSessionId, guardTargetKey);
+
       const result = await runDelegateSync(task, { host, cwd, provider, model });
+      markDelegateTargetUsed(guardSessionId, guardTargetKey);
       const text = formatSyncSummary(result);
       return result.exitCode === 0 ? textOk(text) : textErr(text);
     } catch (err) {

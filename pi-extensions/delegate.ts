@@ -47,8 +47,16 @@ import {
   getRegistryRouting,
   getDelegateExplicitExtensions,
   enrichTaskWithProjectContext,
+  ensureDelegateOncePerTarget,
+  markDelegateTargetUsed,
+  resolveGuardTargetKey,
   DEFAULT_DELEGATE_MODEL,
 } from "./lib/delegate-core.js";
+
+function getParentSessionId(pi: ExtensionAPI): string {
+  const sm = (pi as unknown as { sessionManager?: { getSessionId?: () => string } }).sessionManager;
+  return sm?.getSessionId?.() ?? "__no_session__";
+}
 
 // ============================================================================
 // Constants (async-only)
@@ -385,6 +393,13 @@ export default function (pi: ExtensionAPI) {
     async execute(toolCallId, params, signal, onUpdate) {
       const mode = params.mode ?? "sync";
 
+      const guardSessionId = getParentSessionId(pi);
+      const guardTargetKey = resolveGuardTargetKey(
+        (params as { provider?: string }).provider,
+        params.model,
+      );
+      ensureDelegateOncePerTarget(guardSessionId, guardTargetKey);
+
       if (mode === "async") {
         const result = await runDelegateAsync(pi, params.task, {
           host: params.host,
@@ -392,6 +407,7 @@ export default function (pi: ExtensionAPI) {
           provider: (params as { provider?: string }).provider,
           model: params.model,
         });
+        markDelegateTargetUsed(guardSessionId, guardTargetKey);
 
         return {
           content: [
@@ -431,6 +447,7 @@ export default function (pi: ExtensionAPI) {
           });
         },
       });
+      markDelegateTargetUsed(guardSessionId, guardTargetKey);
 
       return {
         content: [{ type: "text", text: formatSyncSummary(result) }],
@@ -607,9 +624,14 @@ export default function (pi: ExtensionAPI) {
         task = colonMatch[2];
       }
 
+      const guardSessionId = getParentSessionId(pi);
+      const guardTargetKey = resolveGuardTargetKey(undefined, undefined);
+      ensureDelegateOncePerTarget(guardSessionId, guardTargetKey);
+
       if (mode === "async") {
         ctx.ui.notify(`🚀 Async delegating to ${host}...`, "info");
         const result = await runDelegateAsync(pi, task, { host });
+        markDelegateTargetUsed(guardSessionId, guardTargetKey);
         ctx.ui.notify(
           `✅ Spawned: ${result.taskId} (pid ${result.pid})\nSession: ${result.sessionFile}`,
           "info",
@@ -617,6 +639,7 @@ export default function (pi: ExtensionAPI) {
       } else {
         ctx.ui.notify(`🚀 Delegating to ${host}...`, "info");
         const result = await runDelegateSync(task, { host });
+        markDelegateTargetUsed(guardSessionId, guardTargetKey);
         ctx.ui.notify(
           `✅ ${host}: ${result.turns} turns, $${result.cost.toFixed(4)}\n${result.output.slice(0, 200)}`,
           result.exitCode === 0 ? "info" : "error",

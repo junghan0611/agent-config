@@ -267,6 +267,50 @@ export function _resetDelegateRegistryCache(): void {
   cachedRegistry = null;
 }
 
+// ============================================================================
+// Spawn guard — one delegate spawn per (session, target) per process.
+//
+// Shared by pi native tool (pi-extensions/delegate.ts) and the MCP bridge
+// (mcp/pi-tools-bridge). Both paths must go through this gate before calling
+// runDelegateSync / runDelegateAsync. delegate_resume deliberately bypasses it.
+//
+// Map key is the caller-provided sessionId:
+//   - pi native: pi.sessionManager.getSessionId()
+//   - MCP bridge: process.pid (the MCP subprocess is one Claude session)
+// Resets on process restart, which is the intended lifetime.
+// ============================================================================
+
+const usedDelegateTargets = new Map<string, Set<string>>();
+
+export function ensureDelegateOncePerTarget(sessionId: string, targetKey: string): void {
+  const seen = usedDelegateTargets.get(sessionId);
+  if (seen && seen.has(targetKey)) {
+    throw new Error(
+      `delegate to ${targetKey} already exists in this session. Use delegate_resume to continue.`,
+    );
+  }
+}
+
+export function markDelegateTargetUsed(sessionId: string, targetKey: string): void {
+  let seen = usedDelegateTargets.get(sessionId);
+  if (!seen) {
+    seen = new Set();
+    usedDelegateTargets.set(sessionId, seen);
+  }
+  seen.add(targetKey);
+}
+
+export function resolveGuardTargetKey(provider: string | undefined, model: string | undefined): string {
+  const fallbackModel = model && model.trim() ? model : DEFAULT_DELEGATE_MODEL;
+  const target = resolveDelegateTarget({ provider, model: fallbackModel });
+  return `${target.provider}/${target.model}`;
+}
+
+/** Test-only: reset the guard state so unit tests can reuse a single process. */
+export function _resetUsedDelegateTargets(): void {
+  usedDelegateTargets.clear();
+}
+
 export interface ResolvedTarget {
   provider: string;
   model: string;
