@@ -58,6 +58,20 @@ This applies to skill descriptions, AGENTS.md, and promptGuidelines:
 - **One-line explanation why** — "dedicated function that preserves org structure"
 - **Failure is OK** — reporting failure is better than forcing a workaround that breaks the system
 
+### No 면피 — Never Silently Catch Invariant Failures
+
+Invariant rule. When something is wrong, **let it crash**. Do not wrap internal invariant failures in `try/catch` to "make it go away".
+
+Why: agents reading their own code see a silent catch and assume the operation succeeded. Downstream logic then proceeds on a false premise, burying the real bug. Especially for pi/ctx API errors (`ctx.ui.*`, `ctx.sessionManager.*`, `pi.sendMessage`, …) that throw from `ExtensionRunner.assertActive()` after session replacement — swallowing those teaches the agent "it's probably my fault, work around it", which is exactly the wrong reflex.
+
+Apply:
+- **No** `try/catch` around pi / ctx API calls. Stale runner? Crash. That crash is the signal.
+- Remove the **hazard source** instead of catching — e.g., drop a cosmetic `setTimeout(ctx.ui.setStatus, 3000)` rather than wrapping it in try/catch. No defer, no stale window.
+- Ban these comment patterns — they are 면피 signals: `/* ignore */`, `/* stale ctx */`, `/* session already closed */`, `/* 세션 이미 종료 */`.
+- **Legitimate catches** (not 면피): `JSON.parse` of external input, ENOENT on optional files, `process.kill(pid, 0)` probes, network retry fallbacks. These are external-state boundaries where the error case is a designed scenario — not an internal invariant breach.
+
+> Agent logic with silent catches drifts. Crashes are honest.
+
 ### Shorter Skill Docs Are Better
 
 Agents don't read full skill docs. GLG doesn't either. Therefore:
