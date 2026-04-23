@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Claude Code statusline.
-# Shows: device | cwd [branch] | style | model | context-usage
+# Shows: device | cwd [branch] | model | context-usage
 #
 # Context usage comes from .context_window in the harness input — that is the
 # authoritative source and matches /context. No transcript scanning, no "past
@@ -18,7 +18,6 @@ if [[ "$cwd" == "$HOME" ]]; then
 elif [[ "$cwd" == "$HOME"/* ]]; then
   cwd="~${cwd#$HOME}"
 fi
-style=$(echo "$input" | jq -r '.output_style.name // "?"')
 model_id=$(echo "$input" | jq -r '.model.id // "?"')
 
 if [[ "$model_id" == *opus* ]]; then
@@ -78,4 +77,4 @@ if [[ -n "$ctx_json" ]]; then
   ctx_info=$(printf " | %b%s/%s %d%%\033[0m\033[2m" "$color" "$human" "$limit_label" "$pct")
 fi
 
-printf "\033[2m%s %s%s | %s | %s%s%b\033[0m" "$device" "$cwd" "$git_info" "$style" "$model" "$vterm" "$ctx_info"
+printf "\033[2m%s %s%s | %s%s%b\033[0m" "$device" "$cwd" "$git_info" "$model" "$vterm" "$ctx_info"
