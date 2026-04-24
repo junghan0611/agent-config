@@ -30,30 +30,41 @@ warn() { echo "  ⚠ $*"; }
 fail() { echo "  ❌ $*"; }
 section() { echo ""; echo "=== $* ==="; }
 
-# Ensure git repo exists — clone if missing, otherwise fetch + fast-forward pull
-sync_repo_checkout() {
+# Setup path: just verify the repo is present. Never pull during setup.
+# If someone is mid-edit in an external repo, setup stays out of their way.
+# Use `./run.sh update` to pull everything explicitly.
+ensure_repo_present() {
   local dir=$1 name=$2
-
   if [ ! -d "$dir/.git" ]; then
     fail "$name: expected git repo at $dir"
     return 1
   fi
+  ok "$name: present"
+}
 
-  log "$name: updating..."
+# Update path: fetch + fast-forward pull. Skips repos with dirty tree (warns,
+# never fails the whole update). Only invoked from `./run.sh update`.
+pull_repo_if_clean() {
+  local dir=$1 name=$2
+  if [ ! -d "$dir/.git" ]; then
+    fail "$name: expected git repo at $dir"
+    return 1
+  fi
+  log "$name: pulling..."
   (
     cd "$dir"
     if ! git diff --quiet || ! git diff --cached --quiet; then
-      echo "$name: working tree not clean; commit/stash before ./run.sh setup" >&2
-      exit 1
+      echo "  ⚠ $name: working tree dirty, skipping pull" >&2
+      exit 0
     fi
-    git fetch --all --prune
+    git fetch --all --prune --quiet
     local upstream
     upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)
     if [ -z "$upstream" ]; then
-      echo "$name: no upstream configured; cannot fast-forward pull during setup" >&2
-      exit 1
+      echo "  ⚠ $name: no upstream, skipping pull" >&2
+      exit 0
     fi
-    git pull --ff-only
+    git pull --ff-only --quiet
   )
   ok "$name: up to date"
 }
@@ -62,7 +73,7 @@ ensure_repo() {
   local name=$1 url=$2
   local dir="$REPOS/$name"
   if [ -d "$dir" ]; then
-    sync_repo_checkout "$dir" "$name"
+    ensure_repo_present "$dir" "$name"
   else
     log "$name: cloning..."
     git clone "$url" "$dir"
@@ -75,7 +86,7 @@ ensure_repo_at() {
   local dir="$base_dir/$name"
   mkdir -p "$base_dir"
   if [ -d "$dir" ]; then
-    sync_repo_checkout "$dir" "$name"
+    ensure_repo_present "$dir" "$name"
   else
     log "$name: cloning..."
     git clone "$url" "$dir"
@@ -160,6 +171,22 @@ setup_repos() {
     ensure_repo "$name" "${PACKAGE_REPOS[$name]}"
   done
 
+  return 0
+}
+
+# --- update — pull every known repo that's clean; warn-and-skip on dirty ---
+
+update_repos() {
+  section "Pulling agent-config's tracked repos"
+  for name in "${!CLI_REPOS[@]}"; do
+    pull_repo_if_clean "$REPOS/$name" "$name"
+  done
+  for name in "${!THIRD_PARTY_PACKAGE_REPOS[@]}"; do
+    pull_repo_if_clean "$THIRD_REPOS/$name" "$name"
+  done
+  for name in "${!PACKAGE_REPOS[@]}"; do
+    pull_repo_if_clean "$REPOS/$name" "$name"
+  done
   return 0
 }
 
@@ -399,7 +426,7 @@ setup_npm() {
   local ENTWURF_DIR="$REPOS/entwurf"
   if [ -f "$ENTWURF_DIR/package.json" ]; then
     log "entwurf: installing + building..."
-    (cd "$ENTWURF_DIR" && pnpm install --silent && pnpm --silent run build)
+    (cd "$ENTWURF_DIR" && pnpm install --silent --frozen-lockfile && pnpm --silent run build)
     if [ -f "$ENTWURF_DIR/dist/index.js" ]; then
       ok "entwurf (dist/index.js)"
     else
@@ -420,7 +447,7 @@ setup_npm() {
   if [ -f "$PI_SHELL_ACP_DIR/package.json" ]; then
     log "pi-shell-acp: install + auth..."
 
-    if ! (cd "$PI_SHELL_ACP_DIR" && pnpm install --silent); then
+    if ! (cd "$PI_SHELL_ACP_DIR" && pnpm install --silent --frozen-lockfile); then
       fail "pi-shell-acp: pnpm install failed"
       return 1
     fi
@@ -457,7 +484,7 @@ setup_npm() {
   local ext_dir="$SCRIPT_DIR/pi-extensions"
   if [ -f "$ext_dir/package.json" ]; then
     log "pi-extensions: installing..."
-    if (cd "$ext_dir" && pnpm install --silent); then
+    if (cd "$ext_dir" && pnpm install --silent --frozen-lockfile); then
       ok "pi-extensions"
     else
       fail "pi-extensions: pnpm install failed"
@@ -470,7 +497,7 @@ setup_npm() {
       local sname
       sname=$(basename "$pkg_dir")
       log "$sname: installing..."
-      if (cd "$pkg_dir" && pnpm install --silent); then
+      if (cd "$pkg_dir" && pnpm install --silent --frozen-lockfile); then
         ok "$sname"
       else
         fail "$sname: pnpm install failed"
@@ -548,6 +575,7 @@ Usage: ./run.sh <command> [args]
                               → 어떤 디바이스든 이것 하나로 재현
 
   setup:repos|build|links|pnpm 개별 단계 (디버깅용, 보통 불필요)
+  update                      추적 리포 일괄 pull (dirty면 skip) — setup은 pull 안 함
 
 === 테스트 ===
   test                        모든 테스트 (unit + integration)
@@ -588,6 +616,8 @@ case "${1:-help}" in
     setup_links ;;
   setup:pnpm|setup:npm)
     setup_npm ;;
+  update)
+    update_repos ;;
 
   # === andenken (delegated) ===
   test|test:unit|test:integration|test:search)
