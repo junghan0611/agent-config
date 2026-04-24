@@ -242,20 +242,16 @@ setup_links() {
     ensure_link "$ext_file" "$HOME/.pi/agent/extensions/$(basename "$ext_file")"
   done
 
-  # Shared helper modules used by extensions (e.g. delegate.ts imports ./lib/delegate-core.js).
-  # Node ESM preserves symlinks, so relative imports resolve against ~/.pi/agent/extensions/,
-  # not the realpath — the lib/ directory must be visible there.
-  if [ -d "$SCRIPT_DIR/pi-extensions/lib" ]; then
-    ensure_link "$SCRIPT_DIR/pi-extensions/lib" "$HOME/.pi/agent/extensions/lib"
-  fi
-
   # control.ts: formerly from 3rd-party agent-stuff, now managed in agent-config/pi-extensions/
   # (2026-04-13: forked with targetSessionId fallback + gcStaleSockets)
+  #
+  # NOTE: `pi-extensions/lib/` and `pi/delegate-targets.json` used to be linked
+  # into ~/.pi/agent/ from here. Both moved to pi-shell-acp in the Entwurf
+  # Orchestration migration; pi-shell-acp's run.sh owns those symlinks now.
 
-  # Settings + Keybindings + delegate target registry
+  # Settings + Keybindings
   ensure_link "$SCRIPT_DIR/pi/settings.json" "$HOME/.pi/agent/settings.json"
   ensure_link "$SCRIPT_DIR/pi/keybindings.json" "$HOME/.pi/agent/keybindings.json"
-  ensure_link "$SCRIPT_DIR/pi/delegate-targets.json" "$HOME/.pi/agent/delegate-targets.json"
 
   # Skills (pi) — 개별 링크. semantic-memory는 extension(andenken 패키지)이 대체하므로 제외
   mkdir -p "$HOME/.pi/agent/skills/pi-skills"
@@ -385,247 +381,6 @@ TGJSON
   return 0
 }
 
-# --- ACP/MCP bridge validation ---
-
-pi_tools_bridge_require_tools() {
-  local raw="$1"
-  local backend_label="$2"
-  local tool
-
-  if [[ "$raw" == *"NOT_VISIBLE"* ]]; then
-    echo "$raw" >&2
-    fail "pi-tools-bridge: $backend_label returned NOT_VISIBLE"
-    return 1
-  fi
-
-  if [[ "$raw" != *"pi-tools-bridge"* ]] && [[ "$raw" != *"pi_tools_bridge"* ]]; then
-    echo "$raw" >&2
-    fail "pi-tools-bridge: $backend_label visibility output missing pi-tools-bridge prefix"
-    return 1
-  fi
-
-  for tool in session_search knowledge_search send_to_session list_sessions delegate delegate_resume; do
-    if [[ "$raw" != *"$tool"* ]]; then
-      echo "$raw" >&2
-      fail "pi-tools-bridge: $backend_label missing tool $tool"
-      return 1
-    fi
-  done
-
-  return 0
-}
-
-validate_pi_tools_bridge_backend() {
-  local backend_label="$1"
-  local model="$2"
-  local raw
-
-  if ! raw=$(cd "$SCRIPT_DIR" && pi -e "$REPOS/pi-shell-acp" --provider pi-shell-acp --model "$model" -p '지금 이 세션에서 보이는 MCP 도구 중 이름에 pi-tools-bridge 또는 pi_tools_bridge 가 포함된 도구가 있으면 정확한 도구 이름만 쉼표로 나열해. 설명 금지. 없으면 정확히 NOT_VISIBLE 만 답해.'); then
-    fail "pi-tools-bridge: $backend_label visibility smoke failed"
-    return 1
-  fi
-  pi_tools_bridge_require_tools "$raw" "$backend_label" || return 1
-  ok "pi-tools-bridge visibility via pi-shell-acp ($backend_label: $raw)"
-
-  if ! raw=$(cd "$SCRIPT_DIR" && pi -e "$REPOS/pi-shell-acp" --provider pi-shell-acp --model "$model" -p 'send_to_session 도구가 보이면 반드시 그 도구를 실제로 1회 호출해. target은 __definitely_does_not_exist__, message는 "ping", mode는 follow_up 으로 해. functions.send_input 같은 다른 도구는 절대 쓰지 마. 응답은 두 줄만: 1) TOOL:<사용한 도구명 또는 NONE> 2) RESULT:<성공/실패 핵심 메시지 한 줄>. 도구가 안 보이면 TOOL:NONE / RESULT:not visible 로만 답해.' ); then
-    fail "pi-tools-bridge: $backend_label invocation smoke failed"
-    return 1
-  fi
-
-  if [[ "$raw" != *"send_to_session"* ]]; then
-    echo "$raw" >&2
-    fail "pi-tools-bridge: $backend_label invocation did not use send_to_session"
-    return 1
-  fi
-
-  if [[ "$raw" != *"[tool:failed]"* ]] && [[ "$raw" != *"RESULT:실패"* ]] && [[ "$raw" != *"RESULT:failure"* ]]; then
-    echo "$raw" >&2
-    fail "pi-tools-bridge: $backend_label invocation did not clearly surface a failure result"
-    return 1
-  fi
-
-  # Robustness: the model paraphrases the tool error in many ways. The most
-  # reliable anchor is the bogus target name itself — if it appears in the
-  # response, the model engaged with the actual tool result. Phrase patterns
-  # are kept as fallbacks for older outputs / different model behavior.
-  if [[ "$raw" != *"__definitely_does_not_exist__"* ]] && \
-     [[ "$raw" != *"No pi control socket"* ]] && \
-     [[ "$raw" != *"control socket"* ]] && \
-     [[ "$raw" != *"컨트롤 소켓"* ]] && \
-     [[ "$raw" != *"대상 세션"* ]] && \
-     [[ "$raw" != *"미존재"* ]] && \
-     [[ "$raw" != *"존재하지"* ]] && \
-     [[ "$raw" != *"소켓"* ]] && \
-     [[ "$raw" != *"not found"* ]] && \
-     [[ "$raw" != *"no such"* ]]; then
-    echo "$raw" >&2
-    fail "pi-tools-bridge: $backend_label invocation did not surface the expected missing-target boundary"
-    return 1
-  fi
-  ok "pi-tools-bridge invocation via pi-shell-acp ($backend_label)"
-}
-
-validate_pi_tools_bridge() {
-  local bridge_dir="$SCRIPT_DIR/mcp/pi-tools-bridge"
-  local raw
-
-  if [ ! -f "$bridge_dir/package.json" ]; then
-    fail "pi-tools-bridge: repo content missing at $bridge_dir"
-    return 1
-  fi
-
-  log "pi-tools-bridge: install + build + validate..."
-
-  if ! (cd "$bridge_dir" && npm install --silent); then
-    fail "pi-tools-bridge: npm install failed"
-    return 1
-  fi
-  ok "pi-tools-bridge npm install"
-
-  if ! (cd "$bridge_dir" && npm run build); then
-    fail "pi-tools-bridge: build failed"
-    return 1
-  fi
-  ok "pi-tools-bridge build"
-
-  if ! raw=$(cd "$bridge_dir" && node --input-type=module <<'JS'
-import { spawn } from 'node:child_process';
-
-const child = spawn('./start.sh');
-let stdout = '';
-let stderr = '';
-let done = false;
-
-function finishOk(trimmed) {
-  if (done) return;
-  done = true;
-  clearTimeout(timer);
-  if (stderr.trim()) console.error(stderr.trim());
-  const msg = JSON.parse(trimmed);
-  const tools = msg?.result?.tools;
-  if (!Array.isArray(tools)) {
-    console.error('tools/list response missing result.tools');
-    process.exit(1);
-  }
-  const names = tools.map((t) => t?.name).sort();
-  const expected = ['delegate', 'delegate_resume', 'knowledge_search', 'list_sessions', 'send_to_session', 'session_search'];
-  for (const name of expected) {
-    if (!names.includes(name)) {
-      console.error(`missing MCP tool: ${name}`);
-      process.exit(1);
-    }
-  }
-  console.log(names.join(','));
-  child.kill('SIGTERM');
-  process.exit(0);
-}
-
-child.stdout.on('data', (d) => {
-  stdout += d.toString();
-  const trimmed = stdout.trim();
-  if (trimmed) finishOk(trimmed);
-});
-child.stderr.on('data', (d) => { stderr += d.toString(); });
-child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }) + '\n');
-
-const timer = setTimeout(() => {
-  child.kill('SIGKILL');
-  console.error('pi-tools-bridge direct smoke timeout');
-  process.exit(1);
-}, 3000);
-
-child.on('error', (err) => {
-  if (done) return;
-  clearTimeout(timer);
-  console.error(String(err));
-  process.exit(1);
-});
-
-child.on('close', () => {
-  if (done) return;
-  clearTimeout(timer);
-  const trimmed = stdout.trim();
-  if (!trimmed) {
-    if (stderr.trim()) console.error(stderr.trim());
-    console.error('empty tools/list response');
-    process.exit(1);
-  }
-  finishOk(trimmed);
-});
-JS
-  ); then
-    fail "pi-tools-bridge: direct MCP smoke failed"
-    return 1
-  fi
-  ok "pi-tools-bridge direct MCP smoke ($raw)"
-
-  if ! (cd "$bridge_dir" && ./test.sh >/dev/null); then
-    fail "pi-tools-bridge: protocol/negative-path tests failed"
-    return 1
-  fi
-  ok "pi-tools-bridge test.sh"
-
-  # Qualified model ids here: the validation routes through pi-shell-acp explicitly.
-  # The prefix stays redundant with the function's internal `--provider pi-shell-acp`
-  # pin, but it documents intent at the call site.
-  validate_pi_tools_bridge_backend "claude" "pi-shell-acp/claude-sonnet-4-6" || return 1
-  validate_pi_tools_bridge_backend "codex" "pi-shell-acp/gpt-5.2" || return 1
-}
-
-# pi-native async delegate spawn smoke. Loads the native delegate.ts directly
-# and asks a cheap model to invoke `delegate` in async mode against a bogus
-# host. We read pi's --mode json event stream so the gate inspects the tool's
-# *actual* sync return (which contains "Async delegate spawned" + Task ID),
-# not the model's natural-language interpretation. We also grep explicitly for
-# the regression class PM flagged: a stale `explicitExtensions` reference in
-# runDelegateAsync would surface as a ReferenceError in the tool result.
-validate_pi_native_async_delegate() {
-  local raw
-  log "pi-native: async delegate spawn smoke (model: gpt-5.4-mini)..."
-
-  if ! raw=$(cd "$SCRIPT_DIR" && pi -p \
-              --mode json \
-              --no-extensions \
-              -e "$SCRIPT_DIR/pi-extensions/delegate.ts" \
-              --provider openai-codex \
-              --model gpt-5.4-mini \
-              'delegate 도구를 task="noop", host="__native_async_smoke_bogus__", mode="async" 인수로 정확히 1회 호출하라. 도구의 첫 sync 응답을 그대로 echo하라. 그 다음에 도착하는 follow-up 메시지는 무시하고 더 출력하지 마라.' 2>&1); then
-    echo "$raw" >&2
-    fail "pi-native async delegate smoke: pi -p exited non-zero"
-    return 1
-  fi
-
-  # Regression class PM flagged: stale variable name in runDelegateAsync.
-  #
-  # NOTE on here-strings: $raw can exceed 800KB (pi --mode json is chatty),
-  # and `set -o pipefail` is active. The pattern `echo "$raw" | grep -q ...`
-  # races — grep -q exits 0 on first match, echo then gets SIGPIPE (rc=141),
-  # and pipefail elevates the whole pipe's rc to 141 → `if` sees "fail" even
-  # though the match happened. Observed in setup runs where raw > ~500KB.
-  # Here-strings (`<<< "$raw"`) feed stdin without a pipeline, sidestepping
-  # pipefail entirely. Keep this form for any grep check on large $raw.
-  if grep -qE 'ReferenceError.*explicitExtensions|explicitExtensions is not defined' <<< "$raw"; then
-    echo "$raw" >&2
-    fail "pi-native async: ReferenceError on 'explicitExtensions' (stale variable resurfaced)"
-    return 1
-  fi
-
-  # The sync tool return contains these strings verbatim — independent of how
-  # the model paraphrases. Either marker proves the spawn completed cleanly.
-  if grep -qE 'Async delegate spawned|Task ID:' <<< "$raw"; then
-    local taskid
-    # `head -1` still closes its stdin early, which can send SIGPIPE back
-    # to grep under pipefail. Swallow the rc so the assignment survives —
-    # the captured string is the only thing we need.
-    taskid=$(grep -oE 'Task ID: [a-f0-9]+' <<< "$raw" | head -1 || true)
-    ok "pi-native async delegate spawn (${taskid:-Task ID present})"
-    return 0
-  fi
-
-  echo "$raw" >&2
-  fail "pi-native async delegate produced neither Task ID nor a recognized error"
-  return 1
-}
 
 # --- setup:npm — npm install for extensions/skills ---
 
@@ -714,13 +469,9 @@ setup_npm() {
     return 1
   fi
 
-  if ! validate_pi_tools_bridge; then
-    return 1
-  fi
-
-  if ! validate_pi_native_async_delegate; then
-    return 1
-  fi
+  # pi-tools-bridge + native async delegate validations moved to pi-shell-acp's
+  # own run.sh after the Entwurf Orchestration migration — their code now lives
+  # there, and owning validation belongs with owning code.
 
   # pi-telegram (production Telegram bridge by pi author)
   # Installed as pi package — no local clone needed
@@ -802,30 +553,15 @@ setup_all() {
   echo "  Binaries: $pass/$total"
   echo "  Skills:   $(find "$SKILLS_DIR" -name "SKILL.md" | wc -l)"
   echo "  Arch:     $ARCH"
-  echo "  Claude in pi (default): pi-shell-acp via ACP + pi-tools-bridge MCP"
+  echo "  Claude in pi (default): pi-shell-acp via ACP"
   echo "  Pi ext:   $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo 'not linked')"
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null && echo ' + skills' || echo 'not linked')"
   echo "  OpenCode: $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo 'not linked')"
 
-  # Sync sentinel — delegate matrix diagonal slice (6 cells). Anchors the
-  # reproducibility claim: a fresh `./run.sh setup` on any machine must end
-  # green here before we call sync public-release-ready.
-  # Skip with SKIP_SENTINEL=1 for iterative dev loops that hit unrelated
-  # parts of setup.
-  if [ "${SKIP_SENTINEL:-0}" != "1" ]; then
-    section "Sentinel (delegate 6-cell matrix)"
-    if "$SCRIPT_DIR/scripts/sentinel-runner.sh"; then
-      ok "sentinel 6/6 PASS"
-    else
-      fail "sentinel: one or more cells failed — see table above and artifact"
-      echo ""
-      echo "DONE: agent-config setup complete (with sentinel failures)"
-      return 1
-    fi
-  else
-    warn "sentinel skipped (SKIP_SENTINEL=1)"
-  fi
+  # Sentinel (delegate matrix) moved to pi-shell-acp with the rest of the
+  # Entwurf Orchestration surface — run it from there when exercising the
+  # delegate paths.
 
   echo ""
   echo "DONE: agent-config setup complete"
@@ -841,9 +577,8 @@ Usage: ./run.sh <command> [args]
 
 === 설치 ===
   setup                       원커맨드 전체 설치 (이것만 기억하면 됨)
-                              → clone + build + link + npm + sentinel 전부 수행
+                              → clone + build + link + npm 전부 수행
                               → 어떤 디바이스든 이것 하나로 재현
-                              → SKIP_SENTINEL=1 로 6셀 검증 생략 가능
 
   setup:repos|build|links|npm 개별 단계 (디버깅용, 보통 불필요)
 
@@ -862,11 +597,6 @@ Usage: ./run.sh <command> [args]
 === 벤치마크 ===
   bench                       전체 벤치마크 (API 필요)
   bench:dry                   드라이런
-
-=== Delegate 매트릭스 ===
-  sentinel                    6셀 diagonal slice (parent × target × sync/resume)
-  sentinel 1,3,5              부분 실행 (쉼표 구분, id 1..6)
-  sentinel --help             셀 정의 / 실패 코드
 
 === 유틸 ===
   chunk:org [--sample]        청킹 통계
@@ -903,11 +633,6 @@ case "${1:-help}" in
     exec "$SM_DIR/run.sh" status ;;
   bench|bench:dry)
     exec "$SM_DIR/run.sh" "$@" ;;
-
-  # === Sentinel — delegate matrix diagonal slice ===
-  sentinel)
-    shift
-    exec "$SCRIPT_DIR/scripts/sentinel-runner.sh" "$@" ;;
 
   # === Util ===
   chunk:org)

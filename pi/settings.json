@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.68.1",
+  "lastChangelogVersion": "0.70.0",
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.4",
   "defaultThinkingLevel": "medium",
@@ -20,7 +20,7 @@
     "strictMcpConfig": false,
     "mcpServers": {
       "pi-tools-bridge": {
-        "command": "/home/junghan/repos/gh/agent-config/mcp/pi-tools-bridge/start.sh"
+        "command": "/home/junghan/repos/gh/pi-shell-acp/mcp/pi-tools-bridge/start.sh"
       }
     }
   }

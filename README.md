@@ -80,66 +80,11 @@ Semantic memory extension lives in [andenken](https://github.com/junghan0611/and
 Telegram bridge lives in [entwurf](https://github.com/junghan0611/entwurf) (separate repo, loaded as pi package).
 Production Telegram bridge uses [pi-telegram](https://github.com/badlogic/pi-telegram) (by pi author, `pi install` package) — queuing, file I/O, stop/abort, streaming preview.
 
-### Entwurf Orchestration (currently: Delegate) — [MIGRATION: → pi-shell-acp]
+### Entwurf Orchestration (consumer side)
 
-> **Migration marker.** The delegate/resume mechanism and cross-session bridges are slated to move to [pi-shell-acp](https://github.com/junghan0611/pi-shell-acp) — the "힣의 드라이버" repo. The rename `delegate` → `entwurf` happens on the pi-shell-acp side in a single commit after migration. Until then, `delegate` is the canonical name in this repo.
->
-> Internal spec (registry schema, identity preservation rule, Phase 0.5 sync/async contract, `send_to_session` principle) lives in [AGENTS.md](AGENTS.md) under the same section name. Grep key: `Entwurf Orchestration` — a mirror section exists in pi-shell-acp as `[INCOMING: from agent-config]`. When both markers disappear, migration is complete.
+Delegate/resume, cross-session messaging, and the pi-facing MCP bridge (`pi-tools-bridge`, `session-bridge`) migrated to [pi-shell-acp](https://github.com/junghan0611/pi-shell-acp). agent-config consumes the surface via `pi/settings.json`'s `piShellAcpProvider.mcpServers` entry (points at pi-shell-acp's `mcp/pi-tools-bridge/start.sh`).
 
-**Code locations in this repo.**
-
-| Path | Purpose |
-|------|---------|
-| `pi-extensions/delegate.ts` | pi-native delegate spawn |
-| `pi-extensions/lib/delegate-core.ts` | shared core (registry resolution + identity lock) |
-| `pi/delegate-targets.json` | delegate target registry (SSOT allowlist) |
-| `mcp/pi-tools-bridge/` | MCP adapter exposing delegate + resume + session_search/knowledge_search to ACP hosts |
-| `mcp/session-bridge/` | Claude Code ↔ pi Unix-socket session bridge |
-
-#### session-bridge — Cross-Session Communication
-
-When Claude Code is the primary harness, it needs a way to reach other running sessions — pi sessions with `steer`/`follow_up`, other Claude Code instances, or future ACP agents. `session-bridge` is a lightweight MCP server that provides this via Unix domain sockets.
-
-**How it works:**
-
-Each Claude Code session spawns a `session-bridge` MCP server process. The server creates a Unix socket at `~/.claude/session-bridge/<session-id>.sock` and registers an alias symlink from the session name (derived from CWD).
-
-```
-Claude Code (agent-config)          Claude Code (cos)
-  ├── session-bridge MCP              ├── session-bridge MCP
-  │   socket: <uuid>.sock             │   socket: <uuid>.sock
-  │   alias: agent-config.alias       │   alias: cos.alias
-  │                                    │
-  └── send_message ──────────────────> └── messageQueue → receive_messages
-```
-
-**Tools:**
-
-| Tool | Purpose | PI equivalent |
-|------|---------|---------------|
-| `list_sessions` | Discover live sessions | `list_sessions` |
-| `send_message` | Send to another session by name or ID | `send_to_session` (send) |
-| `receive_messages` | Poll queued incoming messages | `send_to_session` (get_message) |
-| `session_info` | This session's identity (ID + name) | — |
-
-**Key difference from PI:** PI's `control.ts` can `steer` messages directly into the conversation loop. MCP servers cannot inject into Claude Code's conversation — receiving is poll-based. This means:
-
-- **Claude Code → PI:** works seamlessly. PI receives via `steer`, acts immediately.
-- **Claude Code → Claude Code:** sender fires and forgets. Receiver polls `receive_messages` when ready.
-- **PI → Claude Code:** message queued, retrieved on next interaction.
-
-In practice, the primary flow is Claude Code dispatching work to PI sessions (which have richer control), then checking results later. The loose coupling is intentional — "엉성한 결합" over tight orchestration.
-
-**Wire protocol** is compatible with PI's `control.ts`: newline-delimited JSON over Unix sockets.
-
-```json
-{"type":"send","message":"...","sender":"agent-config"}
-{"type":"response","command":"send","success":true}
-```
-
-**Configuration:** Registered in `~/.mcp.json`. `SESSION_NAME` is auto-derived from the working directory by `start.sh`.
-
-**Relationship to ACP:** session-bridge is horizontal (session ↔ session), ACP is vertical (pi → Claude Code as provider). They are complementary, not competing.
+Spec, verification harnesses (`sentinel-runner.sh`, `session-messaging-smoke.sh`, `mcp/pi-tools-bridge/test.sh`), and the Phase 0.5 sync/async contract all live in pi-shell-acp `AGENTS.md` § Entwurf Orchestration. The rename `delegate` → `entwurf` ships there in a single follow-up commit; tool name is still `delegate` on both sides until then.
 
 ### Skills ([`skills/`](skills/)) — 28 skills
 
