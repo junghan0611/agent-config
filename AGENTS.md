@@ -248,15 +248,15 @@ The delegate/resume mechanism, cross-session messaging, and the pi-facing MCP br
 ```bash
 # Tests (andenken repo)
 cd ~/repos/gh/andenken && source ~/.env.local
-npm run test:unit        # No API needed (30 tests)
-npm run test:integration # Needs API (11 tests)
-npm test                 # All
-npm run test:search -- "query"  # Live search
+pnpm run test:unit        # No API needed (30 tests)
+pnpm run test:integration # Needs API (11 tests)
+pnpm test                # All
+pnpm run test:search -- "query"  # Live search
 
 # Doctor + Golden Queries
-npm run doctor           # Operational health check
-npm run golden           # Search quality regression test
-npm run golden:compare   # dictcli expand before/after comparison
+pnpm run doctor          # Operational health check
+pnpm run golden          # Search quality regression test
+pnpm run golden:compare  # dictcli expand before/after comparison
 
 # Extension load test
 pi -e ./pi-extensions/semantic-memory/index.ts

@@ -382,10 +382,10 @@ TGJSON
 }
 
 
-# --- setup:npm — npm install for extensions/skills ---
+# --- setup:npm — pnpm install for extensions/skills ---
 
 setup_npm() {
-  section "npm install"
+  section "pnpm install"
 
   # andenken
   if [ -f "$SM_DIR/run.sh" ]; then
@@ -399,7 +399,7 @@ setup_npm() {
   local ENTWURF_DIR="$REPOS/entwurf"
   if [ -f "$ENTWURF_DIR/package.json" ]; then
     log "entwurf: installing + building..."
-    (cd "$ENTWURF_DIR" && npm install --silent && npm run build --silent)
+    (cd "$ENTWURF_DIR" && pnpm install --silent && pnpm --silent run build)
     if [ -f "$ENTWURF_DIR/dist/index.js" ]; then
       ok "entwurf (dist/index.js)"
     else
@@ -412,58 +412,25 @@ setup_npm() {
   # pi-packages (ben-vargas) intentionally disabled for now.
   log "pi-packages: disabled (skipping pi-claude-code-use install)"
 
-  # pi-shell-acp (ACP bridge provider)
+  # pi-shell-acp (ACP bridge provider) — install + auth only.
+  # agent-config is the *user* side of pi-shell-acp; developer-side gates
+  # (typecheck, check-mcp, check-backends, smoke-all, smoke-continuity,
+  # smoke-cancel) live in pi-shell-acp's own run.sh and are its problem.
   local PI_SHELL_ACP_DIR="$REPOS/pi-shell-acp"
   if [ -f "$PI_SHELL_ACP_DIR/package.json" ]; then
-    log "pi-shell-acp: install + validate..."
+    log "pi-shell-acp: install + auth..."
 
-    if ! (cd "$PI_SHELL_ACP_DIR" && npm install --silent); then
-      fail "pi-shell-acp: npm install failed"
+    if ! (cd "$PI_SHELL_ACP_DIR" && pnpm install --silent); then
+      fail "pi-shell-acp: pnpm install failed"
       return 1
     fi
-    ok "pi-shell-acp npm install"
+    ok "pi-shell-acp pnpm install"
 
     if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh sync-auth); then
       fail "pi-shell-acp: auth sync failed"
       return 1
     fi
     ok "pi-shell-acp auth alias"
-
-    if ! (cd "$PI_SHELL_ACP_DIR" && npm run typecheck); then
-      fail "pi-shell-acp: typecheck failed"
-      return 1
-    fi
-    ok "pi-shell-acp typecheck"
-
-    if ! (cd "$PI_SHELL_ACP_DIR" && npm run check-mcp); then
-      fail "pi-shell-acp: check-mcp failed"
-      return 1
-    fi
-    ok "pi-shell-acp check-mcp"
-
-    if ! (cd "$PI_SHELL_ACP_DIR" && npm run check-backends); then
-      fail "pi-shell-acp: check-backends failed"
-      return 1
-    fi
-    ok "pi-shell-acp check-backends"
-
-    if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh smoke-all "$SCRIPT_DIR"); then
-      fail "pi-shell-acp: smoke-all failed"
-      return 1
-    fi
-    ok "pi-shell-acp smoke-all"
-
-    if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh smoke-continuity "$SCRIPT_DIR"); then
-      fail "pi-shell-acp: smoke-continuity (strict persisted bootstrap) failed"
-      return 1
-    fi
-    ok "pi-shell-acp smoke-continuity"
-
-    if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh smoke-cancel "$SCRIPT_DIR"); then
-      fail "pi-shell-acp: smoke-cancel (cancel cleanup observability) failed"
-      return 1
-    fi
-    ok "pi-shell-acp smoke-cancel"
   else
     fail "pi-shell-acp: repo not found at $PI_SHELL_ACP_DIR"
     return 1
@@ -486,27 +453,27 @@ setup_npm() {
     warn "pi-telegram: pi not found in PATH"
   fi
 
-  # pi-extensions (grammy 등)
+  # pi-extensions (grammy 등) — pnpm
   local ext_dir="$SCRIPT_DIR/pi-extensions"
   if [ -f "$ext_dir/package.json" ]; then
     log "pi-extensions: installing..."
-    if (cd "$ext_dir" && npm install --silent); then
+    if (cd "$ext_dir" && pnpm install --silent); then
       ok "pi-extensions"
     else
-      fail "pi-extensions: npm install failed"
+      fail "pi-extensions: pnpm install failed"
     fi
   fi
 
-  # Skills with package.json
+  # Skills with package.json — pnpm
   for pkg_dir in "$SKILLS_DIR"/*/; do
     if [ -f "$pkg_dir/package.json" ] && [ ! -d "$pkg_dir/node_modules" ]; then
       local sname
       sname=$(basename "$pkg_dir")
       log "$sname: installing..."
-      if (cd "$pkg_dir" && npm install --silent); then
+      if (cd "$pkg_dir" && pnpm install --silent); then
         ok "$sname"
       else
-        fail "$sname: npm install failed"
+        fail "$sname: pnpm install failed"
       fi
     fi
   done
@@ -514,7 +481,7 @@ setup_npm() {
   return 0
 }
 
-# --- setup — 원커맨드: clone + build + link + npm ---
+# --- setup — 원커맨드: clone + build + link + pnpm ---
 
 setup_all() {
   echo "🔧 agent-config setup ($ARCH)"
@@ -577,10 +544,10 @@ Usage: ./run.sh <command> [args]
 
 === 설치 ===
   setup                       원커맨드 전체 설치 (이것만 기억하면 됨)
-                              → clone + build + link + npm 전부 수행
+                              → clone + build + link + pnpm 전부 수행
                               → 어떤 디바이스든 이것 하나로 재현
 
-  setup:repos|build|links|npm 개별 단계 (디버깅용, 보통 불필요)
+  setup:repos|build|links|pnpm 개별 단계 (디버깅용, 보통 불필요)
 
 === 테스트 ===
   test                        모든 테스트 (unit + integration)
@@ -619,7 +586,7 @@ case "${1:-help}" in
     setup_build ;;
   setup:links)
     setup_links ;;
-  setup:npm)
+  setup:pnpm|setup:npm)
     setup_npm ;;
 
   # === andenken (delegated) ===

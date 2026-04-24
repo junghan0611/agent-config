@@ -179,7 +179,7 @@ alias pi-home='command pi --session-control --telegram'
 ```bash
 git clone https://github.com/junghan0611/agent-config.git
 cd agent-config
-./run.sh setup    # clone/pull repos + build CLIs + symlink everything + npm install + ACP/MCP bridge validation
+./run.sh setup    # clone/pull repos + build CLIs + symlink everything + pnpm install
 ./run.sh env      # verify: system, API keys, links, binaries, memory index
 ```
 
@@ -190,8 +190,8 @@ cd agent-config
 - Install: andenken as pi package (compiled extension)
 - Symlink: Claude Code + OpenCode + Codex skills (full set including semantic-memory) + prompts
 - Symlink: ~/.local/bin PATH binaries
-- npm install for extensions and skills
-- Fail-fast validate the ACP/MCP bridge chain: `pi-shell-acp` (`typecheck` + `check-mcp` + dual-backend smoke + strict persisted bootstrap continuity) and `mcp/pi-tools-bridge` (build + direct `tools/list` + protocol tests + Claude/Codex visibility + bridged invocation smoke through pi)
+- pnpm install for extensions and skills
+- pi-shell-acp validation (`typecheck` + `check-mcp` + dual-backend smoke + strict persisted bootstrap continuity + cancel-cleanup smoke). ACP/MCP bridge chain validations (`pi-tools-bridge` build + direct `tools/list` + protocol tests + pi-native async delegate smoke) moved to pi-shell-acp's own `run.sh` with the Entwurf Orchestration migration.
 
 ## The -config Ecosystem
 
