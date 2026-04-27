@@ -73,8 +73,9 @@ These rules govern *how Mitsein calls entwurf* (the delegation mechanism in pi-s
 
 | Model            | `model=`                          | Context |
 |------------------|-----------------------------------|---------|
-| Claude Opus 4.7  | `pi-shell-acp/claude-opus-4-7`    | 200K    |
+| Claude Opus 4.7  | `pi-shell-acp/claude-opus-4-7`    | 1M      |
 | Claude Sonnet 4.6| `pi-shell-acp/claude-sonnet-4-6`  | 200K    |
+| GPT-5.4          | `openai-codex/gpt-5.4`            | 272K    |
 | GPT-5.4          | `openai-codex/gpt-5.4`            | 272K    |
 
 ### Mode selection

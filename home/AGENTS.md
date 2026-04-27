@@ -131,11 +131,12 @@ Global rules for any agent that throws entwurfs.
 
 `pi-shell-acp/claude-opus-4-7` (current pi default).
 
-| Model             | `model=`                          | Context |
-|-------------------|-----------------------------------|---------|
-| Claude Opus 4.7   | `pi-shell-acp/claude-opus-4-7`    | 200K    |
-| Claude Sonnet 4.6 | `pi-shell-acp/claude-sonnet-4-6`  | 200K    |
-| GPT-5.4           | `openai-codex/gpt-5.4`            | 272K    |
+| Model             | `model=`                         | Context |
+|-------------------|----------------------------------|---------|
+| Claude Opus 4.7   | `pi-shell-acp/claude-opus-4-7`   | 1M      |
+| Claude Sonnet 4.6 | `pi-shell-acp/claude-sonnet-4-6` | 200K    |
+| GPT-5.4           | `openai-codex/gpt-5.4`           | 272K    |
+| GPT-5.4           | `openai-codex/gpt-5.4mini`           | 272K    |
 
 #### 담당자 패턴 — Automatic Project Context Injection
 

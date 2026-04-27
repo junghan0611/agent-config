@@ -1,0 +1,33 @@
+{
+  "lastChangelogVersion": "0.70.2",
+  "defaultProvider": "pi-shell-acp",
+  "defaultModel": "claude-opus-4-7",
+  "defaultThinkingLevel": "medium",
+  "hideThinkingBlock": false,
+  "defaultTheme": "glg-dark",
+  "theme": "glg-dark",
+  "packages": [
+    "../../repos/gh/andenken",
+    "../../repos/gh/entwurf",
+    "git:github.com/junghan0611/pi-shell-acp",
+    "git:github.com/badlogic/pi-telegram"
+  ],
+  "piShellAcpProvider": {
+    "appendSystemPrompt": false,
+    "showToolNotifications": true,
+    "skillPlugins": [
+      "/home/junghan/.pi/agent/claude-plugin"
+    ],
+    "mcpServers": {
+      "pi-tools-bridge": {
+        "command": "/home/junghan/.pi/agent/git/github.com/junghan0611/pi-shell-acp/mcp/pi-tools-bridge/start.sh"
+      },
+      "session-bridge": {
+        "command": "/home/junghan/.pi/agent/git/github.com/junghan0611/pi-shell-acp/mcp/session-bridge/start.sh"
+      }
+    }
+  },
+  "compaction": {
+    "enabled": false
+  }
+}

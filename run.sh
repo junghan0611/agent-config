@@ -139,11 +139,34 @@ declare -A CLI_REPOS=(
 # Reason: pause the Claude Code-style compatibility patch path until account-risk is clearer.
 declare -A THIRD_PARTY_PACKAGE_REPOS=()
 
-# Local provider/package repos used by the harness
-# pi-shell-acp is the current Claude path in pi via ACP.
+# Local provider/package repos used by the harness (developer mode only).
+# pi-shell-acp is the current Claude path in pi via ACP. On server devices we
+# install it via `pi install git:...` instead — see is_server_device + setup_npm.
 declare -A PACKAGE_REPOS=(
   [pi-shell-acp]="https://github.com/junghan0611/pi-shell-acp.git"
 )
+
+# Server devices use the consumer install path (pi-managed) instead of cloning
+# pi-shell-acp into ~/repos/gh/. Add device names here as they come online.
+SERVER_DEVICES="oracle"
+
+# True when ~/.current-device matches a server device.
+is_server_device() {
+  local device
+  device="$(cat "$HOME/.current-device" 2>/dev/null || echo unknown)"
+  echo "$SERVER_DEVICES" | grep -qw "$device"
+}
+
+# Resolve pi-shell-acp install path for the current device.
+# - server: pi-managed ~/.pi/agent/git/github.com/junghan0611/pi-shell-acp
+# - dev:    ~/repos/gh/pi-shell-acp
+pi_shell_acp_dir() {
+  if is_server_device; then
+    echo "$HOME/.pi/agent/git/github.com/junghan0611/pi-shell-acp"
+  else
+    echo "$REPOS/pi-shell-acp"
+  fi
+}
 
 # Go src subdirectory within each repo
 declare -A CLI_GO_SRC=(
@@ -179,9 +202,13 @@ setup_preflight() {
     warn "pi not in PATH — install pi-mono before launching sessions"
   fi
 
-  # ~/.current-device — drives device-specific Claude settings selection
+  # ~/.current-device — drives device-specific Claude + pi settings selection
   if [ -f "$HOME/.current-device" ]; then
-    ok "device: $(cat "$HOME/.current-device")"
+    if is_server_device; then
+      ok "device: $(cat "$HOME/.current-device") (server / consumer install of pi-shell-acp)"
+    else
+      ok "device: $(cat "$HOME/.current-device") (developer / local clone of pi-shell-acp)"
+    fi
   else
     warn "~/.current-device not set — server-mode hooks/settings won't activate"
   fi
@@ -208,9 +235,14 @@ setup_repos() {
   done
 
   section "Provider Package Repositories"
-  for name in "${!PACKAGE_REPOS[@]}"; do
-    ensure_repo "$name" "${PACKAGE_REPOS[$name]}"
-  done
+  if is_server_device; then
+    log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping pi-shell-acp dev clone"
+    log "  (pi will install it at $HOME/.pi/agent/git/github.com/junghan0611/pi-shell-acp via setup_npm)"
+  else
+    for name in "${!PACKAGE_REPOS[@]}"; do
+      ensure_repo "$name" "${PACKAGE_REPOS[$name]}"
+    done
+  fi
 
   return 0
 }
@@ -225,9 +257,14 @@ update_repos() {
   for name in "${!THIRD_PARTY_PACKAGE_REPOS[@]}"; do
     pull_repo_if_clean "$THIRD_REPOS/$name" "$name"
   done
-  for name in "${!PACKAGE_REPOS[@]}"; do
-    pull_repo_if_clean "$REPOS/$name" "$name"
-  done
+  if is_server_device; then
+    log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping pi-shell-acp dev pull"
+    log "  (re-run \`pi install git:github.com/junghan0611/pi-shell-acp\` to refresh)"
+  else
+    for name in "${!PACKAGE_REPOS[@]}"; do
+      pull_repo_if_clean "$REPOS/$name" "$name"
+    done
+  fi
   return 0
 }
 
@@ -326,8 +363,13 @@ setup_links() {
     log "delegate-targets.json: removed (entwurf-targets.json now owned by pi-shell-acp)"
   fi
 
-  # Settings + Keybindings
-  ensure_link "$SCRIPT_DIR/pi/settings.json" "$HOME/.pi/agent/settings.json"
+  # Settings + Keybindings — server devices use consumer install paths
+  local PI_SETTINGS_FILE="$SCRIPT_DIR/pi/settings.json"
+  if is_server_device; then
+    PI_SETTINGS_FILE="$SCRIPT_DIR/pi/settings.server.json"
+    log "device=$(cat "$HOME/.current-device") → server pi settings (consumer install paths)"
+  fi
+  ensure_link "$PI_SETTINGS_FILE" "$HOME/.pi/agent/settings.json"
   ensure_link "$SCRIPT_DIR/pi/keybindings.json" "$HOME/.pi/agent/keybindings.json"
 
   # Skills (pi) — 개별 링크. semantic-memory는 extension(andenken 패키지)이 대체하므로 제외
@@ -513,36 +555,53 @@ setup_npm() {
   # pi-packages (ben-vargas) intentionally disabled for now.
   log "pi-packages: disabled (skipping pi-claude-code-use install)"
 
-  # pi-shell-acp (ACP bridge provider) — install + auth only.
-  # agent-config is the *user* side of pi-shell-acp; developer-side gates
-  # (typecheck, check-mcp, check-backends, smoke-all, smoke-continuity,
-  # smoke-cancel) live in pi-shell-acp's own run.sh and are its problem.
-  local PI_SHELL_ACP_DIR="$REPOS/pi-shell-acp"
-  if [ -f "$PI_SHELL_ACP_DIR/package.json" ]; then
-    log "pi-shell-acp: install + auth..."
+  # pi-shell-acp (ACP bridge provider) — install + auth + light verification.
+  # Server devices use the consumer install path (pi-managed clone via
+  # `pi install git:...`); dev machines use the local clone in ~/repos/gh/.
+  # Either way the post-install steps (sync-auth + check-mcp) run from the
+  # resolved directory.
+  local PI_SHELL_ACP_DIR
+  PI_SHELL_ACP_DIR="$(pi_shell_acp_dir)"
 
+  if is_server_device; then
+    if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
+      log "pi-shell-acp: pi install git:github.com/junghan0611/pi-shell-acp"
+      if ! pi install git:github.com/junghan0611/pi-shell-acp; then
+        fail "pi-shell-acp: pi install failed"
+        return 1
+      fi
+    fi
+    if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
+      fail "pi-shell-acp: expected install at $PI_SHELL_ACP_DIR (pi install did not produce it)"
+      return 1
+    fi
+    ok "pi-shell-acp consumer install ($PI_SHELL_ACP_DIR)"
+    # `pi install` already runs npm/pnpm install for the package. Skip a second pass.
+  else
+    if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
+      fail "pi-shell-acp: repo not found at $PI_SHELL_ACP_DIR"
+      return 1
+    fi
+    log "pi-shell-acp: install + auth..."
     if ! (cd "$PI_SHELL_ACP_DIR" && pnpm install --silent --frozen-lockfile); then
       fail "pi-shell-acp: pnpm install failed"
       return 1
     fi
     ok "pi-shell-acp pnpm install"
+  fi
 
-    if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh sync-auth); then
-      fail "pi-shell-acp: auth sync failed"
-      return 1
-    fi
-    ok "pi-shell-acp auth alias"
-
-    # Light verification — deterministic, no auth, no subprocess.
-    # Catches MCP wiring drift if pi-shell-acp's bundle changes between releases.
-    if (cd "$PI_SHELL_ACP_DIR" && ./run.sh check-mcp >/dev/null 2>&1); then
-      ok "pi-shell-acp check-mcp"
-    else
-      warn "pi-shell-acp: check-mcp failed — MCP wiring may be misconfigured"
-    fi
-  else
-    fail "pi-shell-acp: repo not found at $PI_SHELL_ACP_DIR"
+  if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh sync-auth); then
+    fail "pi-shell-acp: auth sync failed"
     return 1
+  fi
+  ok "pi-shell-acp auth alias"
+
+  # Light verification — deterministic, no auth, no subprocess.
+  # Catches MCP wiring drift if pi-shell-acp's bundle changes between releases.
+  if (cd "$PI_SHELL_ACP_DIR" && ./run.sh check-mcp >/dev/null 2>&1); then
+    ok "pi-shell-acp check-mcp"
+  else
+    warn "pi-shell-acp: check-mcp failed — MCP wiring may be misconfigured"
   fi
 
   # Stale project-local .pi/settings.json detection.
