@@ -15,6 +15,7 @@
   "piShellAcpProvider": {
     "appendSystemPrompt": false,
     "showToolNotifications": true,
+    "codexDisabledFeatures": [],
     "skillPlugins": [
       "/home/junghan/.pi/agent/claude-plugin"
     ],
