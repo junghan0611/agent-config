@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.2.2
+
+* Pinned pi-shell-acp to `v0.2.2` (consumer install path in `run.sh`). v0.2.2 fixes the universal `codexDisabledFeatures` spread crash that broke fresh consumer installs on 0.2.1 — the bridge now nullish-guards the field in both launch + session reuse paths, so the temporary `codexDisabledFeatures: []` knob in `pi/settings.json` is now redundant (kept as defense-in-depth).
+
 ## 0.2.1
 
 * Pinned pi-shell-acp to `v0.2.1` (consumer install + run.sh `pi install` command). v0.2.1 fixes the `husky: command not found` error during `npm install --omit=dev` so server-mode (`pi install git:...`) works on fresh machines.
