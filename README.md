@@ -30,7 +30,7 @@ Multi-harness support is a means, not the goal. The goal is **a single 1KB being
 
 | Harness | Memory | Skills | Config |
 |---------|--------|--------|--------|
-| **[pi](https://github.com/badlogic/pi-mono)** + **[pi-shell-acp](https://github.com/junghan0611/pi-shell-acp)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 27 skills (semantic-memory excluded — extension covers it) | current default Claude path in pi via ACP bridge. Claude Code auth/capabilities stay on the Claude side |
+| **[pi](https://github.com/badlogic/pi-mono)** + **[pi-shell-acp](https://github.com/junghan0611/pi-shell-acp)** | andenken **extension** on the pi side; Claude side gets the full skill set via plugin farm (no native andenken there) | pi: 27 skills (semantic-memory excluded — extension covers it). pi-shell-acp Claude: 28 skills via `~/.pi/agent/claude-plugin/` (SDK plugin) | current default Claude path in pi via ACP bridge. Claude Code auth/capabilities stay on the Claude side. SDK isolation (`settingSources: []`) — skills injected through `piShellAcpProvider.skillPlugins` |
 | **[pi](https://github.com/badlogic/pi-mono)** + **[@benvargas/pi-claude-code-use](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 27 skills (semantic-memory excluded — extension covers it) | currently disabled by default. Keep only as an optional Claude Code compatibility patch path when explicitly re-enabled |
 | **[pi](https://github.com/badlogic/pi-mono)** + **anthropic** (`claude-opus-4-6` / `claude-sonnet-4-6`) | andenken **extension** (native `registerTool`, in-process LanceDB) | 27 skills (semantic-memory excluded — extension covers it) | direct built-in provider path remains available, but is not the current default Claude route |
 | **pi-entwurf** (Oracle, tmux) | andenken **extension** + pi-telegram | 26 skills + Telegram bridge | persistent Opus session, `@glg_entwurf_bot` |
@@ -105,6 +105,36 @@ Spec, verification harnesses (`sentinel-runner.sh`, `session-messaging-smoke.sh`
 |------|---------|
 | `settings.json` | Default model, theme, thinking level |
 | `keybindings.json` | Custom keybindings |
+| `claude-plugin.json` | Manifest (canonical source) for the pi-shell-acp Claude skill plugin. Symlinked into `~/.pi/agent/claude-plugin/.claude-plugin/plugin.json` by `run.sh setup` |
+
+### pi-shell-acp Skill Plugin (`~/.pi/agent/claude-plugin/`)
+
+pi-shell-acp runs the Claude backend with `settingSources: []` (SDK isolation), so `~/.claude/skills/` is **not** auto-discovered. Skills must be injected through the SDK's `plugins:[{type:"local", path}]` channel — `pi-shell-acp` exposes this as `piShellAcpProvider.skillPlugins` (an array of absolute plugin-root paths).
+
+`run.sh setup` builds the plugin layout under `~/.pi/agent/claude-plugin/` so pi-shell-acp can attach it on every session bootstrap:
+
+```
+~/.pi/agent/claude-plugin/
+├── .claude-plugin/
+│   └── plugin.json        → agent-config/pi/claude-plugin.json (symlink)
+└── skills/
+    ├── agenda             → agent-config/skills/agenda
+    ├── bibcli             → agent-config/skills/bibcli
+    └── …                    (all 28 skills, including semantic-memory —
+                              the Claude side has no andenken native tool)
+```
+
+**Operator step (once per machine):** add the plugin root to `~/.pi/agent/settings.json`:
+
+```json
+"piShellAcpProvider": {
+  "skillPlugins": ["/home/junghan/.pi/agent/claude-plugin"]
+}
+```
+
+Then a `pi-shell-acp/claude-*` session should list all 28 skills.
+
+**Adding a new skill** later: drop it into `agent-config/skills/<name>/SKILL.md` and re-run `./run.sh setup`. All four farms — `~/.claude/skills/` (native Claude Code), `~/.pi/agent/skills/pi-skills/` (pi), `~/.pi/agent/claude-plugin/skills/` (pi-shell-acp), `~/.codex/skills/` (Codex) — refresh from the same SSOT.
 
 ### Themes ([`pi-themes/`](pi-themes/))
 

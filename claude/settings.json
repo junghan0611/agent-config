@@ -1,6 +1,8 @@
 {
   "cleanupPeriodDays": 365,
-  "env": {},
+  "env": {
+    "DISABLE_AUTOCOMPACT": "1"
+  },
   "permissions": {
     "allow": [
       "Bash(*)",
@@ -18,6 +20,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "opus",
   "hooks": {
     "Notification": [
       {
@@ -155,11 +158,10 @@
   },
   "language": "Korean",
   "alwaysThinkingEnabled": true,
-  "effortLevel": "high",
+  "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
+  "verbose": true,
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
-  "autoUpdates": true,
-  "verbose": true,
-  "model": "opus"
+  "autoUpdates": true
 }

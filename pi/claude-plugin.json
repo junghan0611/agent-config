@@ -1,0 +1,5 @@
+{
+	"name": "agent-config-skills",
+	"description": "junghan's pi/agent skill set — denote/org operations, agenda, botlog, bibliography, time tracking, and other personal-knowledge tooling. Loaded into pi-shell-acp Claude sessions via piShellAcpProvider.skillPlugins.",
+	"author": { "name": "junghan" }
+}

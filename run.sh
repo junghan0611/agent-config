@@ -304,6 +304,28 @@ setup_links() {
     log "cleaned up: $(basename "$bak_dir")"
   done
 
+  section "Pi-Shell-ACP Claude Plugin"
+  # pi-shell-acp는 SDK 격리 모드(settingSources: [])라 ~/.claude/skills/를 자동 발견하지 않음.
+  # SDK plugins:[{type:"local", path}] 경로로 명시 주입해야 하므로 plugin layout을 farm으로 구성.
+  # 사용자는 ~/.pi/agent/settings.json의 piShellAcpProvider.skillPlugins에 이 디렉토리를 등록.
+  # semantic-memory 포함: pi-shell-acp Claude 세션은 andenken 네이티브 tool이 없음 → 스킬로 제공.
+  mkdir -p "$HOME/.pi/agent/claude-plugin/.claude-plugin"
+  mkdir -p "$HOME/.pi/agent/claude-plugin/skills"
+  ensure_link "$SCRIPT_DIR/pi/claude-plugin.json" \
+              "$HOME/.pi/agent/claude-plugin/.claude-plugin/plugin.json"
+  for skill_dir in "$SKILLS_DIR"/*/; do
+    [ -f "$skill_dir/SKILL.md" ] || continue
+    local sname
+    sname=$(basename "$skill_dir")
+    ensure_link "$skill_dir" "$HOME/.pi/agent/claude-plugin/skills/$sname"
+  done
+  # .bak.* 정리 — SDK가 백업 디렉토리를 스킬로 스캔하면 충돌
+  for bak_dir in "$HOME/.pi/agent/claude-plugin/skills"/*.bak.*; do
+    [ -d "$bak_dir" ] || continue
+    rm -rf "$bak_dir"
+    log "cleaned up: $(basename "$bak_dir")"
+  done
+
   section "PATH Binaries (~/.local/bin)"
   mkdir -p "$HOME/.local/bin"
   # dictcli 제외 — CWD에 graph.edn 필요하므로 PATH 심링크 불가. 스킬 디렉토리에서만 실행.
