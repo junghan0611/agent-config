@@ -67,16 +67,9 @@ There are two different agenda surfaces. Do not confuse them.
 
 These rules govern *how Mitsein calls entwurf* (the delegation mechanism in pi-shell-acp). The mechanism itself — registry, identity preservation, sync/async contract — is documented in [pi-shell-acp `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md).
 
-### Default model
+### Model resolution
 
-`pi-shell-acp/claude-opus-4-7` (current pi default — see `agent-config/pi/settings.json`).
-
-| Model            | `model=`                          | Context |
-|------------------|-----------------------------------|---------|
-| Claude Opus 4.7  | `pi-shell-acp/claude-opus-4-7`    | 1M      |
-| Claude Sonnet 4.6| `pi-shell-acp/claude-sonnet-4-6`  | 200K    |
-| GPT-5.4          | `openai-codex/gpt-5.4`            | 272K    |
-| GPT-5.4          | `openai-codex/gpt-5.4`            | 272K    |
+Pass the bare model ID — pi-shell-acp's [`pi/entwurf-targets.json`](https://github.com/junghan0611/pi-shell-acp/blob/main/pi/entwurf-targets.json) registry routes it. native is preferred when available; ACP requires explicit `provider="pi-shell-acp"`. Ambiguous bare IDs throw at the spawn surface. Keep model values in the registry, not in this document.
 
 ### Mode selection
 - **`mode: "async"`** — default for builds, tests, research, long-running work

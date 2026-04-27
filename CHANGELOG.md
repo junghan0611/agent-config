@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.2.1
+
+* Pinned pi-shell-acp to `v0.2.1` (consumer install + run.sh `pi install` command). v0.2.1 fixes the `husky: command not found` error during `npm install --omit=dev` so server-mode (`pi install git:...`) works on fresh machines.
+* Removed model tables from `home/AGENTS.md` and `home/MITSEIN.md`. pi-shell-acp's [`pi/entwurf-targets.json`](https://github.com/junghan0611/pi-shell-acp/blob/main/pi/entwurf-targets.json) is the SSOT registry — bare model IDs auto-route via the registry (native preferred, ACP requires explicit provider). Doc-side tables drifted; the registry is canonical.
+
 ## 0.2.0
 
 * Cut docs to align as the reference consumer of `pi-shell-acp` (companion repo).

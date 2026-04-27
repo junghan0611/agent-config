@@ -127,16 +127,9 @@ Global rules for any agent that throws entwurfs.
 - **No commits**: entwurfs prepare changes; GLG decides final commit/push.
 - **No haiku**: do not use haiku for precision work.
 
-#### Default model
+#### Model resolution
 
-`pi-shell-acp/claude-opus-4-7` (current pi default).
-
-| Model             | `model=`                         | Context |
-|-------------------|----------------------------------|---------|
-| Claude Opus 4.7   | `pi-shell-acp/claude-opus-4-7`   | 1M      |
-| Claude Sonnet 4.6 | `pi-shell-acp/claude-sonnet-4-6` | 200K    |
-| GPT-5.4           | `openai-codex/gpt-5.4`           | 272K    |
-| GPT-5.4           | `openai-codex/gpt-5.4mini`           | 272K    |
+Pass the bare model ID. pi-shell-acp's [`pi/entwurf-targets.json`](https://github.com/junghan0611/pi-shell-acp/blob/main/pi/entwurf-targets.json) is the SSOT registry — native provider is preferred; ACP requires explicit `provider="pi-shell-acp"`. Ambiguous bare IDs throw at the spawn surface with self-correcting hint text. Don't duplicate the model list here — register new ones in the json file.
 
 #### 담당자 패턴 — Automatic Project Context Injection
 
