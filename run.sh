@@ -155,6 +155,47 @@ declare -A CLI_GO_SRC=(
 
 # --- setup:repos — Clone missing repos ---
 
+setup_preflight() {
+  section "Preflight"
+
+  # Node >= 22.6 — pi-shell-acp's MCP launchers run TS via --experimental-strip-types.
+  local node_v
+  node_v="$(node --version 2>/dev/null | sed 's/^v//')"
+  if [ -z "$node_v" ]; then
+    fail "node not found in PATH"
+    return 1
+  fi
+  local node_major="${node_v%%.*}"
+  if [ "$node_major" -lt 22 ]; then
+    fail "node >= 22.6 required (found $node_v) — pi-shell-acp uses --experimental-strip-types"
+    return 1
+  fi
+  ok "node $node_v"
+
+  # pi binary on PATH
+  if command -v pi &>/dev/null; then
+    ok "pi $(pi --version 2>/dev/null | head -1 || echo 'present')"
+  else
+    warn "pi not in PATH — install pi-mono before launching sessions"
+  fi
+
+  # ~/.current-device — drives device-specific Claude settings selection
+  if [ -f "$HOME/.current-device" ]; then
+    ok "device: $(cat "$HOME/.current-device")"
+  else
+    warn "~/.current-device not set — server-mode hooks/settings won't activate"
+  fi
+
+  # Anthropic auth — pi-shell-acp's sync-auth alias copies from here.
+  if [ -f "$HOME/.pi/agent/auth.json" ] || [ -f "$HOME/.claude.json" ]; then
+    ok "claude auth detected"
+  else
+    warn "no claude auth — run 'claude' once or seed ~/.pi/agent/auth.json before launching sessions"
+  fi
+
+  return 0
+}
+
 setup_repos() {
   section "Git Repositories"
   for name in "${!CLI_REPOS[@]}"; do
@@ -271,10 +312,19 @@ setup_links() {
 
   # control.ts: formerly from 3rd-party agent-stuff, now managed in agent-config/pi-extensions/
   # (2026-04-13: forked with targetSessionId fallback + gcStaleSockets)
-  #
-  # NOTE: `pi-extensions/lib/` and `pi/delegate-targets.json` used to be linked
-  # into ~/.pi/agent/ from here. Both moved to pi-shell-acp in the Entwurf
-  # Orchestration migration; pi-shell-acp's run.sh owns those symlinks now.
+
+  # Phase 4 migration cleanup — entwurf surface moved to pi-shell-acp.
+  # Old machines (Oracle etc.) may still have these from pre-migration setups.
+  for legacy in delegate.ts delegate-targets.json lib semantic-memory; do
+    if [ -e "$HOME/.pi/agent/extensions/$legacy" ] || [ -L "$HOME/.pi/agent/extensions/$legacy" ]; then
+      rm -rf "$HOME/.pi/agent/extensions/$legacy"
+      log "extensions/$legacy: removed legacy entry (now owned by pi-shell-acp / andenken)"
+    fi
+  done
+  if [ -e "$HOME/.pi/agent/delegate-targets.json" ] || [ -L "$HOME/.pi/agent/delegate-targets.json" ]; then
+    rm -f "$HOME/.pi/agent/delegate-targets.json"
+    log "delegate-targets.json: removed (entwurf-targets.json now owned by pi-shell-acp)"
+  fi
 
   # Settings + Keybindings
   ensure_link "$SCRIPT_DIR/pi/settings.json" "$HOME/.pi/agent/settings.json"
@@ -379,10 +429,12 @@ TGJSON
     log "PI_ENTWURF_BOT_TOKEN not set — skipping telegram.json"
   fi
 
-  section "Home AGENTS.md / CLAUDE.md / ENTWURF.md"
+  section "Home AGENTS.md / CLAUDE.md / MITSEIN.md"
   ensure_link "$SCRIPT_DIR/home/AGENTS.md" "$HOME/AGENTS.md"
   ensure_link "$SCRIPT_DIR/home/CLAUDE.md" "$HOME/CLAUDE.md"
-  ensure_link "$SCRIPT_DIR/home/ENTWURF.md" "$HOME/ENTWURF.md"
+  ensure_link "$SCRIPT_DIR/home/MITSEIN.md" "$HOME/MITSEIN.md"
+  # Clean up old ENTWURF.md symlink if present (renamed to MITSEIN.md in 0.2.0)
+  [ -L "$HOME/ENTWURF.md" ] && rm "$HOME/ENTWURF.md" && log "ENTWURF.md → MITSEIN.md (removed legacy symlink)"
 
   section "Claude Code Config"
   mkdir -p "$HOME/.claude/hooks"
@@ -480,9 +532,27 @@ setup_npm() {
       return 1
     fi
     ok "pi-shell-acp auth alias"
+
+    # Light verification — deterministic, no auth, no subprocess.
+    # Catches MCP wiring drift if pi-shell-acp's bundle changes between releases.
+    if (cd "$PI_SHELL_ACP_DIR" && ./run.sh check-mcp >/dev/null 2>&1); then
+      ok "pi-shell-acp check-mcp"
+    else
+      warn "pi-shell-acp: check-mcp failed — MCP wiring may be misconfigured"
+    fi
   else
     fail "pi-shell-acp: repo not found at $PI_SHELL_ACP_DIR"
     return 1
+  fi
+
+  # Stale project-local .pi/settings.json detection.
+  # Pre-migration leftovers (e.g. claude-agent-sdk-pi) override the global SSOT
+  # silently. Project-local file is gitignored, so it never gets fixed by pull.
+  local PROJECT_PI_SETTINGS="$SCRIPT_DIR/.pi/settings.json"
+  if [ -f "$PROJECT_PI_SETTINGS" ]; then
+    if grep -q "claude-agent-sdk-pi" "$PROJECT_PI_SETTINGS" 2>/dev/null; then
+      warn "stale $PROJECT_PI_SETTINGS references claude-agent-sdk-pi (pre-migration). Recommend: rm $PROJECT_PI_SETTINGS"
+    fi
   fi
 
   # pi-tools-bridge + native async delegate validations moved to pi-shell-acp's
@@ -536,6 +606,7 @@ setup_all() {
   echo "🔧 agent-config setup ($ARCH)"
   echo "   SSOT: $SKILLS_DIR"
 
+  setup_preflight || return 1
   setup_repos
   setup_build
   setup_links
@@ -596,7 +667,7 @@ Usage: ./run.sh <command> [args]
                               → clone + build + link + pnpm 전부 수행
                               → 어떤 디바이스든 이것 하나로 재현
 
-  setup:repos|build|links|pnpm 개별 단계 (디버깅용, 보통 불필요)
+  setup:preflight|repos|build|links|pnpm 개별 단계 (디버깅용, 보통 불필요)
   update                      추적 리포 일괄 pull (dirty면 skip) — setup은 pull 안 함
 
 === 테스트 ===
@@ -630,6 +701,8 @@ case "${1:-help}" in
   # === Setup ===
   setup)
     setup_all ;;
+  setup:preflight)
+    setup_preflight ;;
   setup:repos)
     setup_repos ;;
   setup:build)

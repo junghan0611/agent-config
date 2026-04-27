@@ -1,7 +1,7 @@
 {
   "lastChangelogVersion": "0.70.2",
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.4",
+  "defaultProvider": "pi-shell-acp",
+  "defaultModel": "claude-opus-4-7",
   "defaultThinkingLevel": "medium",
   "hideThinkingBlock": false,
   "defaultTheme": "glg-dark",
@@ -15,10 +15,15 @@
   "piShellAcpProvider": {
     "appendSystemPrompt": false,
     "showToolNotifications": true,
-    "skillPlugins": ["/home/junghan/.pi/agent/claude-plugin"],
+    "skillPlugins": [
+      "/home/junghan/.pi/agent/claude-plugin"
+    ],
     "mcpServers": {
       "pi-tools-bridge": {
         "command": "/home/junghan/repos/gh/pi-shell-acp/mcp/pi-tools-bridge/start.sh"
+      },
+      "session-bridge": {
+        "command": "/home/junghan/repos/gh/pi-shell-acp/mcp/session-bridge/start.sh"
       }
     }
   },

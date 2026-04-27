@@ -17,8 +17,7 @@
     ],
     "deny": [
       "Agent"
-    ],
-    "defaultMode": "auto"
+    ]
   },
   "model": "opus",
   "hooks": {
@@ -158,7 +157,6 @@
   },
   "language": "Korean",
   "alwaysThinkingEnabled": true,
-  "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
   "verbose": true,
   "skipAutoPermissionPrompt": true,

@@ -86,23 +86,26 @@ Semantic memory extension auto-loads these tools. Invoked automatically for natu
 | **medium-extractor** | Extract Markdown from Medium articles |
 | **browser-tools** | Chrome browser automation |
 
-## Additional Tools (pi-extensions)
+## Additional Tools (pi-shell-acp MCP bridge)
+
+These are exposed by `pi-shell-acp`'s `pi-tools-bridge` MCP server. Mechanism — registry, identity preservation, sync/async contract — is documented in [pi-shell-acp `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md).
 
 | Tool | Purpose |
 |------|---------|
-| **delegate** | Spawn isolated agent process — local or SSH remote |
-| **delegate_status** | Check async delegate status by taskId or list all |
-| **delegate_resume** | Resume completed delegate session with preserved context |
-| **send_to_session** | Send message to another running pi session (control.ts) |
-| **list_sessions** | List pi sessions with open control sockets (control.ts) |
+| **entwurf** | Throw a sibling agent (분신 호출) — local or SSH remote |
+| **entwurf_resume** | Resume a saved entwurf session with preserved context |
+| **entwurf_send** | Fire-and-forget message to another running pi session |
+| **entwurf_peers** | List active pi sessions exposing a control socket |
+| **session_search** | Semantic search over past pi + Claude Code sessions (andenken) |
+| **knowledge_search** | Semantic search over the org-mode knowledge base (andenken) |
 
-### Entwurf (분신) and Delegation
+### Mitsein (working companion) and Entwurf (분신 호출)
 
-@ENTWURF.md
+@MITSEIN.md
 
-### Delegate Models and Rules
+### Entwurf Rules — caller side
 
-Global rules for all agents using `delegate`.
+Global rules for any agent that throws entwurfs.
 
 #### Mode Selection
 
@@ -110,42 +113,44 @@ Global rules for all agents using `delegate`.
 |------|------|
 | `mode: "async"` | **Default**. Builds, tests, research, work >30s |
 | `mode: "sync"` | Result needed immediately (status checks, short queries) |
-| `delegate_resume` | Continue on preserved context from previous delegation |
+| `entwurf_resume` | Continue on preserved context from previous entwurf |
 
 #### 4-Step Workflow
 
-1. **Understanding** — async delegate. Read only, no code changes. Record understanding in llmlog.
+1. **Understanding** — async entwurf. Read only, no code changes. Record understanding in llmlog.
 2. **Review** — GLG reviews llmlog and narrows scope.
-3. **Execution** — resume same delegate. Context preserved.
+3. **Execution** — resume the same entwurf. Context preserved.
 4. **Final Review** — `git diff`, tests, output check. **GLG makes the final commit.**
 
-#### Delegation Principles
+#### Caller principles
 
-- **No commits**: delegates prepare changes; GLG decides final commit/push.
+- **No commits**: entwurfs prepare changes; GLG decides final commit/push.
 - **No haiku**: do not use haiku for precision work.
 
-#### Delegate models
+#### Default model
 
-Default: `openai-codex/gpt-5.4`
+`pi-shell-acp/claude-opus-4-7` (current pi default).
 
-| Model   | `model=`                  | Context |
-|---------|---------------------------|---------|
-| GPT-5.4 | `openai-codex/gpt-5.4`    | 272K    |
+| Model             | `model=`                          | Context |
+|-------------------|-----------------------------------|---------|
+| Claude Opus 4.7   | `pi-shell-acp/claude-opus-4-7`    | 200K    |
+| Claude Sonnet 4.6 | `pi-shell-acp/claude-sonnet-4-6`  | 200K    |
+| GPT-5.4           | `openai-codex/gpt-5.4`            | 272K    |
 
 #### 담당자 패턴 — Automatic Project Context Injection
 
-When a delegate is spawned with `cwd`, the target directory's `AGENTS.md` is automatically injected into the task via `<project-context>` tags. This makes the delegate a **담당자** (agent-in-charge) for that repo.
+When an entwurf is thrown with `cwd`, the target directory's `AGENTS.md` is automatically injected into the task via `<project-context>` tags. This makes the entwurf a **담당자** (agent-in-charge) for that repo.
 
 - **Parameter name is `cwd`** (NOT `workingDirectory`). Wrong name silently falls back to parent CWD.
-- **First call**: AGENTS.md content prepended to task. Delegate knows its project identity.
+- **First call**: AGENTS.md content prepended to task. The entwurf knows its project identity.
 - **Resume**: NO re-injection. Session file already contains the context from first call. Token-efficient.
-- **No AGENTS.md**: graceful fallback — task sent as-is, delegate runs as generic agent.
+- **No AGENTS.md**: graceful fallback — task sent as-is, the entwurf runs as a generic agent.
 
 ```
-delegate(cwd: "~/repos/gh/nixos-config", task: "...")
+entwurf(cwd: "~/repos/gh/nixos-config", task: "...")
 → enrichTaskWithProjectContext() reads nixos-config/AGENTS.md
 → <project-context>...</project-context> + task
-→ delegate becomes nixos 담당자
+→ entwurf becomes nixos 담당자
 ```
 
 ## Session Start: Device/Time Auto-Provided
@@ -210,26 +215,32 @@ See PRIVATE.md.
 - ~/org/               # Org-mode files
 
 #### repos/gh
-- GLG-Mono/
+- abductcli
 - agent-config
 - andenken
 - blog
+- cos
 - denotecli
 - dictcli
 - doomemacs-config
+- entwurf
+- geworfen
 - gitcli
+- GLG-Mono
+- homeagent-config
 - junghan0611
+- legoagent-config
 - lifetract
 - memex-kb
-- entwurf
+- minimal-iot-core
 - nixos-config
 - notes
-- homeagent-config
 - openclaw-config
+- openglg-config
 - password-store
+- pi-shell-acp
 - self-tracking-data
 - zotero-config
-- openglg-config
 
 #### repos/work
 
@@ -292,10 +303,10 @@ Multi-harness (pi, Claude Code, OpenCode) + multi-skill + semantic memory has ma
 
 | Situation | Action |
 |-----------|--------|
-| Tool fails to find expected results (e.g. denotecli can't read a file) | **Trace cause** → report to user or add TODO to Entwurf agenda |
-| knowledge_search / session_search worse than direct grep | **Record exact query + results** → TODO in Entwurf agenda |
-| dictcli expand doesn't improve search quality | **Record before/after** → TODO in Entwurf agenda |
-| Skill errors or docs disagree with behavior | **Error message + repro command** → TODO in Entwurf agenda |
+| Tool fails to find expected results (e.g. denotecli can't read a file) | **Trace cause** → report to user or add TODO to Mitsein agenda |
+| knowledge_search / session_search worse than direct grep | **Record exact query + results** → TODO in Mitsein agenda |
+| dictcli expand doesn't improve search quality | **Record before/after** → TODO in Mitsein agenda |
+| Skill errors or docs disagree with behavior | **Error message + repro command** → TODO in Mitsein agenda |
 | AGENTS.md / SKILL.md disagrees with reality | **Fix immediately** if possible |
 
 ### Two-Step Semantic Search Strategy (Required)

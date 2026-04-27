@@ -191,18 +191,7 @@ This is the manager's blind spot — trusting precise numbers without checking c
 
 ## Session Management — /new + Semantic Search (No Compact)
 
-**We don't use compact.** Compact = AI reads entire conversation and summarizes = expensive + slow.
-
-Instead:
-1. When conversation gets long, `/new` to start a fresh session
-2. `/new` auto-indexes current session + recent 24h sessions (session_before_switch hook)
-3. In the new session, recover context:
-   - `session-recap -p <repo> -m 15` → previous session 4KB summary (instant)
-   - `session-recap --source pi` / `--source claude` / `--source all` (default) — multi-harness
-   - `session_search` → meaning-based search (all sessions)
-   - `knowledge_search` → org knowledge base search (3-layer expansion)
-
-**Starting from zero is fine** — 3-layer search replaces compact.
+We do not use compact. See [README § Session Management](README.md#session-management--no-compact). Multi-harness session-recap: `--source pi | claude | all`. Starting from zero is fine — 3-layer search replaces compact.
 
 ## Extensions
 
@@ -226,42 +215,28 @@ Environment (`~/.env.local`):
 
 ## Entwurf Orchestration (consumer side)
 
-The delegate/resume mechanism, cross-session messaging, and the pi-facing MCP bridge all live in **[pi-shell-acp](https://github.com/junghan0611/pi-shell-acp)** now. Migration landed in pi-shell-acp commits `768baf4` (surface ingest) + `3d6800d` (sentinel ingest). The rename `delegate` → `entwurf` will happen in a single follow-up commit there; until then the tool name is still `delegate` on both sides (intentional, see pi-shell-acp AGENTS.md § Naming Contract).
+`entwurf` (delegate/resume), cross-session messaging, and the pi-facing MCP bridge all live in **[pi-shell-acp](https://github.com/junghan0611/pi-shell-acp)**. agent-config consumes the surface — it does not own it.
 
-**Spec reading list — go there, not here:**
-- pi-shell-acp `AGENTS.md` § Entwurf Orchestration — registry schema, identity preservation rule, Phase 0.5 sync/async contract, send_to_session principle, verification matrix.
-- pi-shell-acp `mcp/pi-tools-bridge/test.sh` — protocol + Identity Preservation lockdown (15/15 baseline).
-- pi-shell-acp `scripts/sentinel-runner.sh` — 6-cell delegate matrix (spawn + resume, sync default after Phase 0.5).
-- pi-shell-acp `scripts/session-messaging-smoke.sh` — 4-case send_to_session matrix (native sender × MCP sender × native target × ACP target).
-
-**How this repo consumes the surface.**
-- `pi/settings.json` § `piShellAcpProvider.mcpServers.pi-tools-bridge.command` points at pi-shell-acp's `mcp/pi-tools-bridge/start.sh` — this is what injects the MCP surface (delegate, delegate_resume, session_search, knowledge_search, send_to_session, list_sessions) into every ACP session.
-- `~/.pi/agent/delegate-targets.json` and `~/.pi/agent/extensions/lib/` are owned by pi-shell-acp's own `run.sh` post-migration — agent-config no longer creates those symlinks.
-- Cross-Repo Work Loop policy (under `## Collaboration with GLG` above) is the agent-config-side responsibility contract for *calling* delegate — it stays here because responsibility lives with the caller, not the mechanism.
+- **Entry point:** `pi/settings.json` § `piShellAcpProvider.mcpServers.pi-tools-bridge.command` points at pi-shell-acp's `mcp/pi-tools-bridge/start.sh`. This is what injects the MCP surface (entwurf/delegate, resume, session_search, knowledge_search, send_to_session, list_sessions) into every ACP session.
+- **Spec:** [pi-shell-acp `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md) — registry schema, Identity Preservation Rule, sync/async contract, verification matrix.
+- **Caller responsibility (stays here):** the Cross-Repo Work Loop policy under `## Collaboration with GLG` above. Responsibility lives with the caller, not the mechanism.
 
 ## Skills
 
-`./skills/` — migrated from pi-skills.
+`./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, OpenCode, Codex, and the pi-shell-acp Claude plugin farm. See [README § What's Here](README.md#whats-here) for categories and the LSP-pattern doc principle.
 
 ## Development Guide
 
 ```bash
-# Tests (andenken repo)
+# andenken (semantic memory) — tests + indexing live in its own repo
 cd ~/repos/gh/andenken && source ~/.env.local
-pnpm run test:unit        # No API needed (30 tests)
-pnpm run test:integration # Needs API (11 tests)
-pnpm test                # All
-pnpm run test:search -- "query"  # Live search
+pnpm test                                # all (unit + integration)
+pnpm run test:search -- "query"          # live search
+pnpm run doctor                          # operational health check
+pnpm run golden                          # search quality regression
+# /memory reindex (inside pi) — incremental sessions index
+# pnpm run index:org [--force]           — rebuild org knowledge base
 
-# Doctor + Golden Queries
-pnpm run doctor          # Operational health check
-pnpm run golden          # Search quality regression test
-pnpm run golden:compare  # dictcli expand before/after comparison
-
-# Extension load test
-pi -e ./pi-extensions/semantic-memory/index.ts
-
-# Indexing
-# /memory reindex         — inside pi
-# /memory reindex --force  — full rebuild
+# pi-shell-acp gates (typecheck, MCP, dual-backend smoke, etc.)
+cd ~/repos/gh/pi-shell-acp && ./run.sh check-...   # see pi-shell-acp/AGENTS.md
 ```

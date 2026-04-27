@@ -1,7 +1,7 @@
 {
   "name": "agent-config",
-  "version": "0.1.0",
-  "description": "Agent infrastructure toolkit — extensions, skills, and configurations for Pi coding agent",
+  "version": "0.2.0",
+  "description": "Agent infrastructure toolkit — extensions, skills, and configurations. Reference consumer of pi-shell-acp.",
   "repository": {
     "type": "git",
     "url": "https://github.com/junghan0611/agent-config.git"

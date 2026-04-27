@@ -35,10 +35,6 @@ home/PRIVATE.md
 .pi/
 .mcp.json
 
-# ACP/MCP subpackage build artifacts
-mcp/pi-tools-bridge/node_modules/
-mcp/pi-tools-bridge/dist/
-
 # Python cache artifacts
 __pycache__/
 *.pyc
