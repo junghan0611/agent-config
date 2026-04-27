@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.3.0
+
+* Pinned pi-shell-acp to `v0.3.0` (consumer install path in `run.sh` + `pi/settings.server.json` packages line). v0.3.0 ships two install-automation fixes that close the oracle bootstrap fault from 0.2.x:
+  * `CLAUDE_CODE_EXECUTABLE` is now injected into the claude child env automatically. Reason: `claude-agent-acp@0.31.0` (`acp-agent.js:1298`) ignores `_meta.claudeCode.options.pathToClaudeCodeExecutable` and only reads the env var, so on hosts where pi's wrapper sets `NODE_PATH` to a global pnpm store containing both `claude-agent-sdk-linux-arm64` and `claude-agent-sdk-linux-arm64-musl`, the SDK's musl-first auto-detect resolved a non-existent musl binary and surfaced as "Internal error" with no useful tail (oracle, glibc/aarch64). Manual `export CLAUDE_CODE_EXECUTABLE=...` workaround is no longer required.
+  * `~/.pi/agent/entwurf-targets.json` symlink is created idempotently by pi-shell-acp's `install_local_package`. Operator overrides are preserved.
+* `pi/settings.server.json:18` `codexDisabledFeatures: []` knob retained as defense-in-depth (redundant since 0.2.2 fixed the spread crash; harmless).
+
 ## 0.2.2
 
 * Pinned pi-shell-acp to `v0.2.2` (consumer install path in `run.sh`). v0.2.2 fixes the universal `codexDisabledFeatures` spread crash that broke fresh consumer installs on 0.2.1 — the bridge now nullish-guards the field in both launch + session reuse paths, so the temporary `codexDisabledFeatures: []` knob in `pi/settings.json` is now redundant (kept as defense-in-depth).

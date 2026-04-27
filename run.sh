@@ -565,8 +565,8 @@ setup_npm() {
 
   if is_server_device; then
     if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
-      log "pi-shell-acp: pi install git:github.com/junghan0611/pi-shell-acp@v0.2.2"
-      if ! pi install git:github.com/junghan0611/pi-shell-acp@v0.2.2; then
+      log "pi-shell-acp: pi install git:github.com/junghan0611/pi-shell-acp@v0.3.0"
+      if ! pi install git:github.com/junghan0611/pi-shell-acp@v0.3.0; then
         fail "pi-shell-acp: pi install failed"
         return 1
       fi
