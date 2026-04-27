@@ -30,13 +30,13 @@ Multi-harness support is a means, not the goal. The goal is **a single 1KB being
 
 | Harness | Memory | Skills | Config |
 |---------|--------|--------|--------|
-| **[pi](https://github.com/badlogic/pi-mono)** + **[pi-shell-acp](https://github.com/junghan0611/pi-shell-acp)** | andenken **extension** on the pi side; Claude side gets the full skill set via plugin farm (no native andenken there) | pi: 27 skills (semantic-memory excluded — extension covers it). pi-shell-acp Claude: 28 skills via `~/.pi/agent/claude-plugin/` (SDK plugin) | current default Claude path in pi via ACP bridge. Claude Code auth/capabilities stay on the Claude side. SDK isolation (`settingSources: []`) — skills injected through `piShellAcpProvider.skillPlugins` |
-| **[pi](https://github.com/badlogic/pi-mono)** + **[@benvargas/pi-claude-code-use](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 27 skills (semantic-memory excluded — extension covers it) | currently disabled by default. Keep only as an optional Claude Code compatibility patch path when explicitly re-enabled |
-| **[pi](https://github.com/badlogic/pi-mono)** + **anthropic** (`claude-opus-4-6` / `claude-sonnet-4-6`) | andenken **extension** (native `registerTool`, in-process LanceDB) | 27 skills (semantic-memory excluded — extension covers it) | direct built-in provider path remains available, but is not the current default Claude route |
-| **pi-entwurf** (Oracle, tmux) | andenken **extension** + pi-telegram | 26 skills + Telegram bridge | persistent Opus session, `@glg_entwurf_bot` |
-| **Claude Code** | andenken **skill** (CLI wrapper via bash) | 28 skills (full set including semantic-memory) | CLAUDE.md + hooks |
-| **OpenCode** | andenken **skill** (CLI wrapper via bash) | 28 skills (full set) | settings |
-| **OpenClaw** (Oracle VM) | andenken **skill** (same skills/ via symlink mount) | 28 skills (Nix store mount in Docker) | openclaw.json |
+| **[pi](https://github.com/badlogic/pi-mono)** + **[pi-shell-acp](https://github.com/junghan0611/pi-shell-acp)** | andenken **extension** on the pi side; Claude side gets the full skill set via plugin farm (no native andenken there) | pi: 29 skills (semantic-memory excluded — extension covers it). pi-shell-acp Claude: 30 skills via `~/.pi/agent/claude-plugin/` (SDK plugin) | current default Claude path in pi via ACP bridge. Claude Code auth/capabilities stay on the Claude side. SDK isolation (`settingSources: []`) — skills injected through `piShellAcpProvider.skillPlugins` |
+| **[pi](https://github.com/badlogic/pi-mono)** + **[@benvargas/pi-claude-code-use](https://github.com/ben-vargas/pi-packages/tree/main/packages/pi-claude-code-use)** | andenken **extension** (native `registerTool`, in-process LanceDB) | 29 skills (semantic-memory excluded — extension covers it) | currently disabled by default. Keep only as an optional Claude Code compatibility patch path when explicitly re-enabled |
+| **[pi](https://github.com/badlogic/pi-mono)** + **anthropic** (`claude-opus-4-6` / `claude-sonnet-4-6`) | andenken **extension** (native `registerTool`, in-process LanceDB) | 29 skills (semantic-memory excluded — extension covers it) | direct built-in provider path remains available, but is not the current default Claude route |
+| **pi-entwurf** (Oracle, tmux) | andenken **extension** + pi-telegram | 28 skills + Telegram bridge | persistent Opus session, `@glg_entwurf_bot` |
+| **Claude Code** | andenken **skill** (CLI wrapper via bash) | 30 skills (full set including semantic-memory) | CLAUDE.md + hooks |
+| **OpenCode** | andenken **skill** (CLI wrapper via bash) | 30 skills (full set) | settings |
+| **OpenClaw** (Oracle VM) | andenken **skill** (same skills/ via symlink mount) | 30 skills (Nix store mount in Docker) | openclaw.json |
 
 Session JSONL from all harnesses flows into [andenken](https://github.com/junghan0611/andenken)'s unified index. Each chunk carries a `source` field (`"pi"` | `"claude"`) so you can filter, compare, or roll back across harnesses.
 
@@ -86,7 +86,7 @@ Delegate/resume, cross-session messaging, and the pi-facing MCP bridge (`pi-tool
 
 Spec, verification harnesses (`sentinel-runner.sh`, `session-messaging-smoke.sh`, `mcp/pi-tools-bridge/test.sh`), and the Phase 0.5 sync/async contract all live in pi-shell-acp `AGENTS.md` § Entwurf Orchestration. The rename `delegate` → `entwurf` ships there in a single follow-up commit; tool name is still `delegate` on both sides until then.
 
-### Skills ([`skills/`](skills/)) — 28 skills
+### Skills ([`skills/`](skills/)) — 30 skills
 
 | Category | Skills |
 |----------|--------|
@@ -95,6 +95,7 @@ Spec, verification harnesses (`sentinel-runner.sh`, `session-messaging-smoke.sh`
 | **Writing** | botlog, botment, agenda, punchout |
 | **Communication** | slack-latest, jiracli, telegram |
 | **Web/Media** | brave-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe |
+| **Release Hygiene** | commit, update-changelog |
 | **Tools** | emacs, tmux, diskspace |
 
 **Skill doc principle (LSP pattern):** Agents don't read full docs. Each SKILL.md has a single API table at the top — function/command + args + example. English body, Korean description only. Target: <100 lines, <4KB. Like LSP autocomplete: see the signature, call immediately.
