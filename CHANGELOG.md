@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.4.0
+
+* Pinned pi-shell-acp to `v0.4.0` in the consumer install path (`pi/settings.server.json` + `run.sh`).
+* v0.4.0 brings PI-native identity carriers to both backends while isolating operator state with whitelist overlays: Claude now receives the engraving via full system-prompt replacement, Codex via `developer_instructions`, and both backends run behind pi-owned config overlays instead of inheriting the operator's broader config tree.
+* Important isolation additions from the upstream release: codex thread/memory SQLite state is pinned inside the overlay via `CODEX_SQLITE_HOME`, compaction opt-in no longer disables identity isolation, and codex memory/history surfaces are further constrained by default.
+
 ## 0.3.1
 
 * Pinned pi-shell-acp to `v0.3.1`. v0.3.1 emits a startup warning when `codexDisabledFeatures: []` is detected in settings, since the empty array is a fail-open opt-out (documented at `acp-bridge.ts` as "opt fully out of bridge feature gating") — not the no-op our 0.2.2/0.3.0 changelog entries claimed.
