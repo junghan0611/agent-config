@@ -225,6 +225,21 @@ Environment (`~/.env.local`):
 
 `./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, OpenCode, Codex, and the pi-shell-acp Claude plugin farm. See [README § What's Here](README.md#whats-here) for categories and the LSP-pattern doc principle.
 
+## Release — pi-shell-acp Version Bump
+
+agent-config pins pi-shell-acp by tag. Every release bump touches **4 files**, all must move together. Miss one and consumer-mode installs (server devices) drift from dev clones.
+
+| File | What to change |
+|------|----------------|
+| `package.json` | `version` field |
+| `pi/settings.server.json` | `packages[]` entry — `git:github.com/junghan0611/pi-shell-acp@vX.Y.Z` |
+| `run.sh` § `setup_npm()` | **two** occurrences: log line + `pi install` command |
+| `CHANGELOG.md` | new `## X.Y.Z` section — what shipped, why pinned, any caveats |
+
+Verify before commit: `git grep -n "pi-shell-acp@v" -- ':!node_modules'` should show only the new tag (3 hits: settings.server.json, run.sh log, run.sh install).
+
+`pi/settings.json` `lastChangelogVersion` is pi-runtime's own changelog ack — unrelated to agent-config releases.
+
 ## Development Guide
 
 ```bash
