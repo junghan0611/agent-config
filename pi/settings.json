@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.70.2",
+  "lastChangelogVersion": "0.70.5",
   "defaultProvider": "pi-shell-acp",
   "defaultModel": "claude-opus-4-7",
   "defaultThinkingLevel": "medium",
@@ -15,7 +15,6 @@
   "piShellAcpProvider": {
     "appendSystemPrompt": false,
     "showToolNotifications": true,
-    "codexDisabledFeatures": [],
     "skillPlugins": [
       "/home/junghan/.pi/agent/claude-plugin"
     ],

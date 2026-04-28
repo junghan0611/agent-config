@@ -9,13 +9,12 @@
   "packages": [
     "../../repos/gh/andenken",
     "../../repos/gh/entwurf",
-    "git:github.com/junghan0611/pi-shell-acp@v0.3.0",
+    "git:github.com/junghan0611/pi-shell-acp@v0.3.1",
     "git:github.com/badlogic/pi-telegram"
   ],
   "piShellAcpProvider": {
     "appendSystemPrompt": false,
     "showToolNotifications": true,
-    "codexDisabledFeatures": [],
     "skillPlugins": [
       "/home/junghan/.pi/agent/claude-plugin"
     ],

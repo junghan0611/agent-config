@@ -2,12 +2,18 @@
 
 ## Unreleased
 
+## 0.3.1
+
+* Pinned pi-shell-acp to `v0.3.1`. v0.3.1 emits a startup warning when `codexDisabledFeatures: []` is detected in settings, since the empty array is a fail-open opt-out (documented at `acp-bridge.ts` as "opt fully out of bridge feature gating") — not the no-op our 0.2.2/0.3.0 changelog entries claimed.
+* Removed `codexDisabledFeatures: []` from `pi/settings.json` and `pi/settings.server.json`. With the key absent, pi-shell-acp's nullish-guard applies `DEFAULT_CODEX_DISABLED_FEATURES` (image_generation, tool_suggest, tool_search, multi_agent, apps) — the fail-closed baseline that aligns the codex tool surface with pi's advertised tools.
+* Correction to prior entries: 0.2.2 and 0.3.0 described the `[]` knob as "redundant defense-in-depth, harmless". That was wrong. `parseStringArray` returns `undefined` for missing keys, so `merged.codexDisabledFeatures ?? [...DEFAULT]` only falls through on `undefined`/`null`; an explicit `[]` flips the resolution from fail-closed (5 features disabled) to fail-open (all features active). The original 0.2.1 spread-crash workaround should have been deleted in 0.2.2, not retained.
+
 ## 0.3.0
 
 * Pinned pi-shell-acp to `v0.3.0` (consumer install path in `run.sh` + `pi/settings.server.json` packages line). v0.3.0 ships two install-automation fixes that close the oracle bootstrap fault from 0.2.x:
   * `CLAUDE_CODE_EXECUTABLE` is now injected into the claude child env automatically. Reason: `claude-agent-acp@0.31.0` (`acp-agent.js:1298`) ignores `_meta.claudeCode.options.pathToClaudeCodeExecutable` and only reads the env var, so on hosts where pi's wrapper sets `NODE_PATH` to a global pnpm store containing both `claude-agent-sdk-linux-arm64` and `claude-agent-sdk-linux-arm64-musl`, the SDK's musl-first auto-detect resolved a non-existent musl binary and surfaced as "Internal error" with no useful tail (oracle, glibc/aarch64). Manual `export CLAUDE_CODE_EXECUTABLE=...` workaround is no longer required.
   * `~/.pi/agent/entwurf-targets.json` symlink is created idempotently by pi-shell-acp's `install_local_package`. Operator overrides are preserved.
-* `pi/settings.server.json:18` `codexDisabledFeatures: []` knob retained as defense-in-depth (redundant since 0.2.2 fixed the spread crash; harmless).
+* `pi/settings.server.json:18` `codexDisabledFeatures: []` knob retained as defense-in-depth (redundant since 0.2.2 fixed the spread crash; harmless). **— Incorrect, see 0.3.1 correction.**
 
 ## 0.2.2
 
