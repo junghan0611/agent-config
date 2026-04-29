@@ -13,7 +13,7 @@
     "git:github.com/badlogic/pi-telegram"
   ],
   "piShellAcpProvider": {
-    "appendSystemPrompt": false,
+    "appendSystemPrompt": true,
     "showToolNotifications": true,
     "skillPlugins": [
       "/home/junghan/.pi/agent/claude-plugin"

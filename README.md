@@ -154,6 +154,16 @@ Instead:
    - `session_search` → semantic search across all sessions
    - `knowledge_search` → 3-layer expansion over the org knowledge base
 
+## Public Verification — Sessions as Evidence
+
+This repo also owns the **resident-side policy** for publishing session artifacts when GLG wants public verification of harness behavior.
+
+- `pi-shell-acp` owns bridge mechanism and invariants.
+- `agent-config` owns export/review/upload workflow and publication criteria.
+- Goal: long-term trust through evidence — raw-session publication, reject history, and later failure/drift analysis.
+- Minimum publication gates: secret redaction, deny patterns, secret scanning (e.g. TruffleHog), semantic privacy review, small-batch dry-run.
+- `pi-share-hf` is a strong reference shape for this pipeline.
+
 ## Persistent Agent — pi-entwurf
 
 A persistent pi session on Oracle VM, accessible via Telegram `@glg_entwurf_bot`. The always-on presence agent — a 분신(Entwurf) that carries context across days. tmux session `pi-entwurf`, model `claude-opus-4-6`, full skill set.

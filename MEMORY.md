@@ -6,6 +6,20 @@
 
 ---
 
+## [2026-04-29] 세션 공개 운영안의 소유권
+
+### 결정
+- `pi-shell-acp` 검증 흔적을 공개 세션 데이터로 축적하는 운영안은 **agent-config가 소유**한다.
+- 이유: 이것은 bridge 구현이 아니라 **resident-side publication policy** 이다.
+- `pi-shell-acp`에는 verification mechanism/invariant를 두고, 공개 export/review/upload 정책은 여기서 다룬다.
+
+### 운영 원칙
+- 세션 공개는 **증거 층**이다. botlog는 해석 층이고, 공개 세션은 나중의 실패 분석·드리프트 분석·신뢰성 축적을 위한 원자료다.
+- 시작은 작게: public-safe 프로젝트, 소배치, dry-run, 비용 가시화.
+- 최소 게이트: known-secret redaction, deny patterns, TruffleHog류 secret scan, semantic privacy review.
+- exact secret만 지우면 끝이 아니다. 사람 이름, repo 경로, 일정/생활 흔적 같은 semantic privacy를 따로 본다.
+- `pi-share-hf`는 좋은 참조 구현이다. 필요하면 thin fork로 경계를 조정한다.
+
 ## [2026-04-13] Gemini API 비용 관리
 
 ### 현황

@@ -193,6 +193,19 @@ This is the manager's blind spot — trusting precise numbers without checking c
 
 We do not use compact. See [README § Session Management](README.md#session-management--no-compact). Multi-harness session-recap: `--source pi | claude | all`. Starting from zero is fine — 3-layer search replaces compact.
 
+## Public Verification — Session Publication Policy
+
+When GLG wants to publish session artifacts as **evidence** for how the harness actually behaves, this repo owns the policy and workflow.
+
+- **Boundary:** `pi-shell-acp` owns bridge mechanism/invariants. `agent-config` owns public export/review/upload operations.
+- **Purpose:** not marketing snippets, but long-term trust via raw-session evidence, failure analysis, reject history, and drift tracking.
+- **Default posture:** start small — public-safe repos/sessions first, small batches, dry-run first, visible cost first.
+- **Minimum gates before publication:** known-secret replacement, deny patterns, secret scan (e.g. TruffleHog), semantic/privacy review, upload list review.
+- **Important:** exact-secret detection is necessary but insufficient. Names, repo paths, calendar text, relationships, and life-pattern clues are **semantic privacy** and need separate review.
+- **Reference implementation:** `pi-share-hf` is a good upstream shape for collect → redact → scan → review → upload. Use it as a reference or thin fork, not as unquestioned automation.
+- **Current upstream caveat:** if `collect` immediately triggers review, and GLG wants review as a separate stage, adapt locally rather than pretending the boundary already exists.
+- **Operational rule:** no fire-and-forget bulk export. Publication is a resident-side decision with explicit scope verification.
+
 ## Extensions
 
 Located in `./pi-extensions/`. Loaded by pi runtime, registering tools + commands.
