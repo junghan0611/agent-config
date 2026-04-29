@@ -149,7 +149,7 @@ declare -A PACKAGE_REPOS=(
 # Pinned pi-shell-acp version — single source of truth for setup_npm.
 # Must match `pi/settings.server.json` packages[] tag and CHANGELOG.md.
 # See AGENTS.md § Release — pi-shell-acp Version Bump.
-PI_SHELL_ACP_VERSION="0.4.1"
+PI_SHELL_ACP_VERSION="0.4.5"
 
 # Server devices use the consumer install path (pi-managed) instead of cloning
 # pi-shell-acp into ~/repos/gh/. Add device names here as they come online.
@@ -590,7 +590,7 @@ setup_npm() {
       fi
       # Re-read version. `pi install` reports success even when an existing
       # checkout isn't refreshed to the requested tag (observed on oracle:
-      # 0.3.0 install, `pi install ...@v0.4.1` claimed success but working
+      # 0.3.0 install, `pi install ...@v0.4.5` claimed success but working
       # tree stayed at 0.3.0). If the tag didn't land, do a direct git
       # fallback so version-pin drift cannot accumulate silently.
       installed_version="$(node -p "require('$PI_SHELL_ACP_DIR/package.json').version" 2>/dev/null || echo "")"

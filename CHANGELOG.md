@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.4.5
+
+* Pinned pi-shell-acp to `v0.4.5` in the consumer install path (`pi/settings.server.json` + `run.sh`).
+* v0.4.5 moves the heavy pi / `~/AGENTS.md` / `cwd/AGENTS.md` context off the subscription-sensitive system-prompt carrier and into a one-shot first-user augment, so ACP-backed Claude and Codex sessions regain full resident context without triggering Claude Code's large-custom-system-prompt billing path.
+* Entwurf-spawned ACP sessions now keep the home context while de-duplicating project AGENTS that already arrived through `<project-context ...>` injection; consumer-side implication: our 담당자 pattern stays intact without repeating repo context.
+* Capability/tool-name hygiene is clearer upstream: agents are told to treat the callable schema as the source of truth and not infer concrete tool names from AGENTS prose alone. This aligns with agent-config's capability-first docs introduced in this release.
+* `prompts/engraving.md` is now an optional personal surface rather than the place where bridge operating context must fit; pi-shell-acp carries the bridge narrative separately.
+
 ## 0.4.1
 
 * Pinned pi-shell-acp to `v0.4.1` in the consumer install path (`pi/settings.server.json` + `run.sh`).
