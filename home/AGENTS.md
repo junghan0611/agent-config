@@ -50,16 +50,11 @@ Do not say "I don't have it" just because it appears under a different surface i
 
 | Capability | Surface | Purpose |
 |------------|---------|---------|
-| **session_search** | extension / ACP tool | Semantic search over past pi + Claude Code sessions. `source` filter (`pi\|claude`) supported |
-| **knowledge_search** | extension / ACP tool | Semantic search over ~/org/ Denote KB — Korean/English cross-lingual, 3,000+ notes |
+| **semantic-memory** | pi: `session_search` + `knowledge_search` (andenken extension) · ACP/Claude/OpenCode: `semantic-memory` skill (`search-sessions`, `search-knowledge`) | Semantic search over past sessions (pi + Claude Code) and ~/org/ Denote KB. Korean↔English cross-lingual via dictcli expand. Auto-fallback session→knowledge |
 | **session-recap** | skill | Extract previous session summary from JSONL. Use instead of raw read (100KB→4KB) |
 | **memory-sync** | skill | Incremental semantic memory sync — local + oracle indexes, cost check first |
 
-- `session_search`: find context from past conversations. Use instead of grep. Filter with `source` param.
-- `knowledge_search`: find notes, concepts, bibliography. Complements denotecli exact matching.
-  - Korean "보편" finds English-tagged `universalism` notes.
-  - `dictcli expand` auto-applied — Korean queries expand to English.
-  - Auto-fallback to knowledge when session results insufficient.
+- One capability, one canonical name: **semantic-memory**. The pi-native tool names `session_search` / `knowledge_search` are aliases of the same thing; on ACP they reach you as the `semantic-memory` skill. If your schema lacks the native names, call the skill — do not conclude "unavailable".
 - Reindex: `/memory reindex` (sessions) or `cd ~/repos/gh/agent-config && ./run.sh index:org`
 
 #### Knowledge and Org Work
