@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.4.1
+
+* Pinned pi-shell-acp to `v0.4.1` in the consumer install path (`pi/settings.server.json` + `run.sh`).
+* v0.4.1 closes a 0.3.0-era release blocker: `pi-extensions/entwurf.ts` and `pi-extensions/entwurf-control.ts` were never wired into `package.json`'s `pi.extensions` array, so `--entwurf-control` and `/entwurf*` slash commands silently failed to load and the MCP bridge's expected sockets at `~/.pi/entwurf-control/` were never created. Both extensions are now registered. Effect for us: human-facing `/entwurf-sessions` / `/entwurf-send` slash commands actually work; the `mcp__pi-tools-bridge__entwurf_*` tools are unaffected (those route through the spawn path, not the control extension).
+* New consumer-visible surface: `/entwurf-sessions` enriches each row with `cwd` / `model` / `idle` via a new `get_info` RPC and assigns `[N]` indices for direct addressing; `/entwurf-send <index|sessionId> <message>` is the new human-operator surface (defaults to `follow_up`, auto-attaches `<sender_info>`). The previously dead `~/.pi/entwurf-control/` directory now self-cleans stale `.sock` entries and pre-0.4.1 `.alias` symlinks on each control-server startup.
+* **Breaking — entwurf-control surface only.** The `<sessionName>.alias` symlink layer is removed from pi-shell-acp's entwurf-control. Consumer impact: `mcp__pi-tools-bridge__entwurf_send`'s parameter renamed from `target` → `sessionId`; `entwurf_peers` no longer returns `name` / `aliases`; `--entwurf-session <alias>` only accepts a sessionId now. Reviewed agent-config's surface — `home/AGENTS.md` and `home/MITSEIN.md` describe these tools at intent level and don't reference the dropped fields, so no doc changes needed. Independent of agent-config's own `pi-extensions/control.ts` under `~/.pi/session-control/`, which intentionally retains its alias surface (different cost/benefit, no polling timer); the `mcp/session-bridge/`'s `SESSION_NAME` alias also remains as the stable identity surface on that side.
+* Identity-verification note: a four-case interview (OpenRouter Sonnet, pi-shell-acp Sonnet, native Codex, pi-shell-acp Codex) was captured against 0.4.0 + this patch. Both pi-shell-acp cases recognize the bridge surface and enumerate `mcp__pi-tools-bridge__*` / `mcp__session-bridge__*` correctly; the two non-bridge cases honestly report the entwurf MCP as documented but absent from their schema. Transcripts move to `BASELINE.md` upstream.
+
 ## 0.4.0
 
 * Pinned pi-shell-acp to `v0.4.0` in the consumer install path (`pi/settings.server.json` + `run.sh`).

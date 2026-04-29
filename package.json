@@ -1,6 +1,6 @@
 {
   "name": "agent-config",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Agent infrastructure toolkit — extensions, skills, and configurations. Reference consumer of pi-shell-acp.",
   "repository": {
     "type": "git",
