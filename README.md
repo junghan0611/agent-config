@@ -119,6 +119,7 @@ Adding a new skill: drop it into `agent-config/skills/<name>/SKILL.md` and re-ru
 | `/pandoc-html` | Markdown/Org → Google Docs HTML/DOCX |
 | `/glg-image` | Image generation entry |
 | `/metaplay` | Meta agent play |
+| `/docplay` | Random document polish play (front matter/title/tags/links/rename) |
 
 ## One-Command Setup
 
