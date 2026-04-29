@@ -1,7 +1,7 @@
 {
-  "lastChangelogVersion": "0.70.5",
+  "lastChangelogVersion": "0.70.6",
   "defaultProvider": "pi-shell-acp",
-  "defaultModel": "claude-opus-4-7",
+  "defaultModel": "claude-sonnet-4-6",
   "defaultThinkingLevel": "medium",
   "hideThinkingBlock": false,
   "defaultTheme": "glg-dark",
