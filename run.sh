@@ -146,6 +146,11 @@ declare -A PACKAGE_REPOS=(
   [pi-shell-acp]="https://github.com/junghan0611/pi-shell-acp.git"
 )
 
+# Pinned pi-shell-acp version — single source of truth for setup_npm.
+# Must match `pi/settings.server.json` packages[] tag and CHANGELOG.md.
+# See AGENTS.md § Release — pi-shell-acp Version Bump.
+PI_SHELL_ACP_VERSION="0.4.1"
+
 # Server devices use the consumer install path (pi-managed) instead of cloning
 # pi-shell-acp into ~/repos/gh/. Add device names here as they come online.
 SERVER_DEVICES="oracle"
@@ -563,31 +568,65 @@ setup_npm() {
   local PI_SHELL_ACP_DIR
   PI_SHELL_ACP_DIR="$(pi_shell_acp_dir)"
 
+  # Read installed version (empty if no install yet). Used for drift detection
+  # on server (force upgrade) and dev (warn-only, since dev clones may carry
+  # uncommitted work that intentionally diverges from the pinned tag).
+  local installed_version=""
+  if [ -f "$PI_SHELL_ACP_DIR/package.json" ]; then
+    installed_version="$(node -p "require('$PI_SHELL_ACP_DIR/package.json').version" 2>/dev/null || echo "")"
+  fi
+
   if is_server_device; then
-    if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
-      log "pi-shell-acp: pi install git:github.com/junghan0611/pi-shell-acp@v0.4.1"
-      if ! pi install git:github.com/junghan0611/pi-shell-acp@v0.4.1; then
+    local target_tag="v$PI_SHELL_ACP_VERSION"
+    if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ] || [ "$installed_version" != "$PI_SHELL_ACP_VERSION" ]; then
+      if [ -z "$installed_version" ]; then
+        log "pi-shell-acp: pi install git:github.com/junghan0611/pi-shell-acp@$target_tag (fresh)"
+      else
+        log "pi-shell-acp: pi install git:github.com/junghan0611/pi-shell-acp@$target_tag (upgrade $installed_version → $PI_SHELL_ACP_VERSION)"
+      fi
+      if ! pi install "git:github.com/junghan0611/pi-shell-acp@$target_tag"; then
         fail "pi-shell-acp: pi install failed"
         return 1
+      fi
+      # Re-read version. `pi install` reports success even when an existing
+      # checkout isn't refreshed to the requested tag (observed on oracle:
+      # 0.3.0 install, `pi install ...@v0.4.1` claimed success but working
+      # tree stayed at 0.3.0). If the tag didn't land, do a direct git
+      # fallback so version-pin drift cannot accumulate silently.
+      installed_version="$(node -p "require('$PI_SHELL_ACP_DIR/package.json').version" 2>/dev/null || echo "")"
+      if [ "$installed_version" != "$PI_SHELL_ACP_VERSION" ]; then
+        warn "pi install reported success but working tree still at '$installed_version' — direct git fallback to $target_tag"
+        if ! (cd "$PI_SHELL_ACP_DIR" && git fetch --tags origin >/dev/null 2>&1 && git checkout "$target_tag" >/dev/null 2>&1 && pnpm install --silent --frozen-lockfile); then
+          fail "pi-shell-acp: git fallback to $target_tag failed"
+          return 1
+        fi
+        installed_version="$(node -p "require('$PI_SHELL_ACP_DIR/package.json').version" 2>/dev/null || echo "")"
+        if [ "$installed_version" != "$PI_SHELL_ACP_VERSION" ]; then
+          fail "pi-shell-acp: still at '$installed_version' after fallback (expected $PI_SHELL_ACP_VERSION)"
+          return 1
+        fi
       fi
     fi
     if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
       fail "pi-shell-acp: expected install at $PI_SHELL_ACP_DIR (pi install did not produce it)"
       return 1
     fi
-    ok "pi-shell-acp consumer install ($PI_SHELL_ACP_DIR)"
+    ok "pi-shell-acp consumer install ($PI_SHELL_ACP_DIR @ v$installed_version)"
     # `pi install` already runs npm/pnpm install for the package. Skip a second pass.
   else
     if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
       fail "pi-shell-acp: repo not found at $PI_SHELL_ACP_DIR"
       return 1
     fi
+    if [ -n "$installed_version" ] && [ "$installed_version" != "$PI_SHELL_ACP_VERSION" ]; then
+      warn "pi-shell-acp dev clone at v$installed_version, run.sh pinned v$PI_SHELL_ACP_VERSION — dev branch may diverge from settings.server.json tag"
+    fi
     log "pi-shell-acp: install + auth..."
     if ! (cd "$PI_SHELL_ACP_DIR" && pnpm install --silent --frozen-lockfile); then
       fail "pi-shell-acp: pnpm install failed"
       return 1
     fi
-    ok "pi-shell-acp pnpm install"
+    ok "pi-shell-acp pnpm install (v$installed_version)"
   fi
 
   if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh sync-auth); then

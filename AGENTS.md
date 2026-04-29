@@ -233,10 +233,12 @@ agent-config pins pi-shell-acp by tag. Every release bump touches **4 files**, a
 |------|----------------|
 | `package.json` | `version` field |
 | `pi/settings.server.json` | `packages[]` entry — `git:github.com/junghan0611/pi-shell-acp@vX.Y.Z` |
-| `run.sh` § `setup_npm()` | **two** occurrences: log line + `pi install` command |
+| `run.sh` | `PI_SHELL_ACP_VERSION="X.Y.Z"` constant (single source for `setup_npm`) |
 | `CHANGELOG.md` | new `## X.Y.Z` section — what shipped, why pinned, any caveats |
 
-Verify before commit: `git grep -n "pi-shell-acp@v" -- ':!node_modules'` should show only the new tag (3 hits: settings.server.json, run.sh log, run.sh install).
+Verify before commit: `git grep -n "pi-shell-acp@v" -- ':!node_modules'` should show only the new tag (1 hit: `pi/settings.server.json`). The `run.sh` block synthesizes `git:...@v${PI_SHELL_ACP_VERSION}` at runtime, so the literal tag no longer appears there.
+
+`setup_npm()` reads installed `package.json#version` and force-upgrades on drift. If `pi install` reports success but the working tree didn't refresh (observed on oracle 0.3.0 → 0.4.1), it falls back to `git fetch --tags && git checkout v${PI_SHELL_ACP_VERSION} && pnpm install`. So bumping `PI_SHELL_ACP_VERSION` and running `./run.sh setup` is sufficient on server devices — no manual intervention needed.
 
 `pi/settings.json` `lastChangelogVersion` is pi-runtime's own changelog ack — unrelated to agent-config releases.
 
