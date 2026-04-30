@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.4.6
+
+* Pinned pi-shell-acp to `v0.4.6` in the consumer install path (`pi/settings.server.json` + `run.sh`).
+* v0.4.6 restores Hard Rule #2 (`resume > load > new`) on the resume path. Since SDK 0.20.0 promoted `resumeSession` out of the `unstable_*` namespace, every `unstable_resumeSession` call had been throwing `TypeError`, getting silently caught by the bootstrap fallback, and routing every session to `loadSession` instead — capability check still advertised resume but Hard Rule #2 was quietly violated. Consumer impact: long-running entwurf sessions (especially openclaw-style) now skip the full transcript replay that `loadSession` triggers and that the bridge discards under Hard Rule #8, so resume cost no longer scales with session length.
+* SDK pins move forward: `@agentclientprotocol/claude-agent-acp` 0.31.0 → 0.31.4, `@agentclientprotocol/sdk` 0.20.0 → 0.21.0 (with `@anthropic-ai/claude-agent-sdk` 0.2.121 transitive). No consumer surface change — same MCP/tool shape.
+* Internal hardening at the bridge that doesn't affect our settings but is worth recording for next-class-of-bug prevention: new static gate `./run.sh check-sdk-surface` (and `pnpm check-sdk-surface`) requires every `(connection as any)` cast in `acp-bridge.ts` to carry an `SDK_CAST_OK` (permanent gap) or `SDK_CAST_DEBT` (tracked) marker, wired into `pnpm check` and the husky pre-commit hook. Root tsconfig also flipped `strict: false → true`, surfacing 23 implicit-any executor callbacks plus one real `RpcResponse | null` narrowing bug that was being hidden. AGENTS.md gets Hard Rule #10 ("SDK surface calls must use the typed connection") so the fix is structural rather than vigilance-based.
+* Verification still owed on this pin (not blocking the release): `./run.sh smoke-claude /path/to/project` should show `[pi-shell-acp:bootstrap] path=resume` in stderr where 0.4.5 was emitting `path=load`. Recording here so the evidence-level check doesn't get lost.
+
 ## 0.4.5
 
 * Pinned pi-shell-acp to `v0.4.5` in the consumer install path (`pi/settings.server.json` + `run.sh`).
