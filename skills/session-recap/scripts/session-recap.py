@@ -28,6 +28,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+def _fmt_ts(ts: str) -> str:
+    """Convert ISO-8601 UTC timestamp ('...Z') to host local TZ.
+
+    No-arg ``datetime.astimezone()`` picks up the system local TZ
+    (respects ``TZ`` env var and ``/etc/localtime``). On unparseable
+    input, fall back to the raw 19-char slice so output never breaks.
+    """
+    if not ts:
+        return "?"
+    try:
+        dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        return dt.astimezone().strftime("%Y-%m-%dT%H:%M:%S")
+    except (ValueError, TypeError):
+        return ts[:19]
+
+
 def _extract_project(dirname: str) -> str:
     """세션 디렉토리명에서 프로젝트명 추출.
 
@@ -242,7 +258,7 @@ def format_output(sessions_data: list[dict], output_format: str) -> str:
 
         source_label = f" [{meta['source']}]" if meta.get("source") else ""
         lines.append(f"═══ {meta['project']}{source_label} ({meta['file'][:40]}...) ═══")
-        lines.append(f"  기간: {stats.get('start', '?')[:19]} → {stats.get('end', '?')[:19]}")
+        lines.append(f"  기간: {_fmt_ts(stats.get('start', ''))} → {_fmt_ts(stats.get('end', ''))}")
         if "cost" in stats:
             lines.append(f"  비용: {stats['cost']} (in:{stats['input_tokens']:,} out:{stats['output_tokens']:,})")
         lines.append("")
@@ -250,7 +266,7 @@ def format_output(sessions_data: list[dict], output_format: str) -> str:
         for m in data["messages"]:
             icon = "👤" if m["role"] == "user" else "🤖"
             text = m["text"].replace("\n", " ")[:200]
-            ts_short = m.get("ts", "")[:19].split("T")[-1] if m.get("ts") else ""
+            ts_short = _fmt_ts(m.get("ts", "")).split("T")[-1] if m.get("ts") else ""
             if m.get("tools"):
                 tool_str = ",".join(m["tools"])
                 lines.append(f"  {icon} [{ts_short}] ({tool_str}) {text}")
