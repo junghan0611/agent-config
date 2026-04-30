@@ -82,6 +82,8 @@ These capabilities are commonly exposed by `pi-shell-acp`'s `pi-tools-bridge` MC
 | **entwurf_send** | ACP tool | Fire-and-forget message to another running pi session |
 | **entwurf_peers** | ACP tool | List active pi sessions exposing a control socket |
 
+- **Naming rule:** use `entwurf_send` / `entwurf_peers` in this harness. Do not teach or prefer generic `send_to_session` / `list_sessions` names here — they can resolve to pi-native or legacy surfaces and confuse `--session-control` with `--entwurf-control`.
+
 #### External Services and Workflow
 
 | Capability | Surface | Purpose |

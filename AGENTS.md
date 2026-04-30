@@ -172,7 +172,7 @@ agent-config **owns the execution and bears the cost**.
 
 **Work loop (not blind delegation):**
 1. GLG opens the delegate's session (wakes them up directly)
-2. agent-config sends structured instructions via `send_to_session`
+2. agent-config sends structured instructions via `entwurf_send`
 3. Delegate analyzes, verifies, returns review — **no commits without verification**
 4. agent-config reviews the response and decides whether to proceed
 5. Execution (embedding, deploy, etc.) happens on agent-config's side
@@ -230,7 +230,8 @@ Environment (`~/.env.local`):
 
 `entwurf` (delegate/resume), cross-session messaging, and the pi-facing MCP bridge all live in **[pi-shell-acp](https://github.com/junghan0611/pi-shell-acp)**. agent-config consumes the surface — it does not own it.
 
-- **Entry point:** `pi/settings.json` § `piShellAcpProvider.mcpServers.pi-tools-bridge.command` points at pi-shell-acp's `mcp/pi-tools-bridge/start.sh`. This is what injects the MCP surface (entwurf/delegate, resume, session_search, knowledge_search, send_to_session, list_sessions) into every ACP session.
+- **Entry point:** `pi/settings.json` § `piShellAcpProvider.mcpServers.pi-tools-bridge.command` points at pi-shell-acp's `mcp/pi-tools-bridge/start.sh`. This injects the ACP surface (`entwurf`, `entwurf_resume`, `entwurf_send`, `entwurf_peers`, `session_search`, `knowledge_search`) into every ACP session.
+- **Naming rule:** in this harness, document and teach only the `entwurf_*` session tools. Avoid generic names like `send_to_session` / `list_sessions` here — they collide with pi-native or legacy control surfaces and trigger confusing `--session-control` vs `--entwurf-control` behavior.
 - **Spec:** [pi-shell-acp `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md) — registry schema, Identity Preservation Rule, sync/async contract, verification matrix.
 - **Caller responsibility (stays here):** the Cross-Repo Work Loop policy under `## Collaboration with GLG` above. Responsibility lives with the caller, not the mechanism.
 
