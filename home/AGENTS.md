@@ -254,7 +254,7 @@ See PRIVATE.md.
 REMOTE=$(git remote get-url origin)
 REPO_URL=$(echo "$REMOTE" | sed 's|git@github.com:|https://github.com/|;s|\.git$||')
 REPO_NAME=$(basename "$REMOTE" .git)
-REPO_TAG=$(echo "$REPO_NAME" | tr -d '-')   # remove hyphens: homeagent-config → homeagentconfig
+REPO_TAG=$(echo "$REPO_NAME" | sed 's/[-.]//g')   # remove hyphens and dots: homeagent-config → homeagentconfig, notes.junghanacs.com → notesjunghanacscom
 SHA=$(git rev-parse --short HEAD)
 MSG=$(git log -1 --pretty=%s)
 
