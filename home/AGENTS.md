@@ -61,7 +61,7 @@ Do not say "I don't have it" just because it appears under a different surface i
 
 | Capability | Surface | Purpose |
 |------------|---------|---------|
-| **emacs** | skill | Emacs agent server — **Agenda**: `agent-org-agenda-day/week/tags`. **Denote**: `add-history/heading/link/search`. **Read**: `agent-org-read-file`, `get-headings`. Two sockets: `server` (agent), `user` (show to user). `ec() { emacsclient -s server --eval "$1"; }` in every bash call |
+| **emacs** | skill | Emacs agent server — **Agenda**: `agent-org-agenda-day/week/tags`. **Denote**: `add-history/heading/link/search`. **Read**: `agent-org-read-file`, `get-headings`. Two sockets: `server` (agent), `user` (show to user). `ec() { emacsclient -s "${PI_EMACS_AGENT_SOCKET:-server}" --eval "$1"; }` in every bash call (env injected by pi-shell-acp `--emacs-agent-socket <name>`) |
 | **denotecli** | skill | Search/read 3,000+ Denote notes in ~/org/. Use instead of `find`/`cat` |
 | **botlog** | skill | Save research/analysis as Denote org-mode notes in ~/org/botlog |
 | **dictcli** | skill | Personal vocabulary graph — Korean↔English query expansion + stemming. `expand "보편"` → `[universal, universalism, paideia]`, `stem "설계했다"` → `설계` (Kiwi) |

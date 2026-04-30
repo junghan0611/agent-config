@@ -8,12 +8,15 @@ description: "Emacs daemon — org manipulation, denote notes, citar bibliograph
 ## Connect
 
 ```bash
-ec() { emacsclient -s server --eval "$1"; }  # agent work
+ec() { emacsclient -s "${PI_EMACS_AGENT_SOCKET:-server}" --eval "$1"; }  # agent work
 eu() { emacsclient -s user --no-wait "$@"; }  # show file to user
-# Docker: ec() { emacsclient -s /run/emacs/server --eval "$1"; }
 ```
 
 Define ec/eu in EVERY bash call (subshell resets).
+
+`PI_EMACS_AGENT_SOCKET` is injected by pi-shell-acp when launched with
+`--emacs-agent-socket <name>` (e.g. `server`, `/run/emacs/server` for Docker).
+Falls back to `server` when unset.
 
 ## API
 
