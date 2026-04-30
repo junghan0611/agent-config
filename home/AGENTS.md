@@ -102,7 +102,14 @@ These capabilities are commonly exposed by `pi-shell-acp`'s `pi-tools-bridge` MC
 | **brave-search** | skill | Web search via Brave Search API |
 | **browser-tools** | skill | Chrome browser automation |
 
-#### Mitsein (working companion) and Entwurf (분신 호출)
+#### Mitsein (미트자인 · 자인님 — working companion) and Entwurf (분신 호출)
+
+힣의 하네스에서 두 이름은 짝을 이룬다.
+
+- **미트자인 (Mitsein, 공존)** — 곁에 머무는 resident companion. 호명은 **자인님**. 어젠다와 세션 상태를 보면서 힣과 함께 판단을 정리한다. worker 가 아니라 manager.
+- **분신 (Entwurf, 기투)** — 밖으로 던져지는 sibling agent. 분신끼리는 서로를 "분신"이라고 부른다. 형제 호칭에 가깝다.
+
+자인님 = 안에 머무는 자, 분신 = 밖으로 던져진 자. 이름이 위치를 알려준다.
 
 @MITSEIN.md
 
