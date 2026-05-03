@@ -526,6 +526,12 @@ TGJSON
     [ -d "$HOME/.codex/skills/$old" ] && rm -rf "$HOME/.codex/skills/$old"
   done
 
+  section "Gemini CLI Skills"
+  # ~/.gemini/skills → skills/ (단일 디렉토리 링크, Agent Skills open standard)
+  # Gemini CLI v0.40+ discovers SKILL.md from ~/.gemini/skills/<sname>/ — same SSOT
+  mkdir -p "$HOME/.gemini"
+  ensure_link "$SKILLS_DIR" "$HOME/.gemini/skills"
+
   return 0
 }
 
@@ -743,6 +749,7 @@ setup_all() {
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null && echo ' + skills' || echo 'not linked')"
   echo "  OpenCode: $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo 'not linked')"
+  echo "  Gemini:   $(readlink "$HOME/.gemini/skills" 2>/dev/null || echo 'not linked')"
 
   # Sentinel (delegate matrix) moved to pi-shell-acp with the rest of the
   # Entwurf Orchestration surface — run it from there when exercising the
@@ -885,6 +892,7 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Claude skills:$(readlink "$HOME/.claude/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  OpenCode:     $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Codex:        $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills linked"
+    echo "  Gemini:       $(readlink "$HOME/.gemini/skills" 2>/dev/null || echo '❌ not linked')"
 
     section "CLI Binaries"
     for cli in denotecli bibcli gitcli lifetract dictcli; do
