@@ -1,6 +1,6 @@
 ---
 name: entwurf-peek
-description: "sync entwurf 자식을 들여다보는 손. 호출자가 'Mattering...'에 묶여있을 때 자식 분신이 무엇을 하는지 확인. entwurf_peers는 control socket 있는 세션만 보여주는데, 이 스킬은 자식 entwurf-*.jsonl까지 합쳐서 본다. 트리거: 'entwurf-peek', 'mitsein-peek', '분신 들여다보기', '진행 중 세션', 'sync entwurf 안에서', 'peek session', 'live session map', '분신 추적'."
+description: "sync entwurf 자식을 들여다보는 손. 호출자가 'Mattering...'에 묶여있을 때 자식 분신이 무엇을 하는지 확인. entwurf_peers는 control socket 있는 세션만 보여주는데, 이 스킬은 자식 entwurf-*.jsonl까지 합쳐서 본다. 트리거: 'entwurf-peek', '분신 들여다보기', '진행 중 세션', 'sync entwurf 안에서', 'peek session', 'live session map', '분신 추적'."
 ---
 
 # entwurf-peek — 분신을 들여다보는 손
