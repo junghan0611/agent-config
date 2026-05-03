@@ -8,7 +8,6 @@
   "theme": "glg-dark",
   "packages": [
     "../../repos/gh/andenken",
-    "../../repos/gh/entwurf",
     "git:github.com/junghan0611/pi-shell-acp@v0.4.8",
     "git:github.com/badlogic/pi-telegram"
   ],

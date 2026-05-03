@@ -549,19 +549,10 @@ setup_npm() {
     warn "andenken: repo not found at $SM_DIR"
   fi
 
-  # entwurf (pi package — Telegram delegate)
-  local ENTWURF_DIR="$REPOS/entwurf"
-  if [ -f "$ENTWURF_DIR/package.json" ]; then
-    log "entwurf: installing + building..."
-    (cd "$ENTWURF_DIR" && pnpm install --silent --frozen-lockfile && pnpm --silent run build)
-    if [ -f "$ENTWURF_DIR/dist/index.js" ]; then
-      ok "entwurf (dist/index.js)"
-    else
-      fail "entwurf: build failed (dist/index.js missing)"
-    fi
-  else
-    warn "entwurf: repo not found at $ENTWURF_DIR"
-  fi
+  # entwurf (self-built telegram bridge) — deprecated 2026-05-03 in favor of
+  # pi-telegram (badlogic). The "entwurf" name now belongs to pi-shell-acp's
+  # sibling-spawn surface only. Repo at ~/repos/gh/entwurf/ is preserved for
+  # history; not loaded as a pi package and not built here.
 
   # pi-packages (ben-vargas) intentionally disabled for now.
   log "pi-packages: disabled (skipping pi-claude-code-use install)"
