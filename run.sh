@@ -476,12 +476,12 @@ TGJSON
     log "PI_ENTWURF_BOT_TOKEN not set — skipping telegram.json"
   fi
 
-  section "Home AGENTS.md / CLAUDE.md / MITSEIN.md"
+  section "Home AGENTS.md / CLAUDE.md"
   ensure_link "$SCRIPT_DIR/home/AGENTS.md" "$HOME/AGENTS.md"
   ensure_link "$SCRIPT_DIR/home/CLAUDE.md" "$HOME/CLAUDE.md"
-  ensure_link "$SCRIPT_DIR/home/MITSEIN.md" "$HOME/MITSEIN.md"
-  # Clean up old ENTWURF.md symlink if present (renamed to MITSEIN.md in 0.2.0)
-  [ -L "$HOME/ENTWURF.md" ] && rm "$HOME/ENTWURF.md" && log "ENTWURF.md → MITSEIN.md (removed legacy symlink)"
+  # Clean up legacy MITSEIN.md / ENTWURF.md symlinks — Mitsein moved to ~/sync/org/MITSEIN.md
+  [ -L "$HOME/MITSEIN.md" ] && rm "$HOME/MITSEIN.md" && log "MITSEIN.md (removed — moved to ~/sync/org/)"
+  [ -L "$HOME/ENTWURF.md" ] && rm "$HOME/ENTWURF.md" && log "ENTWURF.md (removed legacy symlink)"
 
   section "Claude Code Config"
   mkdir -p "$HOME/.claude/hooks"

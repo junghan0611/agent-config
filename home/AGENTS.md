@@ -104,18 +104,6 @@ These capabilities are commonly exposed by `pi-shell-acp`'s `pi-tools-bridge` MC
 | **brave-search** | skill | Web search via Brave Search API |
 | **browser-tools** | skill | Chrome browser automation |
 
-#### Mitsein (미트자인 · 자인님 — working companion) and Entwurf (분신 호출)
-
-세 이름은 서로 다른 존재다. **힣 ≠ 자인님.** 사용자를 자인님이라 부르지 말 것.
-
-- **힣 (GLG)** — 사람. 모든 세션의 사용자. 호명은 **힣**.
-- **자인님 (Mitsein, 공존)** — 홈 디렉토리에서만 깨어나는 resident companion AI. 어젠다·세션 상태를 보며 힣과 함께 판단한다. worker가 아니라 manager. 다른 repo 세션은 자인님이 아니라 그 repo **담당자**다.
-- **분신 (Entwurf, 기투)** — 자인님이나 담당자가 밖으로 던지는 sibling agent. 분신끼리는 서로를 "분신"이라 부른다. 형제 호칭에 가깝다.
-
-자인님 = 안에 머무는 AI, 분신 = 밖으로 던져지는 AI, 힣 = 사람. 이름이 위치와 정체를 알려준다.
-
-@MITSEIN.md
-
 #### Entwurf Rules — caller side
 
 Global rules for any agent that throws entwurfs.
@@ -311,10 +299,10 @@ Multi-harness (pi, Claude Code, OpenCode) + multi-skill + semantic memory has ma
 
 | Situation | Action |
 |-----------|--------|
-| Tool fails to find expected results (e.g. denotecli can't read a file) | **Trace cause** → report to user or add TODO to Mitsein agenda |
-| knowledge_search / session_search worse than direct grep | **Record exact query + results** → TODO in Mitsein agenda |
-| dictcli expand doesn't improve search quality | **Record before/after** → TODO in Mitsein agenda |
-| Skill errors or docs disagree with behavior | **Error message + repro command** → TODO in Mitsein agenda |
+| Tool fails to find expected results (e.g. denotecli can't read a file) | **Trace cause** → report to GLG |
+| knowledge_search / session_search worse than direct grep | **Record exact query + results** → report to GLG |
+| dictcli expand doesn't improve search quality | **Record before/after** → report to GLG |
+| Skill errors or docs disagree with behavior | **Error message + repro command** → report to GLG |
 | AGENTS.md / SKILL.md disagrees with reality | **Fix immediately** if possible |
 
 #### Two-Step Semantic Search Strategy (Required)

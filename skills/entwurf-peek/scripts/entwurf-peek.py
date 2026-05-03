@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""entwurf-peek: 자인님이 sync entwurf를 들여다보는 손.
+"""entwurf-peek: sync entwurf를 들여다보는 손.
 
 호출자가 sync entwurf로 묶여있을 때 자식 분신이 무엇을 하고 있는지 확인.
 entwurf_peers MCP가 control socket 있는 세션만 노출하는 한계를 보완 —
@@ -539,7 +539,7 @@ def cmd_trace(args) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="entwurf-peek — 자인님이 sync entwurf 자식을 들여다보는 손",
+        description="entwurf-peek — sync entwurf 자식을 들여다보는 손",
     )
     parser.add_argument("--plain", action="store_true", help="ASCII fallback (no emoji)")
     sub = parser.add_subparsers(dest="cmd", required=True)
