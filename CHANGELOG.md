@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.4.8
+
+* Pinned pi-shell-acp to `v0.4.8` in the consumer install path (`package.json` + `pi/settings.server.json` + `run.sh`). 0.4.7 is folded into this bump — its single feature (`--emacs-agent-socket` / `PI_EMACS_AGENT_SOCKET`) was already adopted on the resident side, so agent-config jumps `0.4.6 → 0.4.8`.
+* v0.4.8 adds **Gemini CLI (`gemini --acp`) as a third ACP backend.** The bridge picks Gemini back up after pi-mono v0.71.0 dropped its built-in Google provider. Operators can now set `backend: "gemini"` in `piShellAcpProvider` or pick `pi-shell-acp/gemini-3-flash-preview` (curated, registered in entwurf-targets with `explicitOnly: true`). Default agent-config settings stay on Claude — Gemini is opt-in per session.
+* **Gemini surface isolation closed on five channels** (2026-05-03 baseline): native system body via `GEMINI_SYSTEM_MD = <overlay-home>/.gemini/system.md`, operator memory path via `GEMINI_CLI_HOME`, tool surface via `tools.core` 7-name allow + `--admin-policy` deny-all (defense in depth at registry and policy layers), `GEMINI.md` hierarchical discovery suppressed via sentinel `context.fileName` + `memoryBoundaryMarkers:[]`, MCP whitelist via `mcp.allowed: [pi-tools-bridge, session-bridge]` + `excluded:["*"]`. Carrier appends `GEMINI_SYSTEM_MD_CANARY_PISHELLACP_V1` for baseline operator verification.
+* **Documented Gemini asymmetry**: Gemini ACP accepts MCP servers via `mcpServers` but does **not** register them as model-visible function-schema entries the way Claude and Codex do — the model routes MCP calls through `run_shell_command` instead. Operators on the gemini backend should not expect entwurf / semantic-memory tools to appear as `mcp__<server>__<tool>` function entries. This is a Gemini ACP surface property, not closable from the bridge overlay.
+* 0.4.7 (folded in) added `--emacs-agent-socket <name>` and `PI_EMACS_AGENT_SOCKET` env propagation, plus folding the socket into the bridge config signature so terminal (`server`) and Emacs-internal (`pi`) sockets don't accidentally cross-contaminate child processes. agent-config's `ec()` helper already honors `PI_EMACS_AGENT_SOCKET` (commit `c743c9d`), so this only changes the upstream surface, not resident behaviour.
+* Mitsein cross-reference cleanup landed on the bridge side too: pi-shell-acp/AGENTS.md's "Naming pair" line dropped the now-stale `agent-config/home/MITSEIN.md` link in favor of `defined in the resident's own knowledge base (cwd-scoped, not a global persona)`. The resident-side residency stamp moved to `~/sync/org/MITSEIN.md` in the Mitsein refactor (`f83a48f` / `7965c79` / `d53b37b`). Both sides now agree the persona is cwd-scoped, not global.
+* Oracle / server-mode consumer path: bumping `PI_SHELL_ACP_VERSION` and running `./run.sh setup` is sufficient. `setup_npm()` reads installed `package.json#version`, force-upgrades on drift, and falls back to `git fetch --tags && git checkout v${PI_SHELL_ACP_VERSION} && pnpm install` if `pi install` reports success but the working tree didn't refresh. No manual intervention needed on oracle.
+
 ## 0.4.6
 
 * Pinned pi-shell-acp to `v0.4.6` in the consumer install path (`pi/settings.server.json` + `run.sh`).
