@@ -4,7 +4,7 @@
 set -euo pipefail
 
 SESSION="pi-entwurf"
-MODEL="claude-opus-4-6"
+MODEL="openai-codex/gpt-5.4"
 LOGFILE="$HOME/.pi/agent/pi-entwurf.log"
 
 start_pi() {
