@@ -5,6 +5,7 @@
 #   agenda-stamp.sh "제목" [tag1:tag2] [device]
 #   agenda-stamp.sh "제목" [tag1:tag2] [device] --body "본문 내용"
 #   agenda-stamp.sh "제목" [tag1:tag2] [device] --body-file /tmp/body.txt
+#   agenda-stamp.sh --help
 #
 # 본문은 타임스탬프 아래에 들어감:
 #   **** 제목 :tag1:tag2:
@@ -12,20 +13,54 @@
 #   본문 내용 (여러 줄 가능)
 set -euo pipefail
 
-DESC="${1:?Usage: agenda-stamp.sh \"제목\" [tag1:tag2] [device] [--body \"...\"|--body-file path]}"
-TAGS="${2:-}"
-DEVICE="${3:-$(cat ~/.current-device 2>/dev/null || echo 'unknown')}"
+usage() {
+  cat <<'EOF'
+Usage:
+  agenda-stamp.sh "제목" [tag1:tag2] [device]
+  agenda-stamp.sh "제목" [tag1:tag2] [device] --body "본문 내용"
+  agenda-stamp.sh "제목" [tag1:tag2] [device] --body-file /tmp/body.txt
+  agenda-stamp.sh --help
+EOF
+}
 
-# --body or --body-file 파싱
+DESC=""
+TAGS=""
+DEVICE=""
 BODY=""
-shift 3 2>/dev/null || true
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --body) BODY="$2"; shift 2 ;;
-    --body-file) BODY="$(cat "$2")"; shift 2 ;;
-    *) shift ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --body)
+      BODY="${2:-}"
+      shift 2
+      ;;
+    --body-file)
+      BODY="$(cat "${2:-}")"
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      if [[ -z "$DESC" ]]; then
+        DESC="$1"
+      elif [[ -z "$TAGS" ]]; then
+        TAGS="$1"
+      elif [[ -z "$DEVICE" ]]; then
+        DEVICE="$1"
+      fi
+      shift
+      ;;
   esac
 done
+
+DESC="${DESC:?Usage: agenda-stamp.sh "제목" [tag1:tag2] [device] [--body "..."|--body-file path]}"
+DEVICE="${DEVICE:-$(cat ~/.current-device 2>/dev/null || echo 'unknown')}"
 
 ORG_DIR="${HOME}/org/botlog/agenda"
 TIMESTAMP=$(TZ='Asia/Seoul' date '+%Y-%m-%d %a %H:%M')

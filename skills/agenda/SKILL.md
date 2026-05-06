@@ -26,17 +26,39 @@ Do not confuse these two surfaces.
 ## Usage
 
 ```bash
-{baseDir}/scripts/agenda-stamp.sh "title" "tag1:tag2" "" --body "body text
+# title only + body (most common)
+{baseDir}/scripts/agenda-stamp.sh "title" --body "body text
 multiline ok"
+
+# with tags, auto-device
+{baseDir}/scripts/agenda-stamp.sh "title" "tag1:tag2" --body "body text"
+
+# with tags + explicit auto-device placeholder
+{baseDir}/scripts/agenda-stamp.sh "title" "tag1:tag2" "" --body "body text"
+
+# with body file
+{baseDir}/scripts/agenda-stamp.sh "title" "tag1:tag2" --body-file /tmp/body.txt
 ```
 
 | Param | Pos | Required | Description |
 |-------|-----|----------|-------------|
 | title | 1 | ✅ | What was done (one line) |
 | tags | 2 | optional | `tag1:tag2` colon-separated. `[a-z0-9]` only |
-| device | 3 | optional | `""` = auto from `~/.current-device` |
-| --body | flag | optional | Multiline text below timestamp |
+| device | 3 | optional | omit or pass `""` to auto-read `~/.current-device` |
+| --body | flag | optional but strongly recommended | Multiline text below timestamp |
 | --body-file | flag | optional | Read body from file |
+
+### Argument parsing rule
+
+Flags may appear immediately after `title`.
+Do **not** assume `tags` and `device` must be present before `--body` or `--body-file`.
+These are all valid:
+
+```bash
+agenda-stamp.sh "title" --body "text"
+agenda-stamp.sh "title" "pi:commit" --body "text"
+agenda-stamp.sh "title" "pi:commit" "oracle" --body "text"
+```
 
 ## When to Stamp
 
@@ -59,21 +81,16 @@ from: pi@thinkpad
 
 ## Key Rules
 
-- **No TODO/DONE** — visibility, not task management
-- **Body required** — empty stamps are useless (who did what?)
+- **No TODO/DONE here** — activity timeline is visibility, not task management
+- **Body strongly recommended** — the script allows empty body, but meaningful stamps should explain what happened
 - **`from:` auto-injected** — `AGENT_ID@device` (default: `pi@~/.current-device`)
 - **Reverse datetree** — newest on top, agents read/write front only
 - **Tags**: `[a-z0-9]` only. No hyphens, no underscores
 
-## TODO for Cross-Agent Requests
+## Cross-Agent Requests
 
-Use `TODO` keyword when requesting another agent's attention:
-
-```bash
-{baseDir}/scripts/agenda-stamp.sh "TODO: review sLLM benchmark" "review:homeagent"
-```
-
-Other agent sees it in org-agenda → processes → stamps `DONE`.
+Do **not** encode requests as `TODO` entries in the activity timeline.
+If another agent needs to pick something up, use the Entwurf task hub surface (`agent-org-agenda-todos`) instead of an activity stamp.
 
 ## Read Agenda Safely
 
