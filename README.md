@@ -200,7 +200,7 @@ alias pi-home='command pi --session-control --telegram'
 | **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — minimal presence bridge** |
 | **[pi-telegram](https://github.com/badlogic/pi-telegram)** | **Transport** | **Production Telegram DM bridge — queue/file/streaming** |
 | [memex-kb](https://github.com/junghan0611/memex-kb) | Knowledge | Legacy document conversion pipeline |
-| [GLG-Mono](https://github.com/junghan0611/GLG-Mono) | Orchestration | OpenClaw bot configurations |
+| [GLG-Mono](https://github.com/junghan0611/GLG-Mono) | Font | Custom monospace programming font |
 | [geworfen](https://github.com/junghan0611/geworfen) | Being | Existence data viewer — WebTUI agenda |
 
 ### Skill Source Repos
