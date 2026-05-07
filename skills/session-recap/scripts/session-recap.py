@@ -24,6 +24,7 @@ import json
 import os
 import re
 import sys
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -130,7 +131,7 @@ def extract_messages(
     filepath: Path, max_messages: int, max_chars: int, include_commits: bool, include_cost: bool
 ) -> dict:
     """세션 파일에서 핵심 정보 추출. pi와 Claude Code JSONL 포맷 모두 지원."""
-    messages = []
+    messages = deque(maxlen=max_messages)
     commits = []
     total_cost = 0.0
     total_input = 0
@@ -221,11 +222,8 @@ def extract_messages(
                 entry["tools"] = tools
             messages.append(entry)
 
-    # 마지막 N개만
-    messages = messages[-max_messages:]
-
     result = {
-        "messages": messages,
+        "messages": list(messages),
         "stats": {
             "start": session_start,
             "end": session_end,
