@@ -61,29 +61,24 @@ def _extract_project(dirname: str) -> str:
     """
     if dirname == "delegate":
         return "delegate"
-
-    # home-{user} 또는 home-{user}-{rest}
-    m = re.match(r"home-[a-z]+(?:-(.+))?$", dirname)
-    if not m:
+    if not dirname.startswith("home-"):
         return dirname
-    rest = m.group(1)
-    if not rest:
+
+    parts = dirname.split("-", 2)
+    if len(parts) < 3:
         return "home"
+    rest = parts[2]
 
-    # repos-{category}-PROJECT
-    m = re.match(r"repos-(?:gh|work|3rd)-(.+)", rest)
-    if m:
-        return m.group(1)
+    if rest.startswith(("repos-gh-", "repos-work-", "repos-3rd-")):
+        return rest.split("-", 2)[2]
 
-    # sync-{subfolder}-PROJECT (subfolder 뒤에 내용이 있으면 그것이 프로젝트)
-    m = re.match(r"sync-([a-z]+)-(.*)", rest)
-    if m and m.group(2):
-        return m.group(2)
-
-    # sync-PROJECT (org, screenshot 등 — subfolder 자체가 프로젝트)
-    m = re.match(r"sync-(.*)", rest)
-    if m:
-        return m.group(1)
+    if rest.startswith("sync-"):
+        sync_rest = rest[5:]
+        if "-" in sync_rest:
+            _, project = sync_rest.split("-", 1)
+            if project:
+                return project
+        return sync_rest
 
     # 홈 직속 (doomemacs 등)
     return rest
