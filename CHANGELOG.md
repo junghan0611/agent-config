@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.4.11
+
+* Pinned pi-shell-acp to `v0.4.11` in the consumer install path (`package.json` + `pi/settings.server.json` + `run.sh`).
+* v0.4.11 restores **Gemini capability parity** on the ACP bridge surface: operator skills are visible again (`activate_skill` reopened, `skills.enabled: true`, `skills` passthrough restored), Gemini now advertises the same `mcp_pi-tools-bridge_*` / `mcp_session-bridge_*` callable schema entries as Claude and Codex, and invocation no longer dies at a generic admin-policy deny for bridge tools.
+* The earlier "Gemini MCP function-schema advertise asymmetry" framing from 0.4.8 / 0.4.9 is retracted. The gap was not an unavoidable upstream Gemini property — it was overlay-induced on the bridge side (policy + settings + skill closure too tight). This matters on the consumer side because our capability-first docs (`~/AGENTS.md`, skill plugin farm, semantic-memory / entwurf guidance) can again describe Gemini as participating in the same skill/MCP dignity surface as the other ACP backends, with the remaining isolation boundary focused on operator memory/settings rather than tool visibility.
+* Upstream verification widened accordingly: `check-bridge` now includes a Gemini line and validates both visibility and real `entwurf_send` invocation, while `check-backends` adds assertions for the reopened skills passthrough and the removal of the decorative `mcp.excluded:["*"]` entry. This closes the earlier evidence gap where Gemini regressions could ship without the standard bridge parity gate catching them.
+* Oracle / server-mode consumer path stays the same: bump `PI_SHELL_ACP_VERSION` and run `./run.sh setup`. The same direct-git fallback (`git fetch --tags && git checkout v${PI_SHELL_ACP_VERSION} && pnpm install`) still covers the case where `pi install` reports success without refreshing the working tree.
+
 ## 0.4.10
 
 * Pinned pi-shell-acp to `v0.4.10` in the consumer install path (`package.json` + `pi/settings.server.json` + `run.sh`).
