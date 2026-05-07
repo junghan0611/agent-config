@@ -149,7 +149,7 @@ declare -A PACKAGE_REPOS=(
 # Pinned pi-shell-acp version — single source of truth for setup_npm.
 # Must match `pi/settings.server.json` packages[] tag and CHANGELOG.md.
 # See AGENTS.md § Release — pi-shell-acp Version Bump.
-PI_SHELL_ACP_VERSION="0.4.12"
+PI_SHELL_ACP_VERSION="0.4.13"
 
 # Server devices use the consumer install path (pi-managed) instead of cloning
 # pi-shell-acp into ~/repos/gh/. Add device names here as they come online.
@@ -403,8 +403,8 @@ setup_links() {
 
   section "Pi-Shell-ACP Claude Plugin"
   # pi-shell-acp는 SDK 격리 모드(settingSources: [])라 ~/.claude/skills/를 자동 발견하지 않음.
-  # SDK plugins:[{type:"local", path}] 경로로 명시 주입해야 하므로 plugin layout을 farm으로 구성.
-  # 사용자는 ~/.pi/agent/settings.json의 piShellAcpProvider.skillPlugins에 이 디렉토리를 등록.
+  # 그래서 agent-config는 SDK plugins:[{type:"local", path}]가 읽을 local plugin root 한 벌을 구성한다.
+  # 이 디렉토리(~/.pi/agent/claude-plugin/)는 agent-config의 운영 경로일 뿐, pi-shell-acp 자체 계약은 아님.
   # semantic-memory 포함: pi-shell-acp Claude 세션은 andenken 네이티브 tool이 없음 → 스킬로 제공.
   mkdir -p "$HOME/.pi/agent/claude-plugin/.claude-plugin"
   mkdir -p "$HOME/.pi/agent/claude-plugin/skills"

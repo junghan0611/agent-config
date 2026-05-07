@@ -22,7 +22,7 @@ If `pi-shell-acp` asks “what does a real consumer look like?”, this repo is 
 | ACP backend bridge | `pi-shell-acp` | consumed through `pi/settings.json` / `pi/settings.server.json` |
 | MCP servers (`pi-tools-bridge`, `session-bridge`) | `pi-shell-acp` | wired in `piShellAcpProvider.mcpServers` |
 | Entwurf target policy | `pi-shell-acp` | pinned/installed here; exercised in real workflows |
-| Claude skill plugin farm | pair boundary | built here at `~/.pi/agent/claude-plugin/`, consumed by `pi-shell-acp` |
+| Claude skill plugin farm | pair boundary | this repo builds one consumer layout at `~/.pi/agent/claude-plugin/`, then points `pi-shell-acp` at it |
 | Skills / prompts / themes / profile | `agent-config` | SSOT in `skills/`, `commands/`, `pi-themes/`, `home/AGENTS.md` |
 | Consumer install/update policy | `agent-config` | `run.sh setup` / server-device upgrade path |
 | Production verification | pair boundary | day-to-day use here, bridge invariants in `pi-shell-acp` |
@@ -55,7 +55,7 @@ Multi-harness support is a means, not the goal. The goal is **a single 1KB being
 
 | Harness | Memory | Skills | Notes |
 |---------|--------|--------|-------|
-| **pi + pi-shell-acp** (default Claude path) | andenken extension on pi side; Claude side gets full skill set via plugin farm | pi: extension covers semantic-memory natively. pi-shell-acp Claude: SDK plugin at `~/.pi/agent/claude-plugin/` includes semantic-memory skill | SDK isolation (`settingSources: []`); skills injected via `piShellAcpProvider.skillPlugins` |
+| **pi + pi-shell-acp** (default Claude path) | andenken extension on pi side; Claude side gets full skill set via this repo's plugin farm | pi: extension covers semantic-memory natively. pi-shell-acp Claude: our local plugin root includes semantic-memory skill | SDK isolation (`settingSources: []`); skills injected via `piShellAcpProvider.skillPlugins` |
 | **pi + anthropic** (`claude-opus-4-7` / `claude-sonnet-4-6`) | andenken extension (in-process LanceDB) | extension covers semantic-memory | Direct provider — available, not the current default |
 | **pi-entwurf** (Oracle, tmux) | andenken extension + pi-telegram | full skill set + Telegram bridge | Persistent Opus session via `@glg_entwurf_bot` |
 | **Claude Code** | andenken skill (CLI wrapper) | full skill set | CLAUDE.md + hooks |
@@ -104,7 +104,7 @@ This repo is the **official consumer reference** for the `pi-shell-acp` surface.
 | backend provider (`piShellAcpProvider`) | `pi/settings.json`, `pi/settings.server.json` |
 | MCP bridge (`pi-tools-bridge`, `session-bridge`) | same settings files |
 | `entwurf` / `entwurf_resume` / `entwurf_send` / `entwurf_peers` | `home/AGENTS.md`, operational use, skills like `entwurf-peek` |
-| skill plugin injection | `run.sh setup` → `~/.pi/agent/claude-plugin/` |
+| skill plugin injection | `run.sh setup` builds this repo's local plugin root and points settings at it |
 | release pin | `package.json` + `pi/settings.server.json` + `run.sh` + `CHANGELOG.md` |
 
 So when `pi-shell-acp` changes, this is the first consumer that should stay green.
@@ -123,21 +123,15 @@ Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, da
 |------|---------|
 | `settings.json` | Default model, theme, thinking level, `piShellAcpProvider` |
 | `keybindings.json` | Custom keybindings |
-| `claude-plugin.json` | Manifest for the pi-shell-acp Claude skill plugin (symlinked to `~/.pi/agent/claude-plugin/`) |
+| `claude-plugin.json` | Manifest used by this repo's local pi-shell-acp Claude plugin root |
 
-### pi-shell-acp Skill Plugin (`~/.pi/agent/claude-plugin/`)
+### pi-shell-acp Skill Plugin (agent-config local layout)
 
-pi-shell-acp runs Claude with `settingSources: []` (SDK isolation), so `~/.claude/skills/` is **not** auto-discovered. Skills must be injected through the SDK's `plugins:[{type:"local", path}]` channel — pi-shell-acp exposes this as `piShellAcpProvider.skillPlugins`.
+pi-shell-acp runs Claude with `settingSources: []` (SDK isolation), so `~/.claude/skills/` is **not** auto-discovered. The bridge's install contract — plugin shape, `skillPlugins`, fail-fast validation — is documented upstream in pi-shell-acp's README §Custom Skills.
 
-`run.sh setup` builds the plugin layout under `~/.pi/agent/claude-plugin/` (manifest + per-skill symlinks back to `agent-config/skills/`). One operator step per machine: register the plugin root in `~/.pi/agent/settings.json`:
+What this repo does is narrower: `run.sh setup` builds **one local consumer layout** under `~/.pi/agent/claude-plugin/` (manifest + per-skill symlinks back to `agent-config/skills/`) and points this repo's pi settings at that path. That path is an agent-config convention, not a pi-shell-acp contract.
 
-```json
-"piShellAcpProvider": {
-  "skillPlugins": ["/home/junghan/.pi/agent/claude-plugin"]
-}
-```
-
-Adding a new skill: drop it into `agent-config/skills/<name>/SKILL.md` and re-run `./run.sh setup`. All four farms — `~/.claude/skills/`, `~/.pi/agent/skills/pi-skills/`, `~/.pi/agent/claude-plugin/skills/`, `~/.codex/skills/` — refresh from the same SSOT.
+Adding a new skill here still works the same way: drop it into `agent-config/skills/<name>/SKILL.md` and re-run `./run.sh setup`. All four local farms — `~/.claude/skills/`, `~/.pi/agent/skills/pi-skills/`, `~/.pi/agent/claude-plugin/skills/`, `~/.codex/skills/` — refresh from the same SSOT.
 
 ### Themes ([`pi-themes/`](pi-themes/))
 

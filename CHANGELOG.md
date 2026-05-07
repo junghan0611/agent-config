@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.4.13
+
+* Pinned pi-shell-acp to `v0.4.13` in the consumer install path (`package.json` + `pi/settings.server.json` + `run.sh`).
+* Upstream `v0.4.13` formalizes the Claude `skillPlugins` install surface: malformed plugin roots now fail fast at settings parse time, `README` gains a first-class `Custom Skills` section plus a self-contained `pi/skill-plugin-example/`, and the reference-consumer link no longer routes careful readers into agent-config's `~/.pi/agent/claude-plugin/` layout as if it were a bridge contract.
+* agent-config follows that ownership correction by lowering its own tone around the local Claude plugin farm: this repo now describes `~/.pi/agent/claude-plugin/` as **our** operating layout built by `run.sh setup`, while upstream pi-shell-acp remains the authority for plugin shape, install guidance, and fail-fast validation.
+* Oracle / server-mode consumer path stays the same: bump `PI_SHELL_ACP_VERSION` and run `./run.sh setup`. The same direct-git fallback (`git fetch --tags && git checkout v${PI_SHELL_ACP_VERSION} && pnpm install`) still covers the case where `pi install` reports success without refreshing the working tree.
+
 ## 0.4.12
 
 * Pinned pi-shell-acp to `v0.4.12` in the consumer install path (`package.json` + `pi/settings.server.json` + `run.sh`).
