@@ -575,34 +575,27 @@ setup_npm() {
 
   if is_server_device; then
     local target_tag="v$PI_SHELL_ACP_VERSION"
-    if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ] || [ "$installed_version" != "$PI_SHELL_ACP_VERSION" ]; then
-      if [ -z "$installed_version" ]; then
-        log "pi-shell-acp: pi install git:github.com/junghan0611/pi-shell-acp@$target_tag (fresh)"
-      else
-        log "pi-shell-acp: pi install git:github.com/junghan0611/pi-shell-acp@$target_tag (upgrade $installed_version → $PI_SHELL_ACP_VERSION)"
-      fi
+    if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
+      log "pi-shell-acp: pi install git:github.com/junghan0611/pi-shell-acp@$target_tag (fresh)"
       if ! pi install "git:github.com/junghan0611/pi-shell-acp@$target_tag"; then
         fail "pi-shell-acp: pi install failed"
         return 1
       fi
-      # Re-read version. `pi install` reports success even when an existing
-      # checkout isn't refreshed to the requested tag (observed on oracle:
-      # 0.3.0 install, `pi install ...@v0.4.5` claimed success but working
-      # tree stayed at 0.3.0). If the tag didn't land, do a direct git
-      # fallback so version-pin drift cannot accumulate silently.
-      installed_version="$(node -p "require('$PI_SHELL_ACP_DIR/package.json').version" 2>/dev/null || echo "")"
-      if [ "$installed_version" != "$PI_SHELL_ACP_VERSION" ]; then
-        warn "pi install reported success but working tree still at '$installed_version' — direct git fallback to $target_tag"
-        if ! (cd "$PI_SHELL_ACP_DIR" && git fetch --tags origin >/dev/null 2>&1 && git checkout "$target_tag" >/dev/null 2>&1 && pnpm install --silent --frozen-lockfile); then
-          fail "pi-shell-acp: git fallback to $target_tag failed"
-          return 1
-        fi
-        installed_version="$(node -p "require('$PI_SHELL_ACP_DIR/package.json').version" 2>/dev/null || echo "")"
-        if [ "$installed_version" != "$PI_SHELL_ACP_VERSION" ]; then
-          fail "pi-shell-acp: still at '$installed_version' after fallback (expected $PI_SHELL_ACP_VERSION)"
-          return 1
-        fi
+    elif [ "$installed_version" != "$PI_SHELL_ACP_VERSION" ]; then
+      # pi's git package manager treats git@ref as pinned and skips refresh when
+      # the checkout directory already exists. On server devices this means
+      # `pi install git:...@vX.Y.Z` can print success while leaving the previous
+      # tag checked out. Upgrade pinned git packages directly.
+      log "pi-shell-acp: direct git upgrade $installed_version → $PI_SHELL_ACP_VERSION"
+      if ! (cd "$PI_SHELL_ACP_DIR" && git fetch --tags origin >/dev/null 2>&1 && git checkout "$target_tag" >/dev/null 2>&1 && pnpm install --silent --frozen-lockfile); then
+        fail "pi-shell-acp: direct git upgrade to $target_tag failed"
+        return 1
       fi
+    fi
+    installed_version="$(node -p "require('$PI_SHELL_ACP_DIR/package.json').version" 2>/dev/null || echo "")"
+    if [ "$installed_version" != "$PI_SHELL_ACP_VERSION" ]; then
+      fail "pi-shell-acp: still at '$installed_version' (expected $PI_SHELL_ACP_VERSION)"
+      return 1
     fi
     if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
       fail "pi-shell-acp: expected install at $PI_SHELL_ACP_DIR (pi install did not produce it)"

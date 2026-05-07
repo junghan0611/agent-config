@@ -2,9 +2,32 @@
 
 **Contextual continuity infrastructure for AI agents.** Every new AI session starts at zero — no memory of past conversations, no access to your knowledge base, no awareness of your tools. agent-config solves this: when you switch agents, sessions, or even models, the same human's memory, knowledge, and work context carries over.
 
-> **What this is NOT:** not a prompt collection, not a LangChain-style tool-calling automation layer, not a multi-agent orchestration framework. It is the infrastructure that makes any AI agent — regardless of provider — remember who you are and what you've been working on.
+**Official reference consumer of [`pi-shell-acp`](https://github.com/junghan0611/pi-shell-acp).**
 
-> **Companion repo.** agent-config is the [reference consumer](https://github.com/junghan0611/pi-shell-acp#reference-consumer) of [`pi-shell-acp`](https://github.com/junghan0611/pi-shell-acp) and the two ship as a pair. pi-shell-acp is the *thin bridge*: it borrows each backend's identity (Claude Code, Codex) and keeps the operating surface — tools, MCP, skills, permissions — under pi's control. agent-config is what fills that operating surface — extensions, skills, profile, themes, prompts — and proves the bridge against day-to-day work.
+agent-config is the resident-side layer: skills, extensions, themes, prompts, profile, and operating conventions. `pi-shell-acp` is the bridge layer: it connects pi to Claude Code, Codex, and Gemini ACP backends while keeping the surface under pi's control.
+
+Together they ship as a pair:
+
+- **pi-shell-acp** → backend bridge, MCP injection, entwurf surface, verification harnesses
+- **agent-config** → real consumer profile, real skills, real day-to-day operating surface, real production proof
+
+> **What this is NOT:** not a prompt collection, not a LangChain-style automation layer, not a generic multi-agent framework. It is the infrastructure that lets one human's memory, knowledge, and working surface survive across sessions, harnesses, and models.
+
+## Official Reference Surface for pi-shell-acp
+
+If `pi-shell-acp` asks “what does a real consumer look like?”, this repo is the answer.
+
+| Surface | Owned by | Reference in this repo |
+|---------|----------|------------------------|
+| ACP backend bridge | `pi-shell-acp` | consumed through `pi/settings.json` / `pi/settings.server.json` |
+| MCP servers (`pi-tools-bridge`, `session-bridge`) | `pi-shell-acp` | wired in `piShellAcpProvider.mcpServers` |
+| Entwurf target policy | `pi-shell-acp` | pinned/installed here; exercised in real workflows |
+| Claude skill plugin farm | pair boundary | built here at `~/.pi/agent/claude-plugin/`, consumed by `pi-shell-acp` |
+| Skills / prompts / themes / profile | `agent-config` | SSOT in `skills/`, `commands/`, `pi-themes/`, `home/AGENTS.md` |
+| Consumer install/update policy | `agent-config` | `run.sh setup` / server-device upgrade path |
+| Production verification | pair boundary | day-to-day use here, bridge invariants in `pi-shell-acp` |
+
+In short: **pi-shell-acp defines the bridge contract; agent-config proves the contract against lived use.**
 
 ## Why This Exists
 
@@ -72,11 +95,21 @@ Semantic memory extension lives in [andenken](https://github.com/junghan0611/and
 Telegram bridge lives in [entwurf](https://github.com/junghan0611/entwurf) (separate repo, loaded as a pi package).
 Production Telegram bridge uses [pi-telegram](https://github.com/badlogic/pi-telegram) (`pi install` package).
 
-### Entwurf Orchestration → [pi-shell-acp](https://github.com/junghan0611/pi-shell-acp)
+### pi-shell-acp Surface Reference
 
-`entwurf` (delegate/resume), cross-session messaging, and the pi-facing MCP bridge (`pi-tools-bridge`, `session-bridge`) all live in pi-shell-acp now. agent-config consumes the surface via `pi/settings.json`'s `piShellAcpProvider.mcpServers` entry.
+This repo is the **official consumer reference** for the `pi-shell-acp` surface.
 
-Spec, verification harnesses, and the sync/async contract are in [pi-shell-acp `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md).
+| pi-shell-acp surface | Where this repo consumes it |
+|---|---|
+| backend provider (`piShellAcpProvider`) | `pi/settings.json`, `pi/settings.server.json` |
+| MCP bridge (`pi-tools-bridge`, `session-bridge`) | same settings files |
+| `entwurf` / `entwurf_resume` / `entwurf_send` / `entwurf_peers` | `home/AGENTS.md`, operational use, skills like `entwurf-peek` |
+| skill plugin injection | `run.sh setup` → `~/.pi/agent/claude-plugin/` |
+| release pin | `package.json` + `pi/settings.server.json` + `run.sh` + `CHANGELOG.md` |
+
+So when `pi-shell-acp` changes, this is the first consumer that should stay green.
+
+Spec, verification harnesses, and the sync/async contract remain in [pi-shell-acp `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md).
 
 ### Skills ([`skills/`](skills/))
 
@@ -132,7 +165,7 @@ cd agent-config
 
 `./run.sh setup` performs:
 
-- Clone or fast-forward pull every tracked repo (including andenken and `pi-shell-acp`)
+- Clone missing tracked repos (`setup` does **not** pull existing repos; use `./run.sh update` for pulls)
 - Build native CLI binaries (Go + GraalVM)
 - Symlink pi extensions, skills (semantic-memory excluded — covered by extension), themes, settings, keybindings
 - Install andenken as a pi package (compiled extension)
