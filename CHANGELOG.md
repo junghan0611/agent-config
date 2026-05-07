@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.4.12
+
+* Pinned pi-shell-acp to `v0.4.12` in the consumer install path (`package.json` + `pi/settings.server.json` + `run.sh`).
+* v0.4.12 fixes the **Entwurf registry recovery** regression that surfaced on oracle: `loadEntwurfTargets()` is no longer poisoned by a cached `EntwurfRegistryError` after the first missing/stale-registry failure. Registry caching is now positive-only with `mtime`-based invalidation, so repairing `~/.pi/agent/entwurf-targets.json` takes effect on the next call without restarting the running Gemini/MCP process.
+* Upstream install policy for `~/.pi/agent/entwurf-targets.json` is now fail-fast instead of silently preserving drift. A stale regular file or wrong symlink now stops `install` / `setup` with an explicit repair path (`./run.sh setup:links --force` or `PI_ENTWURF_TARGETS_PATH=...`) instead of letting the breakage leak later as a sentinel or live `entwurf` failure.
+* `./run.sh setup:links [--force]` now exists upstream as a focused repair path for the target registry. This closes the previous guidance gap where the `EntwurfRegistryError` told operators to run `setup:links` even though that subcommand did not exist on the pi-shell-acp side.
+* Consumer-side note: agent-config's own `run.sh` already relinks `~/.pi/agent/entwurf-targets.json` to the installed package registry during setup (commit `d9b518a`). With v0.4.12 upstream, the resident-side relink and the bridge-side fail-fast / recovery semantics now align, so the oracle class of drift should be caught earlier and recover cleanly if repaired in-session.
+
 ## 0.4.11
 
 * Pinned pi-shell-acp to `v0.4.11` in the consumer install path (`package.json` + `pi/settings.server.json` + `run.sh`).
