@@ -626,6 +626,17 @@ setup_npm() {
     ok "pi-shell-acp pnpm install (v$installed_version)"
   fi
 
+  # Entwurf target registry — consumer install path must expose the canonical
+  # pi-shell-acp registry at ~/.pi/agent/entwurf-targets.json. In practice,
+  # `pi install` can leave this missing on server devices, and a manual copy can
+  # silently drift from the installed tag. Re-point it to the installed package.
+  local ENTWURF_TARGETS_TARGET="$PI_SHELL_ACP_DIR/pi/entwurf-targets.json"
+  if [ -f "$ENTWURF_TARGETS_TARGET" ]; then
+    ensure_link "$ENTWURF_TARGETS_TARGET" "$HOME/.pi/agent/entwurf-targets.json"
+  else
+    warn "pi-shell-acp: entwurf target registry missing at $ENTWURF_TARGETS_TARGET"
+  fi
+
   if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh sync-auth); then
     fail "pi-shell-acp: auth sync failed"
     return 1
