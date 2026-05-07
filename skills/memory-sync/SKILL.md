@@ -1,152 +1,46 @@
 ---
 name: memory-sync
-description: "Incremental semantic memory sync for local + oracle. Inspect cost first, ask for approval, then sync sessions/org safely with throttling. '/memory-sync', 'memory sync', 'reindex memory', 'embedding update'."
+description: "Incrementally freshen the sessions index for semantic-memory. Explicit call only; local Qwen3-Embedding-4B, $0, ~30s. Use before a new session or when recent session recall feels stale. '/memory-sync', 'memory sync', 'session embedding', 'session indexing', '세션 임베딩'."
 user_invocable: true
 ---
 
 # memory-sync
 
-Safely update `andenken` semantic memory across:
-- local machine (`thinkpad`)
-- remote host (`oracle`)
+semantic-memory의 **sessions 인덱스만** 증분 업데이트한다. 세션을 기억층으로 두기 위한 freshener.
 
-This workflow exists to avoid **cost spikes**, **duplicate rebuilds**, and **cross-host confusion**.
-
-## Core principle
-
-Treat memory indexing as a **slow incremental sync**, not as a peak-throughput batch job.
-
-## Mandatory order
-
-1. Inspect status and estimated cost
-2. Ask user approval
-3. Incremental local sessions
-4. Incremental local org
-5. `rsync` local org index to oracle
-6. Incremental oracle sessions
-7. Report actual cost/time
-
-## Step 0 — verify location
-
-Before doing cross-host sync work:
+## API
 
 ```bash
-cat ~/.current-device
-TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S'
+bash {baseDir}/scripts/sync-sessions.sh           # sessions 증분 (기본)
+bash {baseDir}/scripts/sync-sessions.sh --push    # sessions 증분 + oracle rsync
 ```
 
-Normal direction:
-- build on `thinkpad`
-- push org index to `oracle`
-- let `oracle` index sessions only
+| Flag | Default | Effect |
+|------|---------|--------|
+| (none) | - | sessions 증분, oracle push 없음 |
+| `--push` | off | 끝난 뒤 `data/sessions.lance/`를 oracle로 rsync |
+| `--backend ollama` | auto | 로컬 ollama(:11434) 강제 |
+| `--backend gpu1i` | auto | gpu1i vLLM 터널 강제 |
 
-## Step 1 — inspect cost first
+기본 백엔드 선택: `ollama → gpu1i` 자동 폴백. 둘 다 Qwen3-Embedding-4B 2560d. 외부 API 비용 **$0**.
 
-```bash
-# Quick overview (sessions + org + oracle)
-bash ~/.pi/agent/skills/pi-skills/memory-sync/scripts/sync-status.sh
+## 범위 — 무엇을 하지 않는가
 
-# Detailed cost estimate (dry-run, no indexing)
-cd ~/repos/gh/andenken && ./run.sh estimate all
-# or: ./run.sh estimate sessions | ./run.sh estimate org
-```
-
-Show the result as a compact table before doing anything.
-Do **not** auto-run after inspection.
-
-## Step 2 — approval gate
-
-Ask the user explicitly.
-
-Rules:
-- incremental only by default
-- `--force` requires separate confirmation
-- if estimated cost is **>$1**, reconfirm before proceeding
-
-## Step 3 — local sessions
+이 스킬은 **sessions 증분 한 가지**만 한다. 아래는 사람이 andenken에서 직접:
 
 ```bash
 cd ~/repos/gh/andenken && source ~/.env.local
-./run.sh index:sessions
+./run.sh status            # 현재 상태
+./run.sh estimate all      # 전체 비용 dry-run
+./run.sh index:org         # org 증분
+./run.sh verify all        # 무결성 검증
+./run.sh cleanup org       # cleanup
+ssh oracle "..."           # oracle 운영
 ```
 
-## Step 4 — local org
+## Notes
 
-```bash
-cd ~/repos/gh/andenken && source ~/.env.local
-./run.sh index:org
-```
-
-Important:
-- trust the pre-flight estimate, not the raw `new file` count
-- interrupted org runs can create a large stale set on the next run
-- `./run.sh index:org --force` requires separate approval
-
-## Step 5 — post-indexing verify (local)
-
-```bash
-cd ~/repos/gh/andenken && ./run.sh verify all
-```
-
-Must pass before rsync. Checks: duplicates, orphans, ghost zone, manifest.
-
-## Step 6 — rsync org to oracle
-
-```bash
-rsync -avz --delete ~/repos/gh/andenken/data/org.lance/ oracle:~/repos/gh/andenken/data/org.lance/
-rsync -avz ~/repos/gh/andenken/data/org-manifest.json oracle:~/repos/gh/andenken/data/
-```
-
-Org should usually be embedded **once locally** and copied.
-Do not pay twice for the same corpus unless explicitly needed.
-
-## Step 7 — oracle sessions
-
-```bash
-ssh oracle "cd ~/repos/gh/andenken && source ~/.env.local && ./run.sh index:sessions"
-```
-
-## Step 8 — oracle verify + final report
-
-```bash
-ssh oracle "cd ~/repos/gh/andenken && ./run.sh verify all"
-cd ~/repos/gh/andenken && ./run.sh status
-ssh oracle "cd ~/repos/gh/andenken && ./run.sh status"
-```
-
-Report format:
-
-```text
-=== memory-sync done ===
-| item | before | after | cost |
-|------|--------|-------|------|
-| local sessions | X | Y | $A |
-| local org | X | Y | $B |
-| oracle sessions | X | Y | $C |
-| oracle org | rsync | rsync | $0 |
-| total |  |  | $T |
-| duration | Xm Ys |
-```
-
-## Safety rules
-
-- **use `./run.sh` interface** — never call `indexer.ts` directly (no `--dry-run` guard)
-- always use `INDEX_CONCURRENCY=1` (run.sh default)
-- rely on throttling; do not chase peak throughput
-- prefer repeated cheap incrementals over rare large rebuilds
-- oracle is a receiver for org, not the primary org builder
-- if something looks surprisingly large, stop and re-check pre-flight
-- verify before rsync — don't push unverified data to oracle
-
-## Available run.sh commands
-
-| Command | Purpose |
-|---------|--------|
-| `./run.sh status` | Index statistics |
-| `./run.sh estimate all` | **Dry-run cost estimate** (no indexing) |
-| `./run.sh index:sessions` | Incremental session indexing |
-| `./run.sh index:org` | Incremental org indexing |
-| `./run.sh verify all` | Post-indexing integrity check |
-| `./run.sh cleanup org --dry-run` | Cleanup dry-run (report only) |
-| `./run.sh cleanup org` | Dedup + orphan + manifest repair |
-| `./run.sh search "query"` | Live search test |
+- **자동/cron 호출 금지.** 명시 호출만.
+- 호출 시점: 새 세션 시작 전, `/new` 직후 직전 세션 회상이 필요할 때.
+- 풀싱크 · 비용 게이트 · oracle 운영은 에이전트가 자동화하지 않는다 (₩100K 사고 잔존 안전). 사람이 andenken에서 직접 수행.
+- SSOT는 `~/repos/gh/andenken/scripts/sync-sessions.sh`. 이 스킬은 thin wrapper.
