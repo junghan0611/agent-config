@@ -19,6 +19,7 @@
       "Agent"
     ]
   },
+  "model": "opus",
   "hooks": {
     "Notification": [
       {
@@ -160,6 +161,5 @@
   "verbose": true,
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
-  "autoUpdates": true,
-  "model": "opus"
+  "autoUpdates": true
 }
