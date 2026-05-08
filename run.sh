@@ -377,11 +377,16 @@ setup_links() {
   ensure_link "$PI_SETTINGS_FILE" "$HOME/.pi/agent/settings.json"
   ensure_link "$SCRIPT_DIR/pi/keybindings.json" "$HOME/.pi/agent/keybindings.json"
 
-  # Skills (pi) — 개별 링크. semantic-memory는 extension(andenken 패키지)이 대체하므로 제외
+  # Skills (pi) — 개별 링크.
   mkdir -p "$HOME/.pi/agent/skills/pi-skills"
   # 기존 디렉토리 심링크가 있으면 제거 (개별 링크로 전환)
   [ -L "$HOME/.pi/agent/skills/pi-skills" ] && rm "$HOME/.pi/agent/skills/pi-skills" && mkdir -p "$HOME/.pi/agent/skills/pi-skills"
-  local PI_SKIP_SKILLS="semantic-memory"  # andenken pi 패키지가 네이티브 tool로 제공
+  # PI_SKIP_SKILLS — 일부러 비워둔다. semantic-memory는 pi 네이티브에서도 SKILL.md 스킬로 노출한다.
+  # andenken extension이 session_search / knowledge_search registerTool을 별도 제공하지만,
+  # 같은 capability를 두 surface로 부를 수 있는 것이 정책상 중립이다(SSOT는 하나, 호출 표면이 둘).
+  # registerTool과 스킬은 충돌하지 않고, 모든 백엔드(pi/ACP Claude/Codex/Gemini)가 동일한
+  # `semantic-memory` 스킬 이름을 알게 되어 surface 비대칭이 줄어든다.
+  local PI_SKIP_SKILLS=""
   for skill_dir in "$SKILLS_DIR"/*/; do
     [ -f "$skill_dir/SKILL.md" ] || continue
     local sname
@@ -505,6 +510,19 @@ TGJSON
   section "Claude Code Skills"
   # ~/.claude/skills → skills/ (단일 디렉토리 링크)
   ensure_link "$SKILLS_DIR" "$HOME/.claude/skills"
+
+  section "Claude Code Commands"
+  # 백엔드 직접 사용 모드 슬래시 자리 (~/.claude/commands/<name>.md).
+  # pi-shell-acp 경유 모드는 ~/.pi/agent/prompts/가 이미 처리하므로 충돌 없음 — 모드별 분리.
+  # plugin namespace 측(~/.pi/agent/claude-plugin/commands/)도 같은 SSOT를 가리키게 둔다.
+  # Codex / Gemini는 surface 비대칭(Codex: 사용자 슬래시 surface 자체 없음 / Gemini: .toml 변환 magic
+  # 필요)이라 박지 않는다 — North Star "thin bridge / no magic".
+  ensure_link "$SCRIPT_DIR/commands" "$HOME/.claude/commands"
+  mkdir -p "$HOME/.pi/agent/claude-plugin/commands"
+  for cmd_file in "$SCRIPT_DIR"/commands/*.md; do
+    [ -f "$cmd_file" ] || continue
+    ensure_link "$cmd_file" "$HOME/.pi/agent/claude-plugin/commands/$(basename "$cmd_file")"
+  done
 
   section "OpenCode Skills"
   # ~/.config/opencode/skills → skills/ (단일 디렉토리 링크)
