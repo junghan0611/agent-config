@@ -37,7 +37,7 @@ denotecli day --days-ago 1 --dirs ~/org              # 어제
 denotecli day --years-ago 3 --dirs ~/org             # 3년 전 오늘
 ```
 
-Journal(daily/weekly), diary.org datetree, 당일 생성 노트를 한번에 반환.
+Journal(daily/weekly), diary.org datetree, 당일 생성 노트(`notes_created`), `#+hugo_lastmod:` 기준 수정 노트(`notes_modified`)를 한번에 반환.
 `<DATE>` 형식: `2025-10-04` 또는 `20251004`.
 
 ### 3. 건강/시간 추적 (lifetract)
@@ -108,7 +108,7 @@ denotecli read <ID> --offset 1 --limit 50           # 특정 노트 본문
 ## JSON 파싱 주의
 
 - **gitcli** (v0.2.0+): `repos`는 항상 `[]` (null 아님). `--summary`는 `repos_summary` 키 사용.
-- **denotecli**: `journal`/`datetree`는 데이터 없으면 `null`, `notes_created`는 `[]`. 키는 항상 존재.
+- **denotecli**: `journal`/`datetree`는 데이터 없으면 `null`, `notes_created`/`notes_modified`는 `[]`. 키는 항상 존재. `notes_modified`는 명시적인 `#+hugo_lastmod:`만 신뢰(mtime fallback 없음). 같은 날 만들고 수정된 파일은 `notes_created`에만 들어감(중복 방지).
 - **lifetract**: 건강 데이터 없으면 `{id, date}`만 반환. 나머지 키 생략.
 - **--me 필터**: `~/.config/gitcli/authors` 파일 없으면 경고 출력 후 전체 커밋 반환 (v0.1.1+).
 - **timezone**: 서버가 UTC인 경우, KST 새벽(00:00~08:59) 커밋이 UTC 전날로 분류될 수 있음.

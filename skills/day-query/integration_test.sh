@@ -45,7 +45,8 @@ if command -v denotecli &>/dev/null; then
         HAS_JOURNAL=$(echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print('yes' if d.get('journal') else 'no')")
         HAS_DATETREE=$(echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print('yes' if d.get('datetree') else 'no')")
         NOTES=$(echo "$OUT" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('notes_created',[])))")
-        pass "denotecli day: journal=$HAS_JOURNAL datetree=$HAS_DATETREE notes=$NOTES"
+        MODIFIED=$(echo "$OUT" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('notes_modified',[])))")
+        pass "denotecli day: journal=$HAS_JOURNAL datetree=$HAS_DATETREE notes=$NOTES modified=$MODIFIED"
     else
         fail "denotecli day" "invalid output"
     fi

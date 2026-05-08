@@ -16,7 +16,7 @@ Binary: `{baseDir}/denotecli`. All output is JSON. Default --dirs: ~/org.
 | `search-headings` | QUERY [--level N] [--tags T] [--max N] | Find org headings across all files |
 | `read` | ID [--offset N --limit N] | Read note content + frontmatter + links |
 | `read --outline` | ID [--level N] | Heading structure with line numbers → use for offset/limit |
-| `day` | DATE [--years-ago N] [--days-ago N] | Journal/diary/notes for a date |
+| `day` | DATE [--years-ago N] [--days-ago N] | Journal/diary/notes for a date (`notes_created` + `notes_modified`) |
 | `timeline-journal` | --month YYYY-MM | Monthly journal activity overview |
 | `graph` | ID | Outgoing + incoming links (backlinks) |
 | `tags` | [--top N] [--pattern PAT] [--suggest] | Tag stats, duplicate detection |
