@@ -55,8 +55,8 @@ Multi-harness support is a means, not the goal. The goal is **a single 1KB being
 
 | Harness | Memory | Skills | Notes |
 |---------|--------|--------|-------|
-| **pi + pi-shell-acp** (default Claude path) | andenken extension on pi side; Claude side gets full skill set via this repo's plugin farm | pi: extension covers semantic-memory natively. pi-shell-acp Claude: our local plugin root includes semantic-memory skill | SDK isolation (`settingSources: []`); skills injected via `piShellAcpProvider.skillPlugins` |
-| **pi + anthropic** (`claude-opus-4-7` / `claude-sonnet-4-6`) | andenken extension (in-process LanceDB) | extension covers semantic-memory | Direct provider — available, not the current default |
+| **pi + pi-shell-acp** (default Claude path) | andenken extension on pi side; Claude side gets full skill set via this repo's plugin farm | full skill set on both sides — `semantic-memory` mounted as a SKILL.md skill, plus `session_search` / `knowledge_search` registerTool on pi for direct calls | SDK isolation (`settingSources: []`); skills injected via `piShellAcpProvider.skillPlugins` |
+| **pi + anthropic** (`claude-opus-4-7` / `claude-sonnet-4-6`) | andenken extension (in-process LanceDB) | full skill set including `semantic-memory` skill; `session_search` / `knowledge_search` registerTool also available | Direct provider — available, not the current default |
 | **pi-entwurf** (Oracle, tmux) | andenken extension + pi-telegram | full skill set + Telegram bridge | Persistent Opus session via `@glg_entwurf_bot` |
 | **Claude Code** | andenken skill (CLI wrapper) | full skill set | CLAUDE.md + hooks |
 | **OpenCode / OpenClaw** | andenken skill (same SSOT via symlink) | full skill set | settings / Nix store mount |
@@ -161,9 +161,9 @@ cd agent-config
 
 - Clone missing tracked repos (`setup` does **not** pull existing repos; use `./run.sh update` for pulls)
 - Build native CLI binaries (Go + GraalVM)
-- Symlink pi extensions, skills (semantic-memory excluded — covered by extension), themes, settings, keybindings
-- Install andenken as a pi package (compiled extension)
-- Symlink Claude Code / OpenCode / Codex skills + prompts
+- Symlink pi extensions, full skill set (including `semantic-memory`), themes, settings, keybindings, prompts
+- Install andenken as a pi package (compiled extension — exposes `session_search` / `knowledge_search` registerTool alongside the SKILL.md skill)
+- Symlink Claude Code / OpenCode / Codex skills + Claude Code commands (direct mode + plugin namespace)
 - Symlink `~/.local/bin` PATH binaries
 - pnpm install for extensions and skills
 - Hand off pi-shell-acp validation (typecheck, MCP, dual-backend smoke, persisted-bootstrap continuity, cancel-cleanup) to pi-shell-acp's own `run.sh`

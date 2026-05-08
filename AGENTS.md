@@ -187,11 +187,17 @@ We do not use compact. See [README § Session Management](README.md#session-mana
 
 ### semantic-memory → andenken
 
-Lives in [andenken](https://github.com/junghan0611/andenken). Loaded as a compiled package (`pi install`).
+Lives in [andenken](https://github.com/junghan0611/andenken). Loaded as a compiled package (`pi install`). Same SSOT, exposed identically across every surface — no asymmetry to memorize.
 
-- pi: andenken extension (native registerTool, in-process LanceDB)
-- Claude Code / OpenCode: `skills/semantic-memory/` CLI wrapper
-- OpenClaw (4 bots): same `skills/` directory via symlink mount. Host binaries via Nix store mount inside Docker.
+| Surface | How it shows up |
+|---------|----------------|
+| pi (native) | `semantic-memory` SKILL.md skill **and** andenken extension's `session_search` / `knowledge_search` registerTool — both available, both call the same CLI |
+| pi-shell-acp Claude / Codex / Gemini (ACP) | `semantic-memory` SKILL.md skill (plugin namespace: `agent-config-skills:semantic-memory`) |
+| Claude Code (direct) | `semantic-memory` SKILL.md skill (`~/.claude/skills/semantic-memory/`) |
+| OpenCode | `semantic-memory` SKILL.md skill (`~/.config/opencode/skills/semantic-memory/`) |
+| OpenClaw (4 bots) | same `skills/` directory via symlink mount; host binaries via Nix store mount inside Docker |
+
+Call rule: **use whichever surface your schema shows first**. registerTool and SKILL.md skill coexist on pi by design (no conflict). Slash command equivalent (`/recap`, etc.) is also wired across direct + plugin + pi-prompt surfaces — see `commands/` and `run.sh § Claude Code Commands`.
 
 Multi-source session indexing: `~/.pi/agent/sessions/` (`source: "pi"`) + `~/.claude/projects/` (`source: "claude"`). Filter by `source` parameter.
 

@@ -50,11 +50,11 @@ Do not say "I don't have it" just because it appears under a different surface i
 
 | Capability | Surface | Purpose |
 |------------|---------|---------|
-| **semantic-memory** | pi: `session_search` + `knowledge_search` (andenken extension) · ACP/Claude/OpenCode: `semantic-memory` skill (`search-sessions`, `search-knowledge`) | Semantic search over past sessions (pi + Claude Code) and ~/org/ Denote KB. Korean↔English cross-lingual via dictcli expand. Auto-fallback session→knowledge |
+| **semantic-memory** | `semantic-memory` skill on every surface (pi / ACP Claude / Codex / Gemini / Claude Code / OpenCode). On pi, `session_search` / `knowledge_search` registerTool is also available as a faster shortcut — same SSOT | Semantic search over past sessions (pi + Claude Code) and ~/org/ Denote KB. Korean↔English cross-lingual via dictcli expand. Auto-fallback session→knowledge |
 | **session-recap** | skill | Extract previous session summary from JSONL. Use instead of raw read (100KB→4KB) |
 | **memory-sync** | skill | Incremental semantic memory sync — local + oracle indexes, cost check first |
 
-- One capability, one canonical name: **semantic-memory**. The pi-native tool names `session_search` / `knowledge_search` are aliases of the same thing; on ACP they reach you as the `semantic-memory` skill. If your schema lacks the native names, call the skill — do not conclude "unavailable".
+- One capability, one canonical name: **semantic-memory**. Use whichever surface your schema shows first — pi `session_search` / `knowledge_search` registerTool, or the `semantic-memory` SKILL.md skill (mounted everywhere including pi). They call the same andenken CLI; no conflict.
 - Reindex: `/memory reindex` (sessions) or `cd ~/repos/gh/agent-config && ./run.sh index:org`
 
 #### Knowledge and Org Work
