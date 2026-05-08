@@ -141,7 +141,7 @@ Adding a new skill here still works the same way: drop it into `agent-config/ski
 
 | Command | Purpose |
 |---------|---------|
-| `/recap` | Quick recap of previous session |
+| `/recap` | Multi-axis context hydration without compact |
 | `/boom` | Capture a crashed pi-shell-acp session into `.agent-reports/` for later triage |
 | `/pandoc-html` | Markdown/Org → Google Docs HTML/DOCX |
 | `/glg-image` | Image generation entry |
@@ -176,10 +176,19 @@ Instead:
 
 1. When conversation gets long, `/new` to start fresh
 2. `/new` auto-indexes the current session + the last 24h
-3. In the new session, recover context with:
-   - `session-recap -p <repo> -m 15` → 4KB summary (instant)
-   - `session_search` → semantic search across all sessions
-   - `knowledge_search` → 3-layer expansion over the org knowledge base
+3. In the new session, recover context with `/recap`
+
+`/recap` is now a **multi-axis context hydration** protocol owned by agent-config, not a pi-shell-acp bridge contract. It starts with `session-recap -p <repo> -m 15` but does not stop at one repo transcript. When the work crossed projects or days, it combines:
+
+- `session-recap` — repo-local transcript extractor, no raw JSONL
+- `session_search` — cross-project / cross-session semantic recall
+- `knowledge_search` — journal/llmlog/design-history recall
+- `gitcli day --summary` + `denotecli day` — day-axis reconstruction
+- journal `§repo` markers — sibling/담당자 call index
+
+The answer must state which axes were seen and which were not. This keeps recap token-light while avoiding false confidence from a plausible single-session summary.
+
+The protocol itself lives in [`commands/recap.md`](commands/recap.md). The 2026-05-08 derivation history and raw evidence log are kept as a Denote llmlog note (`20260508T090911`, `~/org/llmlog/`) rather than as in-repo docs — recap is a resident-side memory workflow, not a spec this repo carries.
 
 ## Public Verification — Sessions as Evidence
 

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+* Upgraded `/recap` from a repo-local previous-session helper into an agent-config-owned multi-axis context hydration protocol. `commands/recap.md` now drives `session-recap` → semantic-memory two-step → `knowledge_search` → `day-query` → journal `§` / llmlog markers, and forces the answer to declare which axes were seen and which were not, all under the no-compact / no-raw-JSONL token discipline. `skills/session-recap/SKILL.md` is reframed as the low-level extractor and points multi-axis recall to `/recap`.
+* Fixed `skills/session-recap/scripts/session-recap.py` text output ignoring `--chars`: messages were always truncated to 200 chars regardless of the flag.
+* The 2026-05-08 derivation history (v1 → 2026-04-28 agent-recall / prompt-spine note → 2026-05-03 split candidate → v2 multi-axis recall) and the raw evidence log (`session-recap` agent-config / pi-shell-acp, semantic-memory two-step, `knowledge_search`, `gitcli day --summary`, `denotecli day`, `lifetract`, calendar) live as a Denote llmlog note (`~/org/llmlog/20260508T090911--recap-v2-다축-맥락-복원-codex-가-남긴-raw-evidence__agent_llmlog_memory_recap_session.org`), not as an in-repo `docs/` file. Recap is a resident-side memory workflow; this repo carries the command and the skill, not the working evidence.
+
 ## 0.4.13
 
 * Pinned pi-shell-acp to `v0.4.13` in the consumer install path (`package.json` + `pi/settings.server.json` + `run.sh`).

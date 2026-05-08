@@ -10,6 +10,8 @@ raw JSONL을 `read`하면 50KB JSON 노이즈가 컨텍스트에 들어가므로
 
 **멀티 하네스 지원**: pi와 Claude Code 세션 모두 처리. `--source`로 필터링 가능.
 
+이 스킬은 `/recap`의 저수준 extractor다. 단일 repo/session 복원은 여기서 처리하고, cross-project 회신·day-query·journal `§`/llmlog까지 엮는 multi-axis recall은 `commands/recap.md`와 `docs/recap.md`를 따른다.
+
 ## API
 
 ```bash
@@ -95,6 +97,17 @@ Step 2: 출력 헤더(`═══ project [source] (file...) ═══`)와 첫 1
 Step 3: 결과가 비었거나 짧으면 → --source all 또는 -s 3 --skip 0
 Step 4: 검증된 출력만 요약 답변
 ```
+
+## Escalation: multi-axis recall
+
+다음 경우는 session-recap만으로 끝내지 말고 `/recap` 프로토콜로 확장한다.
+
+- 조회된 세션이 1턴 entwurf / smoke / “Reply OK”처럼 짧다.
+- 사용자가 “어제 전체”, “오늘 이어서”, “기억축”, “compact 없이”, “나를 리콜”을 말한다.
+- 현재 repo 세션은 맞지만 agent-config/andenken/voscli 등 cross-project 회신이 중요해 보인다.
+- journal의 `§repo` 마커나 llmlog가 작업의 본류일 가능성이 있다.
+
+확장 순서: `session-recap` → 결과에서 proper noun 추출 → `session_search` 2단계 → 필요 시 `day-query` (`gitcli --summary`, `denotecli day`, `lifetract`, calendar) → 본 축/안 본 축을 함께 보고.
 
 **왜 `--source pi` 먼저?** Claude Code는 재시작마다 새 JSONL을 만들어서,
 `--source all`(기본)이면 메시지 1~2개짜리 짧은 세션으로 결과가 도배된다.

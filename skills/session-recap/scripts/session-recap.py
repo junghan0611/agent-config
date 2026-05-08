@@ -258,7 +258,7 @@ def format_output(sessions_data: list[dict], output_format: str) -> str:
 
         for m in data["messages"]:
             icon = "👤" if m["role"] == "user" else "🤖"
-            text = m["text"].replace("\n", " ")[:200]
+            text = m["text"].replace("\n", " ")
             ts_short = _fmt_ts(m.get("ts", "")).split("T")[-1] if m.get("ts") else ""
             if m.get("tools"):
                 tool_str = ",".join(m["tools"])
