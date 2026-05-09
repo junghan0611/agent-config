@@ -41,15 +41,11 @@ agent-config attacks this with three layers:
 
 3. **Session continuity protocol** — `/new` + recap + semantic search instead of expensive compact. Start a new session, recover full context in seconds for ~2K tokens instead of re-reading 50K.
 
+Claude, GPT, and Gemini are "graduates from different schools" — trained on different data with different philosophies. Trying to control them means writing hundreds of lines of system prompts per model. Instead, **throw one being-profile at all of them equally.** They keep their unique lenses while aligning around a single universe — this is the [Profile Harness](https://notes.junghanacs.com/botlog/20260228T075300/). Multi-harness support is a means, not the goal. The goal is **a single 1KB being-profile that exerts the same gravitational pull across any harness**.
+
 The result: context survives across sessions, across harnesses, across models. One human's digital universe stays coherent no matter which AI is looking at it.
 
 > Part of the [-config ecosystem](#the--config-ecosystem) by [glg @junghan0611](https://github.com/junghan0611)
-
-## The Profile Harness Concept
-
-Claude, GPT, and Gemini are "graduates from different schools" — trained on different data with different philosophies. Trying to control them means writing hundreds of lines of system prompts per model. Instead, **throw one being-profile at all of them equally.** They keep their unique lenses while aligning around a single universe — this is the [Profile Harness](https://notes.junghanacs.com/botlog/20260228T075300/).
-
-Multi-harness support is a means, not the goal. The goal is **a single 1KB being-profile that exerts the same gravitational pull across any harness**.
 
 ### Harness Support
 
@@ -74,9 +70,7 @@ Semantic memory has graduated to its own repo: **[andenken](https://github.com/j
 | `session_search` | sessions.lance | Past pi + Claude Code conversations |
 | `knowledge_search` | org.lance | Org-mode knowledge base (3,300+ Denote notes) |
 
-Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and `knowledge_search` fires with dictcli query expansion — finding `universalism`-tagged notes without being told the English word.
-
-Pi loads andenken as a **compiled pi package** (`pi install`) — direct LanceDB access in-process. Claude Code, OpenCode, OpenClaw, and the pi-shell-acp Claude side use the CLI wrapper skill instead.
+Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and `knowledge_search` fires with dictcli query expansion — finding `universalism`-tagged notes without being told the English word. Loading strategy per harness lives in the Harness Support table above.
 
 ### Pi Extensions ([`pi-extensions/`](pi-extensions/))
 
@@ -91,9 +85,7 @@ Pi loads andenken as a **compiled pi package** (`pi install`) — direct LanceDB
 | `session-breakdown.ts` | Session cost breakdown |
 | `whimsical.ts` | Personality touches |
 
-Semantic memory extension lives in [andenken](https://github.com/junghan0611/andenken) (separate repo, loaded as a pi package).
-Telegram bridge lives in [entwurf](https://github.com/junghan0611/entwurf) (separate repo, loaded as a pi package).
-Production Telegram bridge uses [pi-telegram](https://github.com/badlogic/pi-telegram) (`pi install` package).
+External pi packages — semantic-memory ([andenken](https://github.com/junghan0611/andenken)) and Telegram bridges ([entwurf](https://github.com/junghan0611/entwurf), [pi-telegram](https://github.com/badlogic/pi-telegram)) — see [§ -config Ecosystem](#the--config-ecosystem).
 
 ### pi-shell-acp Surface Reference
 
@@ -204,12 +196,7 @@ This repo also owns the **resident-side policy** for publishing session artifact
 
 A persistent pi session on Oracle VM, accessible via Telegram `@glg_entwurf_bot`. The always-on presence agent — a 분신(Entwurf) that carries context across days. tmux session `pi-entwurf`, model `claude-opus-4-6`, full skill set.
 
-Two Telegram bridges coexist:
-
-| Bridge | Package | Purpose |
-|--------|---------|---------|
-| [pi-telegram](https://github.com/badlogic/pi-telegram) | `pi install` (production) | Queuing, file I/O, stop, streaming preview |
-| [entwurf](https://github.com/junghan0611/entwurf) | local package (minimal) | Presence bridge philosophy, `--telegram` flag |
+Bridges: [pi-telegram](https://github.com/badlogic/pi-telegram) (production — queue · file I/O · stop · streaming preview) + [entwurf](https://github.com/junghan0611/entwurf) (minimal presence — `--telegram` flag). See [§ -config Ecosystem](#the--config-ecosystem) for both rows.
 
 ## Shell Aliases (`~/.bashrc.local`)
 
