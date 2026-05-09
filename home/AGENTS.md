@@ -304,6 +304,7 @@ Multi-harness (pi, Claude Code, OpenCode) + multi-skill + semantic memory has ma
 | dictcli expand doesn't improve search quality | **Record before/after** → report to GLG |
 | Skill errors or docs disagree with behavior | **Error message + repro command** → report to GLG |
 | AGENTS.md / SKILL.md disagrees with reality | **Fix immediately** if possible |
+| Authorized script (e.g. `agenda-stamp.sh`) exec fails after reasonable retries | **STOP, report exact command + error**. Never fall back to `Write`/`Edit`/heredoc on the same target. |
 
 #### Two-Step Semantic Search Strategy (Required)
 

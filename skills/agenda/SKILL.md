@@ -79,6 +79,28 @@ from: pi@thinkpad
 - 4 bots accessible
 ```
 
+## Single Writer Rule (CRITICAL)
+
+`agenda-stamp.sh` is the **only authorized writer** for `~/org/botlog/agenda/`.
+The reverse-datetree insertion (year/month/day heading creation, position calculation) lives inside the script. A file with similar shape created by other tools is **not** a valid stamp — it splits the timeline, breaks reverse-datetree ordering, and pollutes `org-agenda`.
+
+### Retry is fine — bypass is not
+
+Reasonable retries are encouraged when execution fails:
+
+- ✓ Fix path typo and retry
+- ✓ Confirm executable bit / `python3` available
+- ✓ Re-resolve `{skillsDir}` / `{baseDir}` against the actual deploy path
+
+If exec still fails after retries (allowlist miss, missing dependency, environment issue):
+
+- ✓ **STOP**, report the exact command and error to GLG, and wait
+- ✗ Do NOT use `Write` / `Edit` to create or append a file in `~/org/botlog/agenda/`
+- ✗ Do NOT use `cat <<EOF >` heredoc as a fallback
+- ✗ Do NOT create a parallel `*__agenda_<device>.org` file via any other tool
+
+A "near-miss" stamp is worse than no stamp. Underlying environment issues (path discoverability, exec allowlist) must be fixed at the harness level, not papered over by the agent.
+
 ## Key Rules
 
 - **No TODO/DONE here** — activity timeline is visibility, not task management

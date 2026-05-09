@@ -74,6 +74,8 @@ ec '(agent-denote-add-link "ID" "TARGET-ID" "link description")'
 {skillsDir}/agenda/scripts/agenda-stamp.sh "botlog: title summary" "botlog:tag"
 ```
 
+If the script fails after reasonable retries, **STOP and report** — do not substitute `Write` / `Edit` / heredoc on `~/org/botlog/agenda/`. See `agenda` skill → Single Writer Rule.
+
 ## Format Rules
 
 - Header: `#+title`, `#+date`, `#+filetags`, `#+identifier`, `#+export_file_name`
