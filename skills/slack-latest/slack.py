@@ -30,6 +30,9 @@ def _xdg_config_home() -> Path:
 
 CRED_PATH = _xdg_config_home() / "skills" / "slack-latest" / "credentials.json"
 
+# Korea Standard Time (UTC+9, no DST). stdlib-only — no tzdata dependency.
+KST = timezone(timedelta(hours=9), name="KST")
+
 
 # ---------------------------------------------------------------------------
 # Slack API helpers
@@ -177,7 +180,7 @@ def format_message(msg: dict, user_map: dict[str, str],
 
     entry: dict = {
         "from": user_map.get(uid, uid),
-        "at": dt.strftime("%Y-%m-%d %H:%M"),
+        "at": dt.astimezone(KST).strftime("%Y-%m-%d %H:%M KST"),
         "text": text,
     }
 

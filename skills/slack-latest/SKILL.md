@@ -72,10 +72,10 @@ Output: JSON array grouped by channel (most recently active first).
     "channel": "#general",
     "messages": [
       {
-        "from": "홍길동", "at": "2026-03-07 12:18",
+        "from": "홍길동", "at": "2026-03-07 12:18 KST",
         "text": "배포 완료했습니다",
         "replies": [
-          {"from": "김영희", "at": "2026-03-07 12:20", "text": "확인!"}
+          {"from": "김영희", "at": "2026-03-07 12:20 KST", "text": "확인!"}
         ]
       }
     ]
@@ -86,6 +86,7 @@ Output: JSON array grouped by channel (most recently active first).
 - Messages: oldest-first (narrative order)
 - Thread replies expanded inline under `replies`
 - `older_replies: N` when replies fall outside time window
+- Timestamps in KST (UTC+9, suffix `KST`)
 
 ## Read a single thread
 
