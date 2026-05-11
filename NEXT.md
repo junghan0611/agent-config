@@ -1,11 +1,10 @@
 # NEXT — agent-config
 
-> Volatile next-step anchor. Persistent baseline lives in `AGENTS.md`.
-> Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
+> Volatile next-step anchor. Closures belong in commit history,
+> persistent facts in `AGENTS.md` / `docs/`. This file lists only
+> what is left to do. Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-## Open
-
-### jiracli — Confluence ingestion follow-ups (2026-05-11)
+## jiracli — Confluence ingestion follow-ups (2026-05-11)
 
 First cut shipped: `scripts/confluence_ingest.py` + SKILL.md
 `## Confluence URL → Markdown` section. Smoke against an internal
@@ -24,7 +23,7 @@ frontmatter). Deferred:
   runner under `skills/jiracli/scripts/`. Record heading outline +
   frontmatter shape only (no body — sensitive).
 
-### pi-shell-acp v0.4.14 README review (sent 2026-05-11)
+## pi-shell-acp v0.4.14 README review (sent 2026-05-11)
 
 Three findings sent to pi-shell-acp 담당자 via `entwurf_send` — GLG
 decides if/when to fold into upstream README:
@@ -35,15 +34,3 @@ decides if/when to fold into upstream README:
   `codexDisabledFeatures`); note "minimal" or expand.
 - **P3** — Line 327–328 compaction-guard bullet list missing Gemini
   "n/a" entry (the table at line 346 has it; bullet list is asymmetric).
-
-## Recently closed
-
-- 2026-05-11 — `skills/slack-latest/` switched to KST timestamps
-  (`+ KST` suffix) — closes the parity gap surfaced during the
-  Confluence ingestion work.
-- 2026-05-11 — pinned pi-shell-acp v0.4.14 (commit `8bd8039`); CHANGELOG
-  covers surface unification + carrier no-topology coordination.
-- 2026-05-11 — `home/AGENTS.md § Agent Orchestration` replaced
-  `Topology — GLG addressing assigns ownership` three-rule section with
-  `No topology — transport- and source-agnostic execution` (one paragraph).
-  Coordinated with pi-shell-acp `pi-context-augment.ts:78` rewrite.
