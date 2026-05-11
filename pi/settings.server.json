@@ -20,9 +20,6 @@
     "mcpServers": {
       "pi-tools-bridge": {
         "command": "/home/junghan/.pi/agent/git/github.com/junghan0611/pi-shell-acp/mcp/pi-tools-bridge/start.sh"
-      },
-      "session-bridge": {
-        "command": "/home/junghan/.pi/agent/git/github.com/junghan0611/pi-shell-acp/mcp/session-bridge/start.sh"
       }
     }
   },

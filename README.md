@@ -20,7 +20,7 @@ If `pi-shell-acp` asks “what does a real consumer look like?”, this repo is 
 | Surface | Owned by | Reference in this repo |
 |---------|----------|------------------------|
 | ACP backend bridge | `pi-shell-acp` | consumed through `pi/settings.json` / `pi/settings.server.json` |
-| MCP servers (`pi-tools-bridge`, `session-bridge`) | `pi-shell-acp` | wired in `piShellAcpProvider.mcpServers` |
+| MCP servers (`pi-tools-bridge`) | `pi-shell-acp` | wired in `piShellAcpProvider.mcpServers` |
 | Entwurf target policy | `pi-shell-acp` | pinned/installed here; exercised in real workflows |
 | Claude skill plugin farm | pair boundary | this repo builds one consumer layout at `~/.pi/agent/claude-plugin/`, then points `pi-shell-acp` at it |
 | Skills / prompts / themes / profile | `agent-config` | SSOT in `skills/`, `commands/`, `pi-themes/`, `home/AGENTS.md` |
@@ -94,7 +94,7 @@ This repo is the **official consumer reference** for the `pi-shell-acp` surface.
 | pi-shell-acp surface | Where this repo consumes it |
 |---|---|
 | backend provider (`piShellAcpProvider`) | `pi/settings.json`, `pi/settings.server.json` |
-| MCP bridge (`pi-tools-bridge`, `session-bridge`) | same settings files |
+| MCP bridge (`pi-tools-bridge`) | same settings files |
 | `entwurf` / `entwurf_resume` / `entwurf_send` / `entwurf_peers` | `home/AGENTS.md`, operational use, skills like `entwurf-peek` |
 | skill plugin injection | `run.sh setup` builds this repo's local plugin root and points settings at it |
 | release pin | `package.json` + `pi/settings.server.json` + `run.sh` + `CHANGELOG.md` |
