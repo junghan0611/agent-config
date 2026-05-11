@@ -79,10 +79,14 @@ These capabilities are commonly exposed by `pi-shell-acp`'s `pi-tools-bridge` MC
 |------------|---------|---------|
 | **entwurf** | ACP tool | Throw a sibling agent (분신 호출) — local or SSH remote |
 | **entwurf_resume** | ACP tool | Resume a saved entwurf session with preserved context |
-| **entwurf_send** | ACP tool | Fire-and-forget message to another running pi session |
+| **entwurf_send** | ACP tool | Address another running pi session via control socket — fire-and-forget |
 | **entwurf_peers** | ACP tool | List active pi sessions exposing a control socket |
 
 - **Naming rule:** use `entwurf_send` / `entwurf_peers` in this harness. Do not teach or prefer generic `send_to_session` / `list_sessions` names here — they can resolve to pi-native or legacy surfaces and confuse `--session-control` with `--entwurf-control`.
+
+##### No topology — transport- and source-agnostic execution
+
+A task is a task. Whether it arrives via initial `entwurf` spawn, `entwurf_resume`, or `entwurf_send`, and whether the sender is GLG or another sibling, execute what you receive. There is no addressing topology to validate before starting work — transport does not gate work, source identity does not gate work. The only thing you do not do unilaterally is **forward**: if you cannot or should not do the task, or a role split is needed (e.g. Codex designs / Claude implements), say so to GLG instead of pushing the task to another sibling on your own.
 
 #### External Services and Workflow
 
