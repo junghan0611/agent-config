@@ -1,85 +1,88 @@
 ---
 description: 다축 맥락 복원 — compact 없이 session/day/semantic 축으로 recap
 ---
-`/recap`은 단순 직전 세션 요약이 아니라 **multi-axis context hydration**입니다.
-목표는 raw JSONL이나 compact 없이, 적은 토큰으로 “지금 이어야 할 맥락”을 복원하는 것입니다.
+`/recap` is **multi-axis context hydration**. Execute the steps below in order and produce the §6 response. Do not stop after acknowledging this brief.
 
-먼저 읽을 것:
-- `session-recap` 스킬
-- 필요 시 `day-query` 스킬
+Goal: recover the context you must continue from, without raw JSONL reads and without compaction.
 
-## 0. Scope 결정
+Scripts you will call:
+- `session-recap` — used in §1 and §2 (run `--help` first only if the signature is unfamiliar)
+- `day-query` — used in §4, only when the user explicitly asks for a day axis ("어제 전체", "오늘 이어서", "나를 리콜", "기억축")
 
-- 기본 프로젝트명 = CWD 마지막 디렉토리명
-  - `~/repos/gh/agent-config` → `agent-config`
-  - `/home/junghan` → `home`
-- 단, 사용자 의도가 우선입니다.
-  - “home 디렉토리 분신”, “Entwurf” → `home`
-  - “COS” → `cos`
-  - 특정 repo 언급 → 그 repo명
-- 날짜가 바뀐 새 세션이면 yesterday/today boundary를 의식합니다.
+## 0. Pick the scope
 
-확실하지 않으면:
+Default project = last segment of CWD:
+- `~/repos/gh/agent-config` → `agent-config`
+- `/home/junghan` → `home`
+
+User intent overrides the default:
+- "home 디렉토리 분신", "Entwurf" → `home`
+- "COS" → `cos`
+- explicit repo name → that repo
+
+If the date rolled over since the last session, mind the yesterday/today boundary.
+
+If you are unsure which project the user means, list recent sessions:
 
 ```bash
 ls -lt ~/.pi/agent/sessions/ | head
 ```
 
-## 1. Repo-local session recap
+## 1. Recap the repo-local pi sessions
 
-먼저 현재/지정 repo의 pi 세션을 봅니다.
+Run:
 
 ```bash
 python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15 --source pi
 ```
 
-응답에는 반드시 헤더를 포함합니다.
+Always include this header in your reply:
 
 ```text
 조회 프로젝트: <PROJECT>
 대상 세션: ═══ <project> [pi] (...) ═══
 ```
 
-## 2. 짧거나 빗나가면 확장
+## 2. Expand immediately if the recap is short or off-target
 
-다음이면 즉시 확장합니다.
+Expand when any of these holds:
 
-- 1턴 entwurf
-- “Reply only OK” 같은 smoke 세션
-- 사용자가 기대한 주제가 없음
-- 날짜가 넘어가서 어제 긴 작업을 찾아야 함
+- a 1-turn entwurf
+- a "Reply only OK" smoke session
+- the topic the user expects is missing
+- the date rolled over and the long work happened yesterday
 
 ```bash
 python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 20 -s 5 --skip 0 --source all
 ```
 
-## 3. Semantic cross-session
+## 3. Cross-session semantic recall
 
-recap 출력에서 proper noun을 뽑아 **semantic-memory**로 2단계 검색을 실행합니다.
+Pull proper nouns from the recap output and run `semantic-memory` in two passes:
 
-1. meta query: 사용자가 말한 추상 주제
-2. concrete query: 결과에서 뽑은 repo/version/commit/skill/§ label/design phrase
+1. Meta query — the abstract topic the user named
+2. Concrete query — terms harvested from the meta result: repo / version / commit / skill / `§` label / design phrase
 
-예:
+Example:
 
 ```text
 recap 기억축 compact 없이 모든 축 day-query agent-config pi-shell-acp 0.5.0
 agent-recall session-recap v2 prompt spine compact transcript recall UX
 ```
 
-**모든 백엔드에 `semantic-memory` 스킬이 동일하게 노출됩니다** (pi / ACP Claude / Codex / Gemini). 본인 schema에 보이는 surface를 쓰되 capability는 동일합니다.
+**`semantic-memory` is exposed identically on every backend** (pi / ACP Claude / Codex / Gemini). Use whichever surface your own tool schema shows first — the capability is the same.
 
-| 백엔드 | 1순위 호출 (스킬) | 부수 surface |
-|--------|------------------|--------------|
-| pi 네이티브 | `semantic-memory` 스킬 (SKILL.md) | + andenken extension의 `session_search` / `knowledge_search` registerTool 도 사용 가능 |
-| ACP Claude (pi-shell-acp 경유) | `agent-config-skills:semantic-memory` Skill (plugin namespace) | — |
-| ACP Codex / Gemini | `semantic-memory` 스킬 (SKILL.md) | binary path 직접 호출도 가능 |
+| Backend | Primary call (skill) | Extra surface |
+|---------|---------------------|---------------|
+| pi native | `semantic-memory` skill (SKILL.md) | andenken extension's `session_search` / `knowledge_search` registerTool |
+| ACP Claude (via pi-shell-acp) | `agent-config-skills:semantic-memory` Skill (plugin namespace) | — |
+| ACP Codex / Gemini | `semantic-memory` skill (SKILL.md) | direct binary path |
 
-세 surface 모두 같은 andenken CLI에 연결되어 결과가 동일합니다. 통일하려고 우회하지 말고, 본인에게 가장 먼저 보이는 surface를 그대로 부르세요.
+All three surfaces hit the same andenken CLI and return the same results. Do not detour to "unify" surfaces — call the one you see first.
 
 ## 4. Day-axis hydration
 
-사용자가 “어제 전체”, “오늘 이어서”, “나를 리콜”, “기억축”을 말하면 day-query 축을 봅니다.
+Run the day-axis only when the user asks for "어제 전체" / "오늘 이어서" / "나를 리콜" / "기억축":
 
 ```bash
 gitcli day <DATE> --me --summary
@@ -87,25 +90,25 @@ denotecli day <DATE> --dirs ~/org
 lifetract read <DATE> --data-dir ~/repos/gh/self-tracking-data
 ```
 
-필요 시 calendar도 봅니다.
+Add calendar when relevant:
 
 ```bash
 gog -j calendar list --from <DATE>T00:00:00+09:00 --to <NEXT_DATE>T00:00:00+09:00 --account junghanacs@gmail.com
 ```
 
-## 5. Conscious markers
+## 5. Conscious markers outrank session chatter
 
-journal/llmlog의 신호를 우선 취급합니다.
+journal / llmlog signals take priority over session-recap output:
 
-- `§repo` = sibling/담당자 호출 index
-- llmlog = 의식적으로 남긴 설계 기록
+- `§repo` = sibling / 담당자 invocation index
+- llmlog = designs the operator consciously recorded
 - session JSONL = working chatter
 
-즉, session-recap만 보고 “80% 충분”이라고 결론내리지 않습니다.
+Do not declare "80% sufficient" from session-recap alone.
 
-## 6. 최종 응답 형식
+## 6. Final response format
 
-요약은 다음 구조로 답합니다.
+Reply with this exact structure (Korean labels are part of the output format, not instructions):
 
 ```text
 조회 범위:
@@ -124,8 +127,10 @@ journal/llmlog의 신호를 우선 취급합니다.
 - ...
 ```
 
-금지:
-- raw JSONL 직접 read
-- 헤더 없는 요약
-- 한 repo 세션만 보고 전체 맥락이라고 말하기
-- 같은 meta query만 반복하기
+Forbidden:
+- reading raw JSONL directly
+- skipping the header in the §1 reply
+- calling one repo's session "the whole picture"
+- repeating the same meta query
+
+Begin at §0 now.
