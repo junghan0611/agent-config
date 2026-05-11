@@ -1,6 +1,6 @@
 ---
 name: memory-sync
-description: "Incrementally freshen the sessions index for semantic-memory. Explicit call only; local Qwen3-Embedding-4B, $0. ~20s on a vLLM-equipped server (gpu1i), but can take 5-10 minutes on a laptop with cold ollama. Use before a new session or when recent session recall feels stale. '/memory-sync', 'memory sync', 'session embedding', 'session indexing', '세션 임베딩'."
+description: "Incrementally freshen the sessions index for semantic-memory. Explicit call only; OpenRouter Qwen3-Embedding-8B 4096d, small paid remote cost (~$0.001 for tens of recent sessions). Use before a new session or when recent session recall feels stale. '/memory-sync', 'memory sync', 'session embedding', 'session indexing', '세션 임베딩'."
 user_invocable: true
 ---
 
@@ -19,24 +19,13 @@ bash {baseDir}/scripts/sync-sessions.sh --push    # sessions 증분 + oracle rsy
 |------|---------|--------|
 | (none) | - | sessions 증분, oracle push 없음 |
 | `--push` | off | 끝난 뒤 `data/sessions.lance/`를 oracle로 rsync |
-| `--backend ollama` | auto | 로컬 ollama(:11434) 강제 |
-| `--backend gpu1i` | auto | gpu1i vLLM 터널 강제 |
+현재 sessions track은 OpenRouter `qwen/qwen3-embedding-8b` / 4096d를 사용한다. 예전 `--backend ollama|gpu1i` 2560d 경로는 폐기됐다. 비용은 작지만 0은 아니다 (`$0.01/M tokens`; 최근 수십 세션 증분은 보통 ~$0.001).
 
-기본 백엔드 선택: `ollama → gpu1i` 자동 폴백. 둘 다 Qwen3-Embedding-4B 2560d. 외부 API 비용 **$0**.
-
-## 디바이스별 백엔드 선택 가이드
-
-| 디바이스 | 권장 호출 | 이유 |
-|----------|-----------|------|
-| **노트북 (thinkpad 등)** | `--backend gpu1i` 명시 권장 | dGPU 없음 → ollama 내장 GPU만 사용 → 18 sessions 기준 600초+. gpu1i vLLM 터널은 같은 작업 ~20초. **약 32배 차이** |
-| **NUC / 서버** | 인자 없이 (default) | ollama가 충분히 빠르거나 자동 폴백으로 gpu1i 잡음 |
-| **Oracle 자체** | (해당 없음) | sessions 인덱스 freshen은 자기가 자기를 못 함 — `--push`로 oracle에 보냄 |
-
-호출 전 `cat ~/.current-device`로 확인. 디바이스 모를 때 안전 default = `--backend gpu1i`.
+wrapper는 `~/.env.local`을 source해서 `OPENROUTER_API_KEY`를 공급한다. 실제 provider/dim 안전장치는 andenken SSOT script가 담당한다.
 
 ## 호출 패턴 — 한 번에 동기로
 
-이 스크립트에는 **동시 실행 락이 없습니다**. 두 인스턴스가 동시에 돌면 race / dim=0 abort 위험.
+이 스크립트에는 **동시 실행 락이 없습니다**. 두 인스턴스가 동시에 돌면 race 위험이 있다.
 
 | 패턴 | 가능 |
 |------|------|
@@ -45,7 +34,7 @@ bash {baseDir}/scripts/sync-sessions.sh --push    # sessions 증분 + oracle rsy
 | 백그라운드 + sleep으로 폴링 + 후속 동기 호출 | ❌ 금지. 제가 자초한 race 패턴. |
 | 두 세션에서 동시 호출 | ❌ 한 세션에서만 |
 
-**노트북에서 ollama가 cold load되어 5~10분 걸려도 그냥 기다리세요.** 답답해서 다시 부르면 race 발생.
+OpenRouter preflight가 `dim=4096`인지 확인한 뒤 증분 임베딩한다. 답답해서 다시 부르면 race 발생.
 
 ## 범위 — 무엇을 하지 않는가
 
