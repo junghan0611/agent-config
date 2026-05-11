@@ -1,6 +1,6 @@
 ---
 name: jiracli
-description: Jira CLI for issue tracking, project management, and sprint/board operations. Use when user asks about Jira issues, tasks, project status, or work tracking. Supports multiple projects (MAT, DEVT, IOT, etc.) on goqual-dev.atlassian.net.
+description: Jira CLI for issue tracking, project management, and sprint/board operations on goqual-dev.atlassian.net. Supports multiple projects (MAT, DEVT, IOT, etc.). Also fetches Confluence wiki pages — import an Atlassian wiki URL (tinyLink or full /wiki/spaces/.../pages/<id>) into a local Markdown file with KST timestamps via the bundled confluence_ingest.py script (Confluence to Markdown, Atlassian wiki ingestion, wiki page import).
 ---
 
 # Jira CLI (jira-cli-go)
@@ -137,6 +137,66 @@ source ~/.env.local && jira issue list -p DEVT --plain
 # 설정 파일로 영구 전환
 # ~/.config/.jira/.config.yml 의 project.key 수정
 ```
+
+## Confluence URL → Markdown
+
+`scripts/confluence_ingest.py` — Atlassian Cloud Confluence 페이지(tinyLink 또는
+정규 `/wiki/spaces/.../pages/<id>` URL)를 단방향으로 가져와 YAML frontmatter
++ Markdown 본문으로 저장. `JIRA_API_TOKEN`이 Atlassian 통합 토큰이라 별도
+Confluence 토큰 불필요. **stdlib only** (urllib + base64 + regex), `pandoc` 필요.
+
+### 동작 요약
+- URL 입력 (tinyLink resolve 후 pageId 추출)
+- Confluence REST v2 (`/wiki/api/v2/pages/{id}?body-format=storage`) 호출
+- storage XHTML cleanup (`ac:`, `ri:`, `local-id`, `data-*` 메타 제거)
+- pandoc `html → gfm` 변환, NFC 정규화
+- YAML frontmatter 7필드 (title / source / source_id / source_version /
+  source_modified / fetched_at / tags) 모두 **KST 표시**
+- 같은 path **덮어쓰기** (idempotent — 위키 갱신 시 같은 파일 재실행)
+- 본문 stdout 미노출 — 파일 경로 + heading outline만 출력
+
+### 사용법
+
+```bash
+source ~/.env.local && python3 \
+  ~/repos/gh/agent-config/skills/jiracli/scripts/confluence_ingest.py \
+  <URL> [--out DIR] [--filename NAME] [--tags t1,t2] [--format storage|view|export_view]
+```
+
+| 옵션 | 기본값 | 설명 |
+|------|--------|------|
+| `--out` | cwd | 출력 디렉토리 |
+| `--filename` | `confluence-<pageId>.md` | 파일명 |
+| `--tags` | (none) | 추가 태그, 콤마 분리. 기본 `confluence` + 호스트 태그(예 `goqualdev`)는 항상 포함 |
+| `--format` | `storage` | Confluence body-format (`storage` / `view` / `export_view`) |
+
+### 인증
+
+- `JIRA_API_TOKEN`: `~/.env.local`의 export 값 (Atlassian Cloud 통합 토큰)
+- 사용자 이메일: `~/.config/.jira/.config.yml`의 `login:` 필드에서 추출
+  (또는 `JIRA_USER_EMAIL` env override)
+
+### 호출 예시 — 영문 대문자 파일명으로 repo 홈에 저장
+
+```bash
+source ~/.env.local && python3 \
+  ~/repos/gh/agent-config/skills/jiracli/scripts/confluence_ingest.py \
+  '<wiki-url-or-tinylink>' \
+  --out ~/repos/gh/<your-repo> \
+  --filename DOC.md \
+  --tags <topic>,<area>
+```
+
+→ `~/repos/gh/<your-repo>/DOC.md` 생성/갱신. 표준 출력은 파일 경로 + heading
+구조만 (본문 미노출 — 민감 페이지 가능).
+
+### 주의
+
+- 양방향 sync **아님**. 단방향 가져오기 — 로컬 편집은 Confluence에 반영 안됨.
+- 본문이 민감할 수 있음 — 스크립트는 stdout에 본문을 토하지 않지만, 결과 파일을
+  공개 repo에 commit하기 전 내용 확인 필수.
+- `pandoc`이 모르는 Confluence macro는 cleanup 정규식으로 메타데이터만 떨군
+  뒤 변환. 일부 macro 본문은 plain text로 남거나 누락될 수 있음.
 
 ## 주의사항
 
