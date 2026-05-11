@@ -167,12 +167,23 @@ _AC_ATTR = re.compile(r'\sac:[a-zA-Z\-]+="[^"]*"')
 _RI_ATTR = re.compile(r'\sri:[a-zA-Z\-]+="[^"]*"')
 _LOCAL_ID = re.compile(r'\slocal-id="[^"]*"')
 _DATA_ATTR = re.compile(r'\sdata-[a-zA-Z\-]+="[^"]*"')
+_BR_TAG = re.compile(r"<br\s*/?>", re.IGNORECASE)
 
 
 def cleanup_storage(html: str) -> str:
     out = html
     for pat in (_AC_ATTR, _RI_ATTR, _LOCAL_ID, _DATA_ATTR):
         out = pat.sub("", out)
+    # Collapse cell-internal <br/> into a text separator so pandoc can keep
+    # tables in GFM form. GFM tables do not allow multi-line cells, so a
+    # single <br/> in any cell forces pandoc to fall back to raw HTML for the
+    # whole table. " / " is a visible, parseable, locale-neutral separator.
+    out = _BR_TAG.sub(" / ", out)
+    # Confluence storage occasionally inlines literal LF as the &#10; entity
+    # between table rows. pandoc handles it for normal flow, but the entity
+    # bleeds into the rendered output when a table falls back to raw HTML.
+    # Decode it pre-pandoc so it never reaches the output either way.
+    out = out.replace("&#10;", "\n")
     return out
 
 
