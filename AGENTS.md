@@ -197,7 +197,7 @@ Lives in [andenken](https://github.com/junghan0611/andenken). Loaded as a compil
 | OpenCode | `semantic-memory` SKILL.md skill (`~/.config/opencode/skills/semantic-memory/`) |
 | OpenClaw (4 bots) | same `skills/` directory via symlink mount; host binaries via Nix store mount inside Docker |
 
-Call rule: **use whichever surface your schema shows first**. registerTool and SKILL.md skill coexist on pi by design (no conflict). Slash command equivalent (`/recap`, etc.) is also wired across direct + plugin + pi-prompt surfaces — see `commands/` and `run.sh § Claude Code Commands`.
+Call rule: **use whichever surface your schema shows first**. registerTool and SKILL.md skill coexist on pi by design (no conflict). Slash command equivalent (`/recall`, etc.) is also wired across direct + plugin + pi-prompt surfaces — see `commands/` and `run.sh § Claude Code Commands`.
 
 Multi-source session indexing: `~/.pi/agent/sessions/` (`source: "pi"`) + `~/.claude/projects/` (`source: "claude"`). Filter by `source` parameter.
 

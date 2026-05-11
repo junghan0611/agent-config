@@ -2,11 +2,11 @@
 description: Multi-axis context hydration — restore the working memory the operator must continue from, without raw JSONL and without compaction. Combines session-recap, NEXT.md / git, semantic-memory, and (on demand) day-axis. Called dozens of times per day across multiple harnesses; treat it as a precision ritual, not a checklist. Stop early when state is already clean — proportional output beats exhaustive output.
 ---
 
-# /recap — Multi-Axis Context Hydration
+# /recall — Multi-Axis Context Hydration
 
 ## Why this exists
 
-`/recap` is the operator's daily memory-axis restoration. Run between sessions, after `/new`, when the date rolls over, or when the thread has been lost. It is called dozens of times per day across pi, Claude Code, OpenCode — so token efficiency matters as much as correctness.
+`/recall` is the operator's daily memory-axis restoration. Not a per-session recap — sessions are a 담당자 unit, just one of the axes seen. The goal is to revive the operator's **overall** memory axis: at minimum, what is happening across yesterday and today, across repos / harnesses / domains. Run between sessions, after `/new`, when the date rolls over, or when the thread has been lost. It is called dozens of times per day across pi, Claude Code, OpenCode — so token efficiency matters as much as correctness.
 
 ## Goal-state — stop when this holds
 

@@ -177,8 +177,9 @@ entwurf(cwd: "~/repos/gh/nixos-config", task: "...")
 `andenken/NEXT.md`, `doomemacs-config/NEXT.md`. NEXT.md가 없는 repo라면
 세션 끝낼 때 만들 만큼 작업 패턴이 누적된 시점이다.
 
-추가 컨텍스트 복원은 다축 recap (`/recap` 스킬) — recap은 "직전에 뭐했지",
-NEXT.md 는 "다음에 뭐하지". 두 축이 같이 있을 때 세션 시작이 자연스럽다.
+추가 컨텍스트 복원은 다축 `/recall` — `/recall`은 "어제·오늘 전체 기억축
+복원", NEXT.md는 "다음에 뭐하지". 두 축이 같이 있을 때 세션 시작이 자연스럽다.
+(이전 이름 `/recap`은 Claude Code 내장과 충돌해 2026-05-12 rename.)
 
 ### Information Management (3 Layers)
 
