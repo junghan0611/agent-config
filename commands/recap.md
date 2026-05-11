@@ -7,7 +7,6 @@ description: 다축 맥락 복원 — compact 없이 session/day/semantic 축으
 먼저 읽을 것:
 - `session-recap` 스킬
 - 필요 시 `day-query` 스킬
-- repo 문서: `docs/recap.md`
 
 ## 0. Scope 결정
 
