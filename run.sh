@@ -456,6 +456,9 @@ setup_links() {
 
   section "Pi Prompts (Commands)"
   mkdir -p "$HOME/.pi/agent/prompts"
+  # Legacy cleanup — /recap renamed to /recall on 2026-05-12 (avoids Claude Code built-in shadow).
+  # Remove stale symlinks so other devices don't end up with broken /recap + working /recall.
+  [ -L "$HOME/.pi/agent/prompts/recap.md" ] && rm "$HOME/.pi/agent/prompts/recap.md" && log "prompts/recap.md (removed — renamed to recall.md)"
   for cmd_file in "$SCRIPT_DIR"/commands/*.md; do
     [ -f "$cmd_file" ] || continue
     ensure_link "$cmd_file" "$HOME/.pi/agent/prompts/$(basename "$cmd_file")"
@@ -519,6 +522,8 @@ TGJSON
   # 필요)이라 박지 않는다 — North Star "thin bridge / no magic".
   ensure_link "$SCRIPT_DIR/commands" "$HOME/.claude/commands"
   mkdir -p "$HOME/.pi/agent/claude-plugin/commands"
+  # Legacy cleanup — /recap renamed to /recall on 2026-05-12 (avoids Claude Code built-in shadow).
+  [ -L "$HOME/.pi/agent/claude-plugin/commands/recap.md" ] && rm "$HOME/.pi/agent/claude-plugin/commands/recap.md" && log "claude-plugin/commands/recap.md (removed — renamed to recall.md)"
   for cmd_file in "$SCRIPT_DIR"/commands/*.md; do
     [ -f "$cmd_file" ] || continue
     ensure_link "$cmd_file" "$HOME/.pi/agent/claude-plugin/commands/$(basename "$cmd_file")"
