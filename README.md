@@ -35,7 +35,7 @@ The hardest problem in working with AI agents is not code generation — it's co
 
 agent-config attacks this with three layers:
 
-1. **Shared memory layer** ([andenken](https://github.com/junghan0611/andenken)) — past conversations from every harness + 3,300+ personal notes in a semantically searchable index. Ask "보편 학문 관련 노트 찾아줘" and it finds `universalism`-tagged notes without being told the English word.
+1. **Shared memory layer** ([andenken](https://github.com/junghan0611/andenken)) — past conversations from every harness + the exported public digital garden in a semantically searchable index. Ask "보편 학문 관련 노트 찾아줘" and it searches the garden md memory without being told the English word.
 
 2. **Shared skill set** — the same capabilities (search notes, read bibliography, check git history, write to journal) available identically whether you're in pi, Claude Code, OpenCode, or OpenClaw.
 
@@ -68,9 +68,9 @@ Semantic memory has graduated to its own repo: **[andenken](https://github.com/j
 | Tool | DB | Purpose |
 |------|-----|---------|
 | `session_search` | sessions.lance | Past pi + Claude Code conversations |
-| `knowledge_search` | org.lance | Org-mode knowledge base (3,300+ Denote notes) |
+| `knowledge_search` / `search-md` | md.lance | Public digital garden export (`~/repos/gh/notes/content`) — agent-facing knowledge axis |
 
-Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and `knowledge_search` fires with dictcli query expansion — finding `universalism`-tagged notes without being told the English word. Loading strategy per harness lives in the Harness Support table above.
+Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and the md knowledge surface fires with dictcli query expansion. The older org embedding track is disabled in production; use `denotecli` for exact/raw Denote lookups. Loading strategy per harness lives in the Harness Support table above.
 
 ### Pi Extensions ([`pi-extensions/`](pi-extensions/))
 
@@ -167,14 +167,14 @@ We don't use compact. Compact = AI reads entire conversation and summarizes = ex
 Instead:
 
 1. When conversation gets long, `/new` to start fresh
-2. `/new` auto-indexes the current session + the last 24h
+2. Run `memory-sync` / `/memory reindex` explicitly when recent sessions need fresh indexing (no hidden paid auto-indexing)
 3. In the new session, recover context with `/recall`
 
 `/recall` is the **multi-axis context hydration** protocol owned by agent-config — not a per-session recap, not a pi-shell-acp bridge contract. It starts with `session-recap -p <repo> -m 15` but does not stop at one repo transcript. When the work crossed projects or days, it combines:
 
 - `session-recap` — repo-local transcript extractor, no raw JSONL
 - `session_search` — cross-project / cross-session semantic recall
-- `knowledge_search` — journal/llmlog/design-history recall
+- `knowledge_search` / `search-md` — public garden md concepts, journal exports, botlog/llmlog-derived design history
 - `gitcli day --summary` + `denotecli day` — day-axis reconstruction
 - journal `§repo` markers — sibling/담당자 call index
 
@@ -219,7 +219,7 @@ alias pi-home='command pi --session-control --telegram'
 | [zotero-config](https://github.com/junghan0611/zotero-config) | Bibliography | 8,000+ references, bibcli |
 | **[agent-config](https://github.com/junghan0611/agent-config)** | **Agent infra** | **Extensions, skills, themes, settings — this repo** |
 | **[pi-shell-acp](https://github.com/junghan0611/pi-shell-acp)** | **Provider (ACP bridge)** | **Default Claude path in pi. ACP bridge to Claude Code + Codex** |
-| **[andenken](https://github.com/junghan0611/andenken)** | **Memory** | **Semantic memory — sessions + org knowledge base** |
+| **[andenken](https://github.com/junghan0611/andenken)** | **Memory** | **Semantic memory — sessions + md public garden knowledge** |
 | **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — minimal presence bridge** |
 | **[pi-telegram](https://github.com/badlogic/pi-telegram)** | **Transport** | **Production Telegram DM bridge — queue/file/streaming** |
 | [memex-kb](https://github.com/junghan0611/memex-kb) | Knowledge | Legacy document conversion pipeline |

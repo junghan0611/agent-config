@@ -800,9 +800,13 @@ Usage: ./run.sh <command> [args]
   test:search "q"             라이브 검색 테스트
 
 === 인덱싱 ===
-  index:sessions [--force]    세션 인덱싱 (3072d)
-  index:org [--force]         Org 인덱싱 (768d)
-  compact [sessions|org]      DB 조각 모음
+  index:sessions [--force]    세션 인덱싱 (OpenRouter 8B / 4096d)
+  index:md [--force]          md 가든 인덱싱 (agent-facing knowledge axis)
+  sync:md                     md 증분 인덱싱
+  estimate:md [--full]        md 비용/청크 API-0 추정
+  verify [sessions|md|org]    인덱스 무결성 확인
+  index:org [--force]         Org 인덱싱 (production disabled / R&D only)
+  compact [sessions|md|org]   DB 조각 모음
   status                      인덱스 상태
 
 === 벤치마크 ===
@@ -840,9 +844,9 @@ case "${1:-help}" in
   # === andenken (delegated) ===
   test|test:unit|test:integration|test:search)
     exec "$SM_DIR/run.sh" "$@" ;;
-  index:sessions|index:org)
+  index:sessions|index:md|sync:md|index:org|estimate:md)
     exec "$SM_DIR/run.sh" "$@" ;;
-  compact)
+  compact|verify)
     exec "$SM_DIR/run.sh" "$@" ;;
   status)
     exec "$SM_DIR/run.sh" status ;;

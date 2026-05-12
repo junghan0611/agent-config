@@ -50,12 +50,12 @@ Do not say "I don't have it" just because it appears under a different surface i
 
 | Capability | Surface | Purpose |
 |------------|---------|---------|
-| **semantic-memory** | `semantic-memory` skill on every surface (pi / ACP Claude / Codex / Gemini / Claude Code / OpenCode). On pi, `session_search` / `knowledge_search` registerTool is also available as a faster shortcut — same SSOT | Semantic search over past sessions (pi + Claude Code) and ~/org/ Denote KB. Korean↔English cross-lingual via dictcli expand. Auto-fallback session→knowledge |
+| **semantic-memory** | `semantic-memory` skill on every surface (pi / ACP Claude / Codex / Gemini / Claude Code / OpenCode). On pi, `session_search` / `knowledge_search` registerTool is also available as a faster shortcut — same SSOT | Semantic search over past sessions (pi + Claude Code) and the public garden md index (`~/repos/gh/notes/content`). Korean↔English cross-lingual via dictcli expand. Auto-fallback session→knowledge |
 | **session-recap** | skill | Extract previous session summary from JSONL. Use instead of raw read (100KB→4KB) |
 | **memory-sync** | skill | Incremental semantic memory sync — local + oracle indexes, cost check first |
 
 - One capability, one canonical name: **semantic-memory**. Use whichever surface your schema shows first — pi `session_search` / `knowledge_search` registerTool, or the `semantic-memory` SKILL.md skill (mounted everywhere including pi). They call the same andenken CLI; no conflict.
-- Reindex: `/memory reindex` (sessions) or `cd ~/repos/gh/agent-config && ./run.sh index:org`
+- Reindex: `/memory reindex` (sessions). Knowledge axis: `cd ~/repos/gh/andenken && ./run.sh estimate:md` then `ANDENKEN_ALLOW_PAID_FULL_REBUILD=1 ./run.sh index:md` when GLG confirms cost. Org indexing is disabled in production / upstream R&D only.
 
 #### Knowledge and Org Work
 
@@ -353,7 +353,7 @@ Abstract queries ("what did I do last?") don't match concrete text ("graph.edn o
 
 #### Cross-Validation Habit
 
-- `knowledge_search` weak → cross-check with `denotecli search`
+- `knowledge_search` / `search-md` weak → cross-check with `denotecli search` and record query/result deltas
 - `session_search` weak → **two-step strategy first** → then `session-recap` or `grep`
 - If cross-check results differ → **that's an issue**. Record it.
 

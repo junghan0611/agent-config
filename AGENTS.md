@@ -189,6 +189,8 @@ We do not use compact. See [README § Session Management](README.md#session-mana
 
 Lives in [andenken](https://github.com/junghan0611/andenken). Loaded as a compiled package (`pi install`). Same SSOT, exposed identically across every surface — no asymmetry to memorize.
 
+Production memory axes are **sessions + md**. `sessions.lance` holds pi/Claude session continuity; `md.lance` holds the exported public garden (`~/repos/gh/notes/content`) as the agent-facing knowledge axis. The old `org.lance` track is disabled in production and kept for upstream R&D only.
+
 | Surface | How it shows up |
 |---------|----------------|
 | pi (native) | `semantic-memory` SKILL.md skill **and** andenken extension's `session_search` / `knowledge_search` registerTool — both available, both call the same CLI |
@@ -201,7 +203,9 @@ Call rule: **use whichever surface your schema shows first**. registerTool and S
 
 Multi-source session indexing: `~/.pi/agent/sessions/` (`source: "pi"`) + `~/.claude/projects/` (`source: "claude"`). Filter by `source` parameter.
 
-Environment (`~/.env.local`): `GEMINI_API_KEY` or `GOOGLE_AI_API_KEY` required.
+Knowledge indexing: md direct embedding over `~/repos/gh/notes/content` → `~/repos/gh/andenken/data/md.lance` + `md-manifest.json`. Agents should treat this as the semantic knowledge surface; use `denotecli` for exact/raw `~/org` Denote access.
+
+Environment (`~/.env.local`): `ANDENKEN_SESSION_*` and `ANDENKEN_MD_*` point at OpenRouter Qwen3-Embedding-8B / 4096d. Org env is not part of normal production operation.
 
 ### Entwurf Orchestration — Consumer Side
 
@@ -243,7 +247,9 @@ pnpm run test:search -- "query"          # live search
 pnpm run doctor                          # operational health check
 pnpm run golden                          # search quality regression
 # /memory reindex (inside pi)            — incremental sessions index
-# pnpm run index:org [--force]           — rebuild org knowledge base
+# ./run.sh estimate:md                   — API-0 md cost/chunk estimate
+# ANDENKEN_ALLOW_PAID_FULL_REBUILD=1 ./run.sh index:md
+# ./run.sh verify md && ./run.sh search:md "보편 학문" --limit 5
 
 # pi-shell-acp gates (typecheck, MCP, dual-backend smoke, etc.)
 cd ~/repos/gh/pi-shell-acp && ./run.sh check-...   # see pi-shell-acp/AGENTS.md
