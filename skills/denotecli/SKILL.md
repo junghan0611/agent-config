@@ -58,7 +58,7 @@ For date queries: `day` + gitcli + lifetract = full daily view (see day-query sk
 | `--dirs D,...` | most | Search directories | ~/org |
 | `--max N` | search* | Max result files | 20 |
 | `--matches N` | search-content | Max matches per file | 3 |
-| `--tags T,...` | search*, create | Filter/assign by tag (OR). Reads filename slot only — `#+filetags:` header **not** indexed | all |
+| `--tags T,...` | search*, create | Filter/assign by tag (OR). Reads filename slots **∪** `#+filetags:` header (union) | all |
 | `--level N` | search-headings, read --outline | Max heading level (0=all) | 0 |
 | `--offset N` | read | Start line (1-indexed) | 0 |
 | `--limit N` | read | Lines to read (0=all) | 0 |
@@ -68,6 +68,7 @@ For date queries: `day` + gitcli + lifetract = full daily view (see day-query sk
 
 - **Empty result = `[]`** (JSON array), never `null`. Applies to all search-like commands (`search`, `search-content`, `search-headings`, `tags`, `keyword-map`, `graph` outgoing/incoming, `read --outline`, `rename-tag`, `day` entries). Safe to call `len(json.load(...))` directly. New in `e0a6c52` (2026-05-12).
 - **Unknown flag = fatal.** `error: unknown flag: --X` → exit 1. No silent ignore. Typos like `--tag` (vs `--tags`) or `--limit` (vs `--max`) are caught immediately. Applies to all 11 commands. New in `e0a6c52`.
+- **Header-aware indexing.** `search` and `--tags` index `#+title:` and `#+filetags:` headers (top 30 frontmatter lines) **in union with** the filename slots. Previously filename-only — 6.4% of corpus (192/3,505 notes) had header-only words that silently missed. Each result carries `header_title` field when present. Added 2026-05-12.
 
 ## Notes
 
