@@ -149,7 +149,7 @@ declare -A PACKAGE_REPOS=(
 # Pinned pi-shell-acp version — single source of truth for setup_npm.
 # Must match `pi/settings.server.json` packages[] tag and CHANGELOG.md.
 # See AGENTS.md § Release — pi-shell-acp Version Bump.
-PI_SHELL_ACP_VERSION="0.4.15"
+PI_SHELL_ACP_VERSION="0.4.16"
 
 # Server devices use the consumer install path (pi-managed) instead of cloning
 # pi-shell-acp into ~/repos/gh/. Add device names here as they come online.
@@ -804,6 +804,7 @@ Usage: ./run.sh <command> [args]
   index:md [--force]          md 가든 인덱싱 (agent-facing knowledge axis)
   sync:md                     md 증분 인덱싱
   estimate:md [--full]        md 비용/청크 API-0 추정
+  sync:md:oracle [flags]      md.lance + md-manifest.json Oracle 동기화
   verify [sessions|md|org]    인덱스 무결성 확인
   index:org [--force]         Org 인덱싱 (production disabled / R&D only)
   compact [sessions|md|org]   DB 조각 모음
@@ -844,7 +845,7 @@ case "${1:-help}" in
   # === andenken (delegated) ===
   test|test:unit|test:integration|test:search)
     exec "$SM_DIR/run.sh" "$@" ;;
-  index:sessions|index:md|sync:md|index:org|estimate:md)
+  index:sessions|index:md|sync:md|index:org|estimate:md|sync:md:oracle)
     exec "$SM_DIR/run.sh" "$@" ;;
   compact|verify)
     exec "$SM_DIR/run.sh" "$@" ;;

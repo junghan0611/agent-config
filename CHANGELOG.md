@@ -10,6 +10,14 @@
 * `commands/recap.md` § Step 3 is rewritten capability-first: instead of naming a backend-specific tool (`session_search`), it lists the canonical skill name and a small surface-mapping table so any backend can pick the surface its schema actually exposes. Stops the "tool name not in schema → silent workaround" failure mode that surfaced when Claude under pi-shell-acp tried to follow the old text literally.
 * `pi/settings.json`: `defaultThinkingLevel` raised to `high`, `lastChangelogVersion` bumped to `0.74.0`. These are runtime preferences (not bridge contract changes); recorded here so the bump is auditable rather than landing as drive-by config drift.
 
+## 0.4.16
+
+* Pinned pi-shell-acp to `v0.4.16` in the consumer install path (`package.json` + `pi/settings.server.json` + `run.sh`).
+* **`entwurf_resume` cross-cwd hydration restored** (upstream [#9](https://github.com/junghan0611/pi-shell-acp/issues/9)). When the resume child spawns without an explicit cwd override, it now starts from the saved session header cwd and preserves the existing `pi:<sessionId>` → `acpSessionId` bridge record. Previously the ACP-routed resume could silently fall back to `newSession` and lose prior-turn memory. Consumer impact: agent-config's resume-driven 4-step delegate flow (Understanding → Review → Execution → Final Review) across distinct repo cwds is now reliable end-to-end. The same-session doomemacs-config delegate that ran during this consumer cycle (`task 5c92489e`: Step 1 in doomemacs-config cwd → Step 3 resume from agent-config cwd) exercised exactly this path before the consumer pin moved.
+* **`verify-resume` Phase 2 cross-cwd smoke gate added upstream** (`scripts/cross-cwd-resume-smoke.ts`). Plants a sentinel in a spawned sibling, resumes from a different cwd through the MCP-shaped path, asserts recall, and captures child stderr through `PI_ENTWURF_CHILD_STDERR_LOG`. Upstream coverage only — agent-config does not have to run it — but the gate is what protects the #9 fix from silent regression on future releases.
+* **`entwurf` demo GIF landed in upstream README** under `docs/assets/`, covering spawn / MCP `entwurf_resume` recall / live `entwurf_send`. Useful as visible evidence when a new consumer asks "what does the 4-step delegate flow actually look like".
+* Upstream typecheck fence widened to a third `scripts/tsconfig.json` pass so strip-types verification scripts with explicit `.ts` imports are typechecked alongside the root and MCP configs. No consumer surface change; recorded here so the next pin sees the green-belt expanded.
+
 ## 0.4.15
 
 * Pinned pi-shell-acp to `v0.4.15` in the consumer install path (`package.json` + `pi/settings.server.json` + `run.sh`).
