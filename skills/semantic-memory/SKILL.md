@@ -114,8 +114,15 @@ All output is JSON.
     "indexed": true
   },
   "knowledge": {
-    "chunks": 0,
-    "indexed": false
+    "chunks": 10119,
+    "indexed_files": 2192,
+    "indexed": true,
+    "source": "md"
+  },
+  "org": {
+    "chunks": 44916,
+    "indexed": true,
+    "production": "disabled"
   }
 }
 ```
