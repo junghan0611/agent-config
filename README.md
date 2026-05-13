@@ -105,7 +105,7 @@ Spec, verification harnesses, and the sync/async contract remain in [pi-shell-ac
 
 ### Skills ([`skills/`](skills/))
 
-Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query), agent memory (session-recap, dictcli, semantic-memory, improve-agent), writing (botlog, botment, agenda, punchout), communication (slack-latest, jiracli, telegram), web/media (brave-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, update-changelog), tools (emacs, tmux, diskspace).
+Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query), agent memory (session-recap, dictcli, semantic-memory, improve-agent), writing (botlog, botment, agenda, punchout), communication (slack-latest, jiracli, telegram), company workbench (voscli), web/media (brave-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, update-changelog), tools (emacs, tmux, diskspace).
 
 **Skill doc principle (LSP pattern):** Agents don't read full docs. Each `SKILL.md` has a single API table at the top — function/command + args + example. English body, Korean description only. Target: <100 lines, <4KB. Like LSP autocomplete: see the signature, call immediately.
 

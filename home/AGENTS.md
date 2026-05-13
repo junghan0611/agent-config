@@ -96,6 +96,7 @@ A task is a task. Whether it arrives via initial `entwurf` spawn, `entwurf_resum
 | **botment** | skill | Read/write digital garden comments via remark42. SSH oracle fallback |
 | **ghcli** | skill | Manage GitHub issues, PRs, stars, notifications |
 | **jiracli** | skill | Company Jira Cloud (goqual-dev) issues/projects/boards |
+| **voscli** | skill | Company VOC analysis workbench — normalize → analyze pack → agent-result EDN → accept → report → review memo. Bootstrap surface for `~/repos/work/voscli` (v0.1 closeout, v0.2 bootstrap) |
 | **gogcli** | skill | Google Workspace all-in-one CLI (Calendar/Gmail/Drive/Tasks/Chat/Contacts/Sheets/Docs) |
 | **slack-latest** | skill | Company Slack (GOQUAL) messages/threads/replies. `--no-dm` default |
 | **tmux** | skill | Run long commands (build, server, deploy) in tmux. Sync with `wait-for-text.sh` |
