@@ -36,9 +36,61 @@ All output is JSON.
 
 - Searches pi + Claude Code session JSONL files (user messages, assistant responses, compaction summaries)
 - `--source pi` or `--source claude` to filter by harness (default: all)
-- Korean queries auto-expanded via dictcli (e.g., "보편" → "universal, universalism, paideia")
-- Auto-fallback to the knowledge/garden surface when session results are insufficient
+- Korean queries auto-expanded via dictcli (e.g., "보편" → "universal, universalism, paideia") in semantic/hybrid mode
+- Auto-fallback to the knowledge/garden surface when session results are insufficient and no stored-signal filters are set
 - Default limit: 10
+
+#### Stored-signal filters for time/project session memory
+
+Sessions are a **time axis + project/cwd axis** for continuing work. Use the metadata already stored in the session index instead of hoping semantic similarity guesses time/project intent.
+
+```bash
+# Caller converts "어제" (KST) to an ISO half-open range first.
+# andenken does NOT parse natural-language time.
+{baseDir}/semantic-memory search-sessions "andenken 작업" \
+  --project andenken \
+  --date-from 2026-05-11T15:00:00Z \
+  --date-to 2026-05-12T15:00:00Z \
+  --mode recent
+
+# Latest work in a project (timestamp DESC over stored rows)
+{baseDir}/semantic-memory search-sessions "ignored" \
+  --project nixos-config \
+  --mode recent
+
+# Recent entwurf transcript surface before Phase-2 taskId metadata exists
+{baseDir}/semantic-memory search-sessions "분신 작업" \
+  --session-file-contains _entwurf- \
+  --date-from 2026-05-11T15:00:00Z \
+  --date-to 2026-05-12T15:00:00Z \
+  --mode recent
+
+# Hybrid semantic retrieval inside a known time/project slice
+{baseDir}/semantic-memory search-sessions "sessions track 결정" \
+  --project andenken \
+  --date-from 2026-05-10T15:00:00Z \
+  --mode hybrid
+```
+
+Stored-signal flags:
+
+| Flag | Description |
+|------|-------------|
+| `--date-from ISO` | Inclusive lower bound on stored `timestamp` |
+| `--date-to ISO` | Exclusive upper bound on stored `timestamp` |
+| `--project name[,name]` | Filter by stored project basename (OR for CSV) |
+| `--role user[,assistant,compaction]` | Filter by stored role |
+| `--session-file path` | Exact session JSONL path |
+| `--session-file-contains substr` | Substring filter on session path (e.g. `_entwurf-`) |
+| `--mode semantic` | Default-style semantic/hybrid retrieval when no filters are needed |
+| `--mode hybrid` | Semantic + BM25 retrieval within stored-signal filters |
+| `--mode recent` | Stored-signal scan + timestamp DESC. No embedding/BM25/dictcli; use when time/project is primary |
+
+Boundary rules:
+
+- Do **not** pass natural-language time (`어제`, `지난주`) and expect andenken to parse it. Convert to ISO in the caller (recall/day-query/harness).
+- Do **not** use semantic-memory to replace day-query aggregation. day-query owns multi-axis summaries (git/journal/lifetract/calendar). semantic-memory only exposes session chunks with stored metadata.
+- Missing metadata must not be inferred. If a signal is absent (e.g. `cwd`, `entwurf_task_id` before Phase 2), label it as missing or use a documented stored-signal workaround like `--session-file-contains _entwurf-`.
 
 ```json
 {
@@ -152,6 +204,13 @@ All output is JSON.
 |------|-----------|-------------|---------|
 | `--limit N` | search-sessions, search-md, search-knowledge | Max results | 10 |
 | `--source S` | search-sessions | Filter by harness: `pi` or `claude` | all |
+| `--date-from ISO` | search-sessions | Inclusive timestamp lower bound | none |
+| `--date-to ISO` | search-sessions | Exclusive timestamp upper bound | none |
+| `--project P[,P]` | search-sessions | Stored project basename filter | none |
+| `--role R[,R]` | search-sessions | Stored role filter: `user`, `assistant`, `compaction` | none |
+| `--session-file PATH` | search-sessions | Exact session JSONL path | none |
+| `--session-file-contains S` | search-sessions | Session path substring filter | none |
+| `--mode M` | search-sessions | `semantic`, `hybrid`, or `recent`; `recent` is timestamp DESC stored-signal mode | hybrid |
 | `--force` | reindex | Drop and rebuild entire index | false |
 
 ## Architecture
