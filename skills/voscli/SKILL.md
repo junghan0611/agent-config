@@ -1,11 +1,11 @@
 ---
 name: voscli
-description: "회사 VOC 분석 워크벤치 — voscli CLI 의 v0.2 traceability 파이프라인 (normalize → export-sessions → evidence-lookup → analyze --accept → report). 막연한 질문을 raw 전체가 아니라 명령 몇 번으로 답한다. 'voc', 'VOC 리포트', 'voscli', '상담 분석', '원민재 리포트', 'v0.1 closeout', 'v0.2 traceability', 'export-sessions', 'evidence-lookup', 'finding hypotheses', 'agent-helpfulness'."
+description: "회사 VOC 분석 워크벤치 — voscli CLI 의 v0.2 traceability 파이프라인 (normalize → export-sessions → evidence-lookup → analyze --accept → apply-summary → aggregate-chats → report --aggregate). 막연한 질문을 raw 전체가 아니라 명령 몇 번으로 답한다. 'voc', 'VOC 리포트', 'voscli', '상담 분석', '원민재 리포트', 'v0.1 closeout', 'v0.2 traceability', 'export-sessions', 'evidence-lookup', 'apply-summary', 'aggregate-chats', 'finding hypotheses', 'agent-helpfulness', '5/4 폭증'."
 ---
 
 # voscli — VOC Analysis Skill (v0.2)
 
-Thin surface for `~/repos/work/voscli`. voscli 는 분석 SSOT — 본 스킬은 CLI 호출 + agent-result EDN 작성을 안내한다. 도메인 로직은 voscli repo 안.
+Thin surface for `~/repos/work/voscli`. voscli 는 분석 SSOT — 본 스킬은 CLI 호출 + agent-result EDN / summary EDN 작성을 안내한다. 도메인 로직은 voscli repo 안.
 
 핵심 원칙:
 
@@ -16,18 +16,20 @@ Thin surface for `~/repos/work/voscli`. voscli 는 분석 SSOT — 본 스킬은
 | Task | Command / Action | Notes |
 |------|------------------|-------|
 | go repo | `cd ~/repos/work/voscli` | repo 루트에서 실행 |
-| tests | `clj -M:test` | baseline: 96 tests / 317 assertions |
+| tests | `clj -M:test` | baseline: 112 tests / 364 assertions |
 | 1) normalize | `./run.sh normalize ...` | raw chat.edn → sessions.edn + provenance.edn |
 | 2) export-sessions | `./run.sh export-sessions ...` | sessions.edn → `chat-sessions/<id>.edn` × N + `_index.edn` (v0.2a) |
 | 3) evidence-lookup | `./run.sh evidence-lookup ...` | `_index.edn` 필터 + 본문 evidence 회수 (v0.2b) |
 | 4) analyze pack | `./run.sh analyze --in ... --out-dir ...` | LLM 미호출 evidence pack (v0.1b) |
-| 5) accept | `./run.sh analyze --accept --result ... --schema-out ...` | agent-result EDN validate |
-| 6) report | `./run.sh report --ops ... --product ... --provenance ... --out ... --sidecar ...` | Markdown + sidecar |
+| 5) accept | `./run.sh analyze --accept --result ... --schema-out ...` | agent-result EDN validate (v0.2c finding shape) |
+| 6) apply-summary | `./run.sh apply-summary --chat ... --summary ...` | agent summary EDN → chat-session in-place (v0.2d) |
+| 7) aggregate-chats | `./run.sh aggregate-chats --chat-dir ...` | chat-sessions → `_aggregate.edn` (v0.2d) |
+| 8) report | `./run.sh report --ops ... --product ... --provenance ... --aggregate ... --out ...` | Markdown + sidecar |
 | review memo | write `ops/reviews/YYYY-MM-DD-*.md` | 가치판단 / 한계 / 다음 액션 |
 
 `data/derived/` 는 ignored — 항상 stale 로 간주, fresh regenerate.
 
-## v0.2 Traceability Pipeline
+## v0.2 Traceability Pipeline (full)
 
 ```bash
 cd ~/repos/work/voscli
@@ -54,17 +56,26 @@ cd ~/repos/work/voscli
   --provenance data/derived/provenance.edn \
   --out-dir data/derived/analyze
 
-# 5) agent 가 agent-result-{ops,product}.edn 작성 → accept
+# 5) agent 가 agent-result-{ops,product}.edn 작성 (v0.2c shape) → accept
 ./run.sh analyze --accept --result data/derived/analyze/agent-result-ops.edn \
   --schema-out data/derived/analyze/validated-ops.edn
 ./run.sh analyze --accept --result data/derived/analyze/agent-result-product.edn \
   --schema-out data/derived/analyze/validated-product.edn
 
-# 6) report
+# 6) (선택, v0.2d) agent 가 chat-session summary 작성 → apply
+./run.sh apply-summary \
+  --chat data/derived/chat-sessions/<chat-id>.edn \
+  --summary <agent-summary-edn-path>
+
+# 7) (v0.2d) chat-sessions 집계 → _aggregate.edn
+./run.sh aggregate-chats --chat-dir data/derived/chat-sessions
+
+# 8) report (--aggregate 주면 본문에 📊 분포 + 🧭 chat-id trace 섹션 추가)
 ./run.sh report \
   --ops data/derived/analyze/validated-ops.edn \
   --product data/derived/analyze/validated-product.edn \
   --provenance data/derived/provenance.edn \
+  --aggregate data/derived/chat-sessions/_aggregate.edn \
   --out data/derived/report/2026-05-04.md \
   --sidecar data/derived/report/2026-05-04.provenance.edn
 ```
@@ -83,9 +94,28 @@ cd ~/repos/work/voscli
 
 chat-level (product/topic/chat-id) 은 **union**. message-level (keyword/person-type/private) 은 통과 조건.
 
-## Result EDN Contract (v0.2c)
+## Summary EDN Contract (v0.2d, apply-summary 입력)
 
-`analyze --accept` 에 넘기는 EDN — finding 안 3축 확장:
+agent 가 chat-session 단위로 작성. **`:summary/*` 만**, `:chat/*` 키 들어가면 거부 (raw 오염 방지).
+
+```clojure
+{:summary/created-by :agent              ; :agent | :human | nil
+ :summary/model      "claude-opus-4-7"   ; provider/model id, agent skill 표면
+ :summary/title      "한 줄 제목"
+ :summary/text       "1차 요약 본문 — manager/user 발화 흐름 + 핵심 갭"
+ :summary/hypotheses [{:hypothesis/text "..." :hypothesis/source :llm :hypothesis/confidence :med}]
+ :summary/actions    [{:action/text "..." :action/team "QC"}]
+ :summary/private-evidence-used? false}   ; private memo 를 추론 근거로 썼는가 (외부 인용은 금지)
+```
+
+Rules:
+
+- title / text / hypotheses / actions **중 하나 이상 의미 있게** 채워야 함 (empty 거부).
+- `apply-summary` 가 raw 영역(`:chat/raw`) 무손실 + `:chat/summary` 만 갱신 + `:chat/summary-applied-at` / `:chat/summary-version` 메타 박음.
+
+## Result EDN Contract (v0.2c, analyze --accept 입력)
+
+finding 안 3축 확장:
 
 ```clojure
 {:analysis/persona :ops ; or :product
@@ -143,6 +173,14 @@ Rules:
 - 액션이 어느 가설에서 나왔는지 `:action/from-hypothesis` 인덱스로 명시. validate 가 hypotheses 길이 cross-check (범위 초과 거부).
 - `source-chat-ids` 가 비어 있으면 그 공백 자체가 traceability 갭 — 이유를 limits 에 적기.
 
+## v0.2 Policy Decisions (확정)
+
+- **다중일자 chat 정책 = 시작일 귀속** (`:chat/started-at` 의 date 가 그 chat 의 단일 day). `:chat/date-set` 은 sidecar 정보로 보존. `aggregate-chats` 의 `:aggregate/policy {:multi-day/assignment :started-at}` 에 박힘.
+- **canonical unit** = `:chat-session` (dedup 후 distinct chatId).
+- **라벨 출처** = `:llm` (v0.1 결정 — 사실로 단정하지 않음).
+- **private 정책** = 본문 외부 인용 금지. internal evidence 표시만.
+- v0.2 미확정 → v0.3 흡수: 운영시간 마스킹 기본값 / baseline 정의 / anomaly threshold / 외부 신호 (휴일 캘린더 / 릴리즈 일정) 연결.
+
 ## agent-helpfulness smoke (v0.2e)
 
 막연한 질문은 raw 부어넣기 대신 voscli 명령으로 좁힌다. 결과 메모(`ops/reviews/YYYY-MM-DD-*.md`)에 반드시:
@@ -152,35 +190,43 @@ Rules:
 3. **추론한 답** — 단일 결론 강요 X. 가설이 분기되면 분기로.
 4. **아직 모르는 것** — 다음 사이클 입력
 
-샘플 workflow (1회차: "음식물처리기 이슈가 왜 위험한가?"):
+### 1회차 사례 — "음식물처리기 이슈가 왜 위험한가?" (압축비 ≈ 1:250)
 
 ```bash
 # 1) _index 로 카테고리 회수
-clj -M -e '(filter #(some #{"P_음식물처리기"} (:chat/products %))
-                   (:export/chats (clojure.edn/read-string
-                     (slurp "data/derived/chat-sessions/_index.edn"))))'
-
 # 2) user 측 안전 키워드 evidence
 ./run.sh evidence-lookup --by-product P_음식물처리기 \
-  --keyword 12시간 --keyword 가열 --keyword 회전 --keyword 온도센서 ...
-
-# 3) manager 측 응답 + private (cross-check 용 — internal evidence)
+  --keyword 12시간 --keyword 가열 --keyword 회전 --keyword 온도센서
+# 3) manager 측 응답 + private cross-check
 ./run.sh evidence-lookup --by-product P_음식물처리기 \
   --person-type manager --include-private \
-  --keyword AS --keyword 교환 --keyword 안전 ...
+  --keyword AS --keyword 교환 --keyword 안전
 ```
 
-1회차 사례: 단일 "위험" 카테고리가 manager evidence cross-check 로 **"사용성 갭 + 실제 결함" 두 범주 분기** 됨. 컨텍스트 압축비 ≈ 1:250 (raw 1.6MB → evidence EDN 6KB). 참고 메모: [`ops/reviews/2026-05-13-v0.2e-agent-helpfulness-smoke.md`](../../../work/voscli/ops/reviews/2026-05-13-v0.2e-agent-helpfulness-smoke.md).
+결과: 단일 "위험" 카테고리가 manager evidence cross-check 로 **"사용성 갭 + 실제 결함" 두 범주 분기** 됨. 메모: [`ops/reviews/2026-05-13-v0.2e-agent-helpfulness-smoke.md`](../../../work/voscli/ops/reviews/2026-05-13-v0.2e-agent-helpfulness-smoke.md).
+
+### 2회차 사례 — "5/4 폭증의 원인 추정" (v0.2d aggregate 활용)
+
+```bash
+# 1) aggregate.edn 의 시작일별 분포 + product/topic by-day 분해
+# 2) _index 위에서 5/4 시작 chat 의 product/topic + multi-day 검증
+# 3) 5/4 manager 측 폭증 인지 멘트 추출
+./run.sh evidence-lookup --chat-id ... --person-type manager \
+  --keyword "금일 문의량" --keyword "순차적으로 안내" --keyword "양해 부탁"
+```
+
+결과: T_동작,제어이상 5.2x (압도) + multi-day=0 + manager 폭증 매크로 10+ chat → 3분기 가설 (휴일효과 / 외부이벤트 / 운영처리량). **v0.3 baseline/compare 의 가치 제안 직접 입증** — 손으로 한 배율 계산을 v0.3 가 `compare day` 로 자동화. 메모: [`ops/reviews/2026-05-13-v0.2e-5_4-burst-smoke.md`](../../../work/voscli/ops/reviews/2026-05-13-v0.2e-5_4-burst-smoke.md).
 
 ## Current Direction
 
-v0.0/v0.1/v0.2a/v0.2b/v0.2c 완료. v0.2e 1회차 통과. **본 skill 은 bootstrap** — v0.7 정식 패키지 아님.
+v0.0/v0.1/v0.2a/b/c/d 완료. v0.2e 1·2회차 smoke 통과. **본 skill 은 bootstrap** — v0.7 정식 패키지 아님.
 
-다음 v0.2d (**미구현**): chat-session `:chat/summary` placeholder 채우기 + 제품 × 문의유형 joint distribution + report 본문 chat-id trace 섹션. v0.2e 2회차 후보: "5/4 폭증의 원인 추정".
+다음 v0.3 (**미구현**): baseline/compare day/week, anomaly threshold, 운영시간 마스킹 기본값, 외부 신호 (휴일 캘린더 / 릴리즈 일정 / Metabase) 연결. v0.2e 2회차 smoke 가 v0.3 의 가치 제안을 직접 입증.
 
 References in voscli:
 
 - `README.md` / `ROADMAP.md` / `NEXT.md` (SSOT)
 - `ops/reviews/2026-05-13-v0.1-closeout.md`
-- `ops/reviews/2026-05-13-v0.2e-agent-helpfulness-smoke.md`
+- `ops/reviews/2026-05-13-v0.2e-agent-helpfulness-smoke.md` (1회차)
+- `ops/reviews/2026-05-13-v0.2e-5_4-burst-smoke.md` (2회차)
 - `ops/2026-05-13-csdashboard-postmortem.md`
