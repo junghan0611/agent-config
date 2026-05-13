@@ -29,3 +29,23 @@ Important rules:
 - Slight variation is acceptable. Character identity drift is not.
 - If the user references an existing scene from the note, regenerate from that scene using the common world block again.
 - If the user asks for a new scene, draft the scene prompt first, then generate.
+
+GLGMAN core identity lock (preserve unless the user explicitly asks to override):
+- GLGMAN is always an anthropomorphic **emperor penguin father**.
+- Default GLGMAN heroic form: **white-navy streamlined armor** with **subtle amber circuit patterns**.
+- Default GLGMAN object: a **straight circuit-patterned sword**; do not swap to unrelated fantasy weapons unless requested.
+- Default GLGMAN posture: **upright, composed, mythic, warm**, never goofy, grotesque, or gritty.
+- Keep the silhouette clean and recognizable; prefer readable shapes over excessive detail.
+- Preserve the GLGMAN palette anchor: **deep navy, white, amber/gold, ice-blue**.
+- Do not drift GLGMAN into another bird species, mammal, human, robot, or generic mascot.
+- If GLGMAN appears with others, keep him visually legible as the central father-hero presence even when not centered.
+
+When GLGMAN is part of the requested scene:
+1. Reuse the common world block.
+2. Add scene details.
+3. Reassert the GLGMAN core identity in the scene prompt if there is any risk of drift.
+
+Priority order:
+1. GLGMAN identity consistency
+2. GLGMAN Universe world consistency
+3. Scene-specific flourish
