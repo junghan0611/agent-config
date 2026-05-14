@@ -149,7 +149,7 @@ declare -A PACKAGE_REPOS=(
 # Pinned pi-shell-acp version — single source of truth for setup_npm.
 # Must match `pi/settings.server.json` packages[] tag and CHANGELOG.md.
 # See AGENTS.md § Release — pi-shell-acp Version Bump.
-PI_SHELL_ACP_VERSION="0.4.17"
+PI_SHELL_ACP_VERSION="0.5.0"
 
 # Server devices use the consumer install path (pi-managed) instead of cloning
 # pi-shell-acp into ~/repos/gh/. Add device names here as they come online.
