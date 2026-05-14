@@ -1,5 +1,5 @@
-model = "gpt-5.4"
-model_reasoning_effort = "high"
+model = "gpt-5.5"
+model_reasoning_effort = "medium"
 model_reasoning_summary = "detailed"
 model_verbosity = "high"
 approval_policy = "never"
@@ -26,6 +26,9 @@ trust_level = "trusted"
 trust_level = "trusted"
 
 [projects."/home/junghan/repos/gh/memex-kb"]
+trust_level = "trusted"
+
+[projects."/home/junghan/repos/work/voscli"]
 trust_level = "trusted"
 
 [notice.model_migrations]
