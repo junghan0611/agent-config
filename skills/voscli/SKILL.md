@@ -518,18 +518,35 @@ Sonnet 분신이 voscli skill 만 들고 "5/13 평소와 다른 점이 있어?" 
 - v0.4a anomaly flagged 0/5 솔직 보고 + mod-z +1.94 (임계 미만) 이유 (baseline 안 5/4 outlier → MAD 289 → 5/13 묻힘) 정확 설명.
 - 5/4 fast-fail (n=2) 결과처럼 말하지 않고 "exit 2 로 결과 생성 자체를 막음" 명시.
 - 5/12 mid-series → 5/13 anomaly 가 아니라 **5/12 → 5/13 compare day fallback** 으로 자연 흐름. skill 의 "운영팀 호출 패턴" 표 그대로 작동.
-- **Sonnet 이 compare day 로 잡은 진원지 3 신호** — P_홈카메라프로 × T_주문·배송·결제 1→53 (53배) / P_KT안심단말 × T_불량·고장 신규 54건 / T_프로모션·행사·쿠폰 신규 27건. v0.4a 가 못 잡고 compare day 가 잡은 케이스 — **A1 (v0.4a-2 per-product/topic) 의 가치 직접 입증**.
-- 갭 G1 (chat-id / EDN 키 인용 약함) + G3 (anomaly mod-z 보조 신호 + compare notable-deltas 합산 패턴 skill 명시 약함) 은 A1 슬라이스 박을 때 skill 5차 갱신과 함께.
+- **Sonnet 이 compare day 로 잡은 진원지 3 신호** — P_홈카메라프로 × T_주문·배송·결제 1→53 (53배) / P_KT안심단말 × T_불량·고장 신규 54건 / T_프로모션·행사·쿠폰 신규 27건. v0.4a 가 못 잡고 compare day 가 잡은 케이스 — **다음 v0.4b (구 A1) 의 가치 직접 입증**.
+- 갭 G1 (chat-id / EDN 키 인용 약함) + G3 (anomaly mod-z 보조 신호 + compare notable-deltas 합산 패턴 skill 명시 약함) 은 v0.4b 박을 때 본 skill 5차 갱신으로 닫힘.
 
 준비 메모: [`ops/reviews/2026-05-14-v0.4a-skill-smoke-prep.md`](../../../work/voscli/ops/reviews/2026-05-14-v0.4a-skill-smoke-prep.md). 결과 메모: [`ops/reviews/2026-05-14-v0.4a-skill-smoke.md`](../../../work/voscli/ops/reviews/2026-05-14-v0.4a-skill-smoke.md).
 
+### 5회차 — v0.4b 운영자 smoke 2회차 ⏳ (2026-05-14, 본 skill 5차 갱신 후)
+
+동일 5/13 질문: "5/13 상담에서 평소와 다른 점이 있어? 운영팀이 오늘 봐야 할 것만 요약해줘."
+
+**통과 기준**: `anomaly --target 2026-05-13` **한 번**으로 진원지 3 신호 보고 (compare day fallback 없이).
+
+1. P_홈카메라프로 × T_주문·배송·결제 (`:by-joint` flagged, mod-z=+34.74)
+2. P_KT안심단말 × T_불량·고장 (`:zero-baseline-spikes` `:near-zero-mad` delta=54)
+3. T_프로모션·행사·쿠폰 (`:zero-baseline-spikes` `:near-zero-mad` delta=27)
+
+**갭 점검**: G4 (by-* flagged + spikes 두 분기 통합 표면), G5 (top-N 운영팀 어휘) 가 본 skill 5차로 닫혔는지.
+
+5/13 코드 smoke (CLI) 메모: [`ops/reviews/2026-05-14-v0.4a-2-smoke.md`](../../../work/voscli/ops/reviews/2026-05-14-v0.4a-2-smoke.md) (파일명은 이력 보존, 본문 schema-version `v0.4a-2` 는 첫 박힘 시점 SHA 7d69b49 기록 — 현재 코드는 `v0.4b`).
+
 ## Current Direction
 
-v0.0 / v0.1 / v0.2 / v0.3 / **v0.4a** / **v0.4a-close** 박힘 (2026-05-14). 본 skill 은 bootstrap — v0.7 정식 패키지 아님.
+v0.0 / v0.1 / v0.2 / v0.3 / **v0.4a** (검증 이벤트 포함, 구 v0.4a-close 흡수) / **v0.4b** (구 v0.4a-2 / A1 — 2026-05-14 명명 정리) 박힘. 본 skill 은 bootstrap — v0.7 정식 패키지 아님.
 
-**다음 슬라이스 1순위 — A1 (v0.4a-2)**: per-product / per-topic / joint 분포 anomaly + ohs-only 분기 위 검출. 4회차 smoke 의 진원지 3 신호 (P_홈카메라프로 × T_주문 53배 등) 가 가치 직접 입증. A1 박힐 때 본 skill 5차 갱신 (anomaly EDN contract 에 by-product/topic/joint + zero-baseline spike 별도 분기 + ohs-only scope, 호출 패턴에 진원지 chat-id 추적 + anomaly+compare 보조 신호 합산).
+**다음 단계 — Sonnet 운영자 smoke 5회차** (위 §5회차). 통과하면 v0.4b close.
 
-**그 후**: v0.4b (분위수 + leave-one-out + manager 응답 갭) → v0.4c (report 상단 통합 = v0.4 close) → v0.5 signal.
+**그 후**:
+- **v0.4c — robustness** (구 v0.4b): 분위수 (percentile) flagging + leave-one-out baseline + manager 응답 공백 metric. baseline 다중 outlier 한계 해결.
+- **v0.4d — report integration / v0.4 close** (구 v0.4c): `report --aggregate` 가 anomaly 결과를 일일 리포트 상단 "오늘 봐야 할 것" 섹션에 자동 박음.
+- **v0.5 signal** — abductcli 본류 ② (외부 운영 신호 결합).
 
 데이터 인입 자동화 (Adjacent Track) — v0.3 close 후 병행. 운영팀 시트 분류 흐름 유지 / 채널톡 API 직접 호출 / Airbyte 안 씀 / 분류기 자체화 안 함 / voscli 본체 흡수 금지.
 
@@ -541,7 +558,8 @@ References in voscli:
 - `ops/reviews/2026-05-14-v0.3-closeout.md`
 - `ops/reviews/2026-05-14-v0.4a-smoke.md` (v0.4a 박힘 + fix)
 - `ops/reviews/2026-05-14-v0.4a-skill-smoke-prep.md` (smoke 사전 박힘)
-- `ops/reviews/2026-05-14-v0.4a-skill-smoke.md` (4회차 smoke 통과 + A1 우선순위 확정)
+- `ops/reviews/2026-05-14-v0.4a-skill-smoke.md` (4회차 smoke 통과 + 다음 슬라이스 가치 입증)
+- `ops/reviews/2026-05-14-v0.4a-2-smoke.md` (v0.4b 코드 smoke — 파일명 이력 보존)
 - `ops/reviews/2026-05-13-v0.2e-agent-helpfulness-smoke.md` (1회차)
 - `ops/reviews/2026-05-13-v0.2e-5_4-burst-smoke.md` (2회차)
 - `ops/reviews/2026-05-14-v0.3a-ops-consumer-smoke.md` (3회차)
