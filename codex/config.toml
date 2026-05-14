@@ -1,16 +1,39 @@
 model = "gpt-5.4"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
+model_reasoning_summary = "detailed"
+model_verbosity = "high"
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
 approvals_reviewer = "user"
 personality = "pragmatic"
+web_search = "live"
+[notice]
+hide_full_access_warning = true
+
 [projects."/home/junghan"]
 trust_level = "trusted"
 
 [projects."/home/junghan/sync/org"]
 trust_level = "trusted"
 
+[projects."/home/junghan/repos/gh/agent-config"]
+trust_level = "trusted"
+
+[projects."/home/junghan/repos/gh/pi-shell-acp"]
+trust_level = "trusted"
+
+[projects."/home/junghan/repos/gh/nixos-config"]
+trust_level = "trusted"
+
+[projects."/home/junghan/repos/gh/memex-kb"]
+trust_level = "trusted"
+
 [notice.model_migrations]
 "gpt-5.3-codex" = "gpt-5.4"
 
 [tui]
-status_line = ["model-with-reasoning", "current-dir", "project-root", "git-branch", "context-used", "five-hour-limit", "weekly-limit", "context-window-size", "used-tokens", "session-id"]
+status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-used", "weekly-limit", "context-window-size"]
 theme = "zenburn"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4

@@ -155,7 +155,7 @@ cd agent-config
 - Build native CLI binaries (Go + GraalVM)
 - Symlink pi extensions, full skill set (including `semantic-memory`), themes, settings, keybindings, prompts
 - Install andenken as a pi package (compiled extension — exposes `session_search` / `knowledge_search` registerTool alongside the SKILL.md skill)
-- Symlink Claude Code / OpenCode / Codex skills + Claude Code commands (direct mode + plugin namespace)
+- Symlink Claude Code / OpenCode / Codex / Gemini config surfaces (`~/.claude/settings.json`, `~/.codex/config.toml`, `~/.gemini/settings.json`) plus skills and Claude Code commands
 - Symlink `~/.local/bin` PATH binaries
 - pnpm install for extensions and skills
 - Hand off pi-shell-acp validation (typecheck, MCP, dual-backend smoke, persisted-bootstrap continuity, cancel-cleanup) to pi-shell-acp's own `run.sh`

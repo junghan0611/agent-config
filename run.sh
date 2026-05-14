@@ -548,6 +548,10 @@ TGJSON
     [ -L "$HOME/.codex/skills/$old" ] && rm "$HOME/.codex/skills/$old"
     [ -d "$HOME/.codex/skills/$old" ] && rm -rf "$HOME/.codex/skills/$old"
   done
+  ensure_link "$SCRIPT_DIR/codex/config.toml" "$HOME/.codex/config.toml"
+
+  section "Gemini CLI Config"
+  ensure_link "$SCRIPT_DIR/gemini/settings.json" "$HOME/.gemini/settings.json"
 
   section "Gemini CLI Skills"
   # ~/.gemini/skills → skills/ (단일 디렉토리 링크, Agent Skills open standard)
@@ -767,7 +771,8 @@ setup_all() {
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null && echo ' + skills' || echo 'not linked')"
   echo "  OpenCode: $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo 'not linked')"
-  echo "  Gemini:   $(readlink "$HOME/.gemini/skills" 2>/dev/null || echo 'not linked')"
+  echo "  Codex:    $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo 'config not linked') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
+  echo "  Gemini:   $(readlink "$HOME/.gemini/settings.json" 2>/dev/null || echo 'config not linked') + $(readlink "$HOME/.gemini/skills" 2>/dev/null || echo 'skills not linked')"
 
   # Sentinel (delegate matrix) moved to pi-shell-acp with the rest of the
   # Entwurf Orchestration surface — run it from there when exercising the
@@ -914,8 +919,10 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Claude conf:  $(readlink "$HOME/.claude/settings.json" 2>/dev/null || echo '❌ not linked')"
     echo "  Claude skills:$(readlink "$HOME/.claude/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  OpenCode:     $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo '❌ not linked')"
-    echo "  Codex:        $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills linked"
-    echo "  Gemini:       $(readlink "$HOME/.gemini/skills" 2>/dev/null || echo '❌ not linked')"
+    echo "  Codex conf:   $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo '❌ not linked')"
+    echo "  Codex skills: $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) linked"
+    echo "  Gemini conf:  $(readlink "$HOME/.gemini/settings.json" 2>/dev/null || echo '❌ not linked')"
+    echo "  Gemini skills:$(readlink "$HOME/.gemini/skills" 2>/dev/null || echo '❌ not linked')"
 
     section "CLI Binaries"
     for cli in denotecli bibcli gitcli lifetract dictcli; do
