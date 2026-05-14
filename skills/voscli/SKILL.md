@@ -1,9 +1,9 @@
 ---
 name: voscli
-description: "회사 VOC 분석 워크벤치 — voscli CLI 의 v0.2 traceability 파이프라인 (normalize → export-sessions → evidence-lookup → analyze --accept → apply-summary → aggregate-chats → report --aggregate). 막연한 질문을 raw 전체가 아니라 명령 몇 번으로 답한다. 'voc', 'VOC 리포트', 'voscli', '상담 분석', '원민재 리포트', 'v0.1 closeout', 'v0.2 traceability', 'export-sessions', 'evidence-lookup', 'apply-summary', 'aggregate-chats', 'finding hypotheses', 'agent-helpfulness', '5/4 폭증'."
+description: "회사 VOC 분석 워크벤치 — voscli CLI 의 v0.3 baseline/compare/anomaly 파이프라인 (normalize → export-sessions → evidence-lookup → analyze --accept → apply-summary → aggregate-chats → compare day → report --aggregate). 막연한 질문을 raw 전체가 아니라 명령 몇 번으로 답한다. 'voc', 'VOC 리포트', 'voscli', '상담 분석', '원민재 리포트', 'v0.1 closeout', 'v0.2 traceability', 'v0.3 baseline', 'export-sessions', 'evidence-lookup', 'apply-summary', 'aggregate-chats', 'compare day', 'anomaly threshold', 'operating-hours', 'day-kind', 'finding hypotheses', 'agent-helpfulness', '5/4 폭증'."
 ---
 
-# voscli — VOC Analysis Skill (v0.2)
+# voscli — VOC Analysis Skill (v0.3)
 
 Thin surface for `~/repos/work/voscli`. voscli 는 분석 SSOT — 본 스킬은 CLI 호출 + agent-result EDN / summary EDN 작성을 안내한다. 도메인 로직은 voscli repo 안.
 
@@ -16,15 +16,16 @@ Thin surface for `~/repos/work/voscli`. voscli 는 분석 SSOT — 본 스킬은
 | Task | Command / Action | Notes |
 |------|------------------|-------|
 | go repo | `cd ~/repos/work/voscli` | repo 루트에서 실행 |
-| tests | `clj -M:test` | baseline: 112 tests / 364 assertions |
+| tests | `clj -M:test` | baseline: 132 tests / 486 assertions |
 | 1) normalize | `./run.sh normalize ...` | raw chat.edn → sessions.edn + provenance.edn |
 | 2) export-sessions | `./run.sh export-sessions ...` | sessions.edn → `chat-sessions/<id>.edn` × N + `_index.edn` (v0.2a) |
 | 3) evidence-lookup | `./run.sh evidence-lookup ...` | `_index.edn` 필터 + 본문 evidence 회수 (v0.2b) |
 | 4) analyze pack | `./run.sh analyze --in ... --out-dir ...` | LLM 미호출 evidence pack (v0.1b) |
 | 5) accept | `./run.sh analyze --accept --result ... --schema-out ...` | agent-result EDN validate (v0.2c finding shape) |
 | 6) apply-summary | `./run.sh apply-summary --chat ... --summary ...` | agent summary EDN → chat-session in-place (v0.2d) |
-| 7) aggregate-chats | `./run.sh aggregate-chats --chat-dir ...` | chat-sessions → `_aggregate.edn` (v0.2d) |
-| 8) report | `./run.sh report --ops ... --product ... --provenance ... --aggregate ... --out ...` | Markdown + sidecar |
+| 7) aggregate-chats | `./run.sh aggregate-chats --chat-dir ...` | chat-sessions → `_aggregate.edn`. v0.3c: 운영시간 마스킹 분기 + day-kind 박힘 |
+| 8) compare day | `./run.sh compare day --aggregate ... --base-date ... --new-date ...` | aggregate EDN → compare EDN. v0.3a/b/c (notable/newly/anomaly/operating-hours-only) |
+| 9) report | `./run.sh report --ops ... --product ... --provenance ... --aggregate ... --out ...` | Markdown + sidecar |
 | review memo | write `ops/reviews/YYYY-MM-DD-*.md` | 가치판단 / 한계 / 다음 액션 |
 
 `data/derived/` 는 ignored — 항상 stale 로 간주, fresh regenerate.
@@ -70,7 +71,23 @@ cd ~/repos/work/voscli
 # 7) (v0.2d) chat-sessions 집계 → _aggregate.edn
 ./run.sh aggregate-chats --chat-dir data/derived/chat-sessions
 
-# 8) report (--aggregate 주면 본문에 📊 분포 + 🧭 chat-id trace 섹션 추가)
+# 8) (v0.3) compare day — aggregate 안 두 날짜를 비교, compare EDN 산출
+./run.sh compare day \
+  --aggregate data/derived/chat-sessions/_aggregate.edn \
+  --base-date 2026-05-03 \
+  --new-date 2026-05-04 \
+  --out data/derived/compare/2026-05-03-0504.edn
+# 운영시간만 비교하려면 (v0.3c):
+./run.sh compare day \
+  --aggregate data/derived/chat-sessions/_aggregate.edn \
+  --base-date 2026-05-03 --new-date 2026-05-04 \
+  --operating-hours-only \
+  --out data/derived/compare/2026-05-03-0504-ohs.edn
+# anomaly threshold 조정 (v0.3b, default 3.0x / 20):
+./run.sh compare day --aggregate ... --base-date ... --new-date ... \
+  --ratio-threshold 5.0 --delta-threshold 50 --out ...
+
+# 9) report (--aggregate 주면 본문에 📊 분포 + 🧭 chat-id trace 섹션 추가)
 ./run.sh report \
   --ops data/derived/analyze/validated-ops.edn \
   --product data/derived/analyze/validated-product.edn \
@@ -112,6 +129,68 @@ Rules:
 
 - title / text / hypotheses / actions **중 하나 이상 의미 있게** 채워야 함 (empty 거부).
 - `apply-summary` 가 raw 영역(`:chat/raw`) 무손실 + `:chat/summary` 만 갱신 + `:chat/summary-applied-at` / `:chat/summary-version` 메타 박음.
+
+## Compare EDN Contract (v0.3a/b/c, `compare day` 출력 — agent 읽기용)
+
+agent 가 작성하는 게 아니라 voscli 가 산출하고 agent 가 운영팀 표면으로 옮길 때
+읽는 EDN. 5/14 운영팀 컨슈머 smoke 의 1:1 사상 흐름 그대로.
+
+```clojure
+{:compare/version "v0.3c"
+ :compare/at      "2026-05-14T02:51:00Z"
+ :compare/kind    :day
+ :compare/source  {:aggregate ".../aggregate.edn"
+                   :base-date "2026-05-03"
+                   :new-date  "2026-05-04"}
+ :compare/scope   {:operating-hours-only? false}  ; v0.3c
+ :compare/days    {:base {:day/date "2026-05-03" :day/kind :weekend
+                          :day/day-of-week :sunday :day/holiday-name nil}
+                   :new  {:day/date "2026-05-04" :day/kind :weekday
+                          :day/day-of-week :monday :day/holiday-name nil}}
+
+ ;; totals / ratios — v0.3a 본체
+ :compare/totals       {:sessions {:base 41 :new 197 :delta 156 :ratio 4.80 :pct-change 380.5}
+                        :messages {:base 290 :new 1530 :delta 1240 :ratio 5.28 :pct-change 427.6}
+                        :private  ... :cs-sharing ... :multi-day ...}
+ :compare/ratios       {:private-ratio    {:base 0.041 :new 0.050 :delta 0.009 :delta-pp 0.9}
+                        :cs-sharing-ratio ...}
+ :compare/per-session  {:messages   {:base 7.07 :new 7.77 :delta 0.69 :ratio 1.10}
+                        :private    ... :cs-sharing ...}
+
+ ;; dimension delta — v0.3a
+ :compare/messages-by-{person-type,hour,product,topic} [...]
+ :compare/joint-messages [{:joint/product :joint/topic :base :new :delta :ratio :pct-change}]
+
+ ;; 승격 — v0.3a top-N + zero-baseline 분리
+ :compare/notable-deltas
+ {:by-ratio [{:dimension :topic :key "T_동작,제어이상" :base 9 :new 264
+              :delta 255 :ratio 29.33}
+             ...top 5]
+  :by-delta [...top 5]}
+ :compare/newly-observed
+ [{:dimension :product :key "P_홈카메라(미구분)" :base 0 :new 147 :delta 147 :ratio nil}
+  ...]
+
+ ;; threshold flagging — v0.3b
+ :compare/anomalies
+ {:anomaly/version       "v0.3c"
+  :anomaly/thresholds    {:ratio-threshold 3.0 :delta-threshold 20}
+  :anomaly/rule          "ratio >= ratio-threshold AND delta >= delta-threshold; base > 0"
+  :anomaly/flagged       [{:dimension :topic :key "..." :base :new :delta :ratio} ...]
+  :anomaly/flagged-count 11
+  :anomaly/newly-flagged [{:dimension :product :key "..." :base 0 :new :delta} ...]
+  :anomaly/newly-flagged-count 23}
+
+ :compare/limits []}
+```
+
+Rules — agent 가 컨슈머 표면 만들 때:
+
+- `:compare/notable-deltas` 와 `:compare/anomalies` 를 함께 본다. 전자는 항상 top-5, 후자는 룰 통과 항목 전부.
+- `:compare/days` 의 `:day/kind` 가 base 와 new 다르면 baseline 오염 경고 (예: weekend ↔ weekday).
+- `:compare/scope :operating-hours-only?` 가 true 인 EDN 이면 야간 baseline 노이즈가 제거된 결과 — full-day 와 같이 보면 baseline 효과가 분해됨.
+- zero-baseline (`:compare/newly-observed` / `:anomaly/newly-flagged`) 항목은 ratio 미정의이므로 "신규" 로 표면화 — "∞배" 표기 금지.
+- raw delta 음수도 의미: 줄어든 항목이 abnormal 일 수 있음 (예: 응대량 급감).
 
 ## Result EDN Contract (v0.2c, analyze --accept 입력)
 
@@ -173,13 +252,27 @@ Rules:
 - 액션이 어느 가설에서 나왔는지 `:action/from-hypothesis` 인덱스로 명시. validate 가 hypotheses 길이 cross-check (범위 초과 거부).
 - `source-chat-ids` 가 비어 있으면 그 공백 자체가 traceability 갭 — 이유를 limits 에 적기.
 
-## v0.2 Policy Decisions (확정)
+## v0.2 / v0.3 Policy Decisions (확정)
+
+### v0.2 baseline (유지)
 
 - **다중일자 chat 정책 = 시작일 귀속** (`:chat/started-at` 의 date 가 그 chat 의 단일 day). `:chat/date-set` 은 sidecar 정보로 보존. `aggregate-chats` 의 `:aggregate/policy {:multi-day/assignment :started-at}` 에 박힘.
 - **canonical unit** = `:chat-session` (dedup 후 distinct chatId).
 - **라벨 출처** = `:llm` (v0.1 결정 — 사실로 단정하지 않음).
 - **private 정책** = 본문 외부 인용 금지. internal evidence 표시만.
-- v0.2 미확정 → v0.3 흡수: 운영시간 마스킹 기본값 / baseline 정의 / anomaly threshold / 외부 신호 (휴일 캘린더 / 릴리즈 일정) 연결.
+
+### v0.3 신규 (확정)
+
+- **운영시간 기본값** = `[10, 18)` (KST, end exclusive). `aggregate-chats` 가 `:daily/operating-hours-only` 분기를 항상 산출 (기본). `--no-operating-hours` 로 끄거나 `--operating-hours-start/end` 로 override.
+- **anomaly threshold 기본값** = `{:ratio-threshold 3.0 :delta-threshold 20}`. 두 조건 AND. zero-baseline 은 delta 만으로 `:newly-flagged` 분리.
+- **day-kind 분류** = `:holiday` > `:weekend` > `:weekday`. `voscli.calendar` 의 한국 휴일 2025~2027 hard-code (외부 캘린더 의존 없음).
+- **baseline 매칭 정책 보류** — 평일↔평일 / 휴일↔휴일 매칭은 분류만 박고 정책 결정은 [v0.5 signal](#) 트랙. 현재 보유 데이터 (휴일 1건 = 5/3) 로 검증 불가.
+
+### v0.3 → 이후 이행
+
+- **외부 신호 align (앱/펌웨어 릴리즈, Metabase)** → v0.5 signal (구 v0.3d 폐기).
+- **`compare week`** → 평일 baseline 분포 부족, 데이터 누적 후 합류.
+- **분포 기반 anomaly (z-score / 분위수)** → v0.4 anomaly 본류 (v0.3b 단일 비교 룰 위에 얹음).
 
 ## agent-helpfulness smoke (v0.2e)
 
@@ -217,16 +310,37 @@ Rules:
 
 결과: T_동작,제어이상 5.2x (압도) + multi-day=0 + manager 폭증 매크로 10+ chat → 3분기 가설 (휴일효과 / 외부이벤트 / 운영처리량). **v0.3 baseline/compare 의 가치 제안 직접 입증** — 손으로 한 배율 계산을 v0.3 가 `compare day` 로 자동화. 메모: [`ops/reviews/2026-05-13-v0.2e-5_4-burst-smoke.md`](../../../work/voscli/ops/reviews/2026-05-13-v0.2e-5_4-burst-smoke.md).
 
+### 3회차 사례 — v0.3 운영팀 컨슈머 표면 (담당자 분신)
+
+```bash
+# 1) compare day 로 EDN 산출 (운영팀 담당자 분신이 그대로 받음)
+./run.sh compare day --aggregate ... --base-date 2026-05-03 --new-date 2026-05-04 \
+  --out compare-2026-05-03-0504.edn
+# 2) 운영시간 분기도 같이 (5/14 baseline 오염 갭 검증)
+./run.sh compare day --aggregate ... --base-date 2026-05-03 --new-date 2026-05-04 \
+  --operating-hours-only --out compare-2026-05-03-0504-ohs.edn
+# 3) 담당자 분신이 EDN 의 notable-deltas / anomalies / newly-observed / days 를 운영팀 표면으로 옮김.
+```
+
+결과: v0.3a notable 5 + v0.3b anomalies 11 flagged + 23 newly-flagged + v0.3c day-kind 명시 (weekend↔weekday) → Sonnet 담당자 분신이 운영팀 표 + 추론 힌트로 변환. csdashboard 회고의 "분석 SSOT 만 책임지고 표면은 분리" 원칙 그대로. 메모: [`ops/reviews/2026-05-14-v0.3a-ops-consumer-smoke.md`](../../../work/voscli/ops/reviews/2026-05-14-v0.3a-ops-consumer-smoke.md).
+
 ## Current Direction
 
-v0.0/v0.1/v0.2a/b/c/d 완료. v0.2e 1·2회차 smoke 통과. **본 skill 은 bootstrap** — v0.7 정식 패키지 아님.
+v0.0 / v0.1 / v0.2 / v0.3 완료 (2026-05-14). v0.2e 1·2회차 + v0.3a 운영팀 컨슈머 smoke 통과. **본 skill 은 bootstrap** — v0.7 정식 패키지 아님.
 
-다음 v0.3 (**미구현**): baseline/compare day/week, anomaly threshold, 운영시간 마스킹 기본값, 외부 신호 (휴일 캘린더 / 릴리즈 일정 / Metabase) 연결. v0.2e 2회차 smoke 가 v0.3 의 가치 제안을 직접 입증.
+다음 v0.4 (**미구현**): 분포 기반 anomaly (z-score / 분위수 / 룰 혼합). v0.3b 의 단일 비교 threshold 위에 평균/표준편차 분포 anomaly 얹음. v0.3c 가 박은 운영시간 마스킹 + day-kind 분류가 분포 안정화의 토양.
+
+v0.5 signal — 외부 운영 신호 결합 (Metabase / 앱·펌웨어 릴리즈 / 사내 공지 / 휴일 baseline 매칭). 구 v0.3d 흡수.
+
+데이터 인입 자동화 (별도 트랙) — v0.3 close 후. 운영팀 시트 분류 흐름 유지 / 채널톡 API 직접 호출 / Airbyte 안 씀 / 분류기 자체화 안 함. voscli 본체 흡수 금지.
 
 References in voscli:
 
 - `README.md` / `ROADMAP.md` / `NEXT.md` (SSOT)
 - `ops/reviews/2026-05-13-v0.1-closeout.md`
+- `ops/reviews/2026-05-13-v0.2-closeout.md`
+- `ops/reviews/2026-05-14-v0.3-closeout.md`
 - `ops/reviews/2026-05-13-v0.2e-agent-helpfulness-smoke.md` (1회차)
 - `ops/reviews/2026-05-13-v0.2e-5_4-burst-smoke.md` (2회차)
+- `ops/reviews/2026-05-14-v0.3a-ops-consumer-smoke.md` (3회차)
 - `ops/2026-05-13-csdashboard-postmortem.md`
