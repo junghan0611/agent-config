@@ -1,9 +1,9 @@
 ---
 name: voscli
-description: "회사 VOC 분석 워크벤치 — voscli CLI 의 v0.4a anomaly (분포 기반 modified z-score) + v0.3 baseline/compare 파이프라인 (normalize → export-sessions → evidence-lookup → analyze --accept → apply-summary → aggregate-chats → compare day → anomaly → report --aggregate). 막연한 질문을 raw 전체가 아니라 명령 몇 번으로 답한다. 'voc', 'VOC 리포트', 'voscli', '상담 분석', '원민재 리포트', 'v0.1 closeout', 'v0.2 traceability', 'v0.3 baseline', 'v0.4 anomaly', 'export-sessions', 'evidence-lookup', 'apply-summary', 'aggregate-chats', 'compare day', 'anomaly', 'modified z-score', 'MAD', 'baseline window', 'fast-fail', 'operating-hours', 'day-kind', 'finding hypotheses', 'agent-helpfulness', '5/4 폭증', '5/13 폭증'."
+description: "회사 VOC 분석 워크벤치 — voscli CLI 의 v0.4b categorical anomaly (per-product/topic/joint + zero-baseline spikes + operating-hours-only scope) + v0.4a daily-totals anomaly (modified z-score) + v0.3 baseline/compare 파이프라인 (normalize → export-sessions → evidence-lookup → analyze --accept → apply-summary → aggregate-chats → compare day → anomaly → report --aggregate). 막연한 질문을 raw 전체가 아니라 명령 몇 번으로 답한다. 'voc', 'VOC 리포트', 'voscli', '상담 분석', '원민재 리포트', 'v0.1 closeout', 'v0.2 traceability', 'v0.3 baseline', 'v0.4 anomaly', 'v0.4b categorical anomaly', 'by-product anomaly', 'by-topic anomaly', 'by-joint anomaly', 'zero-baseline spike', 'export-sessions', 'evidence-lookup', 'apply-summary', 'aggregate-chats', 'compare day', 'anomaly', 'modified z-score', 'MAD', 'baseline window', 'fast-fail', 'operating-hours', 'day-kind', 'scope-inconsistent', 'finding hypotheses', 'agent-helpfulness', '5/4 폭증', '5/13 폭증'."
 ---
 
-# voscli — VOC Analysis Skill (v0.4a)
+# voscli — VOC Analysis Skill (v0.4b)
 
 Thin surface for `~/repos/work/voscli`. voscli 는 분석 SSOT — 본 스킬은 CLI 호출 + agent-result EDN / summary EDN 작성을 안내한다. 도메인 로직은 voscli repo 안.
 
@@ -18,7 +18,7 @@ Thin surface for `~/repos/work/voscli`. voscli 는 분석 SSOT — 본 스킬은
 | Task | Command / Action | Notes |
 |------|------------------|-------|
 | go repo | `cd ~/repos/work/voscli` | repo 루트에서 실행 |
-| tests | `clj -M:test` | baseline: 147 tests / 521 assertions |
+| tests | `clj -M:test` | baseline: 155 tests / 548 assertions |
 | 1) normalize | `./run.sh normalize ...` | raw chat.edn → sessions.edn + provenance.edn |
 | 2) export-sessions | `./run.sh export-sessions ...` | sessions.edn → `chat-sessions/<id>.edn` × N + `_index.edn` (v0.2a) |
 | 3) evidence-lookup | `./run.sh evidence-lookup ...` | `_index.edn` 필터 + 본문 evidence 회수 (v0.2b) |
@@ -27,22 +27,26 @@ Thin surface for `~/repos/work/voscli`. voscli 는 분석 SSOT — 본 스킬은
 | 6) apply-summary | `./run.sh apply-summary --chat ... --summary ...` | agent summary EDN → chat-session in-place (v0.2d) |
 | 7) aggregate-chats | `./run.sh aggregate-chats --chat-dir ...` | chat-sessions → `_aggregate.edn`. v0.3c: 운영시간 마스킹 분기 + day-kind 박힘 |
 | 8) compare day | `./run.sh compare day --aggregate ... --base-date ... --new-date ...` | aggregate EDN → compare EDN. v0.3a/b/c (notable/newly/anomaly/operating-hours-only) |
-| 9) **anomaly** | `./run.sh anomaly --aggregate ... --target DATE --out ...` | **v0.4a** baseline 분포 + modified z-score (MAD) outlier 검출 |
+| 9) **anomaly** | `./run.sh anomaly --aggregate ... --target DATE --out ...` | **v0.4a** daily totals 5 metric (mod-z) + **v0.4b** categorical (by-product/topic/joint flagged + zero-baseline-spikes + ohs scope) |
 | 10) report | `./run.sh report --ops ... --product ... --provenance ... --aggregate ... --out ...` | Markdown + sidecar |
 | review memo | write `ops/reviews/YYYY-MM-DD-*.md` | 가치판단 / 한계 / 다음 액션 |
 
 `data/derived/` 는 ignored — 항상 stale 로 간주, fresh regenerate.
 
-## v0.4a Pipeline 추가 (compare 위 — 분포 기반 anomaly)
+## v0.4 Pipeline (compare 위 — 분포 기반 anomaly, v0.4a + v0.4b)
 
 `compare day` 는 **두 날 직접 비교** (ratio AND delta 룰). `anomaly` 는 **target 이전 분포 위 outlier 검출** — 정체성이 분리됨.
+
+`anomaly` 한 번이 v0.4a (daily totals 5 metric) **+ v0.4b** (per-product/topic/joint flagged + zero-baseline-spikes + operating-hours-only scope) 를 모두 산출. 별도 명령 없음.
 
 ```bash
 cd ~/repos/work/voscli
 
 # 0) aggregate.edn 까지는 위 7) 와 동일하게 산출.
+#    aggregate v0.3c 가 :daily/operating-hours-only 분기를 박으면
+#    anomaly 가 자동으로 :anomaly/operating-hours-only 분기까지 산출.
 
-# (v0.4a) 분포 기반 anomaly — target 의 daily totals 5 metric 위에서 outlier 검출
+# (v0.4a + v0.4b) target 의 daily-totals + categorical 분포 위 outlier 검출
 ./run.sh anomaly \
   --aggregate data/derived/aggregate.edn \
   --target 2026-05-13 \
@@ -60,6 +64,10 @@ cd ~/repos/work/voscli
 
 # z-threshold 조정 (기본 3.5 = Iglewicz-Hoaglin 표준)
 ./run.sh anomaly --aggregate ... --target 2026-05-13 --z-threshold 2.5 --out ...
+
+# spike-delta-threshold (v0.4b) 조정 (기본 20 = v0.3b 정합)
+./run.sh anomaly --aggregate ... --target 2026-05-13 \
+  --spike-delta-threshold 50 --out ...
 ```
 
 ## v0.2 Traceability Pipeline (full, 기존 유지)
