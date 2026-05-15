@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-_(nothing pending — clean.)_
+* **Oracle/OpenClaw prerelease install path now tracks pi-shell-acp latest `main`.** Server-mode `pi/settings.server.json` now installs `git:github.com/junghan0611/pi-shell-acp` without the `@v0.5.0` tag, and `run.sh setup` force-refreshes the pi-managed checkout to `origin/main` before running `pnpm install`. This is intentional only for the 0.6.0 prerelease / Oracle validation window: OpenClaw plugin commits live after the v0.5.0 release while upstream `package.json#version` still reads `0.5.0`, so git commit is the authority. Restore tagged mode when the next stable pi-shell-acp release lands.
 
 ## 0.5.0
 

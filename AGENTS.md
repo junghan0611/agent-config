@@ -220,20 +220,19 @@ Environment (`~/.env.local`): `ANDENKEN_SESSION_*` and `ANDENKEN_MD_*` point at 
 
 `./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, OpenCode, Codex, and the pi-shell-acp Claude plugin farm. See [README § What's Here](README.md#whats-here) for categories.
 
-### Release — pi-shell-acp Version Bump
+### Release — pi-shell-acp Install Mode
 
-agent-config pins pi-shell-acp by tag. Every release bump touches **4 files** — all must move together.
+**Current Oracle/OpenClaw prerelease mode (2026-05-15):** server devices track pi-shell-acp latest `main`, not the `v0.5.0` tag. Reason: the OpenClaw plugin scaffold and Docker boundary docs live after the 0.5.0 release while `package.json#version` still says `0.5.0`; commit is the authority during this window.
 
-| File | What to change |
-|------|----------------|
-| `package.json` | `version` field |
-| `pi/settings.server.json` | `packages[]` entry — `git:github.com/junghan0611/pi-shell-acp@vX.Y.Z` |
-| `run.sh` | `PI_SHELL_ACP_VERSION="X.Y.Z"` constant |
-| `CHANGELOG.md` | new `## X.Y.Z` section — what shipped, why pinned, any caveats |
+| File | Current setting |
+|------|-----------------|
+| `pi/settings.server.json` | `packages[]` entry — `git:github.com/junghan0611/pi-shell-acp` (no tag) |
+| `run.sh` | `PI_SHELL_ACP_INSTALL_SPEC` + `PI_SHELL_ACP_TRACKING_REF="main"` |
+| `CHANGELOG.md` | `Unreleased` explains why server devices track latest main |
 
-Verify before commit: `git grep -n "pi-shell-acp@v" -- ':!node_modules'` should show only the new tag (1 hit: `pi/settings.server.json`).
+`setup_npm()` refreshes the pi-managed checkout directly with `git fetch origin main && git checkout -B main origin/main && pnpm install`, because `pi install git:...` may treat an existing checkout as already installed. Do not use `package.json#version` as the drift signal in prerelease mode.
 
-`setup_npm()` reads installed `package.json#version` and force-upgrades on drift, falling back to `git fetch --tags && git checkout v${PI_SHELL_ACP_VERSION} && pnpm install` if `pi install` reports success without refreshing the working tree. Bumping `PI_SHELL_ACP_VERSION` and running `./run.sh setup` is sufficient on server devices.
+When the next stable pi-shell-acp release ships, restore tagged mode as a normal release bump. That change should again move together: `package.json` version, `pi/settings.server.json` `@vX.Y.Z`, `run.sh` version constant / tag checkout logic, and `CHANGELOG.md`.
 
 `pi/settings.json`'s `lastChangelogVersion` is pi-runtime's own changelog ack — unrelated to agent-config releases.
 

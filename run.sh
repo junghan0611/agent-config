@@ -146,10 +146,12 @@ declare -A PACKAGE_REPOS=(
   [pi-shell-acp]="https://github.com/junghan0611/pi-shell-acp.git"
 )
 
-# Pinned pi-shell-acp version — single source of truth for setup_npm.
-# Must match `pi/settings.server.json` packages[] tag and CHANGELOG.md.
-# See AGENTS.md § Release — pi-shell-acp Version Bump.
-PI_SHELL_ACP_VERSION="0.5.0"
+# pi-shell-acp install source for server devices.
+# During the OpenClaw 0.6.0 prerelease / Oracle validation window, servers
+# intentionally track the latest `main` commit instead of the v0.5.0 tag.
+# Restore a tagged pin here when the next stable pi-shell-acp release ships.
+PI_SHELL_ACP_INSTALL_SPEC="git:github.com/junghan0611/pi-shell-acp"
+PI_SHELL_ACP_TRACKING_REF="main"
 
 # Server devices use the consumer install path (pi-managed) instead of cloning
 # pi-shell-acp into ~/repos/gh/. Add device names here as they come online.
@@ -264,7 +266,7 @@ update_repos() {
   done
   if is_server_device; then
     log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping pi-shell-acp dev pull"
-    log "  (re-run \`pi install git:github.com/junghan0611/pi-shell-acp\` to refresh)"
+    log "  (run \`./run.sh setup\` to refresh pi-shell-acp from latest main)"
   else
     for name in "${!PACKAGE_REPOS[@]}"; do
       pull_repo_if_clean "$REPOS/$name" "$name"
@@ -592,58 +594,52 @@ setup_npm() {
   local PI_SHELL_ACP_DIR
   PI_SHELL_ACP_DIR="$(pi_shell_acp_dir)"
 
-  # Read installed version (empty if no install yet). Used for drift detection
-  # on server (force upgrade) and dev (warn-only, since dev clones may carry
-  # uncommitted work that intentionally diverges from the pinned tag).
+  # Read installed package version / git commit for diagnostics. During the
+  # OpenClaw prerelease window package.json may still say 0.5.0 while the
+  # needed plugin commits live past the v0.5.0 tag, so commit is the authority.
   local installed_version=""
+  local installed_commit=""
   if [ -f "$PI_SHELL_ACP_DIR/package.json" ]; then
     installed_version="$(node -p "require('$PI_SHELL_ACP_DIR/package.json').version" 2>/dev/null || echo "")"
+    installed_commit="$(git -C "$PI_SHELL_ACP_DIR" rev-parse --short HEAD 2>/dev/null || echo "")"
   fi
 
   if is_server_device; then
-    local target_tag="v$PI_SHELL_ACP_VERSION"
     if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
-      log "pi-shell-acp: pi install git:github.com/junghan0611/pi-shell-acp@$target_tag (fresh)"
-      if ! pi install "git:github.com/junghan0611/pi-shell-acp@$target_tag"; then
+      log "pi-shell-acp: pi install $PI_SHELL_ACP_INSTALL_SPEC (fresh, latest main)"
+      if ! pi install "$PI_SHELL_ACP_INSTALL_SPEC"; then
         fail "pi-shell-acp: pi install failed"
         return 1
       fi
-    elif [ "$installed_version" != "$PI_SHELL_ACP_VERSION" ]; then
-      # pi's git package manager treats git@ref as pinned and skips refresh when
-      # the checkout directory already exists. On server devices this means
-      # `pi install git:...@vX.Y.Z` can print success while leaving the previous
-      # tag checked out. Upgrade pinned git packages directly.
-      log "pi-shell-acp: direct git upgrade $installed_version → $PI_SHELL_ACP_VERSION"
-      if ! (cd "$PI_SHELL_ACP_DIR" && git fetch --tags origin >/dev/null 2>&1 && git checkout "$target_tag" >/dev/null 2>&1 && pnpm install --silent --frozen-lockfile); then
-        fail "pi-shell-acp: direct git upgrade to $target_tag failed"
+    else
+      # pi's git package manager may treat an existing checkout as already
+      # installed. Oracle prerelease validation needs the latest main commit,
+      # so refresh the pi-managed checkout directly and reinstall deps.
+      log "pi-shell-acp: refresh latest $PI_SHELL_ACP_TRACKING_REF ($installed_commit)"
+      if ! (cd "$PI_SHELL_ACP_DIR" && git fetch --tags origin "$PI_SHELL_ACP_TRACKING_REF" >/dev/null 2>&1 && git checkout -B "$PI_SHELL_ACP_TRACKING_REF" "origin/$PI_SHELL_ACP_TRACKING_REF" >/dev/null 2>&1 && pnpm install --silent --frozen-lockfile); then
+        fail "pi-shell-acp: refresh latest $PI_SHELL_ACP_TRACKING_REF failed"
         return 1
       fi
-    fi
-    installed_version="$(node -p "require('$PI_SHELL_ACP_DIR/package.json').version" 2>/dev/null || echo "")"
-    if [ "$installed_version" != "$PI_SHELL_ACP_VERSION" ]; then
-      fail "pi-shell-acp: still at '$installed_version' (expected $PI_SHELL_ACP_VERSION)"
-      return 1
     fi
     if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
       fail "pi-shell-acp: expected install at $PI_SHELL_ACP_DIR (pi install did not produce it)"
       return 1
     fi
-    ok "pi-shell-acp consumer install ($PI_SHELL_ACP_DIR @ v$installed_version)"
-    # `pi install` already runs npm/pnpm install for the package. Skip a second pass.
+    installed_version="$(node -p "require('$PI_SHELL_ACP_DIR/package.json').version" 2>/dev/null || echo "")"
+    installed_commit="$(git -C "$PI_SHELL_ACP_DIR" rev-parse --short HEAD 2>/dev/null || echo "")"
+    ok "pi-shell-acp consumer install ($PI_SHELL_ACP_DIR @ $PI_SHELL_ACP_TRACKING_REF/$installed_commit, package v$installed_version)"
   else
     if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
       fail "pi-shell-acp: repo not found at $PI_SHELL_ACP_DIR"
       return 1
-    fi
-    if [ -n "$installed_version" ] && [ "$installed_version" != "$PI_SHELL_ACP_VERSION" ]; then
-      warn "pi-shell-acp dev clone at v$installed_version, run.sh pinned v$PI_SHELL_ACP_VERSION — dev branch may diverge from settings.server.json tag"
     fi
     log "pi-shell-acp: install + auth..."
     if ! (cd "$PI_SHELL_ACP_DIR" && pnpm install --silent --frozen-lockfile); then
       fail "pi-shell-acp: pnpm install failed"
       return 1
     fi
-    ok "pi-shell-acp pnpm install (v$installed_version)"
+    installed_commit="$(git -C "$PI_SHELL_ACP_DIR" rev-parse --short HEAD 2>/dev/null || echo "")"
+    ok "pi-shell-acp pnpm install (package v$installed_version, git $installed_commit)"
   fi
 
   # Entwurf target registry — consumer install path must expose the canonical
