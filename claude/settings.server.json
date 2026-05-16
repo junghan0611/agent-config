@@ -55,9 +55,9 @@
   },
   "language": "Korean",
   "alwaysThinkingEnabled": true,
-  "voiceEnabled": false,
-  "verbose": true,
   "skipDangerousModePermissionPrompt": true,
+  "verbose": true,
   "skipAutoPermissionPrompt": true,
-  "verbose": true
+  "voiceEnabled": false,
+  "agentPushNotifEnabled": true
 }
