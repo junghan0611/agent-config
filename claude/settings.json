@@ -162,5 +162,6 @@
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
   "autoUpdates": true,
+  "agentPushNotifEnabled": true,
   "model": "opus"
 }
