@@ -154,6 +154,21 @@ entwurf(cwd: "~/repos/gh/nixos-config", task: "...")
 → entwurf becomes nixos 담당자
 ```
 
+##### External MCP caller patterns — Asymmetric Mitsein
+
+Use this rule when this agent is running inside an **external MCP host** (Claude Code, Codex, Gemini CLI) and can see `pi-tools-bridge` `entwurf_*` capabilities. Tool identifiers differ by host (`mcp__...`, `mcp_...`, dotted Codex names, etc.); reason from the capability, not the literal tool spelling. For the workflow frame, see the Asymmetric Mitsein section and the 2026-06-15 Anthropic billing note in the [pi-shell-acp README](https://github.com/junghan0611/pi-shell-acp#entwurf-orchestration).
+
+**Identity awareness:** an external MCP host is not a pi session. It normally has no `PI_SESSION_ID`. Therefore `entwurf_self` is expected to fail and should not be called unless the user is explicitly testing that negative path. `entwurf_send` is valid from outside pi, but it sends as an external, non-replyable sender (`origin="external-mcp"`, `replyable=false`).
+
+**Default tool behavior unless the user says otherwise:**
+- `entwurf_send`: use `mode="follow_up"` and `wants_reply=false`. Do not set `wants_reply=true` from an external host; there is no replyable pi session address and the tool will reject it.
+- `entwurf` / `entwurf_resume`: use the registry defaults when model/provider are omitted. Ask for clarification only when the task, cwd, or taskId is genuinely ambiguous.
+
+**Natural-language mapping — minimize clarification:**
+- "Can you send this to session X?" / "Send this to X" → call `entwurf_send` immediately. If the message body is not explicit, summarize the immediately preceding context and send that.
+- "Show peers" / "What live sessions are available?" → call `entwurf_peers` immediately.
+- Ask one clarification only for real ambiguity such as a missing/unclear sessionId or multiple plausible targets.
+
 ### Session Start: Device/Time Auto-Provided
 - SessionStart hook provides `device=` and `time_kst=` automatically.
 - If hook output visible, no extra check needed. Otherwise: `cat ~/.current-device` and `TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S'`.
