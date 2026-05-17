@@ -13,7 +13,8 @@
       "Glob(*)",
       "WebFetch(*)",
       "WebSearch(*)",
-      "mcp__*"
+      "mcp__*",
+      "mcp__pi-tools-bridge__*"
     ],
     "deny": [
       "Agent"

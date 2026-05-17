@@ -238,10 +238,11 @@ Use this rule when this agent is running inside an **external MCP host** (Claude
 ### System Environment
 
 #### Personal Devices (~/repos/gh/nixos-config)
-- Galaxy Fold4 (SM-F936) — TERMUX
+- Galaxy S26 - TERMUX, NATIVE TERMINAL(TODO)
 - Laptop (Samsung NT930SBE) — NIXOS
 - NUC (Intel 4-Core i7) — NIXOS
 - Oracle (ARM-Neoverse-N1) — NIXOS
+<!-- - Galaxy Fold4 (SM-F936) — TERMUX -->
 
 #### Company
 
