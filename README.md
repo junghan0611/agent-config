@@ -205,9 +205,8 @@ Bridges: [pi-telegram](https://github.com/badlogic/pi-telegram) (production — 
 alias claude-tg='claude --channels plugin:telegram@claude-plugins-official'
 alias claude-tgd='claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions'
 
-# pi: --session-control default (async entwurf notifications + inter-session RPC)
-alias pi='command pi --session-control'
-alias pi-home='command pi --session-control --telegram'
+# pi: presence agent variant (Telegram bridge)
+alias pi-home='command pi --telegram'
 ```
 
 ## The -config Ecosystem

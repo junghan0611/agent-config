@@ -212,7 +212,6 @@ Environment (`~/.env.local`): `ANDENKEN_SESSION_*` and `ANDENKEN_MD_*` point at 
 `entwurf` (delegate/resume), cross-session messaging, and the pi-facing MCP bridge all live in **[pi-shell-acp](https://github.com/junghan0611/pi-shell-acp)**. agent-config consumes the surface — does not own it.
 
 - **Entry point:** `pi/settings.json` § `piShellAcpProvider.mcpServers.pi-tools-bridge.command` points at pi-shell-acp's `mcp/pi-tools-bridge/start.sh`. Injects ACP surface (`entwurf`, `entwurf_resume`, `entwurf_send`, `entwurf_peers`, `session_search`, `knowledge_search`) into every ACP session.
-- **Naming rule:** in this harness, document and teach only `entwurf_*` session tools. Avoid generic names like `send_to_session` / `list_sessions` — they collide with pi-native or legacy control surfaces.
 - **Spec:** [pi-shell-acp `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md) — registry schema, Identity Preservation Rule, sync/async contract, verification matrix.
 - **Caller responsibility (stays here):** the Cross-Repo Work Loop policy above. Responsibility lives with the caller, not the mechanism.
 
