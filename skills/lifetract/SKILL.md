@@ -1,6 +1,6 @@
 ---
 name: lifetract
-description: "Query personal life-tracking data: Samsung Health (sleep, steps, heart rate, stress, exercise, weight, HRV) + aTimeLogger (18 time categories). All records use Denote IDs (YYYYMMDDTHHMMSS) for cross-referencing with denotecli. DB mode (lifetract.db) for instant queries, CSV fallback when DB absent."
+description: "Query personal life-tracking data: Samsung Health (sleep, steps, heart rate, stress, exercise, weight, HRV) + aTimeLogger (18 time categories) + Home Assistant REST (live sensors via ha.junghanacs.com). All records use Denote IDs (YYYYMMDDTHHMMSS) for cross-referencing with denotecli. DB mode (lifetract.db) for instant queries, CSV fallback when DB absent, HA fetch for live sensor reads."
 ---
 
 # lifetract — Life Tracking CLI
@@ -91,8 +91,13 @@ lifetract today
 ```
 
 ```json
+// 데이터 있는 날 (read 2025-10-04 형태)
 {"date": "2025-10-04", "steps": 41382, "sleep_hours": 1.5, "avg_hr": 93.1, "stress_avg": 20.9, "time_categories": [...], "source": "db"}
+// 데이터 없는 날 — time_categories 등 omitempty 필드 누락
+{"date": "2026-05-18", "steps": 0, "sleep_hours": 0, "avg_hr": 0, "stress_avg": 0, "source": "db"}
 ```
+
+`time_categories` 가 비면 JSON 에서 키 자체가 빠진다 (omitempty). 데이터 있는 날 vs 없는 날 둘 다 정상 출력.
 
 ### timeline — 날짜별 횡단 뷰
 
@@ -129,6 +134,37 @@ lifetract time --days 30 --category 본짓
 lifetract export
 ```
 
+### ha — Home Assistant REST (live sensors)
+
+```bash
+lifetract ha ping                  # 연결 확인
+lifetract ha state heart_rate      # 도메인 이름으로 한 sensor 가져오기
+lifetract ha state sleep_duration  # (또는 literal entity_id 도 OK)
+lifetract ha states                # 등록된 24개 known sensor 일괄 조회
+lifetract ha entities              # HA 가 노출하는 모든 entity (raw, known 플래그 표시)
+```
+
+```json
+// ha state heart_rate
+{
+  "entity_id": "sensor.sm_s942n_s26_glgman_heart_rate",
+  "kind": "heart_rate",
+  "state": "111.0",
+  "value": 111,
+  "unit": "bpm",
+  "last_changed": "2026-05-17T22:34:11Z",
+  "attributes": {...}
+}
+```
+
+**토큰**: `pass show 2fa/totp/ha/junghanacs` (primary) → env `HA_TOKEN` (fallback) → `~/.lifetract/ha.env`. 토큰값 자체는 절대 commit/push 금지.
+
+**도메인 kind**: `sleep_duration`, `steps_daily`, `distance_daily`, `floors_daily`, `heart_rate`, `resting_heart_rate`, `heart_rate_variability`, `weight`, `body_fat`, `height`, `calories_burned`, `active_calories_burned`, `basal_metabolic_rate`, `hydration`, `detected_activity`, `geocoded_location`, `battery`, `sleep_confidence`, `respiratory_rate`, `oxygen_saturation`, `body_temperature`, `blood_glucose`, `systolic_blood_pressure`, `diastolic_blood_pressure` (24종).
+
+새 sensor 추가 = `lifetract/ha_entities.go` 의 `KnownEntities` 에 한 줄.
+
+Phase 3 현재: read-only (DB 에 안 씀). Phase 4 에서 `cmdToday`/`cmdRead` 가 DB miss 시 자동 HA fetch 후 DB upsert 예정 — *on-query lazy ingest*.
+
 ## Flags
 
 | Flag | Default | 설명 |
@@ -158,7 +194,7 @@ denotecli search "20251004"
 
 같은 Denote ID 축 → 두 CLI의 결과를 날짜로 조인 가능.
 
-## Data Coverage (updated 2026-03-10)
+## Data Coverage (DB snapshot 2026-03-10)
 
 | Source | Period | Rows |
 |--------|--------|------|
@@ -170,6 +206,9 @@ denotecli search "20251004"
 | Samsung Health weight | — | 283 |
 | Samsung Health HRV | — | 1,058 |
 | aTimeLogger | 2021-10 ~ 2026-03 | 13,918 intervals |
+| Home Assistant REST | live (recorder 30일 보관) | 24 sensor (phase 3) |
+
+CSV/SQLite 기반 DB 는 2026-03-10 까지. 이후 데이터는 `ha` 커맨드로 라이브 조회 가능 (DB 미적재). Phase 4 마이그레이션 후 lazy ingest 로 자동 누적.
 
 ## Related Skills
 
