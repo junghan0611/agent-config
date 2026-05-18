@@ -137,11 +137,12 @@ lifetract export
 ### ha — Home Assistant REST (live sensors)
 
 ```bash
-lifetract ha ping                  # 연결 확인
-lifetract ha state heart_rate      # 도메인 이름으로 한 sensor 가져오기
-lifetract ha state sleep_duration  # (또는 literal entity_id 도 OK)
-lifetract ha states                # 등록된 24개 known sensor 일괄 조회
-lifetract ha entities              # HA 가 노출하는 모든 entity (raw, known 플래그 표시)
+lifetract ha ping                              # 연결 확인
+lifetract ha state heart_rate                  # 도메인 이름으로 한 sensor 가져오기
+lifetract ha state sleep_duration              # (또는 literal entity_id 도 OK)
+lifetract ha states                            # 등록된 24개 known sensor 일괄 조회
+lifetract ha entities                          # HA 가 노출하는 모든 entity (raw, known 플래그 표시)
+lifetract ha history sleep_duration --days 7   # 7일치 state 변화 (HA recorder)
 ```
 
 ```json
@@ -163,7 +164,26 @@ lifetract ha entities              # HA 가 노출하는 모든 entity (raw, kno
 
 새 sensor 추가 = `lifetract/ha_entities.go` 의 `KnownEntities` 에 한 줄.
 
-Phase 3 현재: read-only (DB 에 안 씀). Phase 4 에서 `cmdToday`/`cmdRead` 가 DB miss 시 자동 HA fetch 후 DB upsert 예정 — *on-query lazy ingest*.
+**`ha history` 동작**: HA recorder 는 *state 변화 시점에만* row 저장. recorder 30일 보관은 "있는 데이터 보존" 이지 "없는 데이터 채워줌" 이 아님. HA 인프라가 띄워진 시점 이전 데이터는 영원히 안 잡힘. 과거는 Samsung CSV export 가 유일한 길. HA history = *내일부터의 적립* 자리.
+
+```json
+// ha history sleep_duration --days 7
+{
+  "entity_id": "sensor.sm_s942n_s26_glgman_sleep_duration",
+  "kind": "sleep_duration",
+  "unit": "min",
+  "days": 7,
+  "from": "2026-05-11T...+09:00",
+  "to":   "2026-05-18T...+09:00",
+  "count": 2,
+  "points": [
+    {"last_changed": "...", "value": 427, "unit": "min", "attributes": {"endTime": "..."}},
+    ...
+  ]
+}
+```
+
+Phase 3.5 현재: read-only (DB 에 안 씀). Phase 4 에서 `cmdToday`/`cmdRead` 가 DB miss 시 자동 HA fetch (state + history) 후 DB upsert 예정 — *on-query lazy ingest*.
 
 ## Flags
 
