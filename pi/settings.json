@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.74.1",
+  "lastChangelogVersion": "0.75.0",
   "defaultProvider": "pi-shell-acp",
   "defaultModel": "claude-sonnet-4-6",
   "defaultThinkingLevel": "medium",
