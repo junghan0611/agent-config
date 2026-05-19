@@ -18,6 +18,15 @@ if [[ "$cwd" == "$HOME" ]]; then
 elif [[ "$cwd" == "$HOME"/* ]]; then
   cwd="~${cwd#$HOME}"
 fi
+
+# Split cwd into base + final segment so the final segment can be highlighted.
+if [[ "$cwd" == */* ]]; then
+  cwd_dir="${cwd%/*}/"
+  cwd_tail="${cwd##*/}"
+else
+  cwd_dir=""
+  cwd_tail="$cwd"
+fi
 model_id=$(echo "$input" | jq -r '.model.id // "?"')
 
 if [[ "$model_id" == *opus* ]]; then
@@ -77,4 +86,4 @@ if [[ -n "$ctx_json" ]]; then
   ctx_info=$(printf " | %b%s/%s %d%%\033[0m\033[2m" "$color" "$human" "$limit_label" "$pct")
 fi
 
-printf "\033[2m%s %s%s | %s%s%b\033[0m" "$device" "$cwd" "$git_info" "$model" "$vterm" "$ctx_info"
+printf "\033[2m%s %s\033[0m\033[1;36m%s\033[0m\033[2m%s | %s%s%b\033[0m" "$device" "$cwd_dir" "$cwd_tail" "$git_info" "$model" "$vterm" "$ctx_info"
