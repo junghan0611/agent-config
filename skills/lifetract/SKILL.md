@@ -72,7 +72,7 @@ lifetract import                    # dry-run: 매니페스트 확인
 lifetract import --exec             # 실행: CSV+aTimeLogger → lifetract.db
 ```
 
-198,030 rows, 36MB, ~3s. Tables: sleep, sleep_stage, heart_rate, steps_daily, stress, exercise, weight, hrv, atl_category, atl_interval.
+198,547 rows, 36MB, ~2s. Tables: sleep, sleep_stage, heart_rate, steps_daily, stress, exercise, weight, hrv, atl_category, atl_interval.
 
 ### read — Denote ID로 조회
 
@@ -214,21 +214,22 @@ denotecli search "20251004"
 
 같은 Denote ID 축 → 두 CLI의 결과를 날짜로 조인 가능.
 
-## Data Coverage (DB snapshot 2026-03-10)
+## Data Coverage (DB snapshot 2026-05-19, Samsung CSV → 2026-05-18)
 
 | Source | Period | Rows |
 |--------|--------|------|
-| Samsung Health sleep | 2017-03 ~ 2026-03 | 4,489 |
-| Samsung Health heart rate | 2017-03 ~ 2026-03 | 62,036 |
-| Samsung Health steps | 2017 ~ 2026-03 | 9,692 |
-| Samsung Health stress | 2017-03 ~ 2026-03 | 25,768 |
-| Samsung Health exercise | 2017-03 ~ 2026-03 | 2,195 |
-| Samsung Health weight | — | 283 |
-| Samsung Health HRV | — | 1,058 |
-| aTimeLogger | 2021-10 ~ 2026-03 | 13,918 intervals |
-| Home Assistant REST | live (recorder 30일 보관) | 24 sensor (phase 3) |
+| Samsung Health sleep | 2017-03 ~ 2026-05 | 4,638 |
+| Samsung Health sleep_stage | 2017-03 ~ 2026-05 | 82,357 |
+| Samsung Health heart rate | 2017-05 ~ 2026-05 | 63,575 |
+| Samsung Health steps_daily | 2017-03 ~ 2026-05 | 3,330 (3,324 dates) |
+| Samsung Health stress | 2017-03 ~ 2026-05 | 26,775 |
+| Samsung Health exercise | 2017-03 ~ 2026-05 | 2,199 |
+| Samsung Health weight | — | 284 |
+| Samsung Health HRV | 2017 ~ 2025 | 1,058 (S26 이후 0건) |
+| aTimeLogger | 2021-10 ~ 2026-05 | 14,331 intervals (18 categories) |
+| Home Assistant REST | live (recorder 30일 보관) | 24 sensor (phase 3.5) |
 
-CSV/SQLite 기반 DB 는 2026-03-10 까지. 이후 데이터는 `ha` 커맨드로 라이브 조회 가능 (DB 미적재). Phase 4 마이그레이션 후 lazy ingest 로 자동 누적.
+CSV/SQLite 기반 DB 는 **2026-05-18** 까지 (한달치 수면/심박 등 정량 질의 가능). Samsung CSV 가 본 SSOT, 주기 덤프로 갱신. 5/17 이후 라이브는 `ha` 커맨드로 — 두 source 가 5/17 자리에서 겹쳐 시간축 단절 없음. Phase 4 (HA→DB lazy ingest) 는 시급성 낮음.
 
 ## Related Skills
 
