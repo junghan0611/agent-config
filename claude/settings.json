@@ -160,9 +160,8 @@
   "alwaysThinkingEnabled": true,
   "skipDangerousModePermissionPrompt": true,
   "verbose": true,
+  "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
-  "autoUpdates": true,
-  "agentPushNotifEnabled": true,
-  "model": "opus"
+  "autoUpdates": true
 }

@@ -4,6 +4,17 @@
 > persistent facts in `AGENTS.md` / `docs/`. This file lists only
 > what is left to do. Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
+## [2026-05-18] 오늘 정리 완료
+
+- voscli 스킬 삭제 — `~/repos/work/voscli/` 로컬 스킬로 이관 완료 (`113e096`)
+- session-control pi-extension 제거 — dead surface 정리 (`016005b`)
+- Skill 툴 권한 추가 — permission prompt 제거 (`4742b6f`)
+- lifetract SKILL.md 싱크 — ha 커맨드 + today JSON shape 호도 정정 (`5ec2ad2`)
+
+다음 Track은 아래 pi-chat 검증 (진입 조건 변동 없음).
+
+---
+
 ## [2026-05-16] Track B — pi-chat + 상주 담당자 패턴 선행 검증
 
 ### 왜
