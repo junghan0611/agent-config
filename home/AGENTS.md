@@ -293,7 +293,7 @@ See PRIVATE.md.
 ```bash
 # 1. Collect commit info
 REMOTE=$(git remote get-url origin)
-REPO_URL=$(echo "$REMOTE" | sed 's|git@github.com:|https://github.com/|;s|\.git$||')
+REPO_URL=$(echo "$REMOTE" | sed -E 's|git@github(-[a-z]+)?\.com:|https://github.com/|;s|\.git$||')
 REPO_NAME=$(basename "$REMOTE" .git)
 REPO_TAG=$(echo "$REPO_NAME" | sed 's/[-.]//g')   # remove hyphens and dots: homeagent-config → homeagentconfig, notes.junghanacs.com → notesjunghanacscom
 SHA=$(git rev-parse --short HEAD)
