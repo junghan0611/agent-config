@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.75.0",
+  "lastChangelogVersion": "0.75.3",
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.5",
   "defaultThinkingLevel": "medium",
@@ -13,7 +13,7 @@
   ],
   "piShellAcpProvider": {
     "appendSystemPrompt": false,
-    "showToolNotifications": false,
+    "showToolNotifications": true,
     "skillPlugins": [
       "/home/junghan/.pi/agent/claude-plugin"
     ],
