@@ -28,6 +28,7 @@ from pathlib import Path
 
 SESSIONS_DIR = Path.home() / ".pi" / "agent" / "sessions"
 CONTROL_DIR = Path.home() / ".pi" / "entwurf-control"
+UUID_RE = re.compile(r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$", re.IGNORECASE)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -143,31 +144,78 @@ def find_session_files(
     return results
 
 
-def resolve_session(target: str) -> Path | None:
-    """ID(8hex/full UUID/entwurf-xxx) 또는 파일 경로를 실제 JSONL 경로로 해결."""
+def iter_session_files_in_dir(dir_path: Path) -> list[Path]:
+    files = []
+    if not dir_path.exists():
+        return files
+    for f in dir_path.iterdir():
+        if f.suffix == ".jsonl":
+            files.append(f)
+    files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return files
+
+
+def format_session_label(path: Path, info: dict | None = None) -> str:
+    info = info or parse_filename(path)
+    return f"{info['kind']}-{info['short']}"
+
+
+def resolve_session(target: str) -> tuple[Path | None, str | None]:
+    """ID(8hex/full UUID/entwurf-xxx) 또는 파일 경로를 실제 JSONL 경로로 해결.
+
+    full UUID는 exact match 우선. 짧은 prefix가 여러 세션과 충돌하면 최근 것으로
+    침묵 선택하지 않고 ambiguous 에러를 돌려준다.
+    """
     p = Path(target).expanduser()
     if p.is_file():
-        return p
+        return p, None
     if p.is_absolute() and p.exists():
-        return p
+        return p, None
 
-    # bare token search across all sessions
-    needle = target
+    needle = target.strip()
     if needle.startswith("entwurf-") or needle.startswith("delegate-"):
         needle = needle.split("-", 1)[1]
     needle = needle.lower()
 
-    matches = []
+    candidates: list[tuple[Path, dict]] = []
     for f in find_session_files():
         info = parse_filename(f)
-        if info["id"].lower().startswith(needle) or info["short"].lower() == needle[:8]:
-            matches.append(f)
+        candidates.append((f, info))
 
-    if not matches:
-        return None
-    # 동일 ID 여러 매치면 가장 최근
-    matches.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-    return matches[0]
+    if UUID_RE.fullmatch(needle):
+        exact = [f for f, info in candidates if info["kind"] == "uuid" and info["id"].lower() == needle]
+        if not exact:
+            return None, f"세션 못 찾음: {target}"
+        exact.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        return exact[0], None
+
+    exact = [f for f, info in candidates if info["id"].lower() == needle]
+    if len(exact) == 1:
+        return exact[0], None
+    if len(exact) > 1:
+        exact.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        return exact[0], None
+
+    prefix_matches = []
+    for f, info in candidates:
+        id_l = info["id"].lower()
+        short_l = info["short"].lower()
+        if id_l.startswith(needle) or (len(needle) <= 8 and short_l == needle):
+            prefix_matches.append((f, info))
+
+    if not prefix_matches:
+        return None, f"세션 못 찾음: {target}"
+
+    uniq_ids = {info["id"].lower() for _, info in prefix_matches}
+    if len(uniq_ids) > 1:
+        preview = ", ".join(
+            f"{format_session_label(f, info)}@{f.parent.name}/{f.name}"
+            for f, info in prefix_matches[:5]
+        )
+        return None, f"세션 ID ambiguous: {target} → {preview}"
+
+    prefix_matches.sort(key=lambda x: x[0].stat().st_mtime, reverse=True)
+    return prefix_matches[0][0], None
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -229,6 +277,71 @@ def find_child_entwurf_ids(parent_path: Path) -> list[tuple[str, str]]:
     return out
 
 
+def find_declared_parents(child_path: Path) -> list[dict]:
+    """child entwurf/delegate를 declared 완료 메시지로 가리키는 부모 세션 찾기."""
+    child_info = parse_filename(child_path)
+    if child_info["kind"] not in ("entwurf", "delegate"):
+        return []
+
+    child_id = child_info["id"].lower()
+    parents = []
+    for f in iter_session_files_in_dir(child_path.parent):
+        if f == child_path:
+            continue
+        declared = find_child_entwurf_ids(f)
+        if not declared:
+            continue
+        if any(child_id.startswith(d.lower()) or d.lower().startswith(child_id) for _, d in declared):
+            info = parse_filename(f)
+            parents.append({
+                "path": f,
+                "info": info,
+                "mtime": f.stat().st_mtime,
+                "matched_by": "declared",
+            })
+
+    parents.sort(key=lambda p: p["mtime"], reverse=True)
+    return parents
+
+
+def find_heuristic_parents(child_path: Path, window_seconds: int = 7200) -> list[dict]:
+    """declared parent가 아직 안 박혔을 때 같은 cwd의 시간 인접 후보를 준다."""
+    child_info = parse_filename(child_path)
+    if child_info["kind"] not in ("entwurf", "delegate"):
+        return []
+
+    child_mtime = child_path.stat().st_mtime
+    out = []
+    for f in iter_session_files_in_dir(child_path.parent):
+        if f == child_path:
+            continue
+        info = parse_filename(f)
+        if info["kind"] not in ("uuid", "entwurf", "delegate"):
+            continue
+        mtime = f.stat().st_mtime
+        if abs(mtime - child_mtime) > window_seconds:
+            continue
+        # 일반적으로 caller는 uuid 부모가 더 그럴듯하므로 가벼운 bias
+        score = abs(mtime - child_mtime) + (0 if info["kind"] == "uuid" else 600)
+        out.append({
+            "path": f,
+            "info": info,
+            "mtime": mtime,
+            "matched_by": "time_adjacent",
+            "score": score,
+        })
+
+    out.sort(key=lambda x: (x["score"], -x["mtime"]))
+    return out
+
+
+def find_callers_for_child(child_path: Path) -> list[dict]:
+    declared = find_declared_parents(child_path)
+    if declared:
+        return declared
+    return find_heuristic_parents(child_path)
+
+
 def extract_peek_data(path: Path, n_msgs: int, n_tools: int, include_thinking: bool) -> dict:
     """세션 JSONL → peek용 컴팩트 데이터.
 
@@ -236,16 +349,28 @@ def extract_peek_data(path: Path, n_msgs: int, n_tools: int, include_thinking: b
     - 최근 N개 tool 호출 흔적 ([tool:start]/[tool:done] 텍스트 라인)
     - 최근 thinking 블록 1개 (옵션)
     - 기간, 라인 수, 부모-자식 시그널
+    - 모델/provider, 현재 상태(대기/도구 실행/응답 대기) 추정
     """
     records = read_jsonl_safe(path)
 
-    messages = []          # user/assistant 텍스트 메시지
-    tool_lines = []        # 인라인 tool 흔적 (텍스트로 들어옴)
+    messages = []
+    tool_lines = []
     last_thinking = None
     session_start = None
     session_end = None
     first_user_task = None
     model = None
+    last_role_any = None
+    last_event = None
+    pending_tool_calls: dict[str, dict] = {}
+    pending_inline_count = 0
+
+    def set_model(provider: str | None, model_id: str | None):
+        nonlocal model
+        if provider and model_id:
+            model = f"{provider}/{model_id}"
+        elif model_id:
+            model = model_id
 
     for rec in records:
         t = rec.get("type", "")
@@ -255,7 +380,7 @@ def extract_peek_data(path: Path, n_msgs: int, n_tools: int, include_thinking: b
             session_start = session_start or ts
             continue
         if t == "model_change":
-            model = rec.get("model") or rec.get("to") or model
+            set_model(rec.get("provider"), rec.get("modelId") or rec.get("model") or rec.get("to"))
             continue
         if t != "message":
             continue
@@ -265,13 +390,23 @@ def extract_peek_data(path: Path, n_msgs: int, n_tools: int, include_thinking: b
         if role not in ("user", "assistant", "toolResult"):
             continue
 
+        last_role_any = role
         if not session_start:
             session_start = ts
         session_end = ts
 
+        if role == "assistant":
+            set_model(msg.get("provider") or rec.get("provider"), msg.get("model") or rec.get("model"))
+
         content = msg.get("content", [])
-        # toolResult role: skip in messages list (these are tool outputs)
         if role == "toolResult":
+            tool_name = msg.get("toolName", "tool")
+            tool_call_id = msg.get("toolCallId")
+            is_error = bool(msg.get("isError"))
+            if tool_call_id:
+                pending_tool_calls.pop(tool_call_id, None)
+            last_event = "tool_result"
+            tool_lines.append((ts, f"[tool:{'failed' if is_error else 'done'}] {tool_name}"))
             continue
 
         texts = []
@@ -284,29 +419,59 @@ def extract_peek_data(path: Path, n_msgs: int, n_tools: int, include_thinking: b
                 ct = c.get("type")
                 if ct == "text":
                     txt = c.get("text", "")
-                    if txt:
-                        # tool inline marker?
-                        if txt.startswith("\n[tool:") or txt.startswith("[tool:"):
-                            tool_lines.append((ts, txt.strip()))
-                        elif "[permission:" in txt:
-                            tool_lines.append((ts, txt.strip()))
-                        else:
-                            texts.append(txt)
+                    if not txt:
+                        continue
+                    stripped = txt.strip()
+                    if txt.startswith("\n[tool:") or txt.startswith("[tool:"):
+                        tool_lines.append((ts, stripped))
+                        if "[tool:start]" in stripped:
+                            pending_inline_count += 1
+                            last_event = "inline_tool_start"
+                        elif "[tool:done]" in stripped or "[tool:failed]" in stripped:
+                            pending_inline_count = max(0, pending_inline_count - 1)
+                            last_event = "tool_result"
+                    elif "[permission:" in txt:
+                        tool_lines.append((ts, stripped))
+                    else:
+                        texts.append(txt)
+                        last_event = "assistant_text" if role == "assistant" else "user_text"
                 elif ct == "thinking":
                     if include_thinking:
                         thk = c.get("thinking", "")
                         if thk:
                             last_thinking = (ts, thk)
+                elif ct == "toolCall":
+                    tool_name = c.get("name", "tool")
+                    tool_call_id = c.get("id") or f"{ts}:{len(pending_tool_calls)}"
+                    pending_tool_calls[tool_call_id] = {"name": tool_name, "ts": ts}
+                    last_event = "tool_start"
+                    tool_lines.append((ts, f"[tool:start] {tool_name}"))
 
         text = "\n".join(texts).strip()
         if not text:
             continue
 
-        # 첫 user 메시지 = task
         if role == "user" and first_user_task is None:
             first_user_task = text
 
         messages.append({"role": role, "ts": ts, "text": text})
+
+    # State is a last-event heuristic. Stale orphaned tool calls can remain in
+    # old JSONL, so only report "tool running" when the newest event itself is a
+    # tool start. If a later assistant text exists, the session is waiting for user.
+    pending_names = [v["name"] for _, v in sorted(pending_tool_calls.items(), key=lambda x: x[1]["ts"])]
+    if last_event == "tool_start":
+        current_state = f"tool running: {', '.join(pending_names[:3])}" if pending_names else "tool running"
+    elif last_event == "inline_tool_start" and pending_inline_count > 0:
+        current_state = "tool running (inline)"
+    elif last_event == "tool_result" or last_role_any == "toolResult":
+        current_state = "tool finished; awaiting assistant reply"
+    elif last_event == "user_text" or (messages and messages[-1]["role"] == "user"):
+        current_state = "awaiting assistant reply"
+    elif last_event == "assistant_text" or (messages and messages[-1]["role"] == "assistant"):
+        current_state = "waiting for user"
+    else:
+        current_state = "unknown"
 
     return {
         "messages": messages[-n_msgs:],
@@ -316,8 +481,21 @@ def extract_peek_data(path: Path, n_msgs: int, n_tools: int, include_thinking: b
         "session_end": session_end,
         "first_user_task": first_user_task,
         "model": model,
+        "current_state": current_state,
         "record_count": len(records),
     }
+
+
+def compact_model_state_suffix(detail: dict) -> str:
+    """한 줄 출력용 compact model/state suffix."""
+    parts = []
+    model = detail.get("model")
+    if model:
+        parts.append(model.split("/")[-1])
+    state = detail.get("current_state")
+    if state:
+        parts.append(state)
+    return "  · " + " / ".join(parts) if parts else ""
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -325,9 +503,9 @@ def extract_peek_data(path: Path, n_msgs: int, n_tools: int, include_thinking: b
 # ──────────────────────────────────────────────────────────────────────────────
 
 def cmd_peek(args) -> int:
-    path = resolve_session(args.target)
+    path, err = resolve_session(args.target)
     if path is None:
-        print(f"세션 못 찾음: {args.target}", file=sys.stderr)
+        print(err or f"세션 못 찾음: {args.target}", file=sys.stderr)
         return 1
 
     info = parse_filename(path)
@@ -345,8 +523,16 @@ def cmd_peek(args) -> int:
     lines = []
     lines.append(f"═══ {icon} {info['kind']}-{info['short']}  ({age} ago){sock} ═══")
     lines.append(f"  file:   {path.parent.name}/{path.name}")
+    callers = find_callers_for_child(path)
+    if callers:
+        primary = callers[0]
+        suffix = ""
+        if len(callers) > 1:
+            suffix = f" (+{len(callers) - 1})"
+        lines.append(f"  caller: {format_session_label(primary['path'], primary['info'])}  [{primary['matched_by']}]" + suffix)
     if data["model"]:
         lines.append(f"  model:  {data['model']}")
+    lines.append(f"  state:  {data['current_state']}")
     lines.append(f"  span:   {fmt_ts(data['session_start'])} → {fmt_ts(data['session_end'])}  ({data['record_count']} records)")
 
     if data["first_user_task"]:
@@ -415,12 +601,23 @@ def cmd_map(args) -> int:
         if status == "done" and not args.all and not has_socket:
             continue
 
+        caller = None
+        detail = None
+        if info["kind"] in ("entwurf", "delegate"):
+            callers = find_callers_for_child(f)
+            caller = callers[0] if callers else None
+            detail = extract_peek_data(f, 1, 1, False)
+        elif has_socket:
+            detail = extract_peek_data(f, 1, 1, False)
+
         rows.append({
             "info": info,
             "path": f,
             "mtime": mtime,
             "status": status,
             "has_socket": has_socket,
+            "caller": caller,
+            "detail": detail,
         })
 
     if not rows:
@@ -451,7 +648,12 @@ def cmd_map(args) -> int:
             kind = r["info"]["kind"]
             short = r["info"]["short"]
             age = fmt_age(r["mtime"])
-            lines.append(f"    {icon} {sock} {kind:8} {short}  ({age} ago)")
+            caller_suffix = ""
+            if r.get("caller"):
+                caller = r["caller"]
+                caller_suffix = f"  ← {format_session_label(caller['path'], caller['info'])} [{caller['matched_by']}]"
+            detail_suffix = compact_model_state_suffix(r["detail"]) if r.get("detail") else ""
+            lines.append(f"    {icon} {sock} {kind:8} {short}  ({age} ago){caller_suffix}{detail_suffix}")
 
     print("\n".join(lines))
     return 0
@@ -462,9 +664,9 @@ def cmd_map(args) -> int:
 # ──────────────────────────────────────────────────────────────────────────────
 
 def cmd_trace(args) -> int:
-    parent_path = resolve_session(args.parent)
+    parent_path, err = resolve_session(args.parent)
     if parent_path is None:
-        print(f"부모 세션 못 찾음: {args.parent}", file=sys.stderr)
+        print(err or f"부모 세션 못 찾음: {args.parent}", file=sys.stderr)
         return 1
 
     parent_info = parse_filename(parent_path)
@@ -489,20 +691,24 @@ def cmd_trace(args) -> int:
 
     # 자식 결정: declared_ids에 들어있거나, 부모 활동 시간대 ±N분 이내
     children = []
+    hidden_nearby = []
     for f, info in siblings:
         mtime = f.stat().st_mtime
         # 8hex match
         matched = any(info["id"].startswith(d) or d.startswith(info["id"]) for d in declared_ids)
         # 시간 인접: 부모 시간대 내
         time_adj = abs(mtime - parent_mtime) <= 7200  # 2 hour window
+        row = {
+            "path": f,
+            "info": info,
+            "mtime": mtime,
+            "status": classify_activity(mtime),
+            "matched_by": "declared" if matched else "time_adjacent",
+        }
         if matched or (args.heuristic and time_adj):
-            children.append({
-                "path": f,
-                "info": info,
-                "mtime": mtime,
-                "status": classify_activity(mtime),
-                "matched_by": "declared" if matched else "time_adjacent",
-            })
+            children.append(row)
+        elif time_adj:
+            hidden_nearby.append(row)
 
     children.sort(key=lambda c: c["mtime"])
 
@@ -527,7 +733,12 @@ def cmd_trace(args) -> int:
             kind = c["info"]["kind"]
             short = c["info"]["short"]
             age = fmt_age(c["mtime"])
-            lines.append(f"    {icon} {kind:8} {short}  ({age} ago)  [{c['matched_by']}]")
+            detail = extract_peek_data(c["path"], 1, 1, False)
+            detail_suffix = compact_model_state_suffix(detail)
+            lines.append(f"    {icon} {kind:8} {short}  ({age} ago)  [{c['matched_by']}]{detail_suffix}")
+
+    if hidden_nearby and not args.heuristic:
+        lines.append(f"\n  nearby candidates hidden: {len(hidden_nearby)}  (pass --heuristic)")
 
     print("\n".join(lines))
     return 0

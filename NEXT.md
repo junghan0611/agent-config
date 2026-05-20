@@ -4,6 +4,14 @@
 > persistent facts in `AGENTS.md` / `docs/`. This file lists only
 > what is left to do. Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
+## [2026-05-20] entwurf-peek 후속
+
+- sync spawn blind spot 재발 시 `tool:done` 전 단계(`tool:start` + fresh child file correlation)까지 보여줄지 판단. 지금은 declared `tool:done Task ID`가 1차 시그널
+- state는 last-event heuristic으로 정리됨. pi-shell-acp inline text / openai-codex toolCall 사례는 확인했지만, live 실행 중 provider별 JSONL shape는 실전 1~2회 더 보며 보정
+- heuristic caller 오인 가능성 낮추는 scoring 보강 여부는 실전 사례 1~2회 더 보고 결정
+
+---
+
 ## [2026-05-18] 오늘 정리 완료
 
 - voscli 스킬 삭제 — `~/repos/work/voscli/` 로컬 스킬로 이관 완료 (`113e096`)

@@ -16,9 +16,9 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 
 | Subcommand | Purpose | Example |
 |------------|---------|---------|
-| `peek <id>` | 세션 안 마지막 메시지 + 활성 여부 | `peek ddb3cbb2` |
-| `map` | 살아있는 세션 전체 지도 (sockets + 최근 entwurf 파일) | `map -p abductcli` |
-| `trace <parent>` | 부모가 던진 자식 entwurf 추적 | `trace 019dddb0` |
+| `peek <id>` | 세션 안 마지막 메시지 + 활성 여부 + caller + model/state | `peek ddb3cbb2` |
+| `map` | 살아있는 세션 전체 지도 (sockets + 최근 entwurf 파일 + child caller + compact model/state) | `map -p abductcli` |
+| `trace <parent>` | 부모가 던진 자식 entwurf 추적 + child compact model/state | `trace 019dddb0` |
 
 ### Common flags
 
@@ -37,6 +37,9 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 
 `<id>`는 8-hex (`ddb3cbb2`), full UUID (`019dddb0-...`), `entwurf-xxx`, 또는 직접 파일 경로.
 
+- full UUID는 **exact match 우선**
+- 짧은 prefix가 여러 세션과 충돌하면 최근 것으로 침묵 선택하지 않고 **ambiguous 에러**를 낸다
+
 ### `map`
 
 | Flag | Default | Description |
@@ -54,6 +57,7 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 | `--heuristic` | off | declared 매치 외 시간 인접 자식도 포함 (±2h) |
 
 자식 매칭은 부모 JSONL의 `[tool:done] mcp__pi-tools-bridge__entwurf — Task ID: <hex>` 텍스트에서 추출. 이게 1차 시그널.
+기본 `trace`는 heuristic 자식을 자동 포함하지 않지만, **숨겨진 nearby candidate 개수**는 보여준다.
 
 ## Examples
 
@@ -88,13 +92,17 @@ Sync entwurf로 호출자가 "Mattering..."에 묶여있을 때, **다른 세션
 ## Output 규칙
 
 - 헤더에 항상 `═══ {icon} {kind}-{short_id} ({age}) ═══` 형식 — 무엇을 보고 있는지 고정
+- child `entwurf-*` / `delegate-*` 는 가능하면 `caller: uuid-... [declared|time_adjacent]` 를 함께 보여준다
+- `peek` 는 가능하면 `model: provider/model` + `state: tool running | awaiting assistant reply | waiting for user` 를 함께 보여준다
+- `map` / `trace` 는 child row 끝에 `· model / state` compact suffix를 붙인다
 - 메시지/thinking은 `--chars`로 자르고, 줄바꿈은 공백으로 치환 (한 줄 압축)
 - inline `[tool:start]/[tool:done]` 텍스트는 `🔧 recent tools` 섹션에 별도 분리
 
 ## 한계 및 신뢰 경계
 
 - **활성 판정은 mtime 기반만**: 자식 entwurf-*는 control socket이 없어서 프로세스 살아있는지 직접 못 본다. mtime이 멈춘 지 5분이면 done으로 분류 — 진짜 죽었는지 확신 못 함
-- **부모-자식 매칭**: declared(1차)는 강한 시그널. `--heuristic`은 시간 인접만 보므로 같은 cwd에서 다른 부모가 던진 entwurf와 섞일 수 있음
+- **부모-자식 매칭**: declared(1차)는 강한 시그널. caller / `--heuristic`은 시간 인접만 보므로 같은 cwd에서 다른 부모가 던진 entwurf와 섞일 수 있음
+- **상태 추정은 last-event heuristic**: 최신 이벤트가 tool start면 `tool running`, tool result면 `awaiting assistant reply`, assistant text면 `waiting for user`. 오래된 orphan toolCall은 무시한다. provider별 JSONL shape가 다르면 정확도는 떨어질 수 있음
 - **partial line 안전**: 마지막 라인이 writer-in-progress면 자동 스킵 (json decode 실패 시 무시)
 
 ## Cost
