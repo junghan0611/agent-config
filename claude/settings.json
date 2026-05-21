@@ -187,6 +187,7 @@
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "useAutoModeDuringPlan": false,
+  "autoMemoryEnabled": false,
   "voiceEnabled": true,
   "autoUpdates": true
 }

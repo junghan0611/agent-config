@@ -54,7 +54,7 @@ The result: context survives across sessions, across harnesses, across models. O
 | **pi + pi-shell-acp** (default Claude path) | andenken extension on pi side; Claude side gets full skill set via this repo's plugin farm | full skill set on both sides — `semantic-memory` mounted as a SKILL.md skill, plus `session_search` / `knowledge_search` registerTool on pi for direct calls | SDK isolation (`settingSources: []`); skills injected via `piShellAcpProvider.skillPlugins` |
 | **pi + anthropic** (`claude-opus-4-7` / `claude-sonnet-4-6`) | andenken extension (in-process LanceDB) | full skill set including `semantic-memory` skill; `session_search` / `knowledge_search` registerTool also available | Direct provider — available, not the current default |
 | **pi-entwurf** (Oracle, tmux) | andenken extension + pi-telegram | full skill set + Telegram bridge | Persistent Opus session via `@glg_entwurf_bot` |
-| **Claude Code** | andenken skill (CLI wrapper) | full skill set | CLAUDE.md + hooks |
+| **Claude Code** | andenken skill (CLI wrapper) | full skill set | CLAUDE.md + hooks; settings tuned to mirror pi-shell-acp overlay (`defaultMode: default`, `autoMemoryEnabled: false`, binary/external tools deny-listed) |
 | **OpenCode / OpenClaw** | andenken skill (same SSOT via symlink) | full skill set | settings / Nix store mount |
 
 Session JSONL from all harnesses flows into [andenken](https://github.com/junghan0611/andenken)'s unified index. Each chunk carries a `source` field (`"pi"` | `"claude"`) so you can filter, compare, or roll back across harnesses.
@@ -102,6 +102,22 @@ This repo is the **official consumer reference** for the `pi-shell-acp` surface.
 So when `pi-shell-acp` changes, this is the first consumer that should stay green.
 
 Spec, verification harnesses, and the sync/async contract remain in [pi-shell-acp `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md).
+
+### Claude Code as Native Pi Surface
+
+When pi-shell-acp isn't the path (operator chooses native Claude Code, or the 2026-06-15 Anthropic billing shift puts more sessions on direct Claude Code), `claude/settings.json` and `claude/settings.server.json` keep the native session as close to pi-shell-acp's ACP overlay as possible.
+
+| Axis | pi-shell-acp overlay | agent-config Claude Code |
+|---|---|---|
+| `permissions.defaultMode` | `"default"` | `"default"` |
+| auto-memory | `autoMemoryEnabled: false` + empty `projects/` tree | same — per-cwd `memory/` kept empty |
+| binary tools (PlanMode / Worktree) | not exposed | deny-listed |
+| external surface tools (AskUserQuestion / Task* / Cron*) | not exposed | deny-listed |
+| plugin farm | none | `enabledPlugins` false for all |
+| MCP entwurf bridge | `pi-tools-bridge` mounted | `mcp__pi-tools-bridge__*` allowed |
+| operator hooks | empty (`hooks: {}`) | `peon-ping` retained (deliberate) |
+
+Aside from the hook channel, the two surfaces are interchangeable. This is the resident-side counterpart to **Asymmetric Mitsein** (비대칭 공존) — pi can spawn or message native Claude Code without the native surface drifting from pi conventions. Both halves of the harness pair stay aligned regardless of which one the operator is sitting in.
 
 ### Skills ([`skills/`](skills/))
 
