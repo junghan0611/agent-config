@@ -18,8 +18,26 @@
       "mcp__pi-tools-bridge__*"
     ],
     "deny": [
-      "Agent"
-    ]
+      "Agent",
+      "AskUserQuestion",
+      "CronCreate",
+      "CronDelete",
+      "CronList",
+      "EnterPlanMode",
+      "ExitPlanMode",
+      "EnterWorktree",
+      "ExitWorktree",
+      "Monitor",
+      "NotebookEdit",
+      "PushNotification",
+      "TaskCreate",
+      "TaskGet",
+      "TaskList",
+      "TaskOutput",
+      "TaskStop",
+      "TaskUpdate"
+    ],
+    "defaultMode": "default"
   },
   "hooks": {
     "Stop": [
@@ -55,12 +73,18 @@
     "telegram@claude-plugins-official": false
   },
   "language": "Korean",
-  "alwaysThinkingEnabled": true,
+  "promptSuggestionEnabled": false,
+  "awaySummaryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
-  "verbose": true,
-  "skipAutoPermissionPrompt": true,
-  "voiceEnabled": false,
-  "autoUpdates": true,
+  "editorMode": "normal",
+  "verbose": false,
+  "preferredNotifChannel": "notifications_disabled",
+  "autoCompactEnabled": false,
+  "showTurnDuration": false,
+  "terminalProgressBarEnabled": false,
   "agentPushNotifEnabled": true,
-  "model": "opus"
+  "skipAutoPermissionPrompt": true,
+  "useAutoModeDuringPlan": false,
+  "voiceEnabled": false,
+  "autoUpdates": true
 }
