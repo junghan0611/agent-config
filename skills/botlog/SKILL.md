@@ -13,6 +13,8 @@ user_invocable: true
 | Public | Digital garden | Private (agent work log) |
 | Tag | `:botlog:` required | `:llmlog:` required |
 | Use | Research/analysis results | Work instructions, delegation |
+| `#+description:` / `#+hugo_lastmod:` | required (hugo SEO) | omit |
+| `[!abstract] 이 노트에 대하여` block | **required** | **required** |
 
 Default = botlog. Use llmlog when: "지침 남겨", "전달해", "llmlog", delegate-spawned agents.
 
@@ -39,13 +41,23 @@ TS=$(TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S')
 
 ### 2. Write file via bash heredoc
 
+**botlog** (public, hugo-exported):
+
 ```bash
 cat <<'EOF' > ~/org/botlog/${TS}--title__botlog_tag1_tag2.org
 #+title:      Title Here
 #+date:       [2026-04-01 Wed 12:00]
 #+filetags:   :botlog:tag1:tag2:
+#+hugo_lastmod: [2026-04-01 Wed 12:00]
 #+identifier: 20260401T120000
 #+export_file_name: 20260401T120000.md
+#+description: 1-2문장 요약. hugo SEO/카드에 노출되는 메타. 본문 abstract와 다른 문장으로.
+
+#+begin_quote
+[!abstract] 이 노트에 대하여
+
+이 노트는 ... (1-3문장 도입부. 무엇을 묶는지, 왜 쓰는지).
+#+end_quote
 
 * 히스토리
 - [2026-04-01 Wed 12:00] 생성 — one-line description
@@ -57,6 +69,31 @@ Content here.
 ** 관련 노트
 
 - [[denote:JOURNALID][journal title]] — weekly journal
+EOF
+```
+
+**llmlog** (private work log): `#+description:` / `#+hugo_lastmod:`는 생략, abstract block은 동일하게 포함.
+
+```bash
+cat <<'EOF' > ~/org/llmlog/${TS}--title__llmlog_tag1_tag2.org
+#+title:      Title Here
+#+date:       [2026-04-01 Wed 12:00]
+#+filetags:   :llmlog:tag1:tag2:
+#+identifier: 20260401T120000
+#+export_file_name: 20260401T120000.md
+
+#+begin_quote
+[!abstract] 이 노트에 대하여
+
+이 노트는 ... (1-3문장 도입부).
+#+end_quote
+
+* 히스토리
+- [2026-04-01 Wed 12:00] 생성 — one-line description
+
+* Main Heading :LLMLOG:
+
+Content here.
 EOF
 ```
 
@@ -78,7 +115,37 @@ If the script fails after reasonable retries, **STOP and report** — do not sub
 
 ## Format Rules
 
-- Header: `#+title`, `#+date`, `#+filetags`, `#+identifier`, `#+export_file_name`
+### Headers
+
+| Header | botlog | llmlog | Note |
+|---|---|---|---|
+| `#+title` | ✅ | ✅ | |
+| `#+date` | ✅ | ✅ | |
+| `#+filetags` | ✅ | ✅ | |
+| `#+identifier` | ✅ | ✅ | |
+| `#+export_file_name` | ✅ | ✅ | |
+| `#+description` | ✅ **required** | — | 1-2문장. hugo SEO/카드 메타. abstract와 **다른 문장**으로 작성 |
+| `#+hugo_lastmod` | ✅ **required** | — | 최초 작성 시 `#+date` 값과 동일하게. 수정 시 갱신 |
+| `#+reference` | optional | optional | bibcli citation keys, `;` separator |
+
+### Abstract block — required for **both** botlog and llmlog
+
+Right after the header, before `* 히스토리`:
+
+```org
+#+begin_quote
+[!abstract] 이 노트에 대하여
+
+이 노트는 ... (1-3문장 도입부).
+#+end_quote
+```
+
+- 노트가 무엇을 묶는지 / 왜 쓰는지를 1-3문장으로.
+- botlog에선 `#+description:`과 abstract 본문이 **다른 문장**이어야 한다. description은 메타 요약, abstract는 본문 도입부.
+- llmlog에도 동일하게 abstract block을 박는다 — 작업기록이라도 도입부 한 단락은 후일 회수 시 큰 차이를 만든다.
+
+### Body
+
 - First heading: `* 히스토리` (reverse-chronological entries)
 - Content headings: `:LLMLOG:` tag required
 - Last section: `** 관련 노트` with `[[denote:ID][title]]` links

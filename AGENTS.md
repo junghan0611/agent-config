@@ -215,6 +215,22 @@ Environment (`~/.env.local`): `ANDENKEN_SESSION_*` and `ANDENKEN_MD_*` point at 
 - **Spec:** [pi-shell-acp `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md) — registry schema, Identity Preservation Rule, sync/async contract, verification matrix.
 - **Caller responsibility (stays here):** the Cross-Repo Work Loop policy above. Responsibility lives with the caller, not the mechanism.
 
+#### Host Surface Alignment — Asymmetric Mitsein
+
+agent-config is the resident-side evidence that pi-shell-acp's "no backend differentiation" invariant is intended to hold at the consumer surface too. The `claude/`, `codex/`, `gemini/` directories — and the OpenCode wiring — carry the same skill set, the same YOLO custom config, and an intended-aligned `pi-tools-bridge` MCP registration where the host supports MCP. Entwurf throwing is intended to work the same from any of these hosts (Claude Code / Codex CLI / Gemini CLI / OpenCode), with live confirmation strongest on Claude Code so far. The fact that ongoing dialogue mostly references Claude Code is an operator time-budget artifact, not a capability asymmetry — the surfaces are aligned in this repo, even if live confirmation has not yet covered every host equally.
+
+Two operational corollaries the consumer surface enforces:
+
+- **Skill set symmetry.** `./skills/` is the single source; `run.sh setup` symlinks the same set into every host. A skill missing in one host is a consumer-side break to fix here, not a backend limitation.
+- **YOLO harness invariant for spawn.** Entwurf spawn target is always a YOLO harness process (`pi`, `claude-code`). Backend CLIs (`codex exec`, `gemini -p`) reach the same frontier models but are model carriers, not spawn targets; they default to permission-ask sandboxes that break async throw-and-recall. Canonical spec: [pi-shell-acp `AGENTS.md` § Entwurf](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md) — "Source-agnostic does not mean harness-agnostic".
+
+#### Claude Code Permission Model — Two Gotchas
+
+Both are binary-hardcoded in Claude Code; `permissions.allow` cannot override either. Settings here (`claude/settings.json` / `claude/settings.server.json`) reflect the resolution.
+
+1. **`.claude/` self-modification guard.** Any write/edit to a path under `~/.claude/**` or `<cwd>/.claude/**` always prompts — settings, skills, hooks, commands, anything. The prompt offers "Yes, and allow Claude to edit its own settings for this session" which grants session-scope free-pass (no persistable form). Implemented in the binary as `s1A` (project-local) / `t1A` (global) — boundary is the literal `.claude/` directory, not specific files. Expected behavior; do not fight it.
+2. **`Tool(*)` glob doesn't match absolute paths.** For path-arg tools (`Edit`, `Write`, `Read`, `Grep`, `Glob`, `WebFetch`, `WebSearch`), `(*)` is a glob and `*` does not cross `/`. So `Edit(*)` matches `foo.txt` but **not** `/home/.../foo.txt` → fallthrough to ask. The standard "allow all" form is bare: `Edit`, `Write`, etc. `Bash(*)` is different — Bash uses a command matcher, not a path glob — and works.
+
 ### Skills
 
 `./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, OpenCode, Codex, and the pi-shell-acp Claude plugin farm. See [README § What's Here](README.md#whats-here) for categories.

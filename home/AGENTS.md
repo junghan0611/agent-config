@@ -166,6 +166,8 @@ Use this rule when this agent is running inside an **external MCP host** (Claude
 - "Show peers" / "What live sessions are available?" → call `entwurf_peers` immediately.
 - Ask one clarification only for real ambiguity such as a missing/unclear sessionId or multiple plausible targets.
 
+**Spawn harness invariant — source-agnostic ≠ harness-agnostic.** Entwurf spawn target 은 YOLO 하네스여야 한다. 분신은 `pi` / `claude-code` 안에서 살고, `codex` / `gemini` CLI 는 직접 spawn 대상이 아니라 모델 carrier 로 빌린다 (`pi --provider <backend> --model <id>`). 백엔드 CLI 직접 호출은 default sandbox 가 permission gate 라 async throw-and-recall 이 깨진다 — "던졌다고 생각했는데 실은 dead branch". 정의는 [pi-shell-acp `AGENTS.md` § Entwurf](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md) 의 "Source-agnostic does not mean harness-agnostic" 단락.
+
 ### Session Start: Device/Time Auto-Provided
 - SessionStart hook provides `device=` and `time_kst=` automatically.
 - If hook output visible, no extra check needed. Otherwise: `cat ~/.current-device` and `TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S'`.
