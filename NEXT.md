@@ -23,7 +23,47 @@
 
 ---
 
-## [2026-05-22] Track B 진척 — 격리 구조 파악, GLG 결정, 본 시작 준비
+## [2026-05-22 오후] 본 시작 — Add group 단계에서 멈춤, 다음 세션 우선 항목
+
+오전 결정 받아 본 시작했다. **막힌 자리: `/chat-config` → telegram-glg-entwurf-bot → Add group 선택 시 setup TUI가 즉시 닫힘 (silently die).** Telegram account 자체는 등록 완료, 채널만 비어 있음.
+
+### 오늘 진척
+
+| 항목 | 상태 | 위치 |
+|---|---|---|
+| nixos-config에 qemu 추가 | ✅ 커밋·푸시 (`956ebbb`) | `machines/shared.nix` Oracle 제외 블록 |
+| `~/.env.local`에 `PI_ENTWURF_BOT_TOKEN` | ✅ 동기화됨 | syncthing — 모든 device 적용 |
+| pi-chat npm 의존성 설치 | ✅ `npm ci --ignore-scripts` (298 packages) | `~/repos/3rd/pi/pi-chat/node_modules` |
+| Node fetch IPv6 timeout 진단 | ✅ NixOS thinkpad는 IPv6 outbound 없음, Node 24 fetch가 IPv4 fallback 안 함 | curl -4 정상, curl -6 4ms fail |
+| Process-level IPv4 patch | ✅ `~/.pi/agent/patches/ipv4-only.mjs` | `NODE_OPTIONS="--import=..."`로 적용 |
+| pi-chat extension IPv4 patch | ✅ `index.ts` 상단 `setGlobalDispatcher` | upstream local, **PR 안 함** |
+| Telegram account 등록 | ✅ `telegram-glg-entwurf-bot` | `~/.pi/agent/chat/config.json` |
+| Add group → setup TUI | ❌ silently die | `observeTelegramTarget` catch가 에러 삼킴 |
+| catch error log 진단 patch | ✅ `src/tui/telegram-setup.ts:149` | upstream local, **PR 안 함** |
+
+### 다음 세션 첫 한 점
+
+```bash
+NODE_OPTIONS="--import=$HOME/.pi/agent/patches/ipv4-only.mjs" pi -e ~/repos/3rd/pi/pi-chat/
+```
+
+1. `/chat-config` → `telegram-glg-entwurf-bot` 선택 → **Add group** 재시도
+2. terminal stderr에 `[pi-chat] observeTelegramTarget error: ...` 메시지 나옴 — 그 내용으로 분기:
+   - `fetch failed ETIMEDOUT/ENETUNREACH` → IPv4 dispatcher가 group 호출 시점에 안 먹힘. 추가 fix 필요.
+   - `401 Unauthorized` → token 또는 webhook 충돌 (이전에 다른 시스템에 물려 있던 자리)
+   - 다른 메시지 → 케이스별 분석
+3. **DM 모드도 한 번 통과시켜보기** — `/start` 봇 DM에 보내서 자동 등록까지 가는지. 매트릭스 좁히기용
+4. 채널 등록 성공 시 → 그룹에서 `@glg_entwurf_bot 안녕` 같은 mention으로 첫 turn 왕복
+
+### 정리·후속
+
+- 위 IPv4 patch 자리는 **차후 round** — `NODE_OPTIONS` alias로 박을지, pi-chat fork 만들지, nixos-config에서 IPv6 라우팅 본질 점검할지 결정
+- `[2026-05-22 오전]` § "기억할 자리"에 한 줄 추가 자리: **Node 24 native fetch가 IPv4 fallback 제대로 안 함** — 다른 pi extension에서도 만날 자리
+- pi-chat upstream 2자리 local patch는 git 변경 그대로 — fetch 시 충돌 가능. 다음 세션 시작 시 `cd ~/repos/3rd/pi/pi-chat && git status` 한 번 확인
+
+---
+
+## [2026-05-22 오전] Track B 진척 — 격리 구조 파악, GLG 결정, 본 시작 준비
 
 - gpt-5.5 분신 리뷰 ($0.68, 9 turns) 완료 — 정정사항과 추가 위협 벡터 5개는 llmlog [[denote:20260522T085656][20260522T085656]]에 보존.
 - **GLG 결정 (가볍게 시작, 좁혀가기)**:
