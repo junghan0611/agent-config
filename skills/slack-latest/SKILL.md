@@ -1,9 +1,9 @@
 ---
 name: slack-latest
-description: Gather recent Slack messages, read threads, and send replies. Use when the user asks about Slack activity or wants to interact with Slack.
+description: Gather recent Slack messages, read threads, send replies, and upload/download files. Use when the user asks about Slack activity or wants to interact with Slack.
 ---
 
-# Slack: gather recent messages, read threads, reply
+# Slack: gather, read, send, file upload/download
 
 `slack.py` is a self-contained Python script (no dependencies beyond
 the standard library) at `{baseDir}/slack.py`.
@@ -94,18 +94,66 @@ Output: JSON array grouped by channel (most recently active first).
 python3 {baseDir}/slack.py thread --channel C0123456789 --ts 1700000000.000001
 ```
 
-## Send a message
+## Send (text, file, or both)
+
+`send` 는 텍스트만 / 파일만 / 텍스트+파일 첨부 모두 지원. 스레드 답글도 가능.
 
 ```bash
-# Send to a channel
+# 텍스트만 (chat.postMessage)
 python3 {baseDir}/slack.py send --channel C0123456789 --text "Hello"
 
-# Reply in a thread
-python3 {baseDir}/slack.py send --channel C0123456789 --thread-ts 1700000000.000001 --text "Got it"
+# 스레드 답글
+python3 {baseDir}/slack.py send --channel C0123456789 \
+  --thread-ts 1700000000.000001 --text "Got it"
+
+# 파일만 업로드 (files.upload v2 — getUploadURLExternal + complete)
+python3 {baseDir}/slack.py send --channel D09336BAYF7 \
+  --file ~/Documents/report.pdf
+
+# 파일 + 메시지 (--text 가 initial_comment 로 들어감)
+python3 {baseDir}/slack.py send --channel D09336BAYF7 \
+  --file ~/report.pdf \
+  --text "이사님, 검토 요청드립니다."
+
+# 스레드 안에 파일 첨부
+python3 {baseDir}/slack.py send --channel C0123456789 \
+  --thread-ts 1700000000.000001 \
+  --file ~/snapshot.png --text "방금 캡쳐"
 ```
+
+옵션:
+
+| Flag | Description |
+|------|-------------|
+| `--channel` | Channel/DM ID (required) |
+| `--text` | 메시지 본문. `--file` 과 함께 쓰면 첨부 코멘트로 들어감 |
+| `--file` | 업로드할 파일 경로 |
+| `--title` | 파일 제목 (기본: 파일명). `--file` 없으면 무시 |
+| `--thread-ts` | 스레드 답글 timestamp |
+
+`--text` 와 `--file` 둘 다 비어 있으면 에러.
+
+## Download a file
+
+```bash
+# 파일 ID 로 다운로드 (현재 디렉토리에 원본 파일명으로 저장)
+python3 {baseDir}/slack.py get-file --file-id F0B529622S3
+
+# Permalink URL 로도 가능 (URL 안에서 F<ID> 자동 추출)
+python3 {baseDir}/slack.py get-file \
+  --url "https://team.slack.com/files/U092.../F0B5.../report.doc"
+
+# 출력 경로/디렉토리 지정
+python3 {baseDir}/slack.py get-file --file-id F0B529622S3 --out /tmp/report.doc
+python3 {baseDir}/slack.py get-file --file-id F0B529622S3 --out ~/Downloads/
+```
+
+파일 ID 는 `gather --include-ids` 결과의 메시지에 보이는 `files[].id`, 또는
+업로드 후 응답의 `permalink` URL 에서 얻을 수 있다.
 
 ## 에이전트 규칙
 
-1. **DM은 기본 제외**: 항상 `--no-dm` 사용. 사용자가 명시적으로 DM 요청 시에만 생략
-2. **메시지 전송 전 확인**: `send` 명령 실행 전 반드시 사용자 확인
-3. **개인정보 주의**: 수집된 메시지를 외부에 노출하지 않음
+1. **DM은 기본 제외**: gather 시 항상 `--no-dm` 사용. 사용자가 명시적으로 DM 요청 시에만 생략
+2. **메시지/파일 전송 전 확인**: `send` 실행 전 반드시 사용자 확인 (파일 첨부도 동일)
+3. **다운로드 파일 위치 보고**: `get-file` 결과의 `saved` 경로를 사용자에게 알림
+4. **개인정보 주의**: 수집된 메시지와 다운로드한 파일을 외부에 노출하지 않음

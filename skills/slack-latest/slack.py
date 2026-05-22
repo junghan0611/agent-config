@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Slack CLI for AI agents: gather recent messages, read threads, send replies.
+"""Slack CLI for AI agents: gather messages, read threads, send/reply, file I/O.
 
 Self-contained — no dependencies beyond the Python standard library.
 
@@ -8,17 +8,20 @@ Subcommands:
     auth-test   Verify stored credentials
     gather      Collect recent messages across all conversations
     thread      Read a single thread
-    send        Send or reply to a message
+    send        Send or reply (text and/or file attachment)
+    get-file    Download a file by file ID or permalink URL
 """
 
 import argparse
 import json
+import mimetypes
 import os
 import re
 import sys
 import time
 import urllib.parse
 import urllib.request
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -422,21 +425,176 @@ def cmd_thread(args: argparse.Namespace) -> None:
 
 
 # ---------------------------------------------------------------------------
+# File upload (files.upload v2 — getUploadURLExternal + binary + complete)
+# ---------------------------------------------------------------------------
+
+def upload_file(workspace_url: str, token: str, cookie: str,
+                channel: str, path: Path,
+                initial_comment: str = "",
+                thread_ts: str | None = None,
+                title: str | None = None) -> dict:
+    """Upload a file via Slack files.upload v2 flow and post it to channel.
+
+    Three steps:
+      1. files.getUploadURLExternal  → returns upload_url, file_id
+      2. POST file binary to upload_url (multipart/form-data)
+      3. files.completeUploadExternal → posts to channel
+    """
+    size = path.stat().st_size
+
+    # Step 1: get upload URL
+    step1 = slack_api(workspace_url, token, cookie,
+                      "files.getUploadURLExternal",
+                      {"filename": path.name, "length": str(size)})
+    upload_url = step1["upload_url"]
+    file_id = step1["file_id"]
+
+    # Step 2: POST binary via multipart
+    boundary = f"----slackupload{uuid.uuid4().hex}"
+    ctype, _ = mimetypes.guess_type(path.name)
+    ctype = ctype or "application/octet-stream"
+    body = b"".join([
+        f"--{boundary}\r\n".encode(),
+        f'Content-Disposition: form-data; name="filename"; '
+        f'filename="{path.name}"\r\n'.encode(),
+        f"Content-Type: {ctype}\r\n\r\n".encode(),
+        path.read_bytes(),
+        f"\r\n--{boundary}--\r\n".encode(),
+    ])
+    req = urllib.request.Request(upload_url, data=body, method="POST",
+                                 headers={"Content-Type":
+                                          f"multipart/form-data; "
+                                          f"boundary={boundary}"})
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        if resp.status >= 400:
+            raise RuntimeError(f"file binary upload failed: HTTP {resp.status}")
+
+    # Step 3: complete upload + post to channel
+    files_meta = [{"id": file_id, "title": title or path.name}]
+    params: dict = {
+        "files": json.dumps(files_meta),
+        "channel_id": channel,
+    }
+    if initial_comment:
+        params["initial_comment"] = initial_comment
+    if thread_ts:
+        params["thread_ts"] = thread_ts
+
+    step3 = slack_api(workspace_url, token, cookie,
+                      "files.completeUploadExternal", params)
+    return step3
+
+
+# ---------------------------------------------------------------------------
+# File download (files.info + url_private_download)
+# ---------------------------------------------------------------------------
+
+FILE_ID_PATTERN = re.compile(r"/files/[^/]+/(F[A-Z0-9]+)")
+
+
+def extract_file_id(value: str) -> str:
+    """Extract file_id (F...) from a permalink URL or return as-is if already ID."""
+    if value.startswith("F") and re.match(r"^F[A-Z0-9]+$", value):
+        return value
+    m = FILE_ID_PATTERN.search(value)
+    if m:
+        return m.group(1)
+    raise ValueError(f"Could not extract file_id from: {value}")
+
+
+def download_file(workspace_url: str, token: str, cookie: str,
+                  file_id: str, out_path: Path | None = None) -> Path:
+    """Fetch file info + download binary to out_path (or CWD/<name>)."""
+    info = slack_api(workspace_url, token, cookie, "files.info",
+                     {"file": file_id})
+    f = info["file"]
+    name = f.get("name") or f"{file_id}.bin"
+    download_url = f.get("url_private_download") or f.get("url_private")
+    if not download_url:
+        raise RuntimeError(f"No download URL on file {file_id}")
+
+    if out_path is None:
+        out_path = Path.cwd() / name
+    elif out_path.is_dir():
+        out_path = out_path / name
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    req = urllib.request.Request(download_url, headers={
+        "Authorization": f"Bearer {token}",
+        "Cookie": f"d={urllib.parse.quote(cookie, safe='')}",
+        "User-Agent": "slack.py (skill)",
+    })
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        out_path.write_bytes(resp.read())
+    return out_path
+
+
+# ---------------------------------------------------------------------------
 # Subcommand: send
 # ---------------------------------------------------------------------------
 
 def cmd_send(args: argparse.Namespace) -> None:
-    """Send a message or reply in a thread."""
+    """Send a message, file, or both. Optionally reply in a thread."""
     workspace_url, token, cookie = load_credentials()
 
-    params: dict = {"channel": args.channel, "text": args.text}
+    text = args.text or ""
+    file_path: Path | None = None
+    if args.file:
+        file_path = Path(args.file).expanduser()
+        if not file_path.exists():
+            print(f"file not found: {file_path}", file=sys.stderr)
+            sys.exit(1)
+
+    if not text and not file_path:
+        print("Provide --text and/or --file.", file=sys.stderr)
+        sys.exit(2)
+
+    # File path → files.upload v2 (initial_comment carries the text)
+    if file_path:
+        result = upload_file(workspace_url, token, cookie,
+                             args.channel, file_path,
+                             initial_comment=text,
+                             thread_ts=args.thread_ts,
+                             title=args.title)
+        files = [{"id": f.get("id"), "name": f.get("name"),
+                  "permalink": f.get("permalink")}
+                 for f in result.get("files", [])]
+        print(json.dumps({"ok": True, "files": files},
+                         ensure_ascii=False, indent=2))
+        return
+
+    # Text only → chat.postMessage
+    params: dict = {"channel": args.channel, "text": text}
     if args.thread_ts:
         params["thread_ts"] = args.thread_ts
-
     result = slack_api(workspace_url, token, cookie, "chat.postMessage",
                        params)
-    ts = result.get("ts", "?")
-    print(json.dumps({"ok": True, "ts": ts}, indent=2))
+    print(json.dumps({"ok": True, "ts": result.get("ts", "?")},
+                     ensure_ascii=False, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# Subcommand: get-file
+# ---------------------------------------------------------------------------
+
+def cmd_get_file(args: argparse.Namespace) -> None:
+    """Download a file by file ID (F...) or permalink URL."""
+    workspace_url, token, cookie = load_credentials()
+
+    source = args.file_id or args.url
+    if not source:
+        print("Provide --file-id or --url.", file=sys.stderr)
+        sys.exit(2)
+    file_id = extract_file_id(source)
+
+    out_path = Path(args.out).expanduser() if args.out else None
+    saved = download_file(workspace_url, token, cookie, file_id, out_path)
+    print(json.dumps({
+        "ok": True,
+        "file_id": file_id,
+        "saved": str(saved),
+        "size": saved.stat().st_size,
+    }, ensure_ascii=False, indent=2))
 
 
 # ---------------------------------------------------------------------------
@@ -480,13 +638,29 @@ def main() -> None:
                           help="Include _uid, _ts fields")
 
     p_send = sub.add_parser("send",
-                            help="Send a message or reply")
+                            help="Send a message, file, or both")
     p_send.add_argument("--channel", required=True,
-                        help="Channel ID")
-    p_send.add_argument("--text", required=True,
-                        help="Message text")
+                        help="Channel/DM ID")
+    p_send.add_argument("--text",
+                        help="Message text (used as initial_comment when "
+                             "--file is given)")
+    p_send.add_argument("--file",
+                        help="Path to a file to upload")
+    p_send.add_argument("--title",
+                        help="File title (default: filename). "
+                             "Ignored without --file.")
     p_send.add_argument("--thread-ts",
                         help="Thread timestamp to reply to (optional)")
+
+    p_get = sub.add_parser("get-file",
+                           help="Download a file by file ID or permalink URL")
+    src = p_get.add_mutually_exclusive_group(required=True)
+    src.add_argument("--file-id",
+                     help="Slack file ID (e.g. F0B529622S3)")
+    src.add_argument("--url",
+                     help="Permalink or any Slack URL containing /files/.../F<ID>/")
+    p_get.add_argument("--out",
+                       help="Output file path or directory. Default: CWD/<name>")
 
     args = parser.parse_args()
 
@@ -496,6 +670,7 @@ def main() -> None:
         "gather": cmd_gather,
         "thread": cmd_thread,
         "send": cmd_send,
+        "get-file": cmd_get_file,
     }
     dispatch[args.command](args)
 
