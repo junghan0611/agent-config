@@ -1,0 +1,10 @@
+{
+	"name": "exa-search",
+	"version": "1.0.0",
+	"type": "module",
+	"description": "Semantic web search and code context via Exa AI",
+	"license": "MIT",
+	"dependencies": {
+		"exa-js": "^2.13.0"
+	}
+}
