@@ -40,6 +40,17 @@
     "defaultMode": "default"
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/junghan/.claude/hooks/session-info.sh"
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "",
