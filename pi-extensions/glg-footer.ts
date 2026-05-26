@@ -1,13 +1,15 @@
 /**
- * glg-footer — pi footer with the final cwd segment highlighted (bright
- * magenta + bold). Distinct from the Claude statusline's bright cyan so the
- * two harnesses are visually unambiguous at a glance.
+ * glg-footer — pi footer with device name first and the final cwd segment
+ * highlighted (bright magenta + bold). Distinct from the Claude statusline's
+ * bright cyan so the two harnesses are visually unambiguous at a glance.
  *
  * Mirrors the upstream default footer (`pi-mono` packages/coding-agent/src/
  * modes/interactive/components/footer.ts) for all other content. Toggle
  * individual sections via the FLAGS constants below — set any flag to false
  * to hide that part. Re-sync this file when upstream footer.ts changes.
  */
+
+import { readFileSync } from "node:fs";
 
 import type { AssistantMessage } from "@mariozechner/pi-ai";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -37,6 +39,16 @@ function sanitize(text: string): string {
 	return text.replace(/[\r\n\t]/g, " ").replace(/ +/g, " ").trim();
 }
 
+function getDeviceName(): string {
+	const home = process.env.HOME || process.env.USERPROFILE;
+	if (!home) return "UNKNOWN";
+	try {
+		return sanitize(readFileSync(`${home}/.current-device`, "utf8")) || "UNKNOWN";
+	} catch {
+		return "UNKNOWN";
+	}
+}
+
 function splitCwd(cwd: string): [string, string] {
 	const idx = cwd.lastIndexOf("/");
 	if (idx < 0) return ["", cwd];
@@ -46,6 +58,7 @@ function splitCwd(cwd: string): [string, string] {
 export default function (pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
 		if (!ctx.hasUI) return;
+		const device = getDeviceName();
 		ctx.ui.setFooter((tui, theme, footerData) => {
 			const unsub = footerData.onBranchChange(() => tui.requestRender());
 			return {
@@ -73,7 +86,7 @@ export default function (pi: ExtensionAPI) {
 					if (home && pwd.startsWith(home)) pwd = `~${pwd.slice(home.length)}`;
 					const [pwdHead, pwdTail] = splitCwd(pwd);
 					const litTail = `${HIGHLIGHT_ON}${pwdTail}${HIGHLIGHT_OFF}`;
-					let pwdLine = theme.fg("dim", pwdHead) + litTail;
+					let pwdLine = theme.fg("dim", `${device} ${pwdHead}`) + litTail;
 
 					const branch = footerData.getGitBranch();
 					if (branch) pwdLine += theme.fg("dim", ` (${branch})`);
