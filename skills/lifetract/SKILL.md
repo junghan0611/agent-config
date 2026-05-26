@@ -1,6 +1,6 @@
 ---
 name: lifetract
-description: "Query personal life-tracking data: Samsung Health (sleep, steps, heart rate, stress, exercise, weight, HRV) + aTimeLogger (18 time categories) + Home Assistant REST (live sensors via ha.junghanacs.com). All records use Denote IDs (YYYYMMDDTHHMMSS) for cross-referencing with denotecli. DB mode (lifetract.db) for instant queries, CSV fallback when DB absent, HA fetch for live sensor reads."
+description: "Query personal life-tracking data: Samsung Health (sleep, steps, heart rate, stress, exercise, weight, HRV) + aTimeLogger (18 time categories) + Home Assistant REST (live sensors via ha.junghanacs.com). All records use Denote IDs (YYYYMMDDTHHMMSS) for cross-referencing with denotecli. DB mode (lifetract.db) for instant queries, CSV fallback when DB absent, automatic HA fallback for today's gaps (today/read <오늘> 시 DB 가 빈 자리를 HA 라이브로 자동 채움)."
 ---
 
 # lifetract — Life Tracking CLI
@@ -93,11 +93,13 @@ lifetract today
 ```json
 // 데이터 있는 날 (read 2025-10-04 형태)
 {"date": "2025-10-04", "steps": 41382, "sleep_hours": 1.5, "avg_hr": 93.1, "stress_avg": 20.9, "time_categories": [...], "source": "db"}
-// 데이터 없는 날 — time_categories 등 omitempty 필드 누락
-{"date": "2026-05-18", "steps": 0, "sleep_hours": 0, "avg_hr": 0, "stress_avg": 0, "source": "db"}
+// 데이터 없는 날 — DB 가 빈 자리는 자동으로 HA 가 채움 (phase 7 read-only fallback)
+{"date": "2026-05-26", "steps": 7099, "sleep_hours": 4.8, "avg_hr": 137, "stress_avg": 0, "source": "db+ha", "ha_sources": ["steps","heart_rate","sleep"]}
 ```
 
 `time_categories` 가 비면 JSON 에서 키 자체가 빠진다 (omitempty). 데이터 있는 날 vs 없는 날 둘 다 정상 출력.
+
+**자동 HA fallback (오늘 자리에 한정)**: DB 가 오늘 자리를 비웠으면 (Samsung CSV 가 아직 안 들어왔으면) `today` 와 `read <오늘>` 이 자동으로 HA 라이브 값으로 채운다. `source` 가 `"db+ha"` / `"csv+ha"` 로 바뀌고, `ha_sources` 가 어떤 필드가 HA 에서 왔는지 알려준다. *과거 날짜는 enrichment 안 됨* — HA recorder 는 backfill 자리가 아니다. 끄려면 `LIFETRACT_NO_HA=1`. Sleep 은 *옛 row 가 오늘로 잡히는 stale* 자리도 감지해서 HA 로 덮어쓴다 (최근 36h 의 sleep_duration history 를 합산 — main sleep + nap 둘 다 잡음).
 
 ### timeline — 날짜별 횡단 뷰
 
@@ -183,7 +185,7 @@ lifetract ha history sleep_duration --days 7   # 7일치 state 변화 (HA record
 }
 ```
 
-Phase 3.5 현재: read-only (DB 에 안 씀). Phase 4 에서 `cmdToday`/`cmdRead` 가 DB miss 시 자동 HA fetch (state + history) 후 DB upsert 예정 — *on-query lazy ingest*.
+**현재 상태 (phase 7 read-only)**: `cmdToday` / `cmdRead <오늘>` 이 DB miss 또는 stale sleep 자리에서 자동으로 HA `GetState` + `GetHistory` 를 호출해 응답에 채워준다 (`source: "db+ha"`, `ha_sources: [...]`). DB upsert 는 아직 안 함 — 다음 turn 에 `source TEXT` 컬럼 + `(date, source)` upsert 로 *on-query lazy ingest* 완성 예정 (plan.md Phase 7 후반부).
 
 ## Flags
 
@@ -227,9 +229,9 @@ denotecli search "20251004"
 | Samsung Health weight | — | 284 |
 | Samsung Health HRV | 2017 ~ 2025 | 1,058 (S26 이후 0건) |
 | aTimeLogger | 2021-10 ~ 2026-05 | 14,331 intervals (18 categories) |
-| Home Assistant REST | live (recorder 30일 보관) | 24 sensor (phase 3.5) |
+| Home Assistant REST | live (recorder 30일 보관) | 24 sensor (phase 7 read-only fallback 활성) |
 
-CSV/SQLite 기반 DB 는 **2026-05-18** 까지 (한달치 수면/심박 등 정량 질의 가능). Samsung CSV 가 본 SSOT, 주기 덤프로 갱신. 5/17 이후 라이브는 `ha` 커맨드로 — 두 source 가 5/17 자리에서 겹쳐 시간축 단절 없음. Phase 4 (HA→DB lazy ingest) 는 시급성 낮음.
+CSV/SQLite 기반 DB 는 **2026-05-18** 까지 (한달치 수면/심박 등 정량 질의 가능). Samsung CSV 가 본 SSOT, 주기 덤프로 갱신. 5/17 이후 라이브는 `ha` 커맨드 + `today`/`read <오늘>` 의 자동 HA fallback 으로 — 두 source 가 5/17 자리에서 겹쳐 시간축 단절 없음. Phase 7 후반부 (HA→DB lazy upsert) 는 시급성 낮음 (read-only fallback 이 사용자 가시 자리는 다 채움).
 
 ## Related Skills
 
