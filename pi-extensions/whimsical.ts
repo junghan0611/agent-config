@@ -463,12 +463,20 @@ function pickRandom(): string {
   return messages[Math.floor(Math.random() * messages.length)];
 }
 
+// Note: 2026-05-26 GLG — earlier this file disabled the default spinner
+// animation via setWorkingIndicator({frames:["●"]}) as a workaround for
+// Korean IME composition being clobbered by ghostel's redraw cycle.
+// The root cause was fixed upstream in ghostel (fix/korean-ime-commit
+// branch: ghostel--ime-lisp-composing-p guard around immediate-redraw +
+// delayed-redraw body). Default spinner restored.
 export default function (pi: ExtensionAPI) {
   pi.on("turn_start", async (_event, ctx) => {
+    if (!ctx.hasUI) return;
     ctx.ui.setWorkingMessage(pickRandom());
   });
 
   pi.on("turn_end", async (_event, ctx) => {
+    if (!ctx.hasUI) return;
     ctx.ui.setWorkingMessage(); // Reset for next time
   });
 }
