@@ -21,7 +21,12 @@ agent-config은 이 SKILL.md만 들고, 실 명령은 외부 절대경로로 호
 이 스킬에서 다루는 동사/플래그/env 변수가 실제 동작과 어긋나면 **bin/forge가
 정답**이다. 의문 시 `~/repos/gh/forge-config/AGENTS.md` 와 `NEXT.md` 확인.
 
-운영 인스턴스: `https://forge.junghanacs.com` (Oracle, Forgejo 15.x).
+운영 인스턴스 (2026-05-27 기준):
+
+| profile | URL | 용도 |
+|---------|-----|------|
+| `oracle` | `https://forge.junghanacs.com` | 개인 / 공개 정원 페어 (`repos/gh/*`) |
+| `work` | `https://<work-forge-host>/forge` | 회사 / mirror 운영면 (`repos/work/*`) |
 
 ## 핵심 원칙
 
@@ -29,27 +34,80 @@ agent-config은 이 SKILL.md만 들고, 실 명령은 외부 절대경로로 호
 2. **단일 신원** — Forgejo 사용자 `glg-bot` 하나, footer 서명으로 모델/호스트 식별
 3. **사람 게이트 merge** — v1에서 자동 merge 없음
 4. **닫힌 계** — 시크릿은 `~/.env.local` + `pass`. repo 에는 변수명만
+5. **운영 머신 ≠ forge 인스턴스** — thinkpad 에서 양쪽 forge 다 굴린다 (세션이 thinkpad 에 남아야 andenken 임베딩됨). cwd 가 어느 forge 인지 결정한다.
 
-## 환경 변수
+## 환경 변수 — profile 시스템
 
-`bin/forge` 가 자동으로 `~/.env.local` 을 읽는다. 에이전트는 변수만 박혀있는지
-확인.
+`bin/forge` 가 호출 시점에 **profile** 을 자동 결정해서 prefix 변수를 풀어쓴다.
+에이전트는 변수만 박혀있는지만 확인하면 된다.
 
-| 변수 | 필수 | 기본 | 비고 |
-|------|------|------|------|
-| `FORGE_URL` | ✅ | (없음) | e.g. `https://forge.junghanacs.com` |
-| `FORGE_TOKEN` | ✅ | (없음) | 단일 `glg-bot` 토큰 |
-| `FORGE_USER` | ⭕ | `glg-bot` | 봇 사용자명 |
-| `FORGE_REPO` | ⭕ | `glg-bot/sandbox` | 기본 repo (이슈 번호만 줄 때) |
-| `FORGE_BOT_FOOTER` | ⭕ | `— glg-bot [gpt-5.5 / oracle]` | 코멘트 자동 footer |
+### Profile 결정 우선순위 (높을수록 우선)
 
-세션 시작 hook 의 `device=` 값으로 호스트 부분을 맞춰서 export 해두는 것을 권장:
+1. `--forge oracle|work` 플래그
+2. `FORGE_PROFILE` env (`oracle` / `work`)
+3. **cwd 패턴 — 명시 anchor 만**:
+   - `*/repos/work/*` → `work`
+   - `*/repos/gh/*` → `oracle`
+   - **그 외 (`~`, `~/org/`, `~/Downloads/` 등)** → 에러. 명시 요구.
+4. Legacy env value fallback (URL/TOKEN 만) — profile prefixed 가 비어있을 때 unprefixed `FORGE_URL`/`FORGE_TOKEN` 참조. host-scoped switching 결과 (oracle/work 에 직접 ssh 들어갔을 때만 의미). `FORGE_REPO` 는 fallback 없음 (인스턴스 간 leak 방지).
 
-```bash
-export FORGE_BOT_FOOTER="— glg-bot [claude-opus-4-7 / oracle]"
+→ thinkpad 에서 `cd ~/repos/gh/foo && forge list-open` 하면 자동 oracle.
+→ `cd ~/repos/work/bar && forge state 3` 하면 자동 work.
+→ `cd ~ && forge list-open` 은 **silent oracle default 금지** — 명시 요구. mutating 사고 방지.
+→ `forge --forge work list-open glg-bot/<work-repo>` 로 어디서든 명시 override.
+
+### Mutating 명령 stderr observability
+
+`comment` / `label-add` 호출 시 stderr 에 한 줄 노출:
+
+```
+[forge] profile=oracle repo=glg-bot/sandbox url=https://forge.junghanacs.com
 ```
 
-env 미설치 시 `bin/forge` 가 친절한 에러를 던지므로 그것을 따라가면 된다.
+→ 잘못된 인스턴스/repo 에 write 하기 전에 즉시 인지. `FORGE_PROFILE` env 가 셸에 오래 남아 cwd 보다 우선될 때의 사고도 같은 표면으로 잡힌다.
+
+### Profile-prefixed env (`~/.env.local` SSOT)
+
+| 변수 | 필수 | 비고 |
+|------|------|------|
+| `ORACLE_FORGE_URL` / `_TOKEN` / `_USER` | ✅ | oracle profile 원천 |
+| `WORK_FORGE_URL` / `_TOKEN` / `_USER` | ✅ | work profile 원천 |
+| `ORACLE_FORGE_REPO` | ⭕ | default `glg-bot/sandbox` |
+| `WORK_FORGE_REPO` | ⭕ | default 없음 — 인자로 명시 강제 |
+| `FORGE_MODEL` | ⭕ | footer 의 모델 부분 (없으면 `unknown`) |
+
+### 머신별 default profile — `~/.current-forge-profile`
+
+각 머신이 "어느 forge 의 *직접 접속 호스트* 인지" 박는다. 클라이언트 머신은 비워둔다.
+
+| 머신 | 정체성 | 파일 |
+|---|---|---|
+| oracle | "oracle forge 의 호스트" | `echo oracle > ~/.current-forge-profile` |
+| 회사 머신 | "work forge 의 호스트" | `echo work > ~/.current-forge-profile` |
+| thinkpad / laptop / nuc 등 | 양쪽의 **클라이언트** (호스트 아님) | **없음** — cwd 로 매번 결정 |
+
+`.env.local` 의 case 분기가 이 파일을 입력으로 unprefixed `FORGE_URL`/`TOKEN`/`USER` 를 set 한다. 클라이언트 머신은 case 매칭 실패 → bin/forge 의 cwd 패턴 결정에 자연 위임.
+
+> 참고: `FORGE_BOT_FOOTER` env 는 **무시된다**. footer 형식은 정책이라
+> 매 호출마다 `bin/forge` 가 자동 조립한다 — 깨진 부모 셸 env 가 발현되지
+> 않도록 닫아둔 표면. 모델은 `FORGE_MODEL` 로만 customize.
+
+### footer 자동 조립
+
+```
+— glg-bot [<FORGE_MODEL or "unknown"> / <~/.current-device or "unknown">]
+```
+
+세션 시작 시 모델만 박아두면 footer 가 정확해진다:
+
+```bash
+export FORGE_MODEL="claude-opus-4-7"
+# thinkpad 에서 oracle forge 코멘트 → "— glg-bot [claude-opus-4-7 / thinkpad]"
+# 같은 thinkpad 에서 work forge 코멘트 → 동일 footer (작업 머신 기준)
+```
+
+env 미설치 시 `bin/forge` 가 친절한 에러를 던지므로 그것을 따라가면 된다
+(`FORGE_URL is required (profile=<name> — set <NAME>_FORGE_URL in ~/.env.local)`).
 
 ## API — v1 동사 4개
 
@@ -106,14 +164,15 @@ footer 를 자동 삽입하므로 따로 박을 필요 없음.
 ## 사용법
 
 ```bash
-# 환경 sanity
+# 환경 sanity (profile 표시 포함)
 ~/repos/gh/forge-config/bin/forge help
 
-# 열린 이슈 보기 (기본 repo)
-~/repos/gh/forge-config/bin/forge list-open
+# 컨텍스트 기반 — cwd 가 oracle/work 결정
+cd ~/repos/gh/forge-config && ~/repos/gh/forge-config/bin/forge list-open
+cd ~/repos/work/foo        && ~/repos/gh/forge-config/bin/forge list-open glg-bot/<work-repo>
 
-# 다른 repo 의 열린 이슈
-~/repos/gh/forge-config/bin/forge list-open junghanacs/forge-config
+# 다른 repo (현 profile 안에서)
+~/repos/gh/forge-config/bin/forge list-open glg-bot/forge-config
 
 # 상태 확인 (라벨 + 최근 코멘트 3개)
 ~/repos/gh/forge-config/bin/forge state 1
@@ -124,6 +183,10 @@ footer 를 자동 삽입하므로 따로 박을 필요 없음.
 
 # 라벨 부착
 ~/repos/gh/forge-config/bin/forge label-add 1 agent:running
+
+# 명시적 profile override — 어디서든
+~/repos/gh/forge-config/bin/forge --forge work list-open glg-bot/<work-repo-alt>
+FORGE_PROFILE=work ~/repos/gh/forge-config/bin/forge state glg-bot/<work-repo>#1
 ```
 
 ## 워크플로 — 에이전트가 잡는 흐름
