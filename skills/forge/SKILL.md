@@ -117,7 +117,7 @@ env 미설치 시 `bin/forge` 가 친절한 에러를 던지므로 그것을 따
 | `state` | `ISSUE` | 이슈 상태 + 라벨 + 최근 코멘트 3개 |
 | `comment` | `ISSUE BODY` | 코멘트 작성. footer 자동 부착 |
 | `label-add` | `ISSUE LABEL` | 라벨 이름으로 ID 조회 후 부착 |
-| `issue-create` | `[REPO] TITLE BODY [--labels L1,L2,...]` | 이슈 생성. footer 자동 부착. atomic 라벨 옵션 |
+| `issue-create` | `[REPO] TITLE BODY [--labels L1,L2,...]` 또는 `[REPO] TITLE --body-file PATH [--labels ...]` | 이슈 생성. footer 자동 부착. atomic 라벨 옵션. **multi-line BODY 는 `--body-file PATH` (또는 `-` = stdin) 필수** — inline BODY 는 single-line 만 |
 
 `ISSUE` / `REPO` 인자 형식:
 
@@ -132,6 +132,21 @@ env 미설치 시 `bin/forge` 가 친절한 에러를 던지므로 그것을 따
 forge --forge work issue-create glg-bot/<work-repo> \
   "Bug: foo 안 됨" "운영팀 보고..." \
   --labels agent:ready
+
+# multi-line BODY — 파일 또는 stdin 사용 (inline 인자에 \n 넣으면 positional 파서가 깨짐)
+forge --forge work issue-create glg-bot/<work-repo> \
+  "Feature: weekly/monthly VOC range report" \
+  --body-file /tmp/voc-issue.md \
+  --labels agent:ready
+
+cat <<'EOF' | forge --forge work issue-create glg-bot/<work-repo> \
+  "Feature: weekly/monthly VOC range report" --body-file - --labels agent:ready
+## 배경
+지난 분기 데이터 ...
+
+## 요구
+- 주간/월간 범위 ...
+EOF
 ```
 
 추가 동사(`label-remove`, `label-set`, `read`, `pr ...`)는 v2 — 운영 누적 후
@@ -197,6 +212,12 @@ cd ~/repos/work/foo        && ~/repos/gh/forge-config/bin/forge list-open glg-bo
 # 이슈 생성 (sweeper 의 일차 입력 자리)
 ~/repos/gh/forge-config/bin/forge issue-create glg-bot/<work-repo> \
   "Bug: 운영팀 보고" "본문..." --labels agent:ready
+
+# multi-line BODY → --body-file (PATH 또는 - 로 stdin)
+~/repos/gh/forge-config/bin/forge issue-create glg-bot/<work-repo> \
+  "Feature: ..." --body-file /tmp/body.md --labels agent:ready
+cat body.md | ~/repos/gh/forge-config/bin/forge issue-create glg-bot/<work-repo> \
+  "Feature: ..." --body-file -
 
 # 명시적 profile override — 어디서든
 ~/repos/gh/forge-config/bin/forge --forge work list-open glg-bot/<work-repo-alt>
