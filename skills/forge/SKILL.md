@@ -109,23 +109,33 @@ export FORGE_MODEL="claude-opus-4-7"
 env 미설치 시 `bin/forge` 가 친절한 에러를 던지므로 그것을 따라가면 된다
 (`FORGE_URL is required (profile=<name> — set <NAME>_FORGE_URL in ~/.env.local)`).
 
-## API — v1 동사 4개
+## API — v1.5 동사 5개
 
 | 명령 | 인자 | 동작 |
 |------|------|------|
-| `list-open` | `[REPO]` | 열린 이슈 목록 (제목 + 라벨 + 코멘트 수). REPO 생략 시 `$FORGE_REPO` |
+| `list-open` | `[REPO]` | 열린 이슈 목록 (제목 + 라벨 + 코멘트 수). REPO 생략 시 default repo |
 | `state` | `ISSUE` | 이슈 상태 + 라벨 + 최근 코멘트 3개 |
 | `comment` | `ISSUE BODY` | 코멘트 작성. footer 자동 부착 |
 | `label-add` | `ISSUE LABEL` | 라벨 이름으로 ID 조회 후 부착 |
+| `issue-create` | `[REPO] TITLE BODY [--labels L1,L2,...]` | 이슈 생성. footer 자동 부착. atomic 라벨 옵션 |
 
-`ISSUE` 인자 형식:
+`ISSUE` / `REPO` 인자 형식:
 
-- `1` → `$FORGE_REPO` 의 #1
+- `1` → default repo 의 #1
 - `glg-bot/sandbox#1` → 명시된 repo 의 #1
+- `owner/repo` (REPO) / `repo` (`<FORGE_USER>/repo` 로 확장)
 
-추가 동사(`label-remove`, `read`, `unread`, `issue create`, `pr ...`)는 v2 — 운영
-필요성이 누적되면 forge-config 측에서 박는다. 여기서 동사를 임의로 늘리지 말 것
-(SSOT 어긋남).
+`issue-create` — sweeper 의 일차 입력 자리:
+
+```bash
+# atomic 라벨 — 라벨 부착이 별도 호출이 아니라 생성과 동시
+forge --forge work issue-create glg-bot/<work-repo> \
+  "Bug: foo 안 됨" "운영팀 보고..." \
+  --labels agent:ready
+```
+
+추가 동사(`label-remove`, `label-set`, `read`, `pr ...`)는 v2 — 운영 누적 후
+forge-config 측에서 박는다. 여기서 동사를 임의로 늘리지 말 것 (SSOT 어긋남).
 
 ## 라벨 프로토콜 v1 (5개)
 
@@ -183,6 +193,10 @@ cd ~/repos/work/foo        && ~/repos/gh/forge-config/bin/forge list-open glg-bo
 
 # 라벨 부착
 ~/repos/gh/forge-config/bin/forge label-add 1 agent:running
+
+# 이슈 생성 (sweeper 의 일차 입력 자리)
+~/repos/gh/forge-config/bin/forge issue-create glg-bot/<work-repo> \
+  "Bug: 운영팀 보고" "본문..." --labels agent:ready
 
 # 명시적 profile override — 어디서든
 ~/repos/gh/forge-config/bin/forge --forge work list-open glg-bot/<work-repo-alt>
