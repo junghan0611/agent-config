@@ -743,15 +743,22 @@ setup_git_hooks() {
     fi
   done
 
-  # Set globally via git config — writes to ~/.gitconfig (legacy file),
-  # which wins over ~/.config/git/config managed by home-manager.
+  # Write explicitly to ~/.gitconfig.
+  # - `git config --global` follows XDG and may try ~/.config/git/config
+  #   first; on NixOS home-manager that file is a read-only nix-store
+  #   symlink → "could not lock config file ... Permission denied".
+  # - Pinning the target with --file (and GIT_CONFIG_GLOBAL for the
+  #   verification read) avoids that trap and is harmless on devices
+  #   where ~/.gitconfig is already the default location.
+  local gitconfig="$HOME/.gitconfig"
+  [ -e "$gitconfig" ] || touch "$gitconfig"
   local current
-  current=$(git config --global --get core.hooksPath || echo "")
+  current=$(GIT_CONFIG_GLOBAL="$gitconfig" git config --global --get core.hooksPath 2>/dev/null || echo "")
   if [ "$current" = "$hooks_dir" ]; then
     ok "core.hooksPath already set → $hooks_dir"
   else
-    git config --global core.hooksPath "$hooks_dir"
-    ok "core.hooksPath → $hooks_dir"
+    git config --file "$gitconfig" core.hooksPath "$hooks_dir"
+    ok "core.hooksPath → $hooks_dir  (written to $gitconfig)"
     [ -n "$current" ] && warn "replaced previous value: $current"
   fi
 
