@@ -62,15 +62,7 @@ done
 DESC="${DESC:?Usage: agenda-stamp.sh "제목" [tag1:tag2] [device] [--body "..."|--body-file path]}"
 DEVICE="${DEVICE:-$(cat ~/.current-device 2>/dev/null || echo 'unknown')}"
 
-# 디바이스별 agenda 경로 — hejdev6 서버는 sync/org/ 하위에 기록
-case "$DEVICE" in
-  hejdev6)
-    ORG_DIR="${HOME}/sync/org/botlog/agenda"
-    ;;
-  *)
-    ORG_DIR="${HOME}/org/botlog/agenda"
-    ;;
-esac
+ORG_DIR="${HOME}/org/botlog/agenda"
 TIMESTAMP=$(TZ='Asia/Seoul' date '+%Y-%m-%d %a %H:%M')
 YEAR=$(TZ='Asia/Seoul' date '+%Y')
 MONTH_NUM=$(TZ='Asia/Seoul' date '+%m')
