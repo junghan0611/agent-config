@@ -4,12 +4,13 @@
 > persistent facts in `AGENTS.md` / `docs/`. This file lists only
 > what is left to do. Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-## [2026-05-27] global commit/push safety rail 후속
+## [2026-05-27] global commit/push safety rail — 닫힘
 
-- 즉시 활성화: `./run.sh setup:git-hooks` (또는 `./run.sh setup`에 자동 포함). `~/.gitconfig core.hooksPath = ~/repos/gh/agent-config/git-hooks`. 다른 기기는 syncthing 동기화 후 `./run.sh setup` 한 번.
-- 정식 wiring: `nixos-config users/junghan/modules/shell.nix` + `development/default.nix`. NixOS rebuild는 GLG 직접 판단.
-- **기존 leakage는 grandfathered.** Hook은 `+` 라인만 검사 — 앞으로 새로 추가/수정되는 문서·코드에서만 막는다. 일제 cleanup 시도하지 말 것 (사용자 의도: "이미 나간 것은 상관없다").
-- gitleaks 미설치 상태에서는 fallback 시크릿 패턴으로 운영 중. nixos-rebuild 후 정식 gitleaks 동작.
+- 3 device 활성 완료: 로컬 + oracle + hejdev6. 모두 `gitleaks 8.28.0`(또는 동등) + `core.hooksPath` 동작 중.
+- 정식 wiring (nixos-config): `8207406` (GLG 직접 commit) — `programs.git.settings.core.hooksPath` + `home.packages: gitleaks`.
+- agent-config 쪽: `06e8a18` (rail 도입) + `b78fd65` (NixOS XDG readonly trap 우회 — `git config --file ~/.gitconfig`).
+- hejdev6 = 회사 머신 (hostname `goqual`, non-NixOS). 정체성 분리: nix-managed `Junghan Kim`(회사) 유지, `~/.gitconfig user.name = junghan`(개인 repo) override.
+- 다음 device 추가 시 `./run.sh setup` 한 번으로 끝. 미래 문제 발생 시 이 섹션 다시 살릴 것 — 그 외 영속 사실은 commit history + CHANGELOG가 source.
 
 ---
 
@@ -21,18 +22,7 @@
 
 ---
 
-## [2026-05-18] 오늘 정리 완료
-
-- voscli 스킬 삭제 — `~/repos/work/voscli/` 로컬 스킬로 이관 완료 (`113e096`)
-- session-control pi-extension 제거 — dead surface 정리 (`016005b`)
-- Skill 툴 권한 추가 — permission prompt 제거 (`4742b6f`)
-- lifetract SKILL.md 싱크 — ha 커맨드 + today JSON shape 호도 정정 (`5ec2ad2`)
-
-다음 Track은 아래 pi-chat 검증 (진입 조건 변동 없음).
-
----
-
-## [2026-05-22 오후] 본 시작 — Add group 단계에서 멈춤, 다음 세션 우선 항목
+## [2026-05-22 오후] pi-chat Add group 단계에서 멈춤 — 다음 세션 우선 항목
 
 오전 결정 받아 본 시작했다. **막힌 자리: `/chat-config` → telegram-glg-entwurf-bot → Add group 선택 시 setup TUI가 즉시 닫힘 (silently die).** Telegram account 자체는 등록 완료, 채널만 비어 있음.
 
