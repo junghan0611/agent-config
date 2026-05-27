@@ -385,6 +385,44 @@ Abstract queries ("what did I do last?") don't match concrete text ("graph.edn o
 > Do not stop at "I couldn't find it." Trace **why** and record it.
 > Tool underperformance is a **tool issue**, not user failure.
 
+### Global Commit/Push Safety Rail — Identity Terms + Secrets
+
+A global `core.hooksPath` (set in nixos-config home-manager, SSOT at
+`~/repos/gh/agent-config/git-hooks/`) scans staged/pushed diffs and
+**blocks** commits/pushes that introduce:
+
+- **Identity terms** (real names, company terms, GitHub handles like
+  hejdev[0-9]*) — only in public repos under `github.com/junghan0611/*`
+  or `github.com/junghanacs/*`
+- **Secrets** (API keys, tokens, PEM keys) — in every repo
+
+Scope is "added lines in the staged diff" — pre-existing content is
+grandfathered until touched.
+
+**Bypass policy — agents:**
+
+- **NEVER set `AGENT_ALLOW_UNSAFE_COMMIT=1`**. That env var is a GLG
+  override for genuine false positives (meta references, docs about
+  the patterns themselves). If an agent thinks it needs the bypass,
+  it has misjudged — report to GLG with the exact match and let GLG
+  decide.
+- **NEVER use `git commit --no-verify` or `git push --no-verify`**
+  unless GLG explicitly told you to in this session.
+- **NEVER change `core.hooksPath`** or write to `<repo>/.git-hooks-mode`
+  without GLG's request.
+
+**On block — agent action:**
+
+1. Read the hook output. It tells you the file, line, and matched
+   pattern.
+2. Fix the diff: remove the term/secret, move detail to a gitignored
+   file (`PRIVATE.md`, `.env.local`), or use a generic placeholder.
+3. Re-stage and retry. Do not loop into `--no-verify`.
+4. If you genuinely believe it's a false positive, **stop and report
+   to GLG** with the hook output verbatim. Let GLG run the bypass.
+
+> Docs: `~/repos/gh/agent-config/git-hooks/README.md`
+
 ### Karpathy-Inspired Coding Guidelines
 
 Derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls.

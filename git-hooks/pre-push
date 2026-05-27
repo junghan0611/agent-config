@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Global pre-push guard — final safety net before push reaches remote.
+# Same scanner as pre-commit, but operates on the commit range about to
+# be pushed (catches anything that slipped past via --no-verify, amend,
+# rebase, or rewritten history).
+#
+# stdin format (per git docs):
+#   <local_ref> <local_sha> <remote_ref> <remote_sha>\n
+
+set -uo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+ZERO="0000000000000000000000000000000000000000"
+overall=0
+
+while IFS=' ' read -r local_ref local_sha remote_ref remote_sha; do
+  # Skip deletion refs
+  [ "$local_sha" = "$ZERO" ] && continue
+
+  "$HOOK_DIR/_scan.sh" range "$remote_sha" "$local_sha"
+  rc=$?
+  if [ $rc -ne 0 ]; then
+    overall=$rc
+  fi
+done
+
+if [ $overall -ne 0 ]; then
+  exit $overall
+fi
+
+"$HOOK_DIR/_delegate.sh" pre-push "$@"

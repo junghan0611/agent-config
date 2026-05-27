@@ -1,0 +1,20 @@
+# Sensitive identity terms — block in public repos
+#
+# Format: one ERE pattern per line, applied case-insensitively (-iE).
+# Comments start with '#'. Blank lines ignored.
+# Scope: only added (+) lines in staged diff are scanned.
+# Allowlist: see git-hooks/allowlist-paths.txt and per-repo .git-hooks-allow.
+#
+# These are the same terms `notes/change-text.sh` obfuscates for the
+# public garden. Other public repos must not contain them at all.
+
+# --- Korean (case-insensitive is moot for hangul) ---
+바론
+경동
+
+# --- Romanized / English identifiers ---
+\bgoqual\b
+\bkyungdong\b
+
+# --- GitHub handle variants (hejdev, hejdev1, hejdev9, ...) ---
+\bhejdev[0-9]*\b

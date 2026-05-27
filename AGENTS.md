@@ -235,6 +235,28 @@ Both are binary-hardcoded in Claude Code; `permissions.allow` cannot override ei
 
 `./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, OpenCode, Codex, and the pi-shell-acp Claude plugin farm. See [README § What's Here](README.md#whats-here) for categories.
 
+### Global Commit/Push Safety Rail
+
+`./git-hooks/` is the SSOT for a global `core.hooksPath` that protects every repo touched on this machine. It exists because public-repo commit accidents (real names, company terms, API keys) cost more to repair than to prevent — `git push --force` is destructive and sometimes too late.
+
+| Path | Role |
+|------|------|
+| `git-hooks/pre-commit` | Scan staged diff (added lines) — block on violation |
+| `git-hooks/pre-push` | Final safety net on push range — catches `--no-verify` bypassed commits |
+| `git-hooks/_scan.sh` | Shared scanner — terms + secrets + allowlist + mode detection |
+| `git-hooks/_delegate.sh` | Chain to repo-local `.git/hooks/` / `.husky/` so we don't break other setups |
+| `git-hooks/sensitive-terms.txt` | Identity term regex list — applies in **strict** mode only |
+| `git-hooks/gitleaks.toml` | Secret detection config — applies in **every** mode |
+| `git-hooks/allowlist-paths.txt` | Path skip list (lockfiles, node_modules, binaries) |
+
+Mode is auto-detected per repo: **strict** for `github.com/junghan0611/*` and `github.com/junghanacs/*` (secrets + identity terms), **loose** for everywhere else (secrets only). Per-repo override: write `strict|loose|off` to `<repo>/.git-hooks-mode`.
+
+Wiring lives in `nixos-config` (`users/junghan/modules/shell.nix` sets `core.hooksPath`, `development/default.nix` adds `gitleaks` to home.packages). For immediate activation before the next `home-manager switch`, run `./run.sh setup:git-hooks` — it writes the same value to `~/.gitconfig` so the rail is live now and the future rebuild is a no-op.
+
+Bypass (`AGENT_ALLOW_UNSAFE_COMMIT=1`) is a **GLG-only** override for genuine false positives. The agent rule lives in `~/AGENTS.md § Global Commit/Push Safety Rail`. See `git-hooks/README.md` for the full contract.
+
+> The hook scans **added lines only**, gitleaks-style. Pre-existing tracked content is grandfathered until those lines are next modified — the rail is for what we write **from here forward**, not a cleanup tool. No flag-day, no chase down of historical mentions.
+
 ### Release — pi-shell-acp Install Mode
 
 **Current Oracle/OpenClaw prerelease mode (2026-05-15):** server devices track pi-shell-acp latest `main`, not the `v0.5.0` tag. Reason: the OpenClaw plugin scaffold and Docker boundary docs live after the 0.5.0 release while `package.json#version` still says `0.5.0`; commit is the authority during this window.

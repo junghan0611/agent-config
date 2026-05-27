@@ -4,6 +4,15 @@
 > persistent facts in `AGENTS.md` / `docs/`. This file lists only
 > what is left to do. Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
+## [2026-05-27] global commit/push safety rail 후속
+
+- 즉시 활성화: `./run.sh setup:git-hooks` (또는 `./run.sh setup`에 자동 포함). `~/.gitconfig core.hooksPath = ~/repos/gh/agent-config/git-hooks`. 다른 기기는 syncthing 동기화 후 `./run.sh setup` 한 번.
+- 정식 wiring: `nixos-config users/junghan/modules/shell.nix` + `development/default.nix`. NixOS rebuild는 GLG 직접 판단.
+- **기존 leakage는 grandfathered.** Hook은 `+` 라인만 검사 — 앞으로 새로 추가/수정되는 문서·코드에서만 막는다. 일제 cleanup 시도하지 말 것 (사용자 의도: "이미 나간 것은 상관없다").
+- gitleaks 미설치 상태에서는 fallback 시크릿 패턴으로 운영 중. nixos-rebuild 후 정식 gitleaks 동작.
+
+---
+
 ## [2026-05-20] entwurf-peek 후속
 
 - sync spawn blind spot 재발 시 `tool:done` 전 단계(`tool:start` + fresh child file correlation)까지 보여줄지 판단. 지금은 declared `tool:done Task ID`가 1차 시그널

@@ -722,6 +722,58 @@ setup_npm() {
   return 0
 }
 
+# --- setup:git-hooks — Global commit/push safety rail ---
+# nixos-config 의 home-manager `programs.git.settings.core.hooksPath` 가
+# 정식 경로. 이 함수는 nixos-rebuild 전에도 즉시 활성화하고 싶을 때 사용.
+# ~/.gitconfig 에 직접 써서 home-manager 설정과 충돌 없이 공존시킨다.
+setup_git_hooks() {
+  section "Global Git Safety Hooks"
+
+  local hooks_dir="$SCRIPT_DIR/git-hooks"
+  if [ ! -d "$hooks_dir" ]; then
+    fail "git-hooks dir missing: $hooks_dir"
+    return 1
+  fi
+
+  # Verify executables
+  for h in pre-commit pre-push _scan.sh _delegate.sh; do
+    if [ ! -x "$hooks_dir/$h" ]; then
+      log "chmod +x $h"
+      chmod +x "$hooks_dir/$h"
+    fi
+  done
+
+  # Set globally via git config — writes to ~/.gitconfig (legacy file),
+  # which wins over ~/.config/git/config managed by home-manager.
+  local current
+  current=$(git config --global --get core.hooksPath || echo "")
+  if [ "$current" = "$hooks_dir" ]; then
+    ok "core.hooksPath already set → $hooks_dir"
+  else
+    git config --global core.hooksPath "$hooks_dir"
+    ok "core.hooksPath → $hooks_dir"
+    [ -n "$current" ] && warn "replaced previous value: $current"
+  fi
+
+  # gitleaks presence check (graceful — fallback exists)
+  if command -v gitleaks >/dev/null 2>&1; then
+    ok "gitleaks $(gitleaks version 2>/dev/null | head -1)"
+  else
+    warn "gitleaks not installed — fallback secret patterns will be used."
+    warn "  Add to nixos-config and rebuild, or: nix shell nixpkgs#gitleaks"
+  fi
+
+  log ""
+  log "Behavior:"
+  log "  - Public repos (github.com/junghan0611/* | junghanacs/*): secrets + identity terms"
+  log "  - Other repos: secrets only"
+  log "  - Per-repo override: write 'strict'|'loose'|'off' to <repo>/.git-hooks-mode"
+  log "  - Bypass (GLG only): AGENT_ALLOW_UNSAFE_COMMIT=1 git commit ..."
+  log ""
+  log "Docs: $hooks_dir/README.md"
+  return 0
+}
+
 # --- setup — 원커맨드: clone + build + link + pnpm ---
 
 setup_all() {
@@ -733,6 +785,7 @@ setup_all() {
   setup_build
   setup_links
   setup_npm
+  setup_git_hooks
 
   section "Verification"
   local total=0 pass=0
@@ -792,6 +845,9 @@ Usage: ./run.sh <command> [args]
                               → 어떤 디바이스든 이것 하나로 재현
 
   setup:preflight|repos|build|links|pnpm 개별 단계 (디버깅용, 보통 불필요)
+  setup:git-hooks             글로벌 git 안전망 설치 (core.hooksPath)
+                              → 공개 repo에 민감 단어/시크릿 commit/push 차단
+                              → 정식 경로는 nixos-config rebuild. 이건 즉시 활성화용
   update                      추적 리포 일괄 pull (dirty면 skip) — setup은 pull 안 함
 
 === 테스트 ===
@@ -840,6 +896,8 @@ case "${1:-help}" in
     setup_links ;;
   setup:pnpm|setup:npm)
     setup_npm ;;
+  setup:git-hooks|setup:hooks)
+    setup_git_hooks ;;
   update)
     update_repos ;;
 

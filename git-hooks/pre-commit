@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Global pre-commit guard — scans staged diff for secrets + identity terms.
+# Wired via `git config --global core.hooksPath` (set in nixos-config).
+#
+# Behavior:
+#   - Scans only ADDED lines in staged diff (gitleaks-style)
+#   - Mode auto-detected from `origin` URL:
+#       github.com/junghan0611/* | github.com/junghanacs/* → strict (secrets + terms)
+#       else → loose (secrets only)
+#   - Override per-repo: write `strict` | `loose` | `off` to <repo>/.git-hooks-mode
+#   - Then chains to repo-local pre-commit (husky/.git/hooks/) if present
+#
+# Bypass (GLG only): AGENT_ALLOW_UNSAFE_COMMIT=1 git commit ...
+
+set -uo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+"$HOOK_DIR/_scan.sh" staged || exit $?
+"$HOOK_DIR/_delegate.sh" pre-commit "$@"

@@ -1,0 +1,49 @@
+# Paths excluded from scanning (one ERE per line)
+# Matched against repo-relative path with grep -E.
+# Per-repo additions go in <repo>/.git-hooks-allow (same format).
+
+# --- Build/dependency output ---
+^node_modules/
+/node_modules/
+^dist/
+/dist/
+^build/
+/build/
+^target/
+/target/
+^\.next/
+^\.svelte-kit/
+
+# --- Lockfiles (huge, false-positive-prone) ---
+(^|/)pnpm-lock\.yaml$
+(^|/)package-lock\.json$
+(^|/)yarn\.lock$
+(^|/)Cargo\.lock$
+(^|/)go\.sum$
+(^|/)poetry\.lock$
+(^|/)uv\.lock$
+(^|/)flake\.lock$
+
+# --- Binary-ish / generated ---
+\.lance/
+\.lance$
+\.min\.(js|css)$
+\.map$
+\.(png|jpg|jpeg|gif|webp|ico|pdf|woff2?|ttf|otf|eot)$
+\.(zip|tar|tar\.gz|tgz|tar\.xz|tar\.bz2|gz|xz|bz2|7z|rar)$
+\.(mp3|mp4|wav|m4a|flac|ogg|webm|mkv|mov)$
+
+# --- VCS / IDE ---
+^\.git/
+/\.git/
+
+# --- The hook's own pattern files (would self-match) ---
+^git-hooks/sensitive-terms\.txt$
+^git-hooks/gitleaks\.toml$
+^git-hooks/README\.md$
+
+# --- notes garden: source has real names, change-text.sh sanitizes content/ ---
+# notes/content is the PUBLIC output and IS scanned (must be clean).
+# Only allowlist build artifacts here.
+^public/
+^docs-build/
