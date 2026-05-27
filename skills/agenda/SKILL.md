@@ -6,7 +6,12 @@ user_invocable: true
 
 # agenda — Agent Activity Stamps
 
-Stamp agent activity to `~/org/botlog/agenda/` reverse datetree. Visible in org-agenda alongside human activity.
+Stamp agent activity to the device-appropriate agenda dir (reverse datetree). Visible in org-agenda alongside human activity.
+
+| Device | Agenda dir |
+|--------|-----------|
+| thinkpad / oracle / others | `~/org/botlog/agenda/` |
+| **hejdev6** | `~/sync/org/botlog/agenda/` |
 
 ## First Distinction: Activity Timeline vs Task Hub
 
@@ -14,7 +19,7 @@ Do not confuse these two surfaces.
 
 | Surface | Purpose | Typical path | How to read |
 |--------|---------|--------------|-------------|
-| **Activity timeline** | What was done | `~/org/botlog/agenda/*__agenda_<device>.org` | `agent-org-agenda-day/week` or top of file |
+| **Activity timeline** | What was done | `~/org/botlog/agenda/*__agenda_<device>.org` (thinkpad/oracle)<br>`~/sync/org/botlog/agenda/*__agenda_<device>.org` (hejdev6) | `agent-org-agenda-day/week` or top of file |
 | **Task hub** | What should be done | `~/sync/org/botlog/agenda/20260325T171244--entwurf__agenda.org` | `agent-org-agenda-todos` first, raw grep fallback if needed |
 
 ### Rule
@@ -81,7 +86,7 @@ from: pi@thinkpad
 
 ## Single Writer Rule (CRITICAL)
 
-`agenda-stamp.sh` is the **only authorized writer** for `~/org/botlog/agenda/`.
+`agenda-stamp.sh` is the **only authorized writer** for the agenda dirs (`~/org/botlog/agenda/` or `~/sync/org/botlog/agenda/` on hejdev6).
 The reverse-datetree insertion (year/month/day heading creation, position calculation) lives inside the script. A file with similar shape created by other tools is **not** a valid stamp — it splits the timeline, breaks reverse-datetree ordering, and pollutes `org-agenda`.
 
 ### Retry is fine — bypass is not
@@ -95,7 +100,7 @@ Reasonable retries are encouraged when execution fails:
 If exec still fails after retries (allowlist miss, missing dependency, environment issue):
 
 - ✓ **STOP**, report the exact command and error to GLG, and wait
-- ✗ Do NOT use `Write` / `Edit` to create or append a file in `~/org/botlog/agenda/`
+- ✗ Do NOT use `Write` / `Edit` to create or append a file in the agenda dir
 - ✗ Do NOT use `cat <<EOF >` heredoc as a fallback
 - ✗ Do NOT create a parallel `*__agenda_<device>.org` file via any other tool
 
@@ -136,7 +141,12 @@ Use this first when the goal is:
 
 ```bash
 DEVICE=$(cat ~/.current-device)
-AGENDA=$(find ~/org/botlog/agenda/ -name "*__agenda_${DEVICE}.org" | head -1)
+# hejdev6 uses sync/org/, others use org/
+case "$DEVICE" in
+  hejdev6) AGENDA_DIR=~/sync/org/botlog/agenda ;;
+  *)       AGENDA_DIR=~/org/botlog/agenda ;;
+esac
+AGENDA=$(find "$AGENDA_DIR" -name "*__agenda_${DEVICE}.org" | head -1)
 head -30 "$AGENDA"   # reverse datetree: top = latest
 ```
 
@@ -159,7 +169,7 @@ This is a temporary interface workaround until a dedicated task-hub API exists.
 
 ## Notes
 
-- Files auto-created per device in `~/org/botlog/agenda/`
+- Files auto-created per device: `~/org/botlog/agenda/` (default) or `~/sync/org/botlog/agenda/` (hejdev6)
 - Agenda = shared bulletin board. Stamps = posts. Agents = residents.
 - Don't stamp too often — meaningful activity units only
 - For Entwurf operations, **start from `agent-org-agenda-day/week/todos` before any raw file read**.
