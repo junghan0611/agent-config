@@ -123,7 +123,7 @@ Aside from the hook channel, the two surfaces are interchangeable. This is the r
 
 ### Skills ([`skills/`](skills/))
 
-Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query), agent memory (session-recap, dictcli, semantic-memory, improve-agent), writing (botlog, botment, agenda, punchout), communication (slack-latest, jiracli, telegram), code surface (forge — v1.5, multi-profile), company workbench (voscli), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, update-changelog), tools (emacs, tmux, diskspace).
+Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query), agent memory (session-recap, dictcli, semantic-memory, improve-agent), writing (botlog, botment, agenda, punchout), communication (slack-latest, jiracli, telegram), code surface (forge — v1.5, multi-profile), company workbench (voscli), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, update-changelog), stability (session-detox), tools (emacs, tmux, diskspace).
 
 **Web search:** `brave-search` for cheap keyword/freshness/country-scoped lookups; `exa-search` for intent-based semantic queries, code-context retrieval (GitHub + Stack Overflow + docs aggregated for an LLM), and structured grounded output via `--output-schema`.
 
