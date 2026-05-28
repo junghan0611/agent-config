@@ -136,7 +136,7 @@ GitHub repo 의 `<owner>/<name>` 에서 `<name>` 만 떼서 `glg-bot/<name>` 매
 | `state` | `ISSUE` | 이슈 상태 + 라벨 + 최근 코멘트 3개 |
 | `comment` | `ISSUE BODY` | 코멘트 작성. footer 자동 부착 |
 | `label-add` | `ISSUE LABEL` | 라벨 이름으로 ID 조회 후 부착 |
-| `issue-create` | `[REPO] TITLE BODY [--labels L1,L2,...]` 또는 `[REPO] TITLE --body-file PATH [--labels ...]` | 이슈 생성. footer 자동 부착. atomic 라벨 옵션. **multi-line BODY 는 `--body-file PATH` (또는 `-` = stdin) 필수** — inline BODY 는 single-line 만 |
+| `issue-create` | `[REPO] TITLE BODY [OPTIONS]` 또는 `[REPO] TITLE --body-file PATH [OPTIONS]` | 이슈 생성. footer 자동 부착. atomic 라벨 (`--labels`) + Mattermost thread bridge (`--mm-channel/--mm-root-id/--mm-account`) 옵션. **multi-line BODY 는 `--body-file PATH` (또는 `-` = stdin) 필수** — inline BODY 는 single-line 만 |
 
 `ISSUE` / `REPO` 인자 형식:
 
@@ -167,6 +167,25 @@ cat <<'EOF' | forge --forge work issue-create glg-bot/<work-repo> \
 - 주간/월간 범위 ...
 EOF
 ```
+
+### Mattermost thread bridge — `--mm-channel/--mm-root-id/--mm-account`
+
+봇이 Mattermost thread 에서 받은 요청으로 이슈 생성할 때, *원래 thread* 로 lifecycle 자취가 돌아가게 metadata 박을 자리. forge agent 가 이슈 처리 후 `replyToId` 로 같은 thread 에 답장하기 위함.
+
+```bash
+forge --forge work issue-create glg-bot/voscli \
+  "Bug: foo 안 됨" --body-file - --labels agent:ready \
+  --mm-channel cidABC123 --mm-root-id ridXYZ789
+  # --mm-account default = "forgebot"
+```
+
+자취 두 자리에 박힘:
+
+- **issue body 끝** — `<!-- openclaw:mm {"channel_id":"...","root_id":"...","account":"..."} -->` HTML comment. 렌더된 마크다운에 사람한테 안 보임, 봇이 read 시 회수
+- **로컬 SQLite SSOT** — `~/.openclaw/state/forge-mm-links.sqlite`. key `<profile>:<repo>#<issue_num>` → `{channel_id, root_id, account_id, created_at}`. `sqlite3` 없으면 WARN 한 줄 + 계속 (body metadata 가 canonical)
+
+검증:
+- `--mm-channel` 과 `--mm-root-id` 는 **둘 다 박혀야** 한다. 한쪽만 박으면 ERROR exit 2 — 부분 metadata 가 thread bridge 동작 침묵 깨짐 자리
 
 추가 동사(`label-remove`, `label-set`, `read`, `pr ...`)는 v2 — 운영 누적 후
 forge-config 측에서 박는다. 여기서 동사를 임의로 늘리지 말 것 (SSOT 어긋남).
