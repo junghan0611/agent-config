@@ -1,0 +1,22 @@
+{
+  "model": "Gemini 3.1 Pro (Low)",
+  "permissions": {
+    "allow": [
+      "command(*)",
+      "unsandboxed(*)",
+      "mcp(*)",
+      "read_file(/*)",
+      "write_file(/*)",
+      "read_url(*)",
+      "execute_url(*)"
+    ]
+  },
+  "statusLine": {
+    "type": "custom",
+    "command": "/home/junghan/repos/gh/agent-config/antigravity/statusline.sh",
+    "enabled": true
+  },
+  "trustedWorkspaces": [
+    "/home/junghan"
+  ]
+}

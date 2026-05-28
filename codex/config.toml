@@ -33,6 +33,7 @@ trust_level = "trusted"
 
 [notice.model_migrations]
 "gpt-5.3-codex" = "gpt-5.4"
+"gpt-5.4" = "gpt-5.5"
 
 [tui]
 status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-used", "weekly-limit", "context-window-size"]
@@ -40,3 +41,6 @@ theme = "zenburn"
 
 [tui.model_availability_nux]
 "gpt-5.5" = 4
+
+[mcp_servers.pi-tools-bridge]
+command = "/home/junghan/repos/gh/pi-shell-acp/mcp/pi-tools-bridge/start.sh"

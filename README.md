@@ -37,7 +37,7 @@ agent-config attacks this with three layers:
 
 1. **Shared memory layer** ([andenken](https://github.com/junghan0611/andenken)) — past conversations from every harness + the exported public digital garden in a semantically searchable index. Ask "보편 학문 관련 노트 찾아줘" and it searches the garden md memory without being told the English word.
 
-2. **Shared skill set** — the same capabilities (search notes, read bibliography, check git history, write to journal) available identically whether you're in pi, Claude Code, OpenCode, or OpenClaw.
+2. **Shared skill set** — the same capabilities (search notes, read bibliography, check git history, write to journal) available identically whether you're in pi, Claude Code, Codex, Antigravity, OpenCode, or OpenClaw.
 
 3. **Session continuity protocol** — `/new` + recap + semantic search instead of expensive compact. Start a new session, recover full context in seconds for ~2K tokens instead of re-reading 50K.
 
@@ -54,10 +54,12 @@ The result: context survives across sessions, across harnesses, across models. O
 | **pi + pi-shell-acp** (default Claude path) | andenken extension on pi side; Claude side gets full skill set via this repo's plugin farm | full skill set on both sides — `semantic-memory` mounted as a SKILL.md skill, plus `session_search` / `knowledge_search` registerTool on pi for direct calls | SDK isolation (`settingSources: []`); skills injected via `piShellAcpProvider.skillPlugins` |
 | **pi + anthropic** (`claude-opus-4-7` / `claude-sonnet-4-6`) | andenken extension (in-process LanceDB) | full skill set including `semantic-memory` skill; `session_search` / `knowledge_search` registerTool also available | Direct provider — available, not the current default |
 | **pi-entwurf** (Oracle, tmux) | andenken extension + pi-telegram | full skill set + Telegram bridge | Persistent Opus session via `@glg_entwurf_bot` |
-| **Claude Code** | andenken skill (CLI wrapper) | full skill set | CLAUDE.md + hooks; settings tuned to mirror pi-shell-acp overlay (`defaultMode: default`, `autoMemoryEnabled: false`, binary/external tools deny-listed) |
+| **Claude Code** | andenken skill (CLI wrapper) | full skill set | CLAUDE.md + hooks; `pi-tools-bridge` MCP available; settings tuned to mirror pi-shell-acp overlay (`defaultMode: default`, `autoMemoryEnabled: false`, binary/external tools deny-listed) |
+| **Codex CLI** | skill surface + repo-managed MCP registration | full skill set | `~/.codex/skills/` from SSOT + `codex/config.toml` carries `pi-tools-bridge`; direct `entwurf` / `entwurf_resume` verified |
+| **Antigravity CLI (`agy`)** | repo-managed settings + skills + MCP | full skill set | `~/.gemini/antigravity-cli/{settings,skills,mcp_config}.json` from SSOT; direct `entwurf` / sync `entwurf_resume` verified |
 | **OpenCode / OpenClaw** | andenken skill (same SSOT via symlink) | full skill set | settings / Nix store mount |
 
-Session JSONL from all harnesses flows into [andenken](https://github.com/junghan0611/andenken)'s unified index. Each chunk carries a `source` field (`"pi"` | `"claude"`) so you can filter, compare, or roll back across harnesses.
+Session indexing is currently strongest on the `pi` + `claude` axes inside [andenken](https://github.com/junghan0611/andenken)'s unified index. Each chunk carries a `source` field (`"pi"` | `"claude"`) so you can filter, compare, or roll back across those transcript families. Other direct harnesses now share the same skills/MCP dignity surface here even where session indexing has not yet been widened to first-class source tags.
 
 ## What's Here
 
@@ -143,7 +145,13 @@ pi-shell-acp runs Claude with `settingSources: []` (SDK isolation), so `~/.claud
 
 What this repo does is narrower: `run.sh setup` builds **one local consumer layout** under `~/.pi/agent/claude-plugin/` (manifest + per-skill symlinks back to `agent-config/skills/`) and points this repo's pi settings at that path. That path is an agent-config convention, not a pi-shell-acp contract.
 
-Adding a new skill here still works the same way: drop it into `agent-config/skills/<name>/SKILL.md` and re-run `./run.sh setup`. All four local farms — `~/.claude/skills/`, `~/.pi/agent/skills/pi-skills/`, `~/.pi/agent/claude-plugin/skills/`, `~/.codex/skills/` — refresh from the same SSOT.
+Adding a new skill here still works the same way: drop it into `agent-config/skills/<name>/SKILL.md` and re-run `./run.sh setup`. The same SSOT now fans out to `~/.claude/skills/`, `~/.config/opencode/skills/`, `~/.pi/agent/skills/pi-skills/`, `~/.pi/agent/claude-plugin/skills/`, `~/.codex/skills/`, `~/.gemini/skills/` (Gemini legacy), and `~/.gemini/antigravity-cli/skills/` (Antigravity direct).
+
+Codex direct mode also uses this repo-managed surface for MCP now: `codex/config.toml` carries a `pi-tools-bridge` stdio registration, so direct Codex sessions can see the same bridge family instead of remaining the one MCP-empty harness.
+
+For Antigravity direct mode, `run.sh setup` also wires `antigravity/settings.json` into `~/.gemini/antigravity-cli/settings.json` so statusline / permission / model choices live in-repo instead of only inside agy's self-written local state.
+
+For Antigravity direct-mode MCP, `run.sh setup` also wires `antigravity/mcp_config*.json` into both `~/.gemini/antigravity-cli/mcp_config.json` (documented path) and `~/.gemini/config/mcp_config.json` (current live-runtime compatibility path).
 
 ### Themes ([`pi-themes/`](pi-themes/))
 
@@ -175,7 +183,7 @@ cd agent-config
 - Build native CLI binaries (Go + GraalVM)
 - Symlink pi extensions, full skill set (including `semantic-memory`), themes, settings, keybindings, prompts
 - Install andenken as a pi package (compiled extension — exposes `session_search` / `knowledge_search` registerTool alongside the SKILL.md skill)
-- Symlink Claude Code / OpenCode / Codex / Gemini config surfaces (`~/.claude/settings.json`, `~/.codex/config.toml`, `~/.gemini/settings.json`) plus skills and Claude Code commands
+- Symlink Claude Code / OpenCode / Codex / Gemini legacy / Antigravity surfaces (`~/.claude/settings.json`, `~/.codex/config.toml`, `~/.gemini/settings.json`, `~/.gemini/antigravity-cli/settings.json`, `~/.gemini/antigravity-cli/skills`, `~/.gemini/antigravity-cli/mcp_config.json`) plus skills and Claude Code commands
 - Symlink `~/.local/bin` PATH binaries
 - pnpm install for extensions and skills
 - Hand off pi-shell-acp validation (typecheck, MCP, dual-backend smoke, persisted-bootstrap continuity, cancel-cleanup) to pi-shell-acp's own `run.sh`

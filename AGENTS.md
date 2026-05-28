@@ -217,7 +217,7 @@ Environment (`~/.env.local`): `ANDENKEN_SESSION_*` and `ANDENKEN_MD_*` point at 
 
 #### Host Surface Alignment — Asymmetric Mitsein
 
-agent-config is the resident-side evidence that pi-shell-acp's "no backend differentiation" invariant is intended to hold at the consumer surface too. The `claude/`, `codex/`, `gemini/` directories — and the OpenCode wiring — carry the same skill set, the same YOLO custom config, and an intended-aligned `pi-tools-bridge` MCP registration where the host supports MCP. Entwurf throwing is intended to work the same from any of these hosts (Claude Code / Codex CLI / Gemini CLI / OpenCode), with live confirmation strongest on Claude Code so far. The fact that ongoing dialogue mostly references Claude Code is an operator time-budget artifact, not a capability asymmetry — the surfaces are aligned in this repo, even if live confirmation has not yet covered every host equally.
+agent-config is the resident-side evidence that pi-shell-acp's "no backend differentiation" invariant is intended to hold at the consumer surface too. The `claude/`, `codex/`, `gemini/`, and `antigravity/` surfaces — plus the OpenCode wiring — carry the same skill set, the same YOLO custom config, and an aligned `pi-tools-bridge` MCP registration where the host supports MCP. Entwurf throwing is intended to work the same from any of these hosts (Claude Code / Codex CLI / Antigravity CLI / OpenCode). Live confirmation is no longer Claude-only: direct Codex and Antigravity have both been verified for `entwurf` spawn and sync `entwurf_resume`. The fact that ongoing dialogue mostly references Claude Code is an operator time-budget artifact, not a capability asymmetry.
 
 Two operational corollaries the consumer surface enforces:
 

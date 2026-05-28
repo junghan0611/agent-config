@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "pi-tools-bridge": {
+      "command": "/home/junghan/repos/gh/pi-shell-acp/mcp/pi-tools-bridge/start.sh"
+    }
+  }
+}

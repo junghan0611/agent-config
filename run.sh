@@ -552,14 +552,35 @@ TGJSON
   done
   ensure_link "$SCRIPT_DIR/codex/config.toml" "$HOME/.codex/config.toml"
 
-  section "Gemini CLI Config"
+  section "Gemini CLI (legacy) Config"
   ensure_link "$SCRIPT_DIR/gemini/settings.json" "$HOME/.gemini/settings.json"
 
-  section "Gemini CLI Skills"
+  section "Gemini CLI (legacy) Skills"
   # ~/.gemini/skills → skills/ (단일 디렉토리 링크, Agent Skills open standard)
   # Gemini CLI v0.40+ discovers SKILL.md from ~/.gemini/skills/<sname>/ — same SSOT
   mkdir -p "$HOME/.gemini"
   ensure_link "$SKILLS_DIR" "$HOME/.gemini/skills"
+
+  section "Antigravity CLI Settings"
+  # agy direct harness persistent settings (status line, permissions, model, etc.)
+  mkdir -p "$HOME/.gemini/antigravity-cli"
+  ensure_link "$SCRIPT_DIR/antigravity/settings.json" "$HOME/.gemini/antigravity-cli/settings.json"
+
+  section "Antigravity CLI Skills"
+  # agy direct harness global skills path
+  ensure_link "$SKILLS_DIR" "$HOME/.gemini/antigravity-cli/skills"
+
+  section "Antigravity CLI MCP"
+  # Docs point at ~/.gemini/antigravity-cli/mcp_config.json, but current agy
+  # runtime also probes ~/.gemini/config/mcp_config.json during discovery.
+  # Keep both paths on one SSOT so 문서 경로와 live binary 경로가 어긋나도
+  # multi-harness surface stays aligned.
+  local AGY_MCP_FILE="$SCRIPT_DIR/antigravity/mcp_config.json"
+  if echo "$SERVER_DEVICES" | grep -qw "$DEVICE"; then
+    AGY_MCP_FILE="$SCRIPT_DIR/antigravity/mcp_config.server.json"
+  fi
+  ensure_link "$AGY_MCP_FILE" "$HOME/.gemini/antigravity-cli/mcp_config.json"
+  ensure_link "$AGY_MCP_FILE" "$HOME/.gemini/config/mcp_config.json"
 
   return 0
 }
@@ -828,7 +849,8 @@ setup_all() {
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null && echo ' + skills' || echo 'not linked')"
   echo "  OpenCode: $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo 'not linked')"
   echo "  Codex:    $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo 'config not linked') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
-  echo "  Gemini:   $(readlink "$HOME/.gemini/settings.json" 2>/dev/null || echo 'config not linked') + $(readlink "$HOME/.gemini/skills" 2>/dev/null || echo 'skills not linked')"
+  echo "  Gemini:   legacy $(readlink "$HOME/.gemini/settings.json" 2>/dev/null || echo 'config not linked') + $(readlink "$HOME/.gemini/skills" 2>/dev/null || echo 'skills not linked')"
+  echo "  Antigrav: $(readlink "$HOME/.gemini/antigravity-cli/settings.json" 2>/dev/null || echo 'settings not linked') + $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo 'skills not linked') + $(readlink "$HOME/.gemini/antigravity-cli/mcp_config.json" 2>/dev/null || echo 'mcp not linked')"
 
   # Sentinel (delegate matrix) moved to pi-shell-acp with the rest of the
   # Entwurf Orchestration surface — run it from there when exercising the
@@ -984,6 +1006,10 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Codex skills: $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) linked"
     echo "  Gemini conf:  $(readlink "$HOME/.gemini/settings.json" 2>/dev/null || echo '❌ not linked')"
     echo "  Gemini skills:$(readlink "$HOME/.gemini/skills" 2>/dev/null || echo '❌ not linked')"
+    echo "  Antigrav conf:   $(readlink "$HOME/.gemini/antigravity-cli/settings.json" 2>/dev/null || echo '❌ not linked')"
+    echo "  Antigrav skills: $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo '❌ not linked')"
+    echo "  Antigrav MCP:    $(readlink "$HOME/.gemini/antigravity-cli/mcp_config.json" 2>/dev/null || echo '❌ not linked')"
+    echo "  Antigrav MCP(rt):$(readlink "$HOME/.gemini/config/mcp_config.json" 2>/dev/null || echo '❌ not linked')"
 
     section "CLI Binaries"
     for cli in denotecli bibcli gitcli lifetract dictcli; do
