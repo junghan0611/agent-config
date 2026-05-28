@@ -154,14 +154,23 @@ PI_SHELL_ACP_INSTALL_SPEC="git:github.com/junghan0611/pi-shell-acp"
 PI_SHELL_ACP_TRACKING_REF="main"
 
 # Server devices use the consumer install path (pi-managed) instead of cloning
-# pi-shell-acp into ~/repos/gh/. Add device names here as they come online.
+# pi-shell-acp into ~/repos/gh/. Public-safe defaults live here; private devices
+# can be appended locally via ~/.config/agent-config/server-devices.txt (one per line).
 SERVER_DEVICES="oracle"
+SERVER_DEVICES_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/agent-config/server-devices.txt"
+
+server_devices_list() {
+  printf '%s\n' "$SERVER_DEVICES"
+  if [ -f "$SERVER_DEVICES_FILE" ]; then
+    grep -v '^[[:space:]]*#' "$SERVER_DEVICES_FILE" | sed '/^[[:space:]]*$/d'
+  fi
+}
 
 # True when ~/.current-device matches a server device.
 is_server_device() {
   local device
   device="$(cat "$HOME/.current-device" 2>/dev/null || echo unknown)"
-  echo "$SERVER_DEVICES" | grep -qw "$device"
+  server_devices_list | grep -Fxq "$device"
 }
 
 # Resolve pi-shell-acp install path for the current device.
@@ -497,12 +506,11 @@ TGJSON
   mkdir -p "$HOME/.claude/hooks"
   # CLAUDE.md — Claude Code가 non-append 모드에서 읽는 진입점 (@AGENTS.md include)
   ensure_link "$SCRIPT_DIR/home/CLAUDE.md"              "$HOME/.claude/CLAUDE.md"
-  # 디바이스별 설정: 서버(oracle 등)는 hooks/소리 없는 server 버전 사용
+  # 디바이스별 설정: 서버 디바이스는 hooks/소리 없는 server 버전 사용
   local DEVICE
   DEVICE=$(cat "$HOME/.current-device" 2>/dev/null || echo "unknown")
-  local SERVER_DEVICES="oracle"  # 서버 디바이스 목록 (공백 구분)
   local SETTINGS_FILE="$SCRIPT_DIR/claude/settings.json"
-  if echo "$SERVER_DEVICES" | grep -qw "$DEVICE"; then
+  if is_server_device; then
     SETTINGS_FILE="$SCRIPT_DIR/claude/settings.server.json"
     log "device=$DEVICE → server settings (no hooks/sound)"
   fi
@@ -576,7 +584,7 @@ TGJSON
   # Keep both paths on one SSOT so 문서 경로와 live binary 경로가 어긋나도
   # multi-harness surface stays aligned.
   local AGY_MCP_FILE="$SCRIPT_DIR/antigravity/mcp_config.json"
-  if echo "$SERVER_DEVICES" | grep -qw "$DEVICE"; then
+  if is_server_device; then
     AGY_MCP_FILE="$SCRIPT_DIR/antigravity/mcp_config.server.json"
   fi
   ensure_link "$AGY_MCP_FILE" "$HOME/.gemini/antigravity-cli/mcp_config.json"
