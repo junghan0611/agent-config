@@ -153,6 +153,8 @@ For Antigravity direct mode, `run.sh setup` also wires `antigravity/settings.jso
 
 For Antigravity direct-mode MCP, `run.sh setup` also wires `antigravity/mcp_config*.json` into both `~/.gemini/antigravity-cli/mcp_config.json` (documented path) and `~/.gemini/config/mcp_config.json` (current live-runtime compatibility path).
 
+Because Antigravity and Codex do not expose the same repo-managed custom command-file surface as pi / Claude Code, selected high-value commands can also be translated into thin wrapper skills (current prototypes: `skills/command-recall/`, `skills/command-glgimage/`).
+
 ### Themes ([`pi-themes/`](pi-themes/))
 
 `glg-dark` (custom, Ghostty Dracula compatible).

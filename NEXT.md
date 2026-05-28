@@ -4,6 +4,24 @@
 > persistent facts in `AGENTS.md` / `docs/`. This file lists only
 > what is left to do. Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
+## [2026-05-28] multi-harness command surface — 후속
+
+- `commands/` SSOT 유지 + wrapper 방향 확정.
+- 1차 prototype landed:
+  - `skills/command-recall/SKILL.md`
+  - `skills/command-glgimage/SKILL.md`
+- 현재 원칙:
+  - pi / Claude는 native command surface 유지
+  - agy / Codex는 필요한 것만 **thin skill wrapper**
+  - wrapper는 `command-*` 접두로 일반 skill과 구분
+- 새로 알게 된 사실:
+  - agy / Codex는 repo-managed command prompt surface보다 skill 쪽으로 유도한다.
+  - 둘 다 **내장 이미지 생성 능력**이 있어 구독 요금으로 생성 가능. 따라서 `glg-image` wrapper도 native image generation 우선 전략이 맞다.
+- 다음 검토:
+  1. `recall`, `glg-image` wrapper가 실제 호출감/발견성 면에서 괜찮은지 본다.
+  2. 괜찮으면 `/boom`, `/pandoc-html` 등으로 확장.
+  3. command → wrapper 자동 생성기로 갈지 판단.
+
 ## [2026-05-27] global commit/push safety rail — 닫힘
 
 - 3 device 활성 완료: 로컬 + oracle + hejdev6. 모두 `gitleaks 8.28.0`(또는 동등) + `core.hooksPath` 동작 중.
