@@ -109,10 +109,29 @@ export FORGE_MODEL="claude-opus-4-7"
 env 미설치 시 `bin/forge` 가 친절한 에러를 던지므로 그것을 따라가면 된다
 (`FORGE_URL is required (profile=<name> — set <NAME>_FORGE_URL in ~/.env.local)`).
 
-## API — v1.5 동사 5개
+## 발견성 — namespace 와 처음 만난 repo
+
+각 forge 인스턴스의 봇 namespace 는 **`glg-bot/*`** (oracle / work 양쪽 동일). 처음 다루는 repo 라 *어느 path 에 박지* 모르면 GitHub remote 의 `teamgoqual/*` / `junghan0611/*` 를 그대로 추측하지 말 것 — forge namespace 와 안 맞는다.
+
+발견 recipe:
+
+```bash
+forge --forge work repos          # work forge 의 glg-bot/* 실재 목록
+forge --forge oracle repos        # oracle forge 의 glg-bot/* 실재 목록
+forge --forge work repos <other>  # 다른 namespace 도 명시 가능
+```
+
+운영 사실 (자취):
+- oracle forge → `glg-bot/forge-config`, `glg-bot/sandbox`
+- work forge → `glg-bot/voscli`, `glg-bot/incidentcli`, `glg-bot/sandbox`
+
+GitHub repo 의 `<owner>/<name>` 에서 `<name>` 만 떼서 `glg-bot/<name>` 매핑하는 게 자연 fallback 이지만, 실재하지 않을 수 있다 — `forge repos` 로 먼저 확인한 뒤 매칭.
+
+## API — v1.6 동사 6개
 
 | 명령 | 인자 | 동작 |
 |------|------|------|
+| `repos` | `[OWNER]` | 현 profile 의 봇 namespace (기본 `<FORGE_USER>` = `glg-bot`) 아래 실재 repo 목록. **처음 만난 forge 의 발견 자리** |
 | `list-open` | `[REPO]` | 열린 이슈 목록 (제목 + 라벨 + 코멘트 수). REPO 생략 시 default repo |
 | `state` | `ISSUE` | 이슈 상태 + 라벨 + 최근 코멘트 3개 |
 | `comment` | `ISSUE BODY` | 코멘트 작성. footer 자동 부착 |
@@ -191,6 +210,10 @@ footer 를 자동 삽입하므로 따로 박을 필요 없음.
 ```bash
 # 환경 sanity (profile 표시 포함)
 ~/repos/gh/forge-config/bin/forge help
+
+# 발견 — 현 profile 의 glg-bot/* 실재 repo 목록
+~/repos/gh/forge-config/bin/forge --forge work repos
+~/repos/gh/forge-config/bin/forge --forge oracle repos
 
 # 컨텍스트 기반 — cwd 가 oracle/work 결정
 cd ~/repos/gh/forge-config && ~/repos/gh/forge-config/bin/forge list-open
