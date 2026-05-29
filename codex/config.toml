@@ -31,6 +31,9 @@ trust_level = "trusted"
 [projects."/home/junghan/repos/work/voscli"]
 trust_level = "trusted"
 
+[projects."/home/junghan/.openclaw"]
+trust_level = "trusted"
+
 [notice.model_migrations]
 "gpt-5.3-codex" = "gpt-5.4"
 "gpt-5.4" = "gpt-5.5"
@@ -44,3 +47,12 @@ theme = "zenburn"
 
 [mcp_servers.pi-tools-bridge]
 command = "/home/junghan/repos/gh/pi-shell-acp/mcp/pi-tools-bridge/start.sh"
+
+[plugins."google-calendar@openai-curated"]
+enabled = false
+
+[plugins."netlify@openai-curated"]
+enabled = false
+
+[plugins."github@openai-curated"]
+enabled = false
