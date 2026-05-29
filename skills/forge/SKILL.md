@@ -204,6 +204,8 @@ forge --forge work issue-create glg-bot/voscli \
 
 라벨 ID 는 인스턴스마다 다르므로 **이름으로만** 다룬다. `label-add` / `label-remove` / `label-set` 이 이름→ID 변환을 처리한다. 상태 전이는 `label-add` 대신 `label-set` 을 우선 사용해 `agent:ready,running,done` 누적을 막는다.
 
+forgebot duplicate/replay guard: webhook payload 는 wake signal 일 뿐이고 현재 Forgejo state 가 우선이다. triage 는 lifecycle status set 이 정확히 `{agent:ready}` 인 ready-only 상태에서만 진행한다. `agent:ready + human:needs-review` 같은 mixed 상태는 처리하지 않는다. 의도적 재실행은 `label-set agent:ready` 로 ready-only 를 만든 뒤 수행한다.
+
 ## footer 서명 — 자기 식별
 
 모든 코멘트 본문 끝에 자동 부착된다. 형식:
@@ -276,10 +278,11 @@ FORGE_PROFILE=work ~/repos/gh/forge-config/bin/forge state glg-bot/<work-repo>#1
 ```
 1. list-open                       → 미처리 이슈 훑기
 2. state <issue>                   → 본문 + 라벨 + 최근 코멘트 확인
-3. label-set <issue> agent:running → 잡았음 표시 + 기존 상태 라벨 정리
-4. 시나리오 판정. 필요하면 owner agent 에게 read-only first review 요청
-5. owner review 결과를 /tmp/forge-result.md 로 쓴 뒤 comment <issue> --body-file /tmp/forge-result.md
-6. label-set <issue> agent:done    또는 agent:blocked 또는 human:needs-review
+3. 현재 lifecycle status set 이 정확히 `{agent:ready}` 인지 확인. 아니면 owner review 재실행 금지
+4. label-set <issue> agent:running → 잡았음 표시 + 기존 상태 라벨 정리
+5. 시나리오 판정. 필요하면 owner agent 에게 read-only first review 요청
+6. owner review 결과를 /tmp/forge-result.md 로 쓴 뒤 comment <issue> --body-file /tmp/forge-result.md
+7. label-set <issue> agent:done    또는 agent:blocked 또는 human:needs-review
    - 여기서 agent:done = 1차 검토/분류 완료, 구현 완료 아님
 ```
 
