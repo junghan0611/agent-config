@@ -51,13 +51,13 @@
         ]
       }
     ],
-    "Stop": [
+    "Notification": [
       {
         "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "curl -s -d \"CLAUDECODE SESSION END\" ntfy.sh/junghanacs-oracle-cloud-20251017a > /dev/null 2>&1 || true"
+            "command": "/home/junghan/.claude/hooks/agent-notify.sh claude"
           }
         ]
       }

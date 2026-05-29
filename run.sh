@@ -154,10 +154,26 @@ PI_SHELL_ACP_INSTALL_SPEC="git:github.com/junghan0611/pi-shell-acp"
 PI_SHELL_ACP_TRACKING_REF="main"
 
 # Server devices use the consumer install path (pi-managed) instead of cloning
-# pi-shell-acp into ~/repos/gh/. Public-safe defaults live here; private devices
-# can be appended locally via ~/.config/agent-config/server-devices.txt (one per line).
+# pi-shell-acp into ~/repos/gh/.
+#
+# Primary signal: ~/.current-forge-profile (the forge skill's machine SSOT).
+# A forge *host* machine writes its profile there (oracle / work) and is, by
+# definition, a server. Client machines (thinkpad/laptop/nuc) have no such file
+# and resolve their forge per-cwd → they fall through to the dev path.
+# SERVER_PROFILES is the set of profiles that mean "this machine is a server".
+SERVER_PROFILES="oracle work"
+FORGE_PROFILE_FILE="$HOME/.current-forge-profile"
+
+# Legacy fallback: an explicit device-name allowlist, used only when no forge
+# profile is present. Public-safe defaults here; private device names go in
+# ~/.config/agent-config/server-devices.txt (one per line).
 SERVER_DEVICES="oracle"
 SERVER_DEVICES_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/agent-config/server-devices.txt"
+
+# Current machine's forge profile (whitespace-trimmed), empty if the file is absent.
+current_forge_profile() {
+  tr -d '[:space:]' < "$FORGE_PROFILE_FILE" 2>/dev/null || true
+}
 
 server_devices_list() {
   printf '%s\n' "$SERVER_DEVICES"
@@ -166,9 +182,16 @@ server_devices_list() {
   fi
 }
 
-# True when ~/.current-device matches a server device.
+# True when this machine is a server.
+# 1순위: ~/.current-forge-profile 이 존재하면 그 값만 보고 판정한다 (forge host = server).
+# 2순위: forge profile 이 없을 때만 device-name allowlist 로 fallback.
 is_server_device() {
-  local device
+  local profile device
+  profile="$(current_forge_profile)"
+  if [ -n "$profile" ]; then
+    printf '%s\n' $SERVER_PROFILES | grep -Fxq "$profile"
+    return
+  fi
   device="$(cat "$HOME/.current-device" 2>/dev/null || echo unknown)"
   server_devices_list | grep -Fxq "$device"
 }
@@ -519,6 +542,10 @@ TGJSON
   ensure_link "$SCRIPT_DIR/claude/keybindings.json"     "$HOME/.claude/keybindings.json"
   ensure_link "$SCRIPT_DIR/claude/statusline.sh"        "$HOME/.claude/statusline.sh"
   ensure_link "$SCRIPT_DIR/claude/hooks/session-info.sh" "$HOME/.claude/hooks/session-info.sh"
+  # Notification hook (server settings only) — pings ntfy when an agent needs the
+  # operator (permission / idle). Shared by all harnesses; topic per ~/.current-forge-profile.
+  [ -L "$HOME/.claude/hooks/session-end-ntfy.sh" ] && rm "$HOME/.claude/hooks/session-end-ntfy.sh"
+  ensure_link "$SCRIPT_DIR/claude/hooks/agent-notify.sh" "$HOME/.claude/hooks/agent-notify.sh"
 
   section "Claude Code Skills"
   # ~/.claude/skills → skills/ (단일 디렉토리 링크)
