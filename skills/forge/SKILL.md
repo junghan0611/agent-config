@@ -172,7 +172,7 @@ EOF
 
 ### Mattermost thread bridge — `--mm-channel/--mm-root-id/--mm-account`
 
-봇이 Mattermost thread 에서 받은 요청으로 이슈 생성할 때, *원래 thread* 로 lifecycle 자취가 돌아가게 metadata 박을 자리. forge agent 가 이슈 처리 후 `replyToId` 로 같은 thread 에 답장하기 위함.
+봇이 Mattermost thread 에서 받은 요청으로 이슈 생성할 때, *원래 thread* 로 lifecycle 자취가 돌아가게 metadata 박을 자리. forge agent 가 이슈 처리 후 OpenClaw message tool 의 `replyTo` 로 같은 thread 에 답장하기 위함. (`replyToId` 아님 — 실제 schema 는 `target: "channel:<channel_id>"`, `replyTo: "<root_id>"`.)
 
 ```bash
 forge --forge work issue-create glg-bot/voscli \
