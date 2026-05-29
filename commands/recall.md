@@ -1,5 +1,5 @@
 ---
-description: Multi-axis context hydration — restore the working memory the operator must continue from, without raw JSONL and without compaction. Combines session-recap, NEXT.md / git, semantic-memory, and (on demand) day-axis. Called dozens of times per day across multiple harnesses; treat it as a precision ritual, not a checklist. Stop early when state is already clean — proportional output beats exhaustive output.
+description: Multi-axis context hydration — restore the working memory the operator must continue from, without raw JSONL and without compaction. Combines session-recap, NEXT.md + ROADMAP.md / git, semantic-memory, and (on demand) day-axis. Called dozens of times per day across multiple harnesses; treat it as a precision ritual, not a checklist. Stop early when state is already clean — proportional output beats exhaustive output.
 ---
 
 # /recall — Multi-Axis Context Hydration
@@ -17,7 +17,7 @@ If you reach goal-state at §1, **do NOT run §2-§4 just to be thorough**. Stop
 ## Tools at your disposal
 
 - `session-recap` (§1, §2) — extract the spine of pi/Claude session JSONL
-- `NEXT.md` + `git status` + `git log --since=yesterday` (§1.5) — conscious markers, cheapest signal
+- `NEXT.md` + optional `ROADMAP.md` + `git status` + `git log --since=yesterday` (§1.5) — conscious markers, cheapest signal
 - `semantic-memory` (§3) — cross-session semantic recall, on demand
 - `gitcli day` / `denotecli day` / `lifetract` (§4) — day-axis, on demand only
 
@@ -53,21 +53,22 @@ Always lead your reply with this header:
 대상 세션: ═══ <project> [pi] (...) ═══
 ```
 
-Immediately after §1 output, glance at the three cheapest conscious markers:
+Immediately after §1 output, glance at the cheapest conscious markers:
 
 ```bash
 cat <PROJECT_PATH>/NEXT.md 2>/dev/null
+cat <PROJECT_PATH>/ROADMAP.md 2>/dev/null
 git -C <PROJECT_PATH> status --short
 git -C <PROJECT_PATH> log --since="yesterday" --oneline
 ```
 
-For a clean state, these three plus §1 hit ~80% of the needed context. Do not skip them — they are a near-zero-cost upgrade to §1.
+For a clean state, `NEXT.md` + git plus §1 hit most of the needed context; `ROADMAP.md` is the optional medium-horizon background when the repo uses it. Do not skip these markers — they are a near-zero-cost upgrade to §1.
 
 ## 2. Expand ONLY if §1 is genuinely thin
 
 **Skip §2 when ALL of these hold** (zero/closed state — the dominant case for daily-driver use):
 
-- `NEXT.md` missing, empty, or contains "no open items" — treat all three as zero
+- `NEXT.md` missing, empty, or contains "no open items" — treat the immediate-next axis as zero
 - `git status` clean
 - closure signal — either a recent user turn matched ("다 했어", "지워", "정리하자", "끝", "완료", "clean", "커밋푸시", "스탬프 고고") **OR** the objective form holds: `git log --since=yesterday` shows commits **and** working tree is clean (work shipped, nothing pending)
 
@@ -131,13 +132,14 @@ This axis is the most expensive and the most likely to be skipped. The operator 
 
 Signal priority, highest first:
 
-1. `NEXT.md` — explicit "what is left to do" maintained by the operator
-2. `§repo` headings in today's journal — sibling/담당자 invocation index
-3. llmlog notes — designs the operator consciously recorded
-4. recent commits + working tree state
-5. session JSONL recap — working chatter, lowest signal
+1. `NEXT.md` — explicit immediate next step maintained by the operator
+2. `ROADMAP.md` — medium-horizon repo direction when present
+3. `§repo` headings in today's journal — sibling/담당자 invocation index
+4. llmlog notes — designs the operator consciously recorded
+5. recent commits + working tree state
+6. session JSONL recap — working chatter, lowest signal
 
-A clean `NEXT.md` + clean `git status` is a **stronger** signal than five sessions of recap text. Do not override conscious markers with session-recap inferences.
+A clean `NEXT.md` + clean `git status` is a **stronger** signal than five sessions of recap text. `ROADMAP.md` adds direction, not urgency. Do not override conscious markers with session-recap inferences.
 
 ## 6. Response format — proportional to state
 

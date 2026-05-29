@@ -1,6 +1,6 @@
 ---
 name: recall
-description: "멀티하네스용 /recall 래퍼. native custom command surface가 없는 하네스(예: Antigravity, Codex)에서도 /recall에 해당하는 다축 맥락 복원을 skill로 호출한다. session-recap, NEXT.md, git status/log, semantic-memory를 조합해 어제/오늘의 작업축을 되살린다."
+description: "멀티하네스용 /recall 래퍼. native custom command surface가 없는 하네스(예: Antigravity, Codex)에서도 /recall에 해당하는 다축 맥락 복원을 skill로 호출한다. session-recap, NEXT.md·ROADMAP.md, git status/log, semantic-memory를 조합해 어제/오늘의 작업축을 되살린다."
 ---
 
 # recall — multi-harness wrapper for `/recall`
@@ -31,10 +31,11 @@ Always lead with:
 대상 세션: ═══ <project> [...] ═══
 ```
 
-Then immediately check the three cheapest conscious markers:
+Then immediately check the cheapest conscious markers:
 
 ```bash
 cat <PROJECT_PATH>/NEXT.md 2>/dev/null
+cat <PROJECT_PATH>/ROADMAP.md 2>/dev/null
 git -C <PROJECT_PATH> status --short
 git -C <PROJECT_PATH> log --since="yesterday" --oneline
 ```
@@ -92,7 +93,7 @@ Use:
 
 ## Rules
 
-- Prefer `NEXT.md` / git state over chatter.
+- Prefer `NEXT.md` / `ROADMAP.md` / git state over chatter.
 - No raw JSONL reads when `session-recap` can do it.
 - No padding when state is clean.
 - This skill is the **skill-form translation** of `/recall`, not a different workflow.

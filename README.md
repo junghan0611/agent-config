@@ -265,6 +265,12 @@ alias pi-home='command pi --telegram'
 | dictcli | [junghan0611/dictcli](https://github.com/junghan0611/dictcli) | Clojure/GraalVM | Personal vocabulary graph (3,971 triples) |
 | bibcli | [junghan0611/zotero-config](https://github.com/junghan0611/zotero-config) | Go | BibTeX search (8,000+ entries) |
 
+## Planning Files
+
+- [NEXT.md](NEXT.md) — volatile next-step anchor for the next session
+- [ROADMAP.md](ROADMAP.md) — medium-horizon tracks and direction
+- [CHANGELOG.md](CHANGELOG.md) — closed history
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).
