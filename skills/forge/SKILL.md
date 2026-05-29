@@ -58,7 +58,7 @@ agent-config은 이 SKILL.md만 들고, 실 명령은 외부 절대경로로 호
 
 ### Mutating 명령 stderr observability
 
-`comment` / `label-add` 호출 시 stderr 에 한 줄 노출:
+`comment` / `label-add` / `label-remove` / `label-set` 호출 시 stderr 에 한 줄 노출:
 
 ```
 [forge] profile=oracle repo=glg-bot/sandbox url=https://forge.junghanacs.com
@@ -127,15 +127,17 @@ forge --forge work repos <other>  # 다른 namespace 도 명시 가능
 
 GitHub repo 의 `<owner>/<name>` 에서 `<name>` 만 떼서 `glg-bot/<name>` 매핑하는 게 자연 fallback 이지만, 실재하지 않을 수 있다 — `forge repos` 로 먼저 확인한 뒤 매칭.
 
-## API — v1.6 동사 6개
+## API — v2 동사 9개
 
 | 명령 | 인자 | 동작 |
 |------|------|------|
 | `repos` | `[OWNER]` | 현 profile 의 봇 namespace (기본 `<FORGE_USER>` = `glg-bot`) 아래 실재 repo 목록. **처음 만난 forge 의 발견 자리** |
 | `list-open` | `[REPO]` | 열린 이슈 목록 (제목 + 라벨 + 코멘트 수). REPO 생략 시 default repo |
 | `state` | `ISSUE` | 이슈 상태 + 라벨 + 최근 코멘트 3개 |
-| `comment` | `ISSUE BODY` | 코멘트 작성. footer 자동 부착 |
+| `comment` | `ISSUE BODY` 또는 `ISSUE --body-file PATH|-` | 코멘트 작성. footer 자동 부착. **multi-line / child 결과는 `--body-file` 사용** |
 | `label-add` | `ISSUE LABEL` | 라벨 이름으로 ID 조회 후 부착 |
+| `label-remove` | `ISSUE LABEL` | 라벨 이름으로 ID 조회 후 제거 |
+| `label-set` | `ISSUE STATUS-LABEL` | 상태 라벨군(`agent:ready/running/done/blocked`, `human:needs-review`)을 하나로 교체. `ci:failed` 같은 신호 라벨은 보존 |
 | `issue-create` | `[REPO] TITLE BODY [OPTIONS]` 또는 `[REPO] TITLE --body-file PATH [OPTIONS]` | 이슈 생성. footer 자동 부착. atomic 라벨 (`--labels`) + Mattermost thread bridge (`--mm-channel/--mm-root-id/--mm-account`) 옵션. **multi-line BODY 는 `--body-file PATH` (또는 `-` = stdin) 필수** — inline BODY 는 single-line 만 |
 
 `ISSUE` / `REPO` 인자 형식:
@@ -187,21 +189,20 @@ forge --forge work issue-create glg-bot/voscli \
 검증:
 - `--mm-channel` 과 `--mm-root-id` 는 **둘 다 박혀야** 한다. 한쪽만 박으면 ERROR exit 2 — 부분 metadata 가 thread bridge 동작 침묵 깨짐 자리
 
-추가 동사(`label-remove`, `label-set`, `read`, `pr ...`)는 v2 — 운영 누적 후
-forge-config 측에서 박는다. 여기서 동사를 임의로 늘리지 말 것 (SSOT 어긋남).
+추가 동사(`read`, `pr ...`)는 v2 이후 운영 누적 후 forge-config 측에서 박는다. 여기서 동사를 임의로 늘리지 말 것 (SSOT 어긋남).
 
-## 라벨 프로토콜 v1 (5개)
+## 라벨 프로토콜 v2
 
 | 라벨 | 색 | 의미 |
 |------|----|----|
 | `agent:ready` | `#0e8a16` | 에이전트가 잡아도 됨 |
 | `agent:running` | `#fbca04` | 잡힘 — 작업 중 |
 | `agent:done` | `#0366d6` | 완료 |
+| `agent:blocked` | TBD | 막힘 — `label-set` 상태군에는 포함. repo에 없으면 `label-set ... agent:blocked` 는 실패하므로 사용 전 라벨 생성 필요 |
 | `human:needs-review` | `#5319e7` | 사람 판단 필요 |
 | `ci:failed` | `#d73a4a` | CI 깨짐 |
 
-라벨 ID 는 인스턴스마다 다르므로 **이름으로만** 다룬다. `label-add` 가 이름→ID
-변환을 처리한다.
+라벨 ID 는 인스턴스마다 다르므로 **이름으로만** 다룬다. `label-add` / `label-remove` / `label-set` 이 이름→ID 변환을 처리한다. 상태 전이는 `label-add` 대신 `label-set` 을 우선 사용해 `agent:ready,running,done` 누적을 막는다.
 
 ## footer 서명 — 자기 식별
 
@@ -247,9 +248,13 @@ cd ~/repos/work/foo        && ~/repos/gh/forge-config/bin/forge list-open glg-bo
 
 # 코멘트 작성 (footer 자동)
 ~/repos/gh/forge-config/bin/forge comment 1 "분류 완료. nixos 담당자에게 위임."
+printf '%s\n' '멀티라인/child 결과 본문' > /tmp/forge-comment.md
+~/repos/gh/forge-config/bin/forge comment 1 --body-file /tmp/forge-comment.md
 
-# 라벨 부착
-~/repos/gh/forge-config/bin/forge label-add 1 agent:running
+# 라벨 부착/제거/상태 전이
+~/repos/gh/forge-config/bin/forge label-add 1 ci:failed
+~/repos/gh/forge-config/bin/forge label-remove 1 ci:failed
+~/repos/gh/forge-config/bin/forge label-set 1 agent:running
 
 # 이슈 생성 (sweeper 의 일차 입력 자리)
 ~/repos/gh/forge-config/bin/forge issue-create glg-bot/<work-repo> \
@@ -271,10 +276,10 @@ FORGE_PROFILE=work ~/repos/gh/forge-config/bin/forge state glg-bot/<work-repo>#1
 ```
 1. list-open                       → 미처리 이슈 훑기
 2. state <issue>                   → 본문 + 라벨 + 최근 코멘트 확인
-3. label-add <issue> agent:running → 잡았음 표시
+3. label-set <issue> agent:running → 잡았음 표시 + 기존 상태 라벨 정리
 4. (담당자 영역이면) 작업, (아니면) sibling 호출 + 결과 회수
-5. comment <issue> "결과 요약 + 링크"
-6. label-add <issue> agent:done    또는 human:needs-review
+5. 결과를 /tmp/forge-result.md 로 쓴 뒤 comment <issue> --body-file /tmp/forge-result.md
+6. label-set <issue> agent:done    또는 agent:blocked 또는 human:needs-review
 ```
 
 우선순위: `ci:failed` > `agent:ready` > `human:needs-review` (정보용).
