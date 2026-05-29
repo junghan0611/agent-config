@@ -137,7 +137,7 @@ GitHub repo 의 `<owner>/<name>` 에서 `<name>` 만 떼서 `glg-bot/<name>` 매
 | `comment` | `ISSUE BODY` 또는 `ISSUE --body-file PATH|-` | 코멘트 작성. footer 자동 부착. **multi-line / child 결과는 `--body-file` 사용** |
 | `label-add` | `ISSUE LABEL` | 라벨 이름으로 ID 조회 후 부착 |
 | `label-remove` | `ISSUE LABEL` | 라벨 이름으로 ID 조회 후 제거 |
-| `label-set` | `ISSUE STATUS-LABEL` | 상태 라벨군(`agent:ready/running/done/blocked`, `human:needs-review`)을 하나로 교체. `ci:failed` 같은 신호 라벨은 보존 |
+| `label-set` | `ISSUE STATUS-LABEL` | 상태 라벨군(`agent:ready/running/done/blocked`, `human:needs-review`)을 하나로 교체. `ci:failed` 같은 신호 라벨은 보존. forgebot 루프의 `agent:done` = 1차 검토/분류 완료, 구현 완료 아님 |
 | `issue-create` | `[REPO] TITLE BODY [OPTIONS]` 또는 `[REPO] TITLE --body-file PATH [OPTIONS]` | 이슈 생성. footer 자동 부착. atomic 라벨 (`--labels`) + Mattermost thread bridge (`--mm-channel/--mm-root-id/--mm-account`) 옵션. **multi-line BODY 는 `--body-file PATH` (또는 `-` = stdin) 필수** — inline BODY 는 single-line 만 |
 
 `ISSUE` / `REPO` 인자 형식:
@@ -197,8 +197,8 @@ forge --forge work issue-create glg-bot/voscli \
 |------|----|----|
 | `agent:ready` | `#0e8a16` | 에이전트가 잡아도 됨 |
 | `agent:running` | `#fbca04` | 잡힘 — 작업 중 |
-| `agent:done` | `#0366d6` | 완료 |
-| `agent:blocked` | TBD | 막힘 — `label-set` 상태군에는 포함. repo에 없으면 `label-set ... agent:blocked` 는 실패하므로 사용 전 라벨 생성 필요 |
+| `agent:done` | `#0366d6` | forgebot 루프의 1차 검토/분류 완료 — 구현 완료 아님 |
+| `agent:blocked` | TBD | 막힘 — `label-set` 상태군에는 포함. repo에 없으면 `label-set ... agent:blocked` 는 실패하므로 사용 전 라벨 생성 필요. work `glg-bot/{sandbox,voscli,incidentcli}` 는 생성 완료 |
 | `human:needs-review` | `#5319e7` | 사람 판단 필요 |
 | `ci:failed` | `#d73a4a` | CI 깨짐 |
 
@@ -277,9 +277,10 @@ FORGE_PROFILE=work ~/repos/gh/forge-config/bin/forge state glg-bot/<work-repo>#1
 1. list-open                       → 미처리 이슈 훑기
 2. state <issue>                   → 본문 + 라벨 + 최근 코멘트 확인
 3. label-set <issue> agent:running → 잡았음 표시 + 기존 상태 라벨 정리
-4. (담당자 영역이면) 작업, (아니면) sibling 호출 + 결과 회수
-5. 결과를 /tmp/forge-result.md 로 쓴 뒤 comment <issue> --body-file /tmp/forge-result.md
+4. 시나리오 판정. 필요하면 owner agent 에게 read-only first review 요청
+5. owner review 결과를 /tmp/forge-result.md 로 쓴 뒤 comment <issue> --body-file /tmp/forge-result.md
 6. label-set <issue> agent:done    또는 agent:blocked 또는 human:needs-review
+   - 여기서 agent:done = 1차 검토/분류 완료, 구현 완료 아님
 ```
 
 우선순위: `ci:failed` > `agent:ready` > `human:needs-review` (정보용).
