@@ -1,14 +1,24 @@
 {
-  "tui.input.newLine": [
-    "shift+enter",
-    "ctrl+j"
-  ],
-  "tui.select.up": [
-    "up",
-    "alt+k"
-  ],
-  "tui.select.down": [
-    "down",
-    "alt+j"
-  ]
+  "tui.editor.cursorUp": ["up", "ctrl+p", "alt+k"],
+  "tui.editor.cursorDown": ["down", "ctrl+n", "alt+j"],
+  "tui.editor.cursorLeft": ["left", "ctrl+b", "alt+h"],
+  "tui.editor.cursorRight": ["right", "ctrl+f", "alt+l"],
+  "tui.editor.cursorWordLeft": ["alt+left", "ctrl+left", "alt+b"],
+  "tui.editor.cursorWordRight": ["alt+right", "ctrl+right", "alt+f"],
+  "tui.editor.cursorLineStart": ["home", "ctrl+a"],
+  "tui.editor.cursorLineEnd": ["end", "ctrl+e"],
+  "tui.editor.deleteCharBackward": ["backspace", "ctrl+h"],
+  "tui.editor.deleteCharForward": ["delete", "ctrl+d"],
+  "tui.editor.deleteWordBackward": ["ctrl+w", "alt+backspace"],
+  "tui.editor.deleteWordForward": ["alt+d", "alt+delete"],
+  "tui.editor.deleteToLineStart": "ctrl+u",
+  "tui.editor.deleteToLineEnd": "ctrl+k",
+  "tui.editor.yank": "ctrl+y",
+  "tui.editor.yankPop": "alt+y",
+  "tui.editor.undo": ["ctrl+_", "ctrl+/"],
+  "tui.input.newLine": ["shift+enter", "ctrl+j"],
+  "tui.select.up": ["up", "ctrl+p"],
+  "tui.select.down": ["down", "ctrl+n"],
+  "app.model.cycleForward": [],
+  "app.model.cycleBackward": []
 }

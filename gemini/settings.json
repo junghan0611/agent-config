@@ -10,7 +10,7 @@
     ]
   },
   "model": {
-    "name": "auto-gemini-2.5"
+    "name": "gemini-3.1-pro-preview"
   },
   "security": {
     "auth": {
