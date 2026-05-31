@@ -30,9 +30,9 @@ warn() { echo "  ⚠ $*"; }
 fail() { echo "  ❌ $*"; }
 section() { echo ""; echo "=== $* ==="; }
 
-# Setup path: just verify the repo is present. Never pull during setup.
-# If someone is mid-edit in an external repo, setup stays out of their way.
-# Use `./run.sh update` to pull everything explicitly.
+# Setup path: keep edited repos safe, but refresh clean managed inputs before build.
+# Dirty repos are never pulled; clean repos may fast-forward unless opted out with
+# AGENT_CONFIG_SETUP_NO_UPDATE=1. Use `./run.sh update` for an explicit refresh.
 ensure_repo_present() {
   local dir=$1 name=$2
   if [ ! -d "$dir/.git" ]; then
@@ -67,6 +67,50 @@ pull_repo_if_clean() {
     git pull --ff-only --quiet
   )
   ok "$name: up to date"
+}
+
+repo_dirty() {
+  local dir=$1
+  (cd "$dir" && { ! git diff --quiet || ! git diff --cached --quiet; })
+}
+
+refresh_repo_if_clean() {
+  local dir=$1 name=$2
+  if [ ! -d "$dir/.git" ]; then
+    warn "$name: expected git repo at $dir — skipping refresh"
+    return 0
+  fi
+  if repo_dirty "$dir"; then
+    warn "$name: dirty, skipping refresh (build uses local source)"
+    return 0
+  fi
+  (
+    cd "$dir"
+    local upstream local_head upstream_head base
+    upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)
+    if [ -z "$upstream" ]; then
+      echo "  ⚠ $name: no upstream, skipping refresh" >&2
+      exit 0
+    fi
+    if ! git fetch --prune --quiet; then
+      echo "  ⚠ $name: fetch failed, using local source" >&2
+      exit 0
+    fi
+    local_head=$(git rev-parse HEAD)
+    upstream_head=$(git rev-parse "$upstream")
+    base=$(git merge-base HEAD "$upstream")
+    if [ "$local_head" = "$upstream_head" ]; then
+      echo "  ✅ $name: up to date"
+    elif [ "$local_head" = "$base" ]; then
+      if git pull --ff-only --quiet; then
+        echo "  ✅ $name: fast-forwarded"
+      else
+        echo "  ⚠ $name: fast-forward failed, using local source" >&2
+      fi
+    else
+      echo "  ⚠ $name: local branch diverged from $upstream, skipping refresh" >&2
+    fi
+  )
 }
 
 ensure_repo() {
@@ -285,6 +329,65 @@ setup_repos() {
   fi
 
   return 0
+}
+
+# --- setup refresh — fast-forward clean build inputs before compiling ---
+
+setup_refresh_self() {
+  [ "${AGENT_CONFIG_SETUP_NO_UPDATE:-}" = "1" ] && { log "setup auto-update disabled (AGENT_CONFIG_SETUP_NO_UPDATE=1)"; return 0; }
+  [ "${AGENT_CONFIG_SETUP_SELF_REFRESHED:-}" = "1" ] && return 0
+  [ -d "$SCRIPT_DIR/.git" ] || return 0
+
+  if repo_dirty "$SCRIPT_DIR"; then
+    warn "agent-config: dirty, skipping self-refresh"
+    return 0
+  fi
+
+  set +e
+  (
+    cd "$SCRIPT_DIR"
+    upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)
+    [ -n "$upstream" ] || exit 0
+    git fetch --prune --quiet || exit 0
+    local_head=$(git rev-parse HEAD)
+    upstream_head=$(git rev-parse "$upstream")
+    base=$(git merge-base HEAD "$upstream")
+    if [ "$local_head" = "$upstream_head" ]; then
+      exit 0
+    elif [ "$local_head" = "$base" ]; then
+      git pull --ff-only --quiet || exit 0
+      exit 10
+    else
+      exit 0
+    fi
+  )
+  local rc=$?
+  set -e
+  if [ "$rc" -eq 10 ]; then
+    ok "agent-config: fast-forwarded; restarting setup with updated run.sh"
+    exec env AGENT_CONFIG_SETUP_SELF_REFRESHED=1 "$SCRIPT_DIR/run.sh" setup
+  fi
+}
+
+setup_refresh_managed_repos() {
+  if [ "${AGENT_CONFIG_SETUP_NO_UPDATE:-}" = "1" ]; then
+    log "managed repo refresh skipped (AGENT_CONFIG_SETUP_NO_UPDATE=1)"
+    return 0
+  fi
+  section "Refresh Managed Repositories"
+  for name in "${!CLI_REPOS[@]}"; do
+    refresh_repo_if_clean "$REPOS/$name" "$name"
+  done
+  for name in "${!THIRD_PARTY_PACKAGE_REPOS[@]}"; do
+    refresh_repo_if_clean "$THIRD_REPOS/$name" "$name"
+  done
+  if is_server_device; then
+    log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping pi-shell-acp dev refresh"
+  else
+    for name in "${!PACKAGE_REPOS[@]}"; do
+      refresh_repo_if_clean "$REPOS/$name" "$name"
+    done
+  fi
 }
 
 # --- update — pull every known repo that's clean; warn-and-skip on dirty ---
@@ -844,8 +947,10 @@ setup_all() {
   echo "🔧 agent-config setup ($ARCH)"
   echo "   SSOT: $SKILLS_DIR"
 
+  setup_refresh_self
   setup_preflight || return 1
   setup_repos
+  setup_refresh_managed_repos
   setup_build
   setup_links
   setup_npm
