@@ -99,6 +99,8 @@ A task is a task. Whether it arrives via initial `entwurf` spawn, `entwurf_resum
 | **tmux** | skill | Run long commands (build, server, deploy) in tmux. Sync with `wait-for-text.sh` |
 | **improve-agent** | skill | Analyze past session JSONL → find recurring failures → improve AGENTS.md/skills |
 | **gitcli** | skill | Local git commit timeline across 58 repos, 14,000+ commits |
+| **commit** | skill | Conventional-commit creation + post-commit agenda stamp (daily loop) |
+| **tag-release** | skill | CalVer date-tag release — CHANGELOG refresh + tag/push/stamp (tag loop) |
 | **lifetract** | skill | Samsung Health + aTimeLogger unified query (sleep/steps, heart/time tracking) |
 | **day-query** | skill | Date-based unified query — reconstruct a day from git/journal/notes/bib/health |
 | **punchout** | skill | End-of-day stamp — insert day-query results into org journal |
@@ -287,54 +289,13 @@ See PRIVATE.md.
 
 See PRIVATE.md.
 
-### Agenda Stamp on Git Commit (Required)
+### Git commit / tag workflow
 
-**Always stamp after commit.** Include repo name and commit link in the timestamp body.
+Procedure lives in on-demand skills, not here (keeps this always-loaded file lean):
 
-#### How
-
-```bash
-# 1. Collect commit info
-REMOTE=$(git remote get-url origin)
-REPO_URL=$(echo "$REMOTE" | sed -E 's|git@github(-[a-z]+)?\.com:|https://github.com/|;s|\.git$||')
-REPO_NAME=$(basename "$REMOTE" .git)
-REPO_TAG=$(echo "$REPO_NAME" | sed 's/[-.]//g')   # remove hyphens and dots: homeagent-config → homeagentconfig, notes.junghanacs.com → notesjunghanacscom
-SHA=$(git rev-parse --short HEAD)
-MSG=$(git log -1 --pretty=%s)
-
-# 2. Agenda stamp (with commit link)
-~/.pi/agent/skills/pi-skills/agenda/scripts/agenda-stamp.sh \
-  "${REPO_NAME}: ${MSG} [[${REPO_URL}/commit/${SHA}][${SHA}]]" \
-  "pi:commit:${REPO_TAG}"
-```
-
-#### Example (org-agenda view)
-
-```org
-**** pi-skills: feat: summarize 스킬 추가 [[https://github.com/junghan0611/pi-skills/commit/f8ef3ca][f8ef3ca]] :pi:commit:piskills:
-<2026-03-01 Sat 11:53>
-```
-
-→ Click org link in Emacs → GitHub commit page.
-
-#### Google Chat Notification (with commit stamp)
-
-Send notification after stamping. No token cost — one CLI call.
-
-```bash
-# 3. Google Chat commit notification
-source ~/.env.local && gog chat messages send "$GOG_CHAT_SPACE_ID" \
-  --account "$GOG_CHAT_ACCOUNT" \
-  --text "🔨 *${REPO_NAME}* commit: ${MSG}
-→ ${REPO_URL}/commit/${SHA}"
-```
-
-Environment variables defined in `~/.env.local` (see PRIVATE.md).
-
-#### Notes
-- Multiple sequential commits → stamp only the last one.
-- Stamp after push — local-only commits may break the link.
-- **Important**: do NOT include "Generated with Claude" or "Co-Authored-By". Keep commit log clean.
+- **Daily loop** — Conventional-commit rules + required post-commit agenda stamp (`pi:commit:`) + optional Google Chat notify → **`commit` skill**. Agent commits; **GLG pushes**; stamp after push.
+- **Tag loop** — CalVer (`YYYY.MM.DD`) date-tag release: gitcli → CHANGELOG refresh → promote → tag/push/stamp (`pi:release:`) → ROADMAP snapshot → **`tag-release` skill**.
+- Commit log stays clean: no "Generated with Claude" / "Co-Authored-By" (enforced in the `commit` skill).
 
 ### Quality Monitoring — Catch Ecosystem Mispoints
 

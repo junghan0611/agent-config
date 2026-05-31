@@ -172,7 +172,8 @@ SERVER_DEVICES_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/agent-config/server-devic
 
 # Current machine's forge profile (whitespace-trimmed), empty if the file is absent.
 current_forge_profile() {
-  tr -d '[:space:]' < "$FORGE_PROFILE_FILE" 2>/dev/null || true
+  [ -f "$FORGE_PROFILE_FILE" ] || return 0
+  tr -d '[:space:]' < "$FORGE_PROFILE_FILE"
 }
 
 server_devices_list() {

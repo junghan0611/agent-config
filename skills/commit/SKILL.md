@@ -35,6 +35,38 @@ Create a git commit for the current changes using a concise Conventional Commits
 5. Stage only the intended files (all changes if no files specified).
 6. Run `git commit -m "<subject>"` (and `-m "<body>"` if needed).
 
-## Post-commit (project workflow)
+## Post-commit — agenda stamp (required)
 
-This skill ends at the commit. Post-commit hygiene (agenda stamp, notifications, push) is **not** part of this skill — those are repo-level workflows defined in the calling project's `AGENTS.md` (e.g. `~/AGENTS.md` § "Agenda Stamp on Git Commit").
+The commit is the agent's job; **push is GLG's**. Once a commit is pushed, stamp it so the agenda link resolves. Do not stamp local-only commits — the link may break.
+
+```bash
+# 1. Collect commit info
+REMOTE=$(git remote get-url origin)
+REPO_URL=$(echo "$REMOTE" | sed -E 's|git@github(-[a-z]+)?\.com:|https://github.com/|;s|\.git$||')
+REPO_NAME=$(basename "$REMOTE" .git)
+REPO_TAG=$(echo "$REPO_NAME" | sed 's/[-.]//g')   # strip hyphens/dots: homeagent-config → homeagentconfig
+SHA=$(git rev-parse --short HEAD)
+MSG=$(git log -1 --pretty=%s)
+
+# 2. Agenda stamp (with commit link)
+SCRIPT="$HOME/.pi/agent/skills/pi-skills/agenda/scripts/agenda-stamp.sh"
+[ -x "$SCRIPT" ] || SCRIPT="$HOME/.claude/skills/agenda/scripts/agenda-stamp.sh"  # per-harness fallback
+"$SCRIPT" \
+  "${REPO_NAME}: ${MSG} [[${REPO_URL}/commit/${SHA}][${SHA}]]" \
+  "pi:commit:${REPO_TAG}"
+```
+
+Optional — Google Chat notification (one CLI call, no token cost):
+
+```bash
+source ~/.env.local && gog chat messages send "$GOG_CHAT_SPACE_ID" \
+  --account "$GOG_CHAT_ACCOUNT" \
+  --text "🔨 *${REPO_NAME}* commit: ${MSG}
+→ ${REPO_URL}/commit/${SHA}"
+```
+
+Notes:
+- Multiple sequential commits → stamp only the last one.
+- Env vars (`GOG_CHAT_*`) live in `~/.env.local` (see PRIVATE.md).
+- If `agenda-stamp.sh` fails after reasonable retries, STOP and report the exact command + error. Never fall back to `Write`/`Edit`/heredoc on the same target.
+- For **release tags** (not commits), the stamp uses `pi:release:` — see the `tag-release` skill.

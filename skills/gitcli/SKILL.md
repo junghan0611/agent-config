@@ -3,7 +3,7 @@ name: gitcli
 description: "Local git timeline CLI. Query commit history across 50+ repositories. Use when user asks about coding activity, what they worked on, commit history, project timeline, or 'what did I do on [date]'."
 ---
 
-# gitcli v0.2.0 — Local Git Timeline CLI
+# gitcli v0.3.0 — Local Git Timeline CLI
 
 Query commit history across all local git repositories (~/repos/gh, ~/repos/work).
 
@@ -56,6 +56,7 @@ gitcli repos --repos ~/repos/gh    # 개인만
 ```bash
 gitcli log pi-mono --days 7
 gitcli log pi-mono --from 2025-10-01 --to 2025-10-31
+gitcli log pi-mono --from v2026.5.30-beta.1  # OpenClaw-style tag date accepted
 gitcli log pi-mono --author junghan
 ```
 
