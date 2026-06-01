@@ -1,6 +1,17 @@
 # Changelog
 
+> Versioning note: as of `v2026.6.1` this repo tracks **OpenClaw-style CalVer**
+> date tags (`vYYYY.M.D`). The older `## 0.x` sections below are kept verbatim as
+> history — they tracked the pinned `pi-shell-acp` consumer version, not this
+> repo's own releases — and are not rewritten.
+
 ## Unreleased
+
+## v2026.6.1
+
+* **Claude Code direct surface now carries pi-style emacs keybindings.** `claude/keybindings.json` mirrors the gaps `pi/keybindings.json` covers that Claude Code actually exposes as configurable actions: `shift+enter` → newline and `ctrl+/` → undo in the Chat context, plus `ctrl+n`/`ctrl+p` → autocomplete next/previous alongside the existing `alt+j`/`alt+k`. The remaining emacs motions (`ctrl+a/e/b/f/k/u/w/d`, word/line ops, yank) are already built into Claude Code's readline-style input and are not re-exposed as rebindable actions, so only the deltas are added here.
+
+* **Dropped the disabled `atlassian` Claude plugin from the managed set.** It was installed at `local` scope (projectPath `/home/junghan`) while `enabledPlugins` carried it as `false`, which left `/plugin` reporting "enabled in project settings but isn't installed here" and made the TUI/CLI uninstall fail with a scope mismatch (project/user said "use local", local said "not installed"). Resolved by running `claude plugin uninstall atlassian@claude-plugins-official --scope local` from the `/home/junghan` project dir, dropping the stale `enabledPlugins` line in `claude/settings.json`, removing the two `disabledMcpServers` references in `~/.claude.json`, and deleting the plugin cache. Company Jira stays on the `jiracli` skill, so no capability is lost.
 
 * **Antigravity direct harness surface is now wired alongside Gemini legacy.** `run.sh setup` now links the shared skills SSOT into `~/.gemini/antigravity-cli/skills/`, manages repo-owned direct-harness settings via `antigravity/settings.json` → `~/.gemini/antigravity-cli/settings.json` (including the custom statusline script path), and manages a dedicated MCP profile for `agy` direct mode via `antigravity/mcp_config*.json` → `~/.gemini/antigravity-cli/mcp_config.json`. Because the current live binary still probes `~/.gemini/config/mcp_config.json` during MCP discovery/migration, setup also points that runtime-compat path at the same SSOT. Consumer effect: Antigravity direct mode now participates in this repo's multi-harness surface with the same skill set and `pi-tools-bridge` MCP entry, without waiting on any hypothetical ACP-carrier support from `agy` itself. The older `~/.gemini/settings.json` / `~/.gemini/skills/` Gemini CLI path remains in place as a legacy lane during the migration window.
 
