@@ -80,9 +80,22 @@ emit_diff() {
     range)
       local sha1="${2:-}" sha2="${3:-}"
       [ -z "$sha1" ] || [ -z "$sha2" ] && { echo "_scan.sh range needs <sha1> <sha2>" >&2; exit 2; }
-      # If sha1 is all zeros (new branch), use empty tree
+      # sha1 all-zero = new ref on the remote (new branch OR a tag push).
+      # Do NOT diff from the empty tree — that re-scans the whole history and
+      # re-flags grandfathered content (every CalVer tag push would block).
+      # Instead scan only commits not already on ANY remote-tracking ref.
       if [ "$sha1" = "0000000000000000000000000000000000000000" ]; then
-        sha1=$(git hash-object -t tree /dev/null)  # empty tree
+        local new_commits oldest
+        new_commits=$(git rev-list "$sha2" --not --remotes 2>/dev/null)
+        if [ -z "$new_commits" ]; then
+          return 0  # nothing reachable from sha2 is new to the remote → clean
+        fi
+        oldest=$(printf '%s\n' "$new_commits" | tail -1)
+        if git rev-parse -q --verify "${oldest}^" >/dev/null 2>&1; then
+          sha1="${oldest}^"                      # parent of oldest new commit
+        else
+          sha1=$(git hash-object -t tree /dev/null)  # root commit → empty tree
+        fi
       fi
       git diff --no-color -U0 --diff-filter=ACMR "$sha1..$sha2"
       ;;
