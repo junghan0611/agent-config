@@ -5,14 +5,18 @@
     {
       "context": "Chat",
       "bindings": {
-        "ctrl+j": "chat:newline"
+        "ctrl+j": "chat:newline",
+        "shift+enter": "chat:newline",
+        "ctrl+/": "chat:undo"
       }
     },
     {
       "context": "Autocomplete",
       "bindings": {
         "alt+j": "autocomplete:next",
-        "alt+k": "autocomplete:previous"
+        "alt+k": "autocomplete:previous",
+        "ctrl+n": "autocomplete:next",
+        "ctrl+p": "autocomplete:previous"
       }
     }
   ]
