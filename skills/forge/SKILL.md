@@ -35,6 +35,7 @@ agent-config은 이 SKILL.md만 들고, 실 명령은 외부 절대경로로 호
 3. **사람 게이트 merge** — v1에서 자동 merge 없음
 4. **닫힌 계** — 시크릿은 `~/.env.local` + `pass`. repo 에는 변수명만
 5. **운영 머신 ≠ forge 인스턴스** — thinkpad 에서 양쪽 forge 다 굴린다 (세션이 thinkpad 에 남아야 andenken 임베딩됨). cwd 가 어느 forge 인지 결정한다.
+6. **auto-fix는 완료가 아니라 검증 루프 시작** — minor/bounded patch candidate 뒤에 1회독 direct fix/test, 2회독 주변 동형 패턴 전수조사, 3회독 독립 리뷰, follow-up issue 생성까지 남긴다.
 
 ## 환경 변수 — profile 시스템
 
@@ -139,6 +140,8 @@ GitHub repo 의 `<owner>/<name>` 에서 `<name>` 만 떼서 `glg-bot/<name>` 매
 | `label-remove` | `ISSUE LABEL` | 라벨 이름으로 ID 조회 후 제거 |
 | `label-set` | `ISSUE STATUS-LABEL` | 상태 라벨군(`agent:ready/running/done/blocked`, `human:needs-review`)을 하나로 교체. `ci:failed` 같은 신호 라벨은 보존. forgebot 루프의 `agent:done` = 1차 검토/분류 완료, 구현 완료 아님 |
 | `issue-create` | `[REPO] TITLE BODY [OPTIONS]` 또는 `[REPO] TITLE --body-file PATH [OPTIONS]` | 이슈 생성. footer 자동 부착. atomic 라벨 (`--labels`) + Mattermost thread bridge (`--mm-channel/--mm-root-id/--mm-account`) 옵션. **multi-line BODY 는 `--body-file PATH` (또는 `-` = stdin) 필수** — inline BODY 는 single-line 만 |
+| `auto-fix-template` | `ISSUE` | auto-fix 회독 루프용 표준 코멘트 골격 출력. `schema/report_id/session_key/issue_updated_at/lifecycle/labels/provider_model/forge_config_commit` snapshot marker 포함. 출력 → 파일 저장 → 채운 뒤 `comment --body-file` |
+| `doctor-labels` | `[REPO]` | repo 가 forge v2 + auto-fix lane 에 필요한 lifecycle/signal labels (`agent:*`, `human:needs-review`, `ci:failed`, `auto-fix`) 를 갖췄는지 read-only 점검. missing 이 있으면 non-zero exit |
 
 `ISSUE` / `REPO` 인자 형식:
 
@@ -201,6 +204,8 @@ forge --forge work issue-create glg-bot/voscli \
 | `agent:blocked` | TBD | 막힘 — `label-set` 상태군에는 포함. repo에 없으면 `label-set ... agent:blocked` 는 실패하므로 사용 전 라벨 생성 필요. work `glg-bot/{sandbox,voscli,incidentcli}` 는 생성 완료 |
 | `human:needs-review` | `#5319e7` | 사람 판단 필요 |
 | `ci:failed` | `#d73a4a` | CI 깨짐 |
+
+`auto-fix` 같은 자동화 표지는 future **lane/signal label** 로 다룬다. lifecycle status 가 아니다. `agent:ready`가 wake label이고 `auto-fix`는 route hint다. `label-set`은 lifecycle status만 교체하고 `auto-fix` 같은 signal label은 보존해야 한다. 의미는 “해결 완료”가 아니라 “패치 후보 + 검증 루프 기록”: 1회독 direct fix/test, 2회독 주변 동형 패턴 sweep, 3회독 독립 리뷰(못 했으면 이유 기록), 남은 유사 문제 follow-up issue 까지 포함한다. 동형 sweep 은 실제 존재하는 경로를 대상으로 하고, optional path missing 또는 `rg` 0건 매치(exit 1)는 hook 실패가 아니라 `path missing` / `no matches` report finding 으로 기록한다.
 
 라벨 ID 는 인스턴스마다 다르므로 **이름으로만** 다룬다. `label-add` / `label-remove` / `label-set` 이 이름→ID 변환을 처리한다. 상태 전이는 `label-add` 대신 `label-set` 을 우선 사용해 `agent:ready,running,done` 누적을 막는다.
 
@@ -281,16 +286,19 @@ FORGE_PROFILE=work ~/repos/gh/forge-config/bin/forge state glg-bot/<work-repo>#1
 3. 현재 lifecycle status set 이 정확히 `{agent:ready}` 인지 확인. 아니면 owner review 재실행 금지
 4. label-set <issue> agent:running → 잡았음 표시 + 기존 상태 라벨 정리
 5. 시나리오 판정. 필요하면 owner agent 에게 read-only first review 요청
-6. owner review 결과를 /tmp/forge-result.md 로 쓴 뒤 comment <issue> --body-file /tmp/forge-result.md
+   - future `auto-fix` lane 은 minor/bounded/reversible/testable 일 때만: `auto-fix-template` → 1회독 direct fix/test → 2회독 주변 동형 패턴 전수조사 → 3회독 독립 리뷰 → follow-up issue 생성
+6. owner review / auto-fix 검증 결과를 /tmp/forge-result.md 로 쓴 뒤 comment <issue> --body-file /tmp/forge-result.md
 7. label-set <issue> agent:done    또는 agent:blocked 또는 human:needs-review
    - 여기서 agent:done = 1차 검토/분류 완료, 구현 완료 아님
+   - auto-fix 결과도 “해결 완료”가 아니라 “패치 후보 + 검증 루프 기록 완료”로 표현
 ```
 
 우선순위: `ci:failed` > `agent:ready` > `human:needs-review` (정보용).
 
 ## 책임 경계
 
-- **forge-config 담당자**: bin/forge 진화, 라벨 protocol, footer 규약, AGENTS.md SSOT
+- **forge-config 담당자**: bin/forge 진화, 라벨 protocol, footer 규약, AGENTS.md SSOT, `auto-fix`/sweeper/검증 루프 의미 설계
+- **OpenClaw 담당자**: webhook/channel/auth profile/model backend/gateway/heartbeat/session isolation — “이슈가 forgebot을 깨운다”까지
 - **agent-config 담당자**: 이 SKILL.md 표면 일관성 유지, 다른 백엔드 (Codex/Gemini/Claude Code) 에 동일하게 노출
 - **개별 repo 담당자**: 자기 repo 의 이슈를 받아서 실 코드 작업
 
