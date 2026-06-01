@@ -88,6 +88,43 @@ Output: JSON array grouped by channel (most recently active first).
 - `older_replies: N` when replies fall outside time window
 - Timestamps in KST (UTC+9, suffix `KST`)
 
+## Read one channel's history (bot alert 회수 — "문제 없나?!")
+
+`gather` 는 bot_message 를 noise 로 버려서, **봇이 쏘는 alert 채널**(서버응답체크 / cube alerts 등)을
+통째 누락한다. `history` 는 단일 채널을 읽되 `--include-bot` 으로 bot alert 를 살리고,
+alert 본문이 `attachments`/`blocks` 에만 있을 때도 `text` 로 복원한다. read-only.
+
+이것이 운영 점검("문제 없나?!")에서 **P0 bot alert 회수 경로**다.
+
+```bash
+# bot alert 채널 — --include-bot 필수
+python3 {baseDir}/slack.py history --channel C095PQMMW9J \
+  --days 14 --include-ids --include-bot --out /tmp/noti-server-history.json
+```
+
+출력은 `gather` 호환 `[{"channel","_id","messages":[...]}]` 라서 incidentcli
+`slack_alert` ingest 가 바로 먹는다:
+
+```bash
+cd ~/repos/work/incidentcli
+./run.sh ingest --from slack_alert --input /tmp/noti-server-history.json \
+  --incident-id <DENOTE_ID> --window FROM..UNTIL --out /tmp/envelope.json
+./run.sh validate-output /tmp/envelope.json
+```
+
+| Flag | Description |
+|------|-------------|
+| `--channel` | Channel ID (required) |
+| `--include-bot` | **bot_message alert 포함** (기본 제외 — alert 채널엔 필수) |
+| `--days N` | time window (default: 1). 비면 7/14 로 넓혀도 됨 — **빈 결과는 정상일 수 있음** |
+| `--channel-name` | 표시 이름 override (기본: conversations.info 로 해석) |
+| `--include-ids` | `_uid` 추가 (`_ts`/`_id` 는 항상 포함) |
+| `--max-text N` | message text truncate (default: 800) |
+| `--compact` / `--out` | gather 와 동일 |
+
+- DM 은 대상이 아니다(단일 채널 ID 만). gather 의 DM 기본 제외 원칙과 send 전 확인 원칙은 그대로 유지.
+- 진짜 시스템 noise(`channel_join` 등)만 항상 skip, bot alert 는 `--include-bot` 로 제어.
+
 ## Read a single thread
 
 ```bash

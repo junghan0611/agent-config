@@ -171,6 +171,106 @@ def is_bot_noise(msg: dict) -> bool:
     return False
 
 
+# System-event subtypes that are always noise even when reading bot alerts.
+# (bot_message is intentionally NOT here — alert channels are bot-driven.)
+SYSTEM_NOISE_SUBTYPES = {
+    "channel_join", "channel_leave",
+    "channel_topic", "channel_purpose", "channel_name",
+    "channel_archive", "channel_unarchive",
+    "group_join", "group_leave",
+    "pinned_item", "unpinned_item",
+}
+
+
+def is_bot_message(msg: dict) -> bool:
+    """Return True if a message originates from a bot/integration."""
+    if msg.get("subtype", "") == "bot_message":
+        return True
+    if msg.get("bot_id") and not msg.get("user"):
+        return True
+    return False
+
+
+def extract_bot_text(msg: dict) -> str:
+    """Pull human-readable alert text out of attachments/blocks.
+
+    Bot alerts often leave the top-level ``text`` empty and put the payload
+    in ``attachments`` (pretext/title/text/fallback) or ``blocks`` (section
+    text + fields). Returns "" when nothing usable is found.
+    """
+    parts: list[str] = []
+
+    for att in msg.get("attachments", []) or []:
+        picked = [att.get(k) for k in ("pretext", "title", "text")
+                  if att.get(k)]
+        if picked:
+            parts.extend(picked)
+        elif att.get("fallback"):
+            parts.append(att["fallback"])
+
+    for b in msg.get("blocks", []) or []:
+        t = b.get("text")
+        if isinstance(t, dict) and t.get("text"):
+            parts.append(t["text"])
+        for f in (b.get("fields") or []):
+            if isinstance(f, dict) and f.get("text"):
+                parts.append(f["text"])
+
+    # de-dup while preserving order
+    seen: set[str] = set()
+    out = [p for p in parts if p and not (p in seen or seen.add(p))]
+    return "\n".join(out)
+
+
+def bot_from_name(msg: dict, user_map: dict[str, str]) -> str:
+    """Resolve a display name for a (possibly bot) message author."""
+    uid = msg.get("user", "")
+    if uid and uid in user_map:
+        return user_map[uid]
+    bp = msg.get("bot_profile") or {}
+    return (msg.get("username")
+            or bp.get("name")
+            or msg.get("bot_id")
+            or uid
+            or "bot")
+
+
+def format_history_message(msg: dict, user_map: dict[str, str],
+                           max_text: int = 800,
+                           include_ids: bool = False) -> dict:
+    """Format a message for `history`, folding bot attachment/block text in.
+
+    Differs from format_message: always emits ``_ts`` (needed for the time
+    axis + incidentcli slack_alert ingest), resolves bot author names, and
+    recovers alert text from attachments/blocks when ``text`` is empty.
+    """
+    ts_str = msg.get("ts", "0")
+    ts_float = float(ts_str)
+    dt = datetime.fromtimestamp(ts_float, tz=timezone.utc)
+
+    text = resolve_mentions(msg.get("text", "") or "", user_map)
+    if not text.strip():
+        text = resolve_mentions(extract_bot_text(msg), user_map)
+    if len(text) > max_text:
+        text = text[:max_text] + "…"
+
+    entry: dict = {
+        "from": bot_from_name(msg, user_map),
+        "at": dt.astimezone(KST).strftime("%Y-%m-%d %H:%M KST"),
+        "text": text,
+        "_ts": ts_str,                      # always present for ingest
+    }
+    if msg.get("subtype"):
+        entry["subtype"] = msg["subtype"]
+    if include_ids:
+        entry["_uid"] = msg.get("user", "")
+    if msg.get("reactions"):
+        entry["reactions"] = [
+            f"{r['name']}({r['count']})" for r in msg["reactions"]
+        ]
+    return entry
+
+
 def format_message(msg: dict, user_map: dict[str, str],
                    max_text: int = 500, include_ids: bool = False) -> dict:
     """Format a single Slack message into a compact dict."""
@@ -425,6 +525,110 @@ def cmd_thread(args: argparse.Namespace) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Subcommand: history  (single channel, read-only, bot-message aware)
+# ---------------------------------------------------------------------------
+
+def cmd_history(args: argparse.Namespace) -> None:
+    """Read one channel's recent history (incl. bot alerts) → gather format.
+
+    Read-only. Output is a gather-compatible list so incidentcli
+    `./run.sh ingest --from slack_alert` can consume it directly:
+
+        [ {"channel": "#name", "_id": "C...", "messages": [...] } ]
+    """
+    workspace_url, token, cookie = load_credentials()
+    oldest = datetime.now(timezone.utc) - timedelta(days=args.days)
+    oldest_ts = str(oldest.timestamp())
+    ch_id = args.channel
+    include_bot = args.include_bot
+    include_ids = args.include_ids
+    max_text = args.max_text
+
+    log = lambda *a, **kw: print(*a, **kw, file=sys.stderr, flush=True)
+
+    log("Building user map...")
+    user_map = build_user_map(workspace_url, token, cookie)
+    log(f"  {len(user_map)} users")
+
+    # Resolve channel display name (#name) unless overridden.
+    ch_name = args.channel_name
+    if not ch_name:
+        try:
+            info = slack_api(workspace_url, token, cookie,
+                             "conversations.info", {"channel": ch_id})
+            ch_name = channel_display_name(info.get("channel", {}), user_map)
+        except RuntimeError as e:
+            log(f"  conversations.info failed ({e}); using channel id as name")
+            ch_name = ch_id
+
+    log(f"Reading history of {ch_name} ({ch_id}), {args.days}d back...")
+    resp = slack_api(workspace_url, token, cookie, "conversations.history",
+                     {"channel": ch_id, "oldest": oldest_ts, "limit": "200"})
+    raw_msgs = resp.get("messages", [])
+
+    def keep(m: dict) -> bool:
+        if m.get("subtype", "") in SYSTEM_NOISE_SUBTYPES:
+            return False
+        if is_bot_message(m) and not include_bot:
+            return False
+        return True
+
+    ch_messages: list[dict] = []
+    skipped = 0
+    bot_kept = 0
+
+    for msg in raw_msgs:
+        if not keep(msg):
+            skipped += 1
+            continue
+        entry = format_history_message(msg, user_map, max_text, include_ids)
+        if is_bot_message(msg):
+            bot_kept += 1
+
+        reply_count = msg.get("reply_count", 0)
+        is_thread_root = msg.get("ts") == msg.get("thread_ts", msg.get("ts"))
+        if reply_count > 0 and is_thread_root:
+            try:
+                tr = slack_api(workspace_url, token, cookie,
+                               "conversations.replies",
+                               {"channel": ch_id, "ts": msg["ts"],
+                                "oldest": oldest_ts, "limit": "100"})
+                reply_entries = [
+                    format_history_message(r, user_map, max_text, include_ids)
+                    for r in tr.get("messages", [])[1:] if keep(r)
+                ]
+                if reply_entries:
+                    entry["replies"] = reply_entries
+                elif reply_count > 0:
+                    entry["older_replies"] = reply_count
+            except RuntimeError:
+                entry["older_replies"] = reply_count
+
+        ch_messages.append(entry)
+
+    ch_messages.sort(key=lambda m: m["_ts"])
+
+    channel_entry: dict = {"channel": ch_name, "messages": ch_messages}
+    if include_ids:
+        channel_entry["_id"] = ch_id
+    else:
+        channel_entry["_id"] = ch_id   # always emit id — collector source_ref
+    output = [channel_entry]
+
+    out_path = Path(args.out).expanduser()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_text = (json.dumps(output, ensure_ascii=False) if args.compact
+                else json.dumps(output, indent=2, ensure_ascii=False))
+    out_path.write_text(out_text)
+
+    total_replies = sum(len(m.get("replies", [])) for m in ch_messages)
+    log(f"\nDone: {len(ch_messages)} messages "
+        f"({bot_kept} bot, {total_replies} thread replies, "
+        f"{skipped} system/excluded skipped) in {ch_name}")
+    log(f"Output: {out_path} ({len(out_text)} bytes)")
+
+
+# ---------------------------------------------------------------------------
 # File upload (files.upload v2 — getUploadURLExternal + binary + complete)
 # ---------------------------------------------------------------------------
 
@@ -628,6 +832,27 @@ def main() -> None:
     p_gather.add_argument("--no-dm", action="store_true",
                           help="Exclude DMs and group DMs (channels only)")
 
+    p_hist = sub.add_parser(
+        "history",
+        help="Read one channel's history (bot-message aware) → gather format")
+    p_hist.add_argument("--channel", required=True,
+                        help="Channel ID (e.g. C095PQMMW9J)")
+    p_hist.add_argument("--channel-name",
+                        help="Override channel display name "
+                             "(default: resolve via conversations.info)")
+    p_hist.add_argument("--days", type=int, default=1,
+                        help="How many days back (default: 1)")
+    p_hist.add_argument("--out", default="~/tmp/slack-history.json",
+                        help="Output file path")
+    p_hist.add_argument("--max-text", type=int, default=800,
+                        help="Max chars per message text (default: 800)")
+    p_hist.add_argument("--include-bot", action="store_true",
+                        help="Include bot_message alerts (default: excluded)")
+    p_hist.add_argument("--include-ids", action="store_true",
+                        help="Include _uid fields (_ts/_id always emitted)")
+    p_hist.add_argument("--compact", action="store_true",
+                        help="Single-line JSON (default: indented)")
+
     p_thread = sub.add_parser("thread",
                               help="Read a single thread")
     p_thread.add_argument("--channel", required=True,
@@ -668,6 +893,7 @@ def main() -> None:
         "auth": cmd_auth,
         "auth-test": cmd_auth_test,
         "gather": cmd_gather,
+        "history": cmd_history,
         "thread": cmd_thread,
         "send": cmd_send,
         "get-file": cmd_get_file,
