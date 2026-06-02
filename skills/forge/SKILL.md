@@ -194,6 +194,45 @@ forge --forge work issue-create glg-bot/voscli \
 
 추가 동사(`read`, `pr ...`)는 v2 이후 운영 누적 후 forge-config 측에서 박는다. 여기서 동사를 임의로 늘리지 말 것 (SSOT 어긋남).
 
+## git push 인증 — `git-credential-forge`
+
+`bin/forge` 는 **REST 작업면**(issue/label/comment)이다. forge repo 에 *코드를
+push* 하는 건 별개 레이어 — git 의 HTTPS 인증이다. 이 자리를 채우는 게
+sibling 바이너리 `bin/git-credential-forge`.
+
+핵심: REST 와 **같은 `~/.env.local` profile 토큰**(`ORACLE_FORGE_TOKEN` /
+`WORK_FORGE_TOKEN`)을 git 의 native credential 기계로 잇는다. 토큰-in-URL 도,
+askpass 도, 분신마다 재발명도 없다 — forge 서버는 oracle/work 에 있어도
+`git push` 는 어느 **클라이언트(thinkpad/nuc/laptop)** 에서나 그냥 동작한다.
+
+- **generic / host 자동판별** — url-scope 없이 helper *하나*. git 이 모든 https
+  credential 요청에 부르면, helper 가 들어온 host(+git 이 주면 path-prefix)를
+  env.local 의 `ORACLE/WORK_FORGE_URL` 과 매칭해 맞는 토큰을 emit, forge 가
+  아니면 침묵해서 git 이 다음 helper(github 등)로 넘어간다. → **어떤 committed
+  파일에도 forge host literal 이 안 박힌다** (work host 가 identity term 이라 중요).
+- **path 격리** — work forge 는 `<work-host>/forge` 처럼 path prefix 아래 있고,
+  그 host 는 다른 https git 을 서빙할 수 있다. `credential.useHttpPath true` 면
+  helper 가 forge path prefix 를 요구해서, 같은 host 의 비-forge 서비스가 work
+  토큰을 못 받는다. oracle forge 는 전용 host(prefix 없음) → host-only 가 정답.
+- SSOT 는 `~/.env.local`. helper 는 런타임에만 토큰을 emit — 디스크에 안 쓴다
+  (`~/.git-credentials` 평문 복제 없음).
+
+### 설치 — 기기마다 두 줄 (machine-local `~/.gitconfig`, nixos 아님)
+
+```bash
+git config --global credential.helper ~/repos/gh/forge-config/bin/git-credential-forge
+git config --global credential.useHttpPath true   # path 격리 (특히 work host)
+```
+
+`~/.gitconfig`(writable, machine-local)에 들어간다. home-manager 가 잡은
+`~/.config/git/config`(nix 심링크, read-only)는 안 건드린다 — git 이 둘 다 읽어
+머지한다. **nixos rebuild 불필요** (설치 자리 = `~/.gitconfig`, 결정 2026-06-02).
+
+> work forge host 는 identity term 이지만, helper 가 host 를 env.local 에서 런타임
+> 추출하므로 이 두 줄에도 forge-config repo 에도 host 가 안 박힌다. env.local 은
+> 기기 간 동기화(클라이언트 + 양쪽 forge 호스트 모두 `ORACLE_*`+`WORK_*`)라
+> helper 가 어느 기기에서나 동일하게 동작한다.
+
 ## 라벨 프로토콜 v2
 
 | 라벨 | 색 | 의미 |
