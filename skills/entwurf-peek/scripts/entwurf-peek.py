@@ -289,10 +289,10 @@ def resolve_session(target: str) -> tuple[Path | None, str | None]:
     if p.is_absolute() and p.exists():
         return p, None
 
-    needle = target.strip()
-    if needle.startswith("entwurf-") or needle.startswith("delegate-"):
-        needle = needle.split("-", 1)[1]
-    needle = needle.lower()
+    # 0.9.0: id 는 곧 sessionId (garden `YYYYMMDDTHHMMSS-xxxxxx` / legacy uuid)
+    # 또는 6-hex short. 옛 `entwurf-<hex>` / `delegate-<hex>` 입력종은 폐기 —
+    # display label(`{kind}-{short}`)을 그대로 붙여넣는 경로도 함께 사라진다.
+    needle = target.strip().lower()
 
     candidates: list[tuple[Path, dict]] = []
     for f in find_session_files():
