@@ -235,8 +235,17 @@ Bridges: [pi-telegram](https://github.com/badlogic/pi-telegram) (production — 
 alias claude-tg='claude --channels plugin:telegram@claude-plugins-official'
 alias claude-tgd='claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions'
 
+# pi garden launcher helper (pi-shell-acp 0.9.0): every --entwurf-control
+# resident session must be born with a garden-native session id.
+_pi_garden_pi() {
+  local sid
+  sid="$($HOME/repos/gh/pi-shell-acp/run.sh new-session-id)" || return
+  command pi --session-id "$sid" "$@"
+}
+
 # pi: presence agent variant (Telegram bridge)
-alias pi-home='command pi --telegram'
+pihome() { _pi_garden_pi --entwurf-control --telegram "$@"; }
+pia() { _pi_garden_pi --entwurf-control --emacs-agent-socket server "$@"; }
 ```
 
 ## The -config Ecosystem

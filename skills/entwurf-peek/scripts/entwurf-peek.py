@@ -3,7 +3,7 @@
 
 호출자가 sync entwurf로 묶여있을 때 자식 분신이 무엇을 하고 있는지 확인.
 entwurf_peers MCP가 control socket 있는 세션만 노출하는 한계를 보완 —
-자식 entwurf-*.jsonl도 함께 보여준다.
+자식 세션(이름 태그 entwurf)도 함께 보여준다.
 
 Subcommands:
   peek <id|file>       진행 중 세션 안 들여다보기 (마지막 메시지 + 활성 여부)
@@ -29,6 +29,125 @@ from pathlib import Path
 SESSIONS_DIR = Path.home() / ".pi" / "agent" / "sessions"
 CONTROL_DIR = Path.home() / ".pi" / "entwurf-control"
 UUID_RE = re.compile(r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$", re.IGNORECASE)
+
+# 0.9.0 garden-native identity. The Entwurf `*_entwurf-<taskId>.jsonl` filename
+# species is GONE — Pi names every file `<created-at>_<sessionId>.jsonl`, where
+# sessionId is the JSONL header `id`. "Is this an Entwurf session?" is answered
+# by the session NAME (a session_info entry) carrying the `entwurf` tag, NOT by
+# the filename. Resident `--entwurf-control` sessions carry the `control` tag.
+# This mirrors pi-shell-acp entwurf-core's locked grammar + readSessionIdentity.
+GARDEN_ID_RE = re.compile(r"^\d{8}T\d{6}-[0-9a-f]{6}$")
+SESSION_TAG_RE = re.compile(r"^[a-z0-9]+$")
+TITLE_SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+
+
+def is_garden_id(value: str) -> bool:
+    return bool(GARDEN_ID_RE.match(value or ""))
+
+
+def parse_session_name(name: str | None) -> dict | None:
+    """Port of entwurf-core parseSessionName.
+
+    `{sessionId}=={provider}/{model}--{titleSlug}__{tag}_{tag}` → fields, or None
+    if the name is not canonical. Pure string; no registry. tags drive kind.
+    """
+    if not isinstance(name, str):
+        return None
+    sig = name.find("==")
+    if sig < 0:
+        return None
+    sid = name[:sig]
+    if not is_garden_id(sid):
+        return None
+    rest = name[sig + 2:]
+    ti = rest.find("--")
+    if ti < 0:
+        return None
+    provider_model = rest[:ti]
+    title_and_tags = rest[ti + 2:]
+    slash = provider_model.find("/")
+    if slash < 0:
+        return None
+    provider = provider_model[:slash]
+    model = provider_model[slash + 1:]
+    if not provider or not model or "/" in model:
+        return None
+    title_slug = title_and_tags
+    tags: list[str] = []
+    tag_idx = title_and_tags.find("__")
+    if tag_idx >= 0:
+        title_slug = title_and_tags[:tag_idx]
+        tags = title_and_tags[tag_idx + 2:].split("_")
+        if any(not SESSION_TAG_RE.match(t) for t in tags):
+            return None
+    if not TITLE_SLUG_RE.match(title_slug):
+        return None
+    return {"sessionId": sid, "provider": provider, "model": model, "titleSlug": title_slug, "tags": tags}
+
+
+# Cache (path, mtime) → meta so the many parse_filename() calls in map/trace
+# read each file at most once per run.
+_META_CACHE: dict[tuple[str, float], dict] = {}
+_META_PREFIX_BYTES = 256 * 1024  # header + first-turn session_info fit easily
+
+
+def read_session_meta(path: Path) -> dict:
+    """Header id/cwd + latest session_info name (+ parsed tags + kind).
+
+    kind: 'entwurf' (name has the entwurf tag) | 'control' (resident session) |
+    'plain' (anything else, incl. legacy uuid sessions and un-named sessions).
+    Reads only a bounded prefix — the name is set on the first assistant turn,
+    well within the first turn's bytes.
+    """
+    try:
+        key = (str(path), path.stat().st_mtime)
+    except OSError:
+        key = (str(path), 0.0)
+    cached = _META_CACHE.get(key)
+    if cached is not None:
+        return cached
+
+    sid = cwd = name = None
+    try:
+        with open(path, "rb") as f:
+            chunk = f.read(_META_PREFIX_BYTES)
+        text = chunk.decode("utf-8", errors="ignore")
+        # Drop a trailing partial line from the prefix cut.
+        lines = text.split("\n")
+        if not text.endswith("\n"):
+            lines = lines[:-1]
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except (json.JSONDecodeError, ValueError):
+                continue
+            t = rec.get("type")
+            if t == "session":
+                if isinstance(rec.get("id"), str):
+                    sid = rec["id"]
+                if isinstance(rec.get("cwd"), str):
+                    cwd = rec["cwd"]
+            elif t == "session_info":
+                n = rec.get("name")
+                if isinstance(n, str) and n:
+                    name = n
+    except OSError:
+        pass
+
+    parsed = parse_session_name(name)
+    tags = parsed["tags"] if parsed else []
+    if "entwurf" in tags:
+        kind = "entwurf"
+    elif "control" in tags:
+        kind = "control"
+    else:
+        kind = "plain"
+    meta = {"id": sid, "cwd": cwd, "name": name, "tags": tags, "kind": kind, "parsed": parsed}
+    _META_CACHE[key] = meta
+    return meta
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -81,28 +200,26 @@ def fmt_ts(ts: str) -> str:
 # ──────────────────────────────────────────────────────────────────────────────
 
 def parse_filename(path: Path) -> dict:
-    """세션 파일 분류.
+    """세션 파일 분류 (0.9.0 garden-native).
+
+    파일명은 Pi 산물 `<created-at>_<sessionId>.jsonl` — suffix 가 곧 sessionId
+    (header id). kind 는 파일명이 아니라 session_info name 의 태그로 정한다
+    (entwurf / control / plain) via read_session_meta.
 
     Returns dict with:
-      kind: 'uuid' | 'entwurf' | 'delegate'
-      id:   full UUID or 8-hex
-      short: short id for display (8 chars)
+      kind:  'entwurf' | 'control' | 'plain'
+      id:    sessionId (garden `YYYYMMDDTHHMMSS-xxxxxx` or legacy uuid)
+      short: compact display id (garden → 6-hex suffix; uuid → first 8)
     """
     stem = path.stem
-    # 2026-04-30T09-27-12-568Z_entwurf-ddb3cbb2
-    if "_" in stem:
-        _, suffix = stem.split("_", 1)
+    # 2026-06-03T23-41-41-238Z_20260604T084140-de0810  → sessionId after first _
+    suffix = stem.split("_", 1)[1] if "_" in stem else stem
+    sid = suffix
+    if is_garden_id(sid):
+        short = sid.split("-")[-1]  # 6-hex suffix; timestamp is in the filename
     else:
-        suffix = stem
-
-    m = re.match(r"^entwurf-([a-f0-9]+)$", suffix)
-    if m:
-        return {"kind": "entwurf", "id": m.group(1), "short": m.group(1)[:8]}
-    m = re.match(r"^delegate-([a-f0-9]+)$", suffix)
-    if m:
-        return {"kind": "delegate", "id": m.group(1), "short": m.group(1)[:8]}
-    # full UUID
-    return {"kind": "uuid", "id": suffix, "short": suffix.split("-")[0][:8]}
+        short = sid.split("-")[0][:8]  # legacy uuid
+    return {"kind": read_session_meta(path)["kind"], "id": sid, "short": short}
 
 
 def find_active_sockets() -> set[str]:
@@ -134,7 +251,7 @@ def find_session_files(
             if f.suffix != ".jsonl":
                 continue
             info = parse_filename(f)
-            if only_entwurf and info["kind"] not in ("entwurf", "delegate"):
+            if only_entwurf and info["kind"] not in ("entwurf",):
                 continue
             mtime = f.stat().st_mtime
             if since_seconds is not None and (now - mtime) > since_seconds:
@@ -161,7 +278,7 @@ def format_session_label(path: Path, info: dict | None = None) -> str:
 
 
 def resolve_session(target: str) -> tuple[Path | None, str | None]:
-    """ID(8hex/full UUID/entwurf-xxx) 또는 파일 경로를 실제 JSONL 경로로 해결.
+    """ID(garden sessionId / 6-hex 접미사 / legacy full UUID) 또는 파일 경로를 실제 JSONL 경로로 해결.
 
     full UUID는 exact match 우선. 짧은 prefix가 여러 세션과 충돌하면 최근 것으로
     침묵 선택하지 않고 ambiguous 에러를 돌려준다.
@@ -183,7 +300,7 @@ def resolve_session(target: str) -> tuple[Path | None, str | None]:
         candidates.append((f, info))
 
     if UUID_RE.fullmatch(needle):
-        exact = [f for f, info in candidates if info["kind"] == "uuid" and info["id"].lower() == needle]
+        exact = [f for f, info in candidates if info["id"].lower() == needle]
         if not exact:
             return None, f"세션 못 찾음: {target}"
         exact.sort(key=lambda p: p.stat().st_mtime, reverse=True)
@@ -222,11 +339,12 @@ def resolve_session(target: str) -> tuple[Path | None, str | None]:
 # JSONL parsing
 # ──────────────────────────────────────────────────────────────────────────────
 
-# parent에서 child entwurf id를 추출하는 패턴
-# 예: "[tool:done] mcp__pi-tools-bridge__entwurf — Task ID: ddb3cbb2"
-# 닫는 괄호/em-dash/공백 등 가변 → 핵심은 entwurf 호출 텍스트와 같은 라인의 "Task ID:"
-TASK_ID_RE = re.compile(
-    r"mcp__pi-tools-bridge__entwurf[^\n]{0,200}?Task ID:\s*([a-f0-9]+)",
+# parent에서 child entwurf sessionId를 추출하는 패턴 (0.9.0).
+# spawn 결과 텍스트가 "Task ID: <8hex>" → "Session ID: <YYYYMMDDTHHMMSS-xxxxxx>"
+# 로 바뀌었다 (formatSyncSummary / async ack / native+MCP result text). garden id
+# 포맷이 충분히 구별되므로 entwurf 호출 텍스트 근처가 아니어도 안전하게 잡는다.
+SESSION_ID_LINE_RE = re.compile(
+    r"Session ID:\s*(\d{8}T\d{6}-[0-9a-f]{6})",
     re.IGNORECASE,
 )
 
@@ -251,9 +369,9 @@ def read_jsonl_safe(path: Path) -> list[dict]:
 
 
 def find_child_entwurf_ids(parent_path: Path) -> list[tuple[str, str]]:
-    """부모 JSONL에서 자식 entwurf Task ID 추출.
+    """부모 JSONL에서 자식 entwurf sessionId 추출 (0.9.0 garden id).
 
-    Returns list of (timestamp, child_id_8hex).
+    Returns list of (timestamp, child_session_id).
     """
     out = []
     for rec in read_jsonl_safe(parent_path):
@@ -272,7 +390,7 @@ def find_child_entwurf_ids(parent_path: Path) -> list[tuple[str, str]]:
             text = c.get("text", "")
             if not text:
                 continue
-            for m in TASK_ID_RE.finditer(text):
+            for m in SESSION_ID_LINE_RE.finditer(text):
                 out.append((ts, m.group(1)))
     return out
 
@@ -280,7 +398,7 @@ def find_child_entwurf_ids(parent_path: Path) -> list[tuple[str, str]]:
 def find_declared_parents(child_path: Path) -> list[dict]:
     """child entwurf/delegate를 declared 완료 메시지로 가리키는 부모 세션 찾기."""
     child_info = parse_filename(child_path)
-    if child_info["kind"] not in ("entwurf", "delegate"):
+    if child_info["kind"] not in ("entwurf",):
         return []
 
     child_id = child_info["id"].lower()
@@ -307,7 +425,7 @@ def find_declared_parents(child_path: Path) -> list[dict]:
 def find_heuristic_parents(child_path: Path, window_seconds: int = 7200) -> list[dict]:
     """declared parent가 아직 안 박혔을 때 같은 cwd의 시간 인접 후보를 준다."""
     child_info = parse_filename(child_path)
-    if child_info["kind"] not in ("entwurf", "delegate"):
+    if child_info["kind"] not in ("entwurf",):
         return []
 
     child_mtime = child_path.stat().st_mtime
@@ -316,13 +434,13 @@ def find_heuristic_parents(child_path: Path, window_seconds: int = 7200) -> list
         if f == child_path:
             continue
         info = parse_filename(f)
-        if info["kind"] not in ("uuid", "entwurf", "delegate"):
+        if info["kind"] not in ("plain", "control", "entwurf"):
             continue
         mtime = f.stat().st_mtime
         if abs(mtime - child_mtime) > window_seconds:
             continue
         # 일반적으로 caller는 uuid 부모가 더 그럴듯하므로 가벼운 bias
-        score = abs(mtime - child_mtime) + (0 if info["kind"] == "uuid" else 600)
+        score = abs(mtime - child_mtime) + (0 if info["kind"] in ("control", "plain") else 600)
         out.append({
             "path": f,
             "info": info,
@@ -512,7 +630,7 @@ def cmd_peek(args) -> int:
     mtime = path.stat().st_mtime
     status = classify_activity(mtime)
     sockets = find_active_sockets()
-    has_socket = info["kind"] == "uuid" and info["id"] in sockets
+    has_socket = info["id"] in sockets
 
     data = extract_peek_data(path, args.messages, args.tools, args.thinking)
 
@@ -581,7 +699,7 @@ def cmd_map(args) -> int:
         files_set = set(files)
         for f in find_session_files(project=args.project, only_entwurf=False):
             info = parse_filename(f)
-            if info["kind"] == "uuid" and info["id"] in sockets and f not in files_set:
+            if info["id"] in sockets and f not in files_set:
                 files.append(f)
                 files_set.add(f)
         files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
@@ -595,7 +713,7 @@ def cmd_map(args) -> int:
         info = parse_filename(f)
         mtime = f.stat().st_mtime
         status = classify_activity(mtime)
-        has_socket = info["kind"] == "uuid" and info["id"] in sockets
+        has_socket = info["id"] in sockets
 
         # done 상태는 기본 제외 — 단 socket이 살아있으면 강제 노출
         if status == "done" and not args.all and not has_socket:
@@ -603,7 +721,7 @@ def cmd_map(args) -> int:
 
         caller = None
         detail = None
-        if info["kind"] in ("entwurf", "delegate"):
+        if info["kind"] in ("entwurf",):
             callers = find_callers_for_child(f)
             caller = callers[0] if callers else None
             detail = extract_peek_data(f, 1, 1, False)
@@ -673,9 +791,9 @@ def cmd_trace(args) -> int:
     parent_mtime = parent_path.stat().st_mtime
     parent_status = classify_activity(parent_mtime)
     sockets = find_active_sockets()
-    parent_has_socket = parent_info["kind"] == "uuid" and parent_info["id"] in sockets
+    parent_has_socket = parent_info["id"] in sockets
 
-    # 1차 시그널: 부모 JSONL의 [tool:done] entwurf — Task ID: <hex>
+    # 1차 시그널: 부모 JSONL의 entwurf spawn 결과 — Session ID: <garden id>
     declared = find_child_entwurf_ids(parent_path)
     declared_ids = {child_id for _, child_id in declared}
 
@@ -685,7 +803,7 @@ def cmd_trace(args) -> int:
         if f.suffix != ".jsonl" or f == parent_path:
             continue
         info = parse_filename(f)
-        if info["kind"] not in ("entwurf", "delegate"):
+        if info["kind"] not in ("entwurf",):
             continue
         siblings.append((f, info))
 
@@ -721,7 +839,7 @@ def cmd_trace(args) -> int:
         f"({fmt_age(parent_mtime)} ago) ═══"
     )
     lines.append(f"  parent: {parent_path.parent.name}/{parent_path.name}")
-    lines.append(f"  declared task IDs in parent: {len(declared_ids)} → {sorted(declared_ids)}")
+    lines.append(f"  declared session IDs in parent: {len(declared_ids)} → {sorted(declared_ids)}")
     lines.append(f"  entwurf siblings in same cwd: {len(siblings)}")
 
     if not children:
@@ -757,7 +875,7 @@ def main() -> int:
 
     # peek
     p_peek = sub.add_parser("peek", help="진행 중 세션 안 들여다보기")
-    p_peek.add_argument("target", help="세션 ID (8hex/full UUID/entwurf-xxx) 또는 파일 경로")
+    p_peek.add_argument("target", help="세션 ID (garden sessionId / 6-hex / legacy UUID) 또는 파일 경로")
     p_peek.add_argument("-m", "--messages", type=int, default=4,
                         help="마지막 N개 user/assistant 메시지 (기본 4)")
     p_peek.add_argument("-t", "--tools", type=int, default=5,

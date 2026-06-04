@@ -1,6 +1,6 @@
 ---
 name: entwurf-peek
-description: "sync entwurf 자식을 들여다보는 손. 호출자가 'Mattering...'에 묶여있을 때 자식 분신이 무엇을 하는지 확인. entwurf_peers는 control socket 있는 세션만 보여주는데, 이 스킬은 자식 entwurf-*.jsonl까지 합쳐서 본다. 트리거: 'entwurf-peek', '분신 들여다보기', '진행 중 세션', 'sync entwurf 안에서', 'peek session', 'live session map', '분신 추적'."
+description: "sync entwurf 자식을 들여다보는 손. 호출자가 'Mattering...'에 묶여있을 때 자식 분신이 무엇을 하는지 확인. entwurf_peers는 control socket 있는 세션만 보여주는데, 이 스킬은 자식 entwurf 세션(이름 태그 entwurf)까지 합쳐서 본다. 트리거: 'entwurf-peek', '분신 들여다보기', '진행 중 세션', 'sync entwurf 안에서', 'peek session', 'live session map', '분신 추적'."
 ---
 
 # entwurf-peek — 분신을 들여다보는 손
@@ -35,9 +35,9 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 | `-c, --chars N` | 200 | 요소당 최대 글자 |
 | `--thinking` | off | 최근 thinking 블록 1개 포함 |
 
-`<id>`는 8-hex (`ddb3cbb2`), full UUID (`019dddb0-...`), `entwurf-xxx`, 또는 직접 파일 경로.
+`<id>`는 garden sessionId (`20260604T090000-aaaaaa`), 6-hex 접미사 (`aaaaaa`), legacy full UUID (`019dddb0-...`), 또는 직접 파일 경로. (0.9.0: `entwurf-xxx` 파일종 폐기 — id 는 곧 JSONL header id.)
 
-- full UUID는 **exact match 우선**
+- full id (garden 또는 UUID)는 **exact match 우선**
 - 짧은 prefix가 여러 세션과 충돌하면 최근 것으로 침묵 선택하지 않고 **ambiguous 에러**를 낸다
 
 ### `map`
@@ -56,7 +56,7 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 |------|---------|-------------|
 | `--heuristic` | off | declared 매치 외 시간 인접 자식도 포함 (±2h) |
 
-자식 매칭은 부모 JSONL의 `[tool:done] mcp__pi-tools-bridge__entwurf — Task ID: <hex>` 텍스트에서 추출. 이게 1차 시그널.
+자식 매칭은 부모 JSONL의 entwurf spawn 결과 `Session ID: <YYYYMMDDTHHMMSS-xxxxxx>` 텍스트에서 추출 (0.9.0: 옛 `Task ID: <hex>` 폐기). 이게 1차 시그널.
 기본 `trace`는 heuristic 자식을 자동 포함하지 않지만, **숨겨진 nearby candidate 개수**는 보여준다.
 
 ## Examples
@@ -87,12 +87,12 @@ Step 3: peek <child-id>  →  자식 마지막 활동 확인
 Step 4: 활성도가 ⚫ DONE이면 결과 회수, 🟡 IDLE이면 잠시 대기, 🔴 ACTIVE이면 진행 중
 ```
 
-Sync entwurf로 호출자가 "Mattering..."에 묶여있을 때, **다른 세션에서** 이 스킬을 돌려 자식의 실시간 상태를 확인한다. peers MCP는 control socket이 있는 UUID 세션만 보여주지만, 자식 `entwurf-*.jsonl`은 socket이 없어 peers에 안 잡힌다 — 이걸 메우는 도구.
+Sync entwurf로 호출자가 "Mattering..."에 묶여있을 때, **다른 세션에서** 이 스킬을 돌려 자식의 실시간 상태를 확인한다. peers MCP는 control socket이 있는 세션만 보여주지만, 자식 entwurf 세션(이름 태그 `entwurf`)은 socket이 없어 peers에 안 잡힌다 — 이걸 메우는 도구. (0.9.0: 자식 판별 = 파일명이 아니라 session_info name 의 `entwurf` 태그.)
 
 ## Output 규칙
 
 - 헤더에 항상 `═══ {icon} {kind}-{short_id} ({age}) ═══` 형식 — 무엇을 보고 있는지 고정
-- child `entwurf-*` / `delegate-*` 는 가능하면 `caller: uuid-... [declared|time_adjacent]` 를 함께 보여준다
+- child (kind `entwurf`) 는 가능하면 `caller: <kind>-<short> [declared|time_adjacent]` 를 함께 보여준다 (caller 는 보통 `control`/`plain` 세션)
 - `peek` 는 가능하면 `model: provider/model` + `state: tool running | awaiting assistant reply | waiting for user` 를 함께 보여준다
 - `map` / `trace` 는 child row 끝에 `· model / state` compact suffix를 붙인다
 - 메시지/thinking은 `--chars`로 자르고, 줄바꿈은 공백으로 치환 (한 줄 압축)
@@ -100,7 +100,8 @@ Sync entwurf로 호출자가 "Mattering..."에 묶여있을 때, **다른 세션
 
 ## 한계 및 신뢰 경계
 
-- **활성 판정은 mtime 기반만**: 자식 entwurf-*는 control socket이 없어서 프로세스 살아있는지 직접 못 본다. mtime이 멈춘 지 5분이면 done으로 분류 — 진짜 죽었는지 확신 못 함
+- **활성 판정은 mtime 기반만**: 자식 entwurf 세션은 control socket이 없어서 프로세스 살아있는지 직접 못 본다. mtime이 멈춘 지 5분이면 done으로 분류 — 진짜 죽었는지 확신 못 함
+- **kind 판별은 session_info name 의 태그**: 첫 assistant 턴 전이거나 이름이 없는 세션은 `plain` 으로 분류된다 (legacy uuid 세션 포함). entwurf/control 태그가 박힌 뒤에야 그 종류로 보인다.
 - **부모-자식 매칭**: declared(1차)는 강한 시그널. caller / `--heuristic`은 시간 인접만 보므로 같은 cwd에서 다른 부모가 던진 entwurf와 섞일 수 있음
 - **상태 추정은 last-event heuristic**: 최신 이벤트가 tool start면 `tool running`, tool result면 `awaiting assistant reply`, assistant text면 `waiting for user`. 오래된 orphan toolCall은 무시한다. provider별 JSONL shape가 다르면 정확도는 떨어질 수 있음
 - **partial line 안전**: 마지막 라인이 writer-in-progress면 자동 스킵 (json decode 실패 시 무시)
