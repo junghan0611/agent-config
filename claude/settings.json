@@ -187,6 +187,7 @@
   "language": "Korean",
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
+  "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "editorMode": "normal",
   "verbose": false,
@@ -196,7 +197,7 @@
   "terminalProgressBarEnabled": false,
   "agentPushNotifEnabled": true,
   "useAutoModeDuringPlan": false,
-  "autoMemoryEnabled": false,
   "voiceEnabled": true,
-  "autoUpdates": true
+  "autoUpdates": true,
+  "effortLevel": "high"
 }
