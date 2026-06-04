@@ -3,9 +3,10 @@
 session discovery. No real ~/.pi; synthetic JSONL fixtures in a temp dir.
 
 Locks the post-0.9.0 contract (the `*_entwurf-<taskId>.jsonl` filename species
-is gone): "is this an Entwurf session?" = the session NAME's `entwurf` tag, the
-resident `--entwurf-control` session = the `control` tag, child discovery from a
-parent = the spawn result's `Session ID: <garden-id>` line.
+is gone): lookup authority = JSONL header `id` (not filename suffix), "is this
+an Entwurf session?" = the session NAME's `entwurf` tag, resident
+`--entwurf-control` session = the `control` tag, child discovery from a parent =
+the spawn result's `Session ID: <garden-id>` line.
 
 Run: python3 test-discovery.py   (exit 0 = all pass)
 """
@@ -64,6 +65,12 @@ def main():
             "20260604T090100-bbbbbb==deepseek/deepseek-v4-pro--home__control",
         )
         plain = write(d, "2026-06-04T00-02-00-000Z_20260604T090200-cccccc.jsonl", "20260604T090200-cccccc", None)
+        spoof = write(
+            d,
+            "2026-06-04T00-03-00-000Z_20260604T090999-deadbe.jsonl",
+            "20260604T091000-dddddd",
+            "20260604T091000-dddddd==pi-shell-acp/claude-sonnet-4-6--header-authority__entwurf",
+        )
         legacy = write(
             d,
             "2026-06-03T13-12-45-236Z_019e8d9d-6db4-7f8f-b743-3c80729a9f27.jsonl",
@@ -102,11 +109,14 @@ def main():
         check("named-less garden kind = plain", ep.read_session_meta(plain)["kind"], "plain")
         check("legacy uuid kind = plain", ep.read_session_meta(legacy)["kind"], "plain")
 
-        # parse_filename: id from filename, kind from name, garden-aware short
+        # parse_filename: id from JSONL header, kind from name, garden-aware short
         pf = ep.parse_filename(child)
-        check("child id (sessionId from filename)", pf["id"], "20260604T090000-aaaaaa")
+        check("child id (sessionId from header)", pf["id"], "20260604T090000-aaaaaa")
         check("child short (6-hex suffix)", pf["short"], "aaaaaa")
         check("child parse_filename kind", pf["kind"], "entwurf")
+        spoof_pf = ep.parse_filename(spoof)
+        check("header id beats filename suffix", spoof_pf["id"], "20260604T091000-dddddd")
+        check("filename suffix kept diagnostic only", spoof_pf["filename_id"], "20260604T090999-deadbe")
         check("legacy short (first 8 of uuid)", ep.parse_filename(legacy)["short"], "019e8d9d")
 
         # trace: child discovered from parent's "Session ID:" line (not "Task ID:")
@@ -132,6 +142,23 @@ def main():
             ],
         )
         check("legacy 'Task ID:' no longer matches", ep.find_child_entwurf_ids(legacy_parent), [])
+
+        # resolve_session follows pi-shell-acp's wrong-cwd duplicate footgun: header-id duplicates are ambiguous.
+        old_sessions_dir = ep.SESSIONS_DIR
+        sessions_base = d / "sessions"
+        dir_a = sessions_base / "--tmp-a--"
+        dir_b = sessions_base / "--tmp-b--"
+        dir_a.mkdir(parents=True)
+        dir_b.mkdir(parents=True)
+        dup_id = "20260604T092000-eeeeee"
+        write(dir_a, "2026-06-04T00-20-00-000Z_20260604T092000-eeeeee.jsonl", dup_id, None)
+        write(dir_b, "renamed-without-id.jsonl", dup_id, None)
+        ep.SESSIONS_DIR = sessions_base
+        try:
+            resolved, err = ep.resolve_session(dup_id)
+            check("duplicate header id refuses exact resolve", resolved is None and "ambiguous" in (err or ""), True)
+        finally:
+            ep.SESSIONS_DIR = old_sessions_dir
 
         print(f"[test-discovery] {_n} checks, {_fail} failed")
         return 1 if _fail else 0

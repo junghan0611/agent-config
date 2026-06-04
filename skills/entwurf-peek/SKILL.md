@@ -5,7 +5,7 @@ description: "sync entwurf 자식을 들여다보는 손. 호출자가 'Matterin
 
 # entwurf-peek — 분신을 들여다보는 손
 
-세 개의 서브커맨드. control socket 디렉토리 + 세션 JSONL fs 스캔만으로 동작.
+세 개의 서브커맨드. live control socket probe + 세션 JSONL header/name 스캔만으로 동작.
 pi-shell-acp 새 surface 없음. session-recap의 JSONL 파서 패턴 재사용.
 
 ## API
@@ -35,10 +35,11 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 | `-c, --chars N` | 200 | 요소당 최대 글자 |
 | `--thinking` | off | 최근 thinking 블록 1개 포함 |
 
-`<id>`는 garden sessionId (`20260604T090000-aaaaaa`), 6-hex 접미사 (`aaaaaa`), legacy full UUID (`019dddb0-...`), 또는 직접 파일 경로. (0.9.0: `entwurf-xxx` 파일종 폐기 — id 는 곧 JSONL header id.)
+`<id>`는 garden sessionId (`20260604T090000-aaaaaa`), 6-hex 접미사 (`aaaaaa`), legacy full UUID (`019dddb0-...`), 또는 직접 파일 경로. (0.9.0: `entwurf-xxx` 파일종 폐기 — id authority 는 JSONL header `id`, 파일명 suffix 아님.)
 
 - full id (garden 또는 UUID)는 **exact match 우선**
-- 짧은 prefix가 여러 세션과 충돌하면 최근 것으로 침묵 선택하지 않고 **ambiguous 에러**를 낸다
+- 같은 header id가 여러 파일에 있으면 wrong-cwd duplicate footgun 으로 보고 **ambiguous 에러**를 낸다
+- 짧은 prefix가 여러 세션과 충돌해도 최근 것으로 침묵 선택하지 않고 **ambiguous 에러**를 낸다
 
 ### `map`
 
@@ -48,7 +49,7 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 | `--since SEC` | 3600 | 최근 N초 이내 활동한 세션. control socket 있는 세션은 강제 포함 |
 | `-a, --all` | off | done 상태도 포함 |
 
-활성도: `<30s` → 🔴 active · `<5m` → 🟡 idle · `5m+` → ⚫ done. 🔌 = active control socket.
+활성도: `<30s` → 🔴 active · `<5m` → 🟡 idle · `5m+` → ⚫ done. 🔌 = connect() 성공한 live control socket.
 
 ### `trace <parent-id|file>`
 
@@ -100,7 +101,7 @@ Sync entwurf로 호출자가 "Mattering..."에 묶여있을 때, **다른 세션
 
 ## 한계 및 신뢰 경계
 
-- **활성 판정은 mtime 기반만**: 자식 entwurf 세션은 control socket이 없어서 프로세스 살아있는지 직접 못 본다. mtime이 멈춘 지 5분이면 done으로 분류 — 진짜 죽었는지 확신 못 함
+- **활성 판정은 mtime 기반만**: 자식 entwurf 세션은 control socket이 없어서 프로세스 살아있는지 직접 못 본다. mtime이 멈춘 지 5분이면 done으로 분류 — 진짜 죽었는지 확신 못 함. control socket은 stale 파일을 세지 않고 connect() 성공한 것만 🔌로 표시한다.
 - **kind 판별은 session_info name 의 태그**: 첫 assistant 턴 전이거나 이름이 없는 세션은 `plain` 으로 분류된다 (legacy uuid 세션 포함). entwurf/control 태그가 박힌 뒤에야 그 종류로 보인다.
 - **부모-자식 매칭**: declared(1차)는 강한 시그널. caller / `--heuristic`은 시간 인접만 보므로 같은 cwd에서 다른 부모가 던진 entwurf와 섞일 수 있음
 - **상태 추정은 last-event heuristic**: 최신 이벤트가 tool start면 `tool running`, tool result면 `awaiting assistant reply`, assistant text면 `waiting for user`. 오래된 orphan toolCall은 무시한다. provider별 JSONL shape가 다르면 정확도는 떨어질 수 있음

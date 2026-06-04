@@ -58,9 +58,9 @@ Sessions are a **time axis + project/cwd axis** for continuing work. Use the met
   --project nixos-config \
   --mode recent
 
-# Recent entwurf transcript surface before Phase-2 taskId metadata exists
-{baseDir}/semantic-memory search-sessions "분신 작업" \
-  --session-file-contains _entwurf- \
+# Recent entwurf-related work (0.9.0: no `_entwurf-` filename species; use time/project slice)
+{baseDir}/semantic-memory search-sessions "분신 작업 Session ID entwurf" \
+  --project pi-shell-acp \
   --date-from 2026-05-11T15:00:00Z \
   --date-to 2026-05-12T15:00:00Z \
   --mode recent
@@ -81,7 +81,7 @@ Stored-signal flags:
 | `--project name[,name]` | Filter by stored project basename (OR for CSV) |
 | `--role user[,assistant,compaction]` | Filter by stored role |
 | `--session-file path` | Exact session JSONL path |
-| `--session-file-contains substr` | Substring filter on session path (e.g. `_entwurf-`) |
+| `--session-file-contains substr` | Substring filter on session path (generic path filter; not an Entwurf marker after 0.9.0) |
 | `--mode semantic` | Default-style semantic/hybrid retrieval when no filters are needed |
 | `--mode hybrid` | Semantic + BM25 retrieval within stored-signal filters |
 | `--mode recent` | Stored-signal scan + timestamp DESC. No embedding/BM25/dictcli; use when time/project is primary |
@@ -90,7 +90,7 @@ Boundary rules:
 
 - Do **not** pass natural-language time (`어제`, `지난주`) and expect andenken to parse it. Convert to ISO in the caller (recall/day-query/harness).
 - Do **not** use semantic-memory to replace day-query aggregation. day-query owns multi-axis summaries (git/journal/lifetract/calendar). semantic-memory only exposes session chunks with stored metadata.
-- Missing metadata must not be inferred. If a signal is absent (e.g. `cwd`, `entwurf_task_id` before Phase 2), label it as missing or use a documented stored-signal workaround like `--session-file-contains _entwurf-`.
+- Missing metadata must not be inferred. If a signal is absent (e.g. `cwd`, `entwurf_task_id` before Phase 2), label it as missing; after pi-shell-acp 0.9.0 Entwurf identity is in JSONL header/name, not an `_entwurf-` filename substring. For live/filesystem child tracing, use `entwurf-peek`.
 
 ```json
 {

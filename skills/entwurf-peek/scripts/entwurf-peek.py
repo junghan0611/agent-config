@@ -18,23 +18,34 @@ import argparse
 import json
 import os
 import re
+import socket
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Paths
 # ──────────────────────────────────────────────────────────────────────────────
 
-SESSIONS_DIR = Path.home() / ".pi" / "agent" / "sessions"
+def expand_tilde_path(value: str) -> Path:
+    if value == "~":
+        return Path.home()
+    if value.startswith("~/"):
+        return Path.home() / value[2:]
+    return Path(value)
+
+
+AGENT_DIR = expand_tilde_path(os.environ.get("PI_CODING_AGENT_DIR", "~/.pi/agent"))
+SESSIONS_DIR = AGENT_DIR / "sessions"
 CONTROL_DIR = Path.home() / ".pi" / "entwurf-control"
 UUID_RE = re.compile(r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$", re.IGNORECASE)
 
 # 0.9.0 garden-native identity. The Entwurf `*_entwurf-<taskId>.jsonl` filename
-# species is GONE — Pi names every file `<created-at>_<sessionId>.jsonl`, where
-# sessionId is the JSONL header `id`. "Is this an Entwurf session?" is answered
-# by the session NAME (a session_info entry) carrying the `entwurf` tag, NOT by
-# the filename. Resident `--entwurf-control` sessions carry the `control` tag.
+# species is GONE. Pi normally names files `<created-at>_<sessionId>.jsonl`, but
+# lookup authority is the JSONL header `id`, not the filename suffix (wrong-cwd
+# duplicate / renamed-file gates rely on this). "Is this an Entwurf session?" is
+# answered by the session NAME (a session_info entry) carrying the `entwurf` tag,
+# NOT by the filename. Resident `--entwurf-control` sessions carry `control`.
 # This mirrors pi-shell-acp entwurf-core's locked grammar + readSessionIdentity.
 GARDEN_ID_RE = re.compile(r"^\d{8}T\d{6}-[0-9a-f]{6}$")
 SESSION_TAG_RE = re.compile(r"^[a-z0-9]+$")
@@ -71,6 +82,8 @@ def parse_session_name(name: str | None) -> dict | None:
     provider = provider_model[:slash]
     model = provider_model[slash + 1:]
     if not provider or not model or "/" in model:
+        return None
+    if "/" in provider or "=" in provider or "--" in provider or "=" in model or "--" in model:
         return None
     title_slug = title_and_tags
     tags: list[str] = []
@@ -202,31 +215,49 @@ def fmt_ts(ts: str) -> str:
 def parse_filename(path: Path) -> dict:
     """세션 파일 분류 (0.9.0 garden-native).
 
-    파일명은 Pi 산물 `<created-at>_<sessionId>.jsonl` — suffix 가 곧 sessionId
-    (header id). kind 는 파일명이 아니라 session_info name 의 태그로 정한다
+    JSONL header `id`가 sessionId authority 다. 파일명은 Pi 산물
+    `<created-at>_<sessionId>.jsonl` 이지만 lookup/resume logic 으로 쓰지 않는다.
+    kind 는 파일명이 아니라 session_info name 의 태그로 정한다
     (entwurf / control / plain) via read_session_meta.
 
     Returns dict with:
       kind:  'entwurf' | 'control' | 'plain'
-      id:    sessionId (garden `YYYYMMDDTHHMMSS-xxxxxx` or legacy uuid)
+      id:    sessionId from JSONL header (fallback: filename suffix for corrupt legacy files)
+      filename_id: suffix after first `_` for diagnostics only
       short: compact display id (garden → 6-hex suffix; uuid → first 8)
     """
     stem = path.stem
-    # 2026-06-03T23-41-41-238Z_20260604T084140-de0810  → sessionId after first _
-    suffix = stem.split("_", 1)[1] if "_" in stem else stem
-    sid = suffix
+    # 2026-06-03T23-41-41-238Z_20260604T084140-de0810  → filename suffix after first _
+    filename_id = stem.split("_", 1)[1] if "_" in stem else stem
+    meta = read_session_meta(path)
+    sid = meta.get("id") or filename_id
     if is_garden_id(sid):
-        short = sid.split("-")[-1]  # 6-hex suffix; timestamp is in the filename
+        short = sid.split("-")[-1]
     else:
-        short = sid.split("-")[0][:8]  # legacy uuid
-    return {"kind": read_session_meta(path)["kind"], "id": sid, "short": short}
+        short = sid.split("-")[0][:8]
+    return {"kind": meta["kind"], "id": sid, "filename_id": filename_id, "short": short}
+
+
+def is_socket_alive(socket_path: Path, timeout: float = 0.3) -> bool:
+    """pi-shell-acp getLiveSessions parity: only count sockets that accept connect()."""
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+            s.settimeout(timeout)
+            s.connect(str(socket_path))
+            return True
+    except OSError:
+        return False
 
 
 def find_active_sockets() -> set[str]:
-    """~/.pi/entwurf-control/*.sock → UUID set."""
+    """~/.pi/entwurf-control/*.sock → live sessionId set."""
     if not CONTROL_DIR.exists():
         return set()
-    return {s.stem for s in CONTROL_DIR.glob("*.sock")}
+    out = set()
+    for s in CONTROL_DIR.glob("*.sock"):
+        if is_socket_alive(s):
+            out.add(s.stem)
+    return out
 
 
 def find_session_files(
@@ -289,7 +320,7 @@ def resolve_session(target: str) -> tuple[Path | None, str | None]:
     if p.is_absolute() and p.exists():
         return p, None
 
-    # 0.9.0: id 는 곧 sessionId (garden `YYYYMMDDTHHMMSS-xxxxxx` / legacy uuid)
+    # 0.9.0: id 는 JSONL header sessionId (garden `YYYYMMDDTHHMMSS-xxxxxx` / legacy uuid)
     # 또는 6-hex short. 옛 `entwurf-<hex>` / `delegate-<hex>` 입력종은 폐기 —
     # display label(`{kind}-{short}`)을 그대로 붙여넣는 경로도 함께 사라진다.
     needle = target.strip().lower()
@@ -299,11 +330,17 @@ def resolve_session(target: str) -> tuple[Path | None, str | None]:
         info = parse_filename(f)
         candidates.append((f, info))
 
+    def ambiguous_exact(paths: list[Path]) -> str:
+        preview = ", ".join(f"{p.parent.name}/{p.name}" for p in paths[:5])
+        return f"세션 ID ambiguous: {target} → {preview}"
+
     if UUID_RE.fullmatch(needle):
         exact = [f for f, info in candidates if info["id"].lower() == needle]
         if not exact:
             return None, f"세션 못 찾음: {target}"
-        exact.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        if len(exact) > 1:
+            exact.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+            return None, ambiguous_exact(exact)
         return exact[0], None
 
     exact = [f for f, info in candidates if info["id"].lower() == needle]
@@ -311,7 +348,7 @@ def resolve_session(target: str) -> tuple[Path | None, str | None]:
         return exact[0], None
     if len(exact) > 1:
         exact.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-        return exact[0], None
+        return None, ambiguous_exact(exact)
 
     prefix_matches = []
     for f, info in candidates:
@@ -797,7 +834,7 @@ def cmd_trace(args) -> int:
     declared = find_child_entwurf_ids(parent_path)
     declared_ids = {child_id for _, child_id in declared}
 
-    # 2차 시그널: 같은 cwd 디렉토리의 entwurf-* 파일
+    # 2차 시그널: 같은 cwd 디렉토리의 name-tagged Entwurf 세션
     siblings = []
     for f in parent_path.parent.iterdir():
         if f.suffix != ".jsonl" or f == parent_path:
