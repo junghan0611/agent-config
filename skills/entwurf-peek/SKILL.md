@@ -16,9 +16,9 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 
 | Subcommand | Purpose | Example |
 |------------|---------|---------|
-| `peek <id>` | 세션 안 마지막 메시지 + 활성 여부 + caller + model/state | `peek ddb3cbb2` |
+| `peek <id>` | 세션 안 마지막 메시지 + 활성 여부 + caller + model/state | `peek 9858a7` |
 | `map` | 살아있는 세션 전체 지도 (sockets + 최근 entwurf 파일 + child caller + compact model/state) | `map -p abductcli` |
-| `trace <parent>` | 부모가 던진 자식 entwurf 추적 + child compact model/state | `trace 019dddb0` |
+| `trace <parent>` | 부모가 던진 자식 entwurf 추적 + child compact model/state | `trace 20260604T094303-842ded` |
 
 ### Common flags
 
@@ -35,7 +35,7 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 | `-c, --chars N` | 200 | 요소당 최대 글자 |
 | `--thinking` | off | 최근 thinking 블록 1개 포함 |
 
-`<id>`는 garden sessionId (`20260604T090000-aaaaaa`), 6-hex 접미사 (`aaaaaa`), legacy full UUID (`019dddb0-...`), 또는 직접 파일 경로. (0.9.0: `entwurf-xxx` 파일종 폐기 — id authority 는 JSONL header `id`, 파일명 suffix 아님.)
+`<id>`는 **session selector**다. canonical target 은 JSONL header `id` 이며, garden sessionId 전체(`20260604T094309-9858a7`)나 6-hex 접미사(`9858a7`), legacy full UUID(`019dddb0-...`), 직접 파일 경로를 받을 수 있다. 0.9.0부터 `entwurf-xxx` 같은 옛 filename/task species 는 identity authority 가 아니다.
 
 - full id (garden 또는 UUID)는 **exact match 우선**
 - 같은 header id가 여러 파일에 있으면 wrong-cwd duplicate footgun 으로 보고 **ambiguous 에러**를 낸다
@@ -63,11 +63,11 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 ## Examples
 
 ```bash
-# 진행 중 자식 분신 들여다보기
-python3 {baseDir}/scripts/entwurf-peek.py peek ddb3cbb2
+# 진행 중 자식 분신 들여다보기 (garden 6-hex suffix)
+python3 {baseDir}/scripts/entwurf-peek.py peek 9858a7
 
-# thinking까지 보고 싶을 때
-python3 {baseDir}/scripts/entwurf-peek.py peek ddb3cbb2 --thinking
+# full garden sessionId로 thinking까지 보기
+python3 {baseDir}/scripts/entwurf-peek.py peek 20260604T094309-9858a7 --thinking
 
 # 지금 살아있는 세션 전부
 python3 {baseDir}/scripts/entwurf-peek.py map
@@ -75,8 +75,8 @@ python3 {baseDir}/scripts/entwurf-peek.py map
 # 특정 cwd만 (abductcli 부모-자식 묶어서 보기)
 python3 {baseDir}/scripts/entwurf-peek.py map -p abductcli -a --since 7200
 
-# 부모로부터 자식 entwurf 트리
-python3 {baseDir}/scripts/entwurf-peek.py trace 019dddb0
+# 부모 full sessionId로 자식 entwurf 트리
+python3 {baseDir}/scripts/entwurf-peek.py trace 20260604T094303-842ded
 ```
 
 ## Workflow: "내가 던진 분신이 뭐 하고 있지?"

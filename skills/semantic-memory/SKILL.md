@@ -90,7 +90,7 @@ Boundary rules:
 
 - Do **not** pass natural-language time (`어제`, `지난주`) and expect andenken to parse it. Convert to ISO in the caller (recall/day-query/harness).
 - Do **not** use semantic-memory to replace day-query aggregation. day-query owns multi-axis summaries (git/journal/lifetract/calendar). semantic-memory only exposes session chunks with stored metadata.
-- Missing metadata must not be inferred. If a signal is absent (e.g. `cwd`, `entwurf_task_id` before Phase 2), label it as missing; after pi-shell-acp 0.9.0 Entwurf identity is in JSONL header/name, not an `_entwurf-` filename substring. For live/filesystem child tracing, use `entwurf-peek`.
+- Missing metadata must not be inferred. If a signal is absent (e.g. `cwd`, explicit caller/child linkage metadata), label it as missing; after pi-shell-acp 0.9.0 Entwurf identity is in JSONL header/name, not an `_entwurf-` filename substring. For live/filesystem child tracing, use `entwurf-peek`.
 
 ```json
 {

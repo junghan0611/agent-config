@@ -40,13 +40,14 @@ SESSIONS_DIR = AGENT_DIR / "sessions"
 CONTROL_DIR = Path.home() / ".pi" / "entwurf-control"
 UUID_RE = re.compile(r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$", re.IGNORECASE)
 
-# 0.9.0 garden-native identity. The Entwurf `*_entwurf-<taskId>.jsonl` filename
-# species is GONE. Pi normally names files `<created-at>_<sessionId>.jsonl`, but
-# lookup authority is the JSONL header `id`, not the filename suffix (wrong-cwd
-# duplicate / renamed-file gates rely on this). "Is this an Entwurf session?" is
-# answered by the session NAME (a session_info entry) carrying the `entwurf` tag,
-# NOT by the filename. Resident `--entwurf-control` sessions carry `control`.
-# This mirrors pi-shell-acp entwurf-core's locked grammar + readSessionIdentity.
+# 0.9.0 garden-native session identity. The old Entwurf
+# `*_entwurf-<taskId>.jsonl` filename species is GONE. Pi normally names files
+# `<created-at>_<sessionId>.jsonl`, but lookup authority is the JSONL header
+# `id`, not the filename suffix (wrong-cwd duplicate / renamed-file gates rely
+# on this). "Is this an Entwurf session?" is answered by the session NAME (a
+# session_info entry) carrying the `entwurf` tag, NOT by the filename. Resident
+# `--entwurf-control` sessions carry `control`. This mirrors pi-shell-acp
+# entwurf-core's locked grammar + readSessionIdentity.
 GARDEN_ID_RE = re.compile(r"^\d{8}T\d{6}-[0-9a-f]{6}$")
 SESSION_TAG_RE = re.compile(r"^[a-z0-9]+$")
 TITLE_SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -321,8 +322,9 @@ def resolve_session(target: str) -> tuple[Path | None, str | None]:
         return p, None
 
     # 0.9.0: id 는 JSONL header sessionId (garden `YYYYMMDDTHHMMSS-xxxxxx` / legacy uuid)
-    # 또는 6-hex short. 옛 `entwurf-<hex>` / `delegate-<hex>` 입력종은 폐기 —
-    # display label(`{kind}-{short}`)을 그대로 붙여넣는 경로도 함께 사라진다.
+    # 또는 6-hex short. 옛 filename-derived selector (`entwurf-<hex>` /
+    # `delegate-<hex>`)는 폐기 — display label(`{kind}-{short}`)을 그대로
+    # 붙여넣는 경로도 함께 사라진다.
     needle = target.strip().lower()
 
     candidates: list[tuple[Path, dict]] = []
@@ -376,10 +378,11 @@ def resolve_session(target: str) -> tuple[Path | None, str | None]:
 # JSONL parsing
 # ──────────────────────────────────────────────────────────────────────────────
 
-# parent에서 child entwurf sessionId를 추출하는 패턴 (0.9.0).
-# spawn 결과 텍스트가 "Task ID: <8hex>" → "Session ID: <YYYYMMDDTHHMMSS-xxxxxx>"
-# 로 바뀌었다 (formatSyncSummary / async ack / native+MCP result text). garden id
-# 포맷이 충분히 구별되므로 entwurf 호출 텍스트 근처가 아니어도 안전하게 잡는다.
+# parent에서 child Entwurf sessionId를 추출하는 패턴 (0.9.0).
+# spawn 결과 텍스트는 legacy short task token("Task ID: <8hex>")이 아니라
+# `Session ID: <YYYYMMDDTHHMMSS-xxxxxx>` 를 쓴다 (formatSyncSummary / async ack /
+# native+MCP result text). garden id 포맷이 충분히 구별되므로 entwurf 호출
+# 텍스트 근처가 아니어도 안전하게 잡는다.
 SESSION_ID_LINE_RE = re.compile(
     r"Session ID:\s*(\d{8}T\d{6}-[0-9a-f]{6})",
     re.IGNORECASE,
@@ -433,7 +436,7 @@ def find_child_entwurf_ids(parent_path: Path) -> list[tuple[str, str]]:
 
 
 def find_declared_parents(child_path: Path) -> list[dict]:
-    """child entwurf/delegate를 declared 완료 메시지로 가리키는 부모 세션 찾기."""
+    """child Entwurf 세션을 declared completion 메시지로 가리키는 부모 세션 찾기."""
     child_info = parse_filename(child_path)
     if child_info["kind"] not in ("entwurf",):
         return []
@@ -476,7 +479,7 @@ def find_heuristic_parents(child_path: Path, window_seconds: int = 7200) -> list
         mtime = f.stat().st_mtime
         if abs(mtime - child_mtime) > window_seconds:
             continue
-        # 일반적으로 caller는 uuid 부모가 더 그럴듯하므로 가벼운 bias
+        # 일반적으로 caller는 control/plain 부모가 더 그럴듯하므로 가벼운 bias
         score = abs(mtime - child_mtime) + (0 if info["kind"] in ("control", "plain") else 600)
         out.append({
             "path": f,
@@ -849,7 +852,7 @@ def cmd_trace(args) -> int:
     hidden_nearby = []
     for f, info in siblings:
         mtime = f.stat().st_mtime
-        # 8hex match
+        # declared child sessionId match (garden full id / compatible prefix)
         matched = any(info["id"].startswith(d) or d.startswith(info["id"]) for d in declared_ids)
         # 시간 인접: 부모 시간대 내
         time_adj = abs(mtime - parent_mtime) <= 7200  # 2 hour window
