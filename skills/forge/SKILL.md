@@ -77,6 +77,11 @@ agent-config은 이 SKILL.md만 들고, 실 명령은 외부 절대경로로 호
 | `WORK_FORGE_REPO` | ⭕ | default 없음 — 인자로 명시 강제 |
 | `FORGE_MODEL` | ⭕ | footer 의 모델 부분 (없으면 `unknown`) |
 
+> `bin/forge` 는 profile 토큰이 env 에 없으면 **`~/.env.local` 을 스스로 source**
+> 한다. pi 는 env 를 자동 주입하므로 sourcing 을 건너뛰고, Claude Code / 맨 셸
+> 처럼 주입이 없는 하네스에서도 `source ~/.env.local` 선행 없이 바로 돈다.
+> 토큰이 이미 있으면(주입/명시 override) 덮지 않는다. 경로는 `FORGE_ENV_FILE` 로 교체.
+
 ### 머신별 default profile — `~/.current-forge-profile`
 
 각 머신이 "어느 forge 의 *직접 접속 호스트* 인지" 박는다. 클라이언트 머신은 비워둔다.
