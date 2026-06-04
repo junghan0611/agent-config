@@ -139,6 +139,8 @@ GitHub repo 의 `<owner>/<name>` 에서 `<name>` 만 떼서 `glg-bot/<name>` 매
 | `label-add` | `ISSUE LABEL` | 라벨 이름으로 ID 조회 후 부착 |
 | `label-remove` | `ISSUE LABEL` | 라벨 이름으로 ID 조회 후 제거 |
 | `label-set` | `ISSUE STATUS-LABEL` | 상태 라벨군(`agent:ready/running/done/blocked`, `human:needs-review`)을 하나로 교체. `ci:failed` 같은 신호 라벨은 보존. forgebot 루프의 `agent:done` = 1차 검토/분류 완료, 구현 완료 아님 |
+| `close` | `ISSUE` | Forgejo open/closed **state** 를 `closed` 로. lifecycle 라벨과 직교 — `agent:done`(분류 완료) ≠ `closed`(해결/철회, 추적 종료). 이유 `comment` 먼저, 그다음 close. **규약**(코드 가드 아님): 해결-close(shipped tag/commit + 재현 안 됨 확인) = 담당자 자율 ✅ / 철회-close(won't-fix·중복·설계무효·우선순위 철회 = 가치판단) = GLG 또는 `human:needs-review` 경유 |
+| `reopen` | `ISSUE` | 닫힌 이슈 state 를 `open` 으로 되돌림 (close 의 역) |
 | `issue-create` | `[REPO] TITLE BODY [OPTIONS]` 또는 `[REPO] TITLE --body-file PATH [OPTIONS]` | 이슈 생성. footer 자동 부착. atomic 라벨 (`--labels`) + Mattermost thread bridge (`--mm-channel/--mm-root-id/--mm-account`) 옵션. **multi-line BODY 는 `--body-file PATH` (또는 `-` = stdin) 필수** — inline BODY 는 single-line 만 |
 | `auto-fix-template` | `ISSUE` | auto-fix 회독 루프용 표준 코멘트 골격 출력. `schema/report_id/session_key/issue_updated_at/lifecycle/labels/provider_model/forge_config_commit` snapshot marker 포함. 출력 → 파일 저장 → 채운 뒤 `comment --body-file` |
 | `doctor-labels` | `[REPO]` | repo 가 forge v2 + auto-fix lane 에 필요한 lifecycle/signal labels (`agent:*`, `human:needs-review`, `ci:failed`, `auto-fix`) 를 갖췄는지 read-only 점검. missing 이 있으면 non-zero exit |
