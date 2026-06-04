@@ -32,7 +32,9 @@ claude/settings.local.json
 home/PRIVATE.md
 
 # pi runtime artifacts
-.pi/
+.pi/*
+# repo-local pi binding (shares .claude/skills with pi); tracked like voscli
+!.pi/settings.json
 .mcp.json
 
 # Python cache artifacts
