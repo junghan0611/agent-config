@@ -7,6 +7,24 @@
 
 ## Unreleased
 
+## v2026.6.6
+
+* **`~/.claude/settings.json` is no longer symlinked on workstations — it is merged.** The live file is co-owned with pi-shell-acp's meta-bridge installer (disjoint keysets), and a symlink is whole-file ownership: the next writer's atomic rename silently clobbers the other side, which is why a stale meta-bridge block kept resurfacing as a dirty working tree. `run.sh setup` now injects only the agent-config keyset via a new `merge_settings` helper (`jq` `existing * fragment` — recursive object merge, array replace, legacy symlink auto-dereferenced, atomic write, idempotent). The former `claude/settings.json` is renamed to `claude/settings.fragment.json` and carries agent-config keys only. Server devices have no meta-bridge, so they stay a single-owner symlink to `claude/settings.server.json`.
+
+* **`permissions.allow`/`deny` ceded to pi-shell-acp as single owner.** Both repos previously set the same permission arrays; the values happened to be identical, masking a keyset-owner violation that would have drifted the moment either side added one entry (the other's setup would array-replace it back). The fragment is now fully disjoint from pi-shell-acp's owned keyset (SSOT: `~/.claude/pi-shell-acp.install-state.json`) — agent-config sets only `hooks` / `language` / 개인취향 scalars (`editorMode`, `preferredNotifChannel`, `agentPushNotifEnabled`, `effortLevel`, `voiceEnabled`, `autoUpdates`) / `enabledPlugins.*@claude-plugins-official`. single-driver tool-limit policy (permissions + B-lite scalars + `statusLine` + meta wiring) is pi-shell-acp's to own and verify via its install/uninstall/doctor.
+
+* **Entwurf coexistence docs reframed around the garden id as the single universal address.** `AGENTS.md` and `home/AGENTS.md` no longer carry a replyable/non-replyable split by backend. Every native session (pi / ACP / Claude Code / Codex / Gemini / Antigravity) becomes a garden citizen via the meta-bridge `SessionStart` hook — a meta-record + mailbox keyed by a garden id, the one address layer above every backend. Cross-session `entwurf_send`/receive runs host-to-host by garden id (doorbell → `entwurf_inbox_read`) with no pi or ACP required on either side; verified by a live host-to-host round-trip. The "Asymmetric Mitsein" sections become "Mitsein (garden-id)".
+
+* **Added the `agent-config` 담당자 skill.** Operating-surface knowledge for spreading skills/identity/alignment across every harness (pi / pi-shell-acp Claude / Claude Code / OpenCode / Codex / Gemini / Antigravity) — the shovel knowledge `AGENTS.md` and `run.sh` do not hold (new-device setup, "my skill isn't showing", `.bak` traps, binary-from-sibling-repo pattern, git-hooks safety wall). Shared to pi via `.pi/settings.json`.
+
+* **`entwurf-peek` now does garden-native session discovery** aligned with pi-shell-acp 0.9.0, and drops the dead `entwurf-`/`delegate-` id-prefix strip.
+
+* **`slack-latest` gained bot-aware channel history.**
+
+* **`forge` skill docs** — documented `git-credential-forge` install, added `close`/`reopen` to the verb table, and noted that `bin/forge` self-sources `~/.env.local`.
+
+* **Fix — `git-hooks` scans only new-to-remote commits on a new-ref push,** instead of treating an entire new branch's history as freshly "added" lines.
+
 ## v2026.6.1
 
 * **Claude Code direct surface now carries pi-style emacs keybindings.** `claude/keybindings.json` mirrors the gaps `pi/keybindings.json` covers that Claude Code actually exposes as configurable actions: `shift+enter` → newline and `ctrl+/` → undo in the Chat context, plus `ctrl+n`/`ctrl+p` → autocomplete next/previous alongside the existing `alt+j`/`alt+k`. The remaining emacs motions (`ctrl+a/e/b/f/k/u/w/d`, word/line ops, yank) are already built into Claude Code's readline-style input and are not re-exposed as rebindable actions, so only the deltas are added here.
