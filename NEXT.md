@@ -14,8 +14,11 @@ state 기반 키셋 in/out(`scripts/meta-bridge-state.py`, `pi-shell-acp.install
 ### LANDED (이번 세션)
 
 - `claude/settings.json` → `claude/settings.fragment.json` (git mv). **agent-config 키셋만** 남김:
-  hooks / permissions / language / effortLevel / editorMode / preferredNotifChannel /
+  hooks / language / effortLevel / editorMode / preferredNotifChannel /
   agentPushNotifEnabled / voiceEnabled / autoUpdates / enabledPlugins(official toggles).
+  **permissions.allow/deny/defaultMode 제거 → pi-shell-acp 단독 소유**(아래 결정). 결과:
+  fragment ∩ pi 키셋 = **완전 무중첩**(install-state SSOT 대조로 검증). merge가 permissions를
+  아예 안 건드려 pi의 doctor가 단일 권위로 소유·검증 가능.
   양도(제거): statusLine, B-lite 스칼라(cleanupPeriodDays·env.DISABLE_AUTOCOMPACT·
   promptSuggestionEnabled·awaySummaryEnabled·autoMemoryEnabled·skipDangerousModePermissionPrompt·
   verbose·autoCompactEnabled·showTurnDuration·terminalProgressBarEnabled·useAutoModeDuringPlan),
@@ -34,6 +37,15 @@ state 기반 키셋 in/out(`scripts/meta-bridge-state.py`, `pi-shell-acp.install
 pi-shell-acp `~/.claude/pi-shell-acp.install-state.json`의 `files.settings.keys`가
 "pi-shell-acp 소유 키"의 권위. agent-config 키셋 = 그 여집합. 새 키 추가 시 양쪽이
 같은 키를 잡지 않는지 이 state로 교차 확인.
+
+**[2026-06-06 결정] permissions.allow/deny → pi-shell-acp 단독 소유.** single-driver 도구
+제한은 ACP 백엔드와 동일한 pi의 근본 책임. 이전엔 양 repo가 같은 permissions 배열을
+소유하고 값이 우연히 같아 증상이 가려진 "조용한 시한폭탄"(한쪽이 항목 추가 시 다른 쪽
+setup이 옛 배열로 replace)이었다. agent-config가 permissions를 손에서 놓아 폭탄 제거.
+→ **원칙: pi-shell-acp의 install/uninstall/doctor가 안정화될 때까지 agent-config는 Claude
+settings에서 pi 영역을 일절 세팅하지 않는다. 우리가 세팅하는 건 스킬·커맨드 경로 + 순수
+agent-config 키(hooks/언어/개인취향)뿐.** pi 쪽 방어막(doctor keyset-survival 체크,
+check-keyset-overlap 진단)은 pi-shell-acp 트랙.
 
 ### 남은 follow-up (이번 범위 밖, 의도적 보류)
 

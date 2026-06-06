@@ -1,39 +1,4 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash",
-      "Read",
-      "Write",
-      "Edit",
-      "Grep",
-      "Glob",
-      "WebFetch",
-      "WebSearch",
-      "Skill",
-      "mcp__pi-tools-bridge__*"
-    ],
-    "deny": [
-      "Agent",
-      "AskUserQuestion",
-      "CronCreate",
-      "CronDelete",
-      "CronList",
-      "EnterPlanMode",
-      "ExitPlanMode",
-      "EnterWorktree",
-      "ExitWorktree",
-      "Monitor",
-      "NotebookEdit",
-      "PushNotification",
-      "TaskCreate",
-      "TaskGet",
-      "TaskList",
-      "TaskOutput",
-      "TaskStop",
-      "TaskUpdate"
-    ],
-    "defaultMode": "default"
-  },
   "hooks": {
     "SessionStart": [
       {
