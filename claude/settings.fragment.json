@@ -1,8 +1,4 @@
 {
-  "cleanupPeriodDays": 365,
-  "env": {
-    "DISABLE_AUTOCOMPACT": "1"
-  },
   "permissions": {
     "allow": [
       "Bash",
@@ -14,7 +10,6 @@
       "WebFetch",
       "WebSearch",
       "Skill",
-      "mcp__*",
       "mcp__pi-tools-bridge__*"
     ],
     "deny": [
@@ -166,10 +161,6 @@
       }
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": "/home/junghan/.claude/statusline.sh"
-  },
   "enabledPlugins": {
     "commit-commands@claude-plugins-official": false,
     "feature-dev@claude-plugins-official": false,
@@ -185,19 +176,10 @@
     "telegram@claude-plugins-official": false
   },
   "language": "Korean",
-  "promptSuggestionEnabled": false,
-  "awaySummaryEnabled": false,
-  "autoMemoryEnabled": false,
-  "skipDangerousModePermissionPrompt": true,
+  "effortLevel": "high",
   "editorMode": "normal",
-  "verbose": false,
   "preferredNotifChannel": "notifications_disabled",
-  "autoCompactEnabled": false,
-  "showTurnDuration": false,
-  "terminalProgressBarEnabled": false,
   "agentPushNotifEnabled": true,
-  "useAutoModeDuringPlan": false,
   "voiceEnabled": true,
-  "autoUpdates": true,
-  "effortLevel": "high"
+  "autoUpdates": true
 }

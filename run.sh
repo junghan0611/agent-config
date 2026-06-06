@@ -160,6 +160,39 @@ ensure_link() {
   ok "$(basename "$link") → $target"
 }
 
+# Merge a JSON keyset fragment into a destination settings file WITHOUT owning
+# the whole file. Used where another tool (pi-shell-acp meta-bridge) co-owns the
+# same file by a disjoint keyset: we inject only OUR keys, every other key — incl.
+# the co-owner's — survives. NEVER symlink such a file: a symlink = whole-file
+# ownership, and the next writer's atomic rename silently clobbers the other side.
+#   jq '.[0] * .[1]'  =  existing * fragment  →  fragment wins on overlap,
+#   objects merge recursively, arrays replace. So pi-shell-acp keys absent from
+#   the fragment (statusLine, B-lite scalars, enabledPlugins.entwurf-meta-receive,
+#   extraKnownMarketplaces) are preserved untouched. Idempotent.
+merge_settings() {
+  local fragment=$1 dest=$2
+  local existing='{}'
+  if [ -L "$dest" ]; then
+    # Legacy symlink from the old whole-file model — de-reference its content,
+    # then break the link so we write a real, co-ownable file.
+    existing=$(cat "$dest" 2>/dev/null || echo '{}')
+    rm "$dest"
+    log "$(basename "$dest"): broke legacy symlink → real file (keyset-merge model)"
+  elif [ -f "$dest" ]; then
+    existing=$(cat "$dest" 2>/dev/null || echo '{}')
+  fi
+  local merged
+  merged=$(jq -s '.[0] * .[1]' <(printf '%s' "$existing") "$fragment") || {
+    fail "$(basename "$dest"): jq merge failed — left unchanged"
+    return 1
+  }
+  local parent tmp
+  parent=$(dirname "$dest"); mkdir -p "$parent"
+  tmp="${dest}.tmp.$$"
+  printf '%s\n' "$merged" > "$tmp" && mv "$tmp" "$dest"
+  ok "$(basename "$dest") ← merged $(basename "$fragment") keyset (co-owner keys preserved)"
+}
+
 # Build Go binary — CGO_ENABLED=0, static, stripped
 go_build() {
   local src_dir=$1 output=$2
@@ -633,15 +666,18 @@ TGJSON
   mkdir -p "$HOME/.claude/hooks"
   # CLAUDE.md — Claude Code가 non-append 모드에서 읽는 진입점 (@AGENTS.md include)
   ensure_link "$SCRIPT_DIR/home/CLAUDE.md"              "$HOME/.claude/CLAUDE.md"
-  # 디바이스별 설정: 서버 디바이스는 hooks/소리 없는 server 버전 사용
+  # 디바이스별 settings.json 전략:
+  #   - 서버: pi-shell-acp meta-bridge 미설치 → 단일 owner → full 파일 심링크 (그대로)
+  #   - 워크스테이션: pi-shell-acp meta-bridge 공동 소유 → 심링크 금지.
+  #     agent-config 키셋만 merge-in 하고 pi-shell-acp 키(statusLine/B-lite/meta wiring)는 보존.
   local DEVICE
   DEVICE=$(cat "$HOME/.current-device" 2>/dev/null || echo "unknown")
-  local SETTINGS_FILE="$SCRIPT_DIR/claude/settings.json"
   if is_server_device; then
-    SETTINGS_FILE="$SCRIPT_DIR/claude/settings.server.json"
-    log "device=$DEVICE → server settings (no hooks/sound)"
+    log "device=$DEVICE → server settings (no hooks/sound, single-owner link)"
+    ensure_link "$SCRIPT_DIR/claude/settings.server.json" "$HOME/.claude/settings.json"
+  else
+    merge_settings "$SCRIPT_DIR/claude/settings.fragment.json" "$HOME/.claude/settings.json"
   fi
-  ensure_link "$SETTINGS_FILE"                          "$HOME/.claude/settings.json"
   ensure_link "$SCRIPT_DIR/claude/settings.local.json"  "$HOME/.claude/settings.local.json"
   ensure_link "$SCRIPT_DIR/claude/keybindings.json"     "$HOME/.claude/keybindings.json"
   ensure_link "$SCRIPT_DIR/claude/statusline.sh"        "$HOME/.claude/statusline.sh"
@@ -987,7 +1023,7 @@ setup_all() {
   echo "  Claude in pi (default): pi-shell-acp via ACP"
   echo "  Pi ext:   $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo 'not linked')"
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
-  echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null && echo ' + skills' || echo 'not linked')"
+  echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged (keyset, not linked)' || echo 'absent'; })"
   echo "  OpenCode: $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo 'not linked')"
   echo "  Codex:    $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo 'config not linked') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
   echo "  Gemini:   legacy $(readlink "$HOME/.gemini/settings.json" 2>/dev/null || echo 'config not linked') + $(readlink "$HOME/.gemini/skills" 2>/dev/null || echo 'skills not linked')"
@@ -1140,7 +1176,7 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Pi extension: $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo '❌ not linked')"
     echo "  Pi skills:    $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Pi theme:     $(cat "$HOME/.pi/agent/settings.json" 2>/dev/null | grep -oP '"defaultTheme":\s*"\K[^"]+' || echo 'default')"
-    echo "  Claude conf:  $(readlink "$HOME/.claude/settings.json" 2>/dev/null || echo '❌ not linked')"
+    echo "  Claude conf:  $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged keyset (real file, co-owned w/ pi-shell-acp)' || echo '❌ absent'; })"
     echo "  Claude skills:$(readlink "$HOME/.claude/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  OpenCode:     $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Codex conf:   $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo '❌ not linked')"

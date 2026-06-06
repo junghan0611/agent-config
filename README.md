@@ -107,7 +107,9 @@ Spec, verification harnesses, and the sync/async contract remain in [pi-shell-ac
 
 ### Claude Code as Native Pi Surface
 
-When pi-shell-acp isn't the path (operator chooses native Claude Code, or the 2026-06-15 Anthropic billing shift puts more sessions on direct Claude Code), `claude/settings.json` and `claude/settings.server.json` keep the native session as close to pi-shell-acp's ACP overlay as possible.
+When pi-shell-acp isn't the path (operator chooses native Claude Code, or the 2026-06-15 Anthropic billing shift puts more sessions on direct Claude Code), `claude/settings.fragment.json` (workstation) and `claude/settings.server.json` (server) keep the native session as close to pi-shell-acp's ACP overlay as possible.
+
+`~/.claude/settings.json` is **co-owned** with pi-shell-acp's meta-bridge installer (disjoint keysets). On workstations `setup` therefore **merges** the agent-config keyset (`settings.fragment.json`) into the live file instead of symlinking it — a symlink is whole-file ownership and the next writer's atomic rename would silently clobber the other side. agent-config owns hooks / permissions / language / 개인취향 toggles; pi-shell-acp owns `statusLine` / B-lite single-driver scalars / meta wiring (`enabledPlugins.entwurf-meta-receive`, `extraKnownMarketplaces`). Server devices have no meta-bridge, so they stay a single-owner symlink to `settings.server.json`.
 
 | Axis | pi-shell-acp overlay | agent-config Claude Code |
 |---|---|---|
@@ -185,7 +187,7 @@ cd agent-config
 - Build native CLI binaries (Go + GraalVM)
 - Symlink pi extensions, full skill set (including `semantic-memory`), themes, settings, keybindings, prompts
 - Install andenken as a pi package (compiled extension — exposes `session_search` / `knowledge_search` registerTool alongside the SKILL.md skill)
-- Symlink Claude Code / OpenCode / Codex / Gemini legacy / Antigravity surfaces (`~/.claude/settings.json`, `~/.codex/config.toml`, `~/.gemini/settings.json`, `~/.gemini/antigravity-cli/settings.json`, `~/.gemini/antigravity-cli/skills`, `~/.gemini/antigravity-cli/mcp_config.json`) plus skills and Claude Code commands
+- Symlink OpenCode / Codex / Gemini legacy / Antigravity surfaces (`~/.codex/config.toml`, `~/.gemini/settings.json`, `~/.gemini/antigravity-cli/settings.json`, `~/.gemini/antigravity-cli/skills`, `~/.gemini/antigravity-cli/mcp_config.json`) plus skills and Claude Code commands. `~/.claude/settings.json` is **merged** (keyset, not symlinked) on workstations — co-owned with pi-shell-acp meta-bridge; servers symlink `settings.server.json`
 - Symlink `~/.local/bin` PATH binaries
 - pnpm install for extensions and skills
 - Hand off pi-shell-acp validation (typecheck, MCP, dual-backend smoke, persisted-bootstrap continuity, cancel-cleanup) to pi-shell-acp's own `run.sh`
