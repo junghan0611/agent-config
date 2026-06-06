@@ -153,16 +153,16 @@ entwurf(cwd: "~/repos/gh/nixos-config", task: "...")
 → entwurf becomes nixos 담당자
 ```
 
-##### External MCP caller patterns — Asymmetric Mitsein
+##### External MCP caller patterns — Mitsein (garden-id)
 
-Use this rule when this agent is running inside an **external MCP host** (Claude Code, Codex, Gemini CLI) and can see `pi-tools-bridge` `entwurf_*` capabilities. Tool identifiers differ by host (`mcp__...`, `mcp_...`, dotted Codex names, etc.); reason from the capability, not the literal tool spelling. For the workflow frame, see the Asymmetric Mitsein section and the 2026-06-15 Anthropic billing note in the [pi-shell-acp README](https://github.com/junghan0611/pi-shell-acp#entwurf-orchestration).
+Use this rule when this agent runs inside an **external MCP host** (Claude Code, Codex, Gemini CLI, Antigravity) and can see `pi-tools-bridge` `entwurf_*` capabilities. Tool identifiers differ by host (`mcp__...`, `mcp_...`, dotted Codex names, etc.); reason from the capability, not the literal tool spelling. For the model frame, see the garden-id note below and the 2026-06-15 Anthropic billing note in the [pi-shell-acp README](https://github.com/junghan0611/pi-shell-acp#entwurf-orchestration).
 
-**Identity awareness:** an external MCP host is not a pi session. It normally has no `PI_SESSION_ID`. Therefore `entwurf_self` is expected to fail and should not be called unless the user is explicitly testing that negative path. `entwurf_send` is valid from outside pi, but it sends as an external, non-replyable sender (`origin="external-mcp"`, `replyable=false`). A pi-shell-acp ACP-backed session is different: its MCP child receives `PI_SESSION_ID` + `PI_AGENT_ID`, so it is a replyable pi-session caller even though the callable tool names are MCP-shaped.
+**Identity awareness — everyone is a garden citizen.** The meta-bridge `SessionStart` hook makes *every* native session — pi, ACP, Claude Code, Codex, Gemini, Antigravity — a garden citizen: a meta-record + mailbox keyed by a **garden id** (`YYYYMMDDTHHMMSS-xxxxxx`). **The garden id is the universal address; no backend is privileged** — pi 일 필요도, acp 일 필요도 없다. Your garden id shows in your statusline (`🪛 <garden-id>`) and the meta-sessions store; `entwurf_self` returns it as your identity envelope.
 
 **Default tool behavior unless the user says otherwise:**
-- `entwurf_send`: use `mode="follow_up"` and `wants_reply=false`. Do not set `wants_reply=true` from an external host; there is no replyable pi session address and the tool will reject it.
+- `entwurf_send`: address peers by **garden id** (or a live pi uuid), and you receive at your own garden-id mailbox — a peer sends back to your garden id, a doorbell wakes you, you drain it with `entwurf_inbox_read` (which stamps the read-receipt). The round-trip runs host-to-host with nothing but garden ids. `wants_reply=true` is a conversation-etiquette badge.
 - `entwurf`: use the registry defaults when provider/model are omitted. MCP `entwurf` spawn is sync-only; use pi-native `entwurf(mode="async")` for long spawn work when inside a pi session.
-- `entwurf_resume`: use the tool default unless the user needs inline output. Since pi-shell-acp 0.7.6, replyable pi-session callers default to async followUp delivery; external non-replyable MCP hosts default to sync, and explicit `mode="async"` from them is rejected. Pass `mode="sync"` explicitly for short verification turns where the operator needs the result inline.
+- `entwurf_resume`: use the tool default unless the user needs inline output. Async followUp delivery rides the garden-id mailbox (a woken citizen receives the completion through its own doorbell + `entwurf_inbox_read`, the same path as any message). Pass `mode="sync"` explicitly for short verification turns where the operator needs the result inline.
 
 **Natural-language mapping — minimize clarification:**
 - "Can you send this to session X?" / "Send this to X" → call `entwurf_send` immediately. If the message body is not explicit, summarize the immediately preceding context and send that.
