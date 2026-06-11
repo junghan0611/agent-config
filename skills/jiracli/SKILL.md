@@ -198,6 +198,64 @@ source ~/.env.local && python3 \
 - `pandoc`이 모르는 Confluence macro는 cleanup 정규식으로 메타데이터만 떨군
   뒤 변환. 일부 macro 본문은 plain text로 남거나 누락될 수 있음.
 
+## Confluence 페이지 생성/갱신/삭제 (publish)
+
+`scripts/confluence_publish.py` — `confluence_ingest.py`(읽기)의 **쓰기 짝**.
+`jira` CLI와 ingest는 읽기만 되므로 페이지 **생성**은 REST v2 write 엔드포인트가
+필요하다. 이 스크립트가 그걸 감싼다 — **클로드코드 빌트인 플러그인 불필요**
+(stdlib only, urllib + base64 + optional pandoc). 인증은 ingest와 동일
+(`JIRA_API_TOKEN` + `~/.config/.jira/.config.yml` `login:`).
+
+### 본문 포맷
+- Confluence **storage XHTML**. `--body-file`로 storage HTML 직접 전달이 가장 정확.
+- `--md` 주면 markdown을 pandoc(gfm→html)으로 변환(YAML front matter·`{#anchor}` 자동 제거).
+  단 status lozenge·info panel은 markdown으로 표현 불가 → storage 매크로 직접:
+  - status: `<ac:structured-macro ac:name="status"><ac:parameter ac:name="colour">Green</ac:parameter><ac:parameter ac:name="title">완료</ac:parameter></ac:structured-macro>` (colour: Grey/Green/Yellow/Red/Blue)
+  - panel:  `<ac:structured-macro ac:name="info"><ac:rich-text-body><p>…</p></ac:rich-text-body></ac:structured-macro>`
+- 타임라인 등 표는 Confluence **네이티브 `<table>`**. Mermaid·Roadmap Planner 매크로는
+  스페이스 미설치/REST 거부라 쓰지 않는다.
+
+### 사용법
+
+```bash
+# 생성 — 폴더(parentId) 아래, 스페이스는 key로
+source ~/.env.local && python3 \
+  ~/repos/gh/agent-config/skills/jiracli/scripts/confluence_publish.py \
+  --space-key CK7cJZ8jrCka --parent-id 264503298 \
+  --title "[사내] 프로젝트 X 현황" --body-file page.storage.html --json
+
+# markdown 본문 자동 변환
+… --title "…" --body-file page.md --md
+
+# 갱신 (version 자동 +1)
+… --page-id 264339520 --title "…" --body-file page.storage.html --message "타임라인 갱신"
+
+# 삭제 (휴지통) / 영구삭제
+… --page-id <ID> --delete            # trash
+… --page-id <ID> --delete --purge    # 완전 제거
+```
+
+| 옵션 | 설명 |
+|------|------|
+| `--title` | 페이지 제목 (생성/갱신 필수) |
+| `--body-file` / `--body-html` | 본문 (storage HTML, 또는 `--md`와 함께 markdown) |
+| `--md` | 본문을 markdown으로 보고 pandoc 변환 |
+| `--space-key` / `--space-id` | 스페이스 (key는 자동으로 id 조회) |
+| `--parent-id` | 부모 페이지/폴더 id (그 아래 생성) |
+| `--page-id` | 기존 페이지 id → **갱신** 모드 |
+| `--delete` / `--purge` | 삭제 / 영구삭제 (v1 API — v2 delete는 500 떨어짐) |
+| `--message` | 버전 메시지 (갱신) |
+| `--json` / `--dry-run` | JSON 출력 / API 호출 없이 payload만 |
+
+### 동작/검증
+- 생성·갱신 후 page id를 GET해 `parentType`/`parentId`/`version`을 함께 출력.
+- 폴더 아래 생성 검증: 출력 `parentType: folder` 확인 (폴더 ID 자체는 page가 아니라 GET 시 404가 정상).
+- **삭제는 v1 `/wiki/rest/api/content/{id}`** 사용 — v2 page delete는 이 사이트에서 HTTP 500.
+
+### 주의
+- 게시 = **회사 위키 공개**. 되돌리기 쉽지 않으니 본문 확정 후 올린다(smoke는 throwaway 생성→`--delete --purge`).
+- 토큰·이메일이 환경에 있으므로 게시 스크립트 래퍼는 gitignore 영역(`tmp/` 등)에 둔다.
+
 ## 주의사항
 
 1. **MAT 보드는 kanban** — 스프린트 명령은 scrum 보드에서만 동작
