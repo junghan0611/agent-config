@@ -21,34 +21,42 @@ Agent default: use explicit `--dir ~/org/resources`.
 ## 2) zotero-config companion workflow (writes to Zotero)
 
 Use this path when the note has a source URL but no citation key yet.
+**Preferred: one shot with `save --sync --json`** — it saves, runs `bib sync`,
+and returns the resolved `citationKey` deterministically. No title-grepping.
 
-| Step | Command | Why |
-|---|---|---|
-| Check server | `cd ~/repos/gh/zotero-config && ./run.sh server status` | Reuse Translation Server if already running |
-| Start server | `cd ~/repos/gh/zotero-config && ./run.sh server start` | Starts `http://localhost:1969` |
-| Save URL | `cd ~/repos/gh/zotero-config && ./run.sh save "https://example.com/article"` | Extract metadata and upload to Zotero Cloud |
-| Sync BibTeX | `cd ~/repos/gh/zotero-config && ./run.sh bib sync` | Refresh `output/*.bib` and copy to `~/org/resources/` |
-| Recover citation key | `{baseDir}/bibcli search "distinctive title author words" --dir ~/org/resources --max 5` | Find the newly saved entry; add `--type Online|Article|Book` only when confident |
-| Verify details | `{baseDir}/bibcli show "citation-key" --dir ~/org/resources` | Confirm title/url, then use the key in `#+reference:` |
+```bash
+cd ~/repos/gh/zotero-config
+./run.sh server status || ./run.sh server start
+./run.sh save --sync --json "https://example.com/article"
+# => { saved:[...], resolved:[{zoteroKey, citationKey, title, url, ...}] }
+```
+
+Take `resolved[].citationKey` and drop it straight into the note. Optionally
+verify: `{baseDir}/bibcli show "citation-key" --dir ~/org/resources`.
+
+### Fallback (when `--sync --json` is unavailable)
+
+| Step | Command |
+|---|---|
+| Save URL | `cd ~/repos/gh/zotero-config && ./run.sh save "https://example.com/article"` |
+| Sync BibTeX | `cd ~/repos/gh/zotero-config && ./run.sh bib sync` |
+| Recover key | `{baseDir}/bibcli search "distinctive title author words" --dir ~/org/resources --max 5` |
+| Verify | `{baseDir}/bibcli show "citation-key" --dir ~/org/resources` |
 
 ## Decision rule
 
 - Have citation key → `show`
 - Need an existing local source → `search`
-- Only have URL and the source should enter Zotero → run the companion workflow first
-- Do not leave `#+print_bibliography:` orphaned when `save` + `bib sync` can fix it
+- Only have URL and the source should enter Zotero → `save --sync --json`, then use `resolved[].citationKey`
+- Do not leave `#+print_bibliography:` orphaned when one `save --sync --json` can fix it
 
 ## Practical bib-note pattern
 
 ```bash
-URL="https://example.com/article"
 cd ~/repos/gh/zotero-config
 ./run.sh server status || ./run.sh server start
-./run.sh save "$URL"
-./run.sh bib sync
-
-{baseDir}/bibcli search "author topic words" --dir ~/org/resources --max 5
-{baseDir}/bibcli show "citation-key" --dir ~/org/resources
+./run.sh save --sync --json "https://example.com/article"
+# read resolved[].citationKey from the JSON output
 ```
 
 Then add:
@@ -61,7 +69,7 @@ Then add:
 ## Important notes
 
 - `save` mutates Zotero Cloud. Use it only when the source belongs in the library.
-- `save` returns Zotero item keys, not citation keys. Recover the citation key after `bib sync`.
+- Plain `save` returns Zotero item keys, not citation keys — prefer `save --sync --json`, which resolves the citation key for you.
 - `bibcli search` does **not** currently match raw `url`; search by title / author / keywords after sync.
 - `lookup` helps book / ISBN workflows, but writes nothing to Zotero.
 - If `server start` fails, expected repo: `~/repos/3rd/translation-server`.

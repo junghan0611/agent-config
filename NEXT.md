@@ -3,6 +3,36 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
+## [2026-06-11] 도구-내장 스킬을 owning repo로 환원 (구조 결함)
+
+**문제:** `bibcli` 스킬이 잘못된 곳에 산다. 소스(`zotero-config/bibcli/*.go`)와
+스킬 런타임(`agent-config/skills/bibcli/{SKILL.md,bibcli}`)이 갈라져 있고,
+`~/.local/bin/bibcli`·`~/.claude/skills`가 전부 agent-config를 가리킨다. 개발 repo에서
+스킬을 소비하려면 거리가 멀어 **문서 동기화가 느리고**(SKILL.md가 zotero-config 워크플로
+변화를 늦게 반영 — 예: `save --sync --json` 한방 경로가 한참 문서에 안 들어가 있었음),
+openclaw 6개 사본까지 드리프트한다.
+
+**목표 구조 (voscli 패턴):** 도구를 품은 repo가 스킬도 품는다.
+```
+<repo>/.claude/skills/<name>/SKILL.md   # + 바이너리 동거
+<repo>/.pi/settings.json                # {"skills": ["../.claude/skills"]}  → pi 인식
+```
+예: `~/repos/work/voscli/.claude/skills/voscli/SKILL.md` (+ `.pi/settings.json`).
+개발하는 에이전트가 **그 repo 안에서 바로 소비**한다.
+
+**bibcli 이주 시 닫아야 할 plumbing (단독 rm 금지 — 연결점 많음):**
+- `~/.claude/skills` → `agent-config/skills` 통째 심링크: bibcli만 빼면 Claude Code가
+  못 보게 됨. project-scoped 소비로 전환하거나 심링크 전략 재설계 필요.
+- `~/.local/bin/bibcli` → `agent-config/skills/bibcli/bibcli` 심링크 재지정.
+- `./run.sh build`가 바이너리를 떨구는 목적지(agent-config) → zotero-config 내부로.
+- openclaw-config 6개 사본(gpt/gemini/bbot/glg/claude-skills/workspace) 배포 경로 갱신.
+- nixos-config home-manager가 위 심링크를 만드는지 확인.
+
+**범위:** agent-config에서 도구-내장 스킬(bibcli 외에도 incidentcli는 이미 work repo
+심링크 패턴)을 식별 → owning repo로 환원하는 일반 정책. 이번 세션엔 zotero-config
+README/AGENTS.md/SKILL.md 내용만 바로잡았고(= save --sync --json 전면화, beads 제거),
+**구조 이주는 이 NEXT 항목으로 보류**.
+
 ## [2026-06-06] claude/settings.json — 키셋-owner merge 전환 (워크스테이션 경로 LANDED)
 
 **불변식: 워크스테이션에서 `~/.claude/settings.json`을 심링크하지 않는다.**
