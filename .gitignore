@@ -41,3 +41,6 @@ home/PRIVATE.md
 __pycache__/
 *.pyc
 /.agent-shell/
+
+skills/incidentcli
+skills/voscli
