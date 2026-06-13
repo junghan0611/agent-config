@@ -177,27 +177,33 @@ Use this rule when this agent runs inside an **external MCP host** (Claude Code,
 
 ### Session End Protocol — NEXT.md
 
-각 작업 repo에 `NEXT.md`를 두고 세션 종료 시 다음에 할 일을 남긴다.
-"종료할 때 다음에 뭐할지 알면 뭐든 할 수 있다" — 진행 정체를 막는 닻.
+If you know the next step when you stop, you can keep moving — NEXT is the anchor against drift.
 
-| | |
+Keep a small handoff file in each active work repo.
+
+| File | Role |
 |---|---|
-| **AGENTS.md** | 영속 baseline. 이 repo가 무엇인지, 어떻게 다뤄야 하는지 |
-| **NEXT.md**   | 휘발성 후속. 지금 시점에 알고 있는 다음 한 걸음 (지워질 항목) |
+| `AGENTS.md` | Persistent repo baseline: identity, invariants, working rules. |
+| `NEXT.md` | Main-lane handoff: disposable next actions for the current repo. |
+| `NEXT--<branch>.md` | Branch-lane handoff: disposable next actions for one non-main branch. |
 
-**작업 종료 시 의무**:
-1. 해결된 항목 제거, 새로 발견한 후속 추가
-2. 결정 / 근거 / 날짜는 본문에 남김 — 그래도 지워질 항목임을 잊지 말 것
-3. 영속할 사실은 AGENTS.md / docs/ / commit history 로 옮김
-4. 급한 일이 들어와 본궤도에서 벗어났다면, 끝나고 NEXT.md 다시 읽고 복귀
+Use branch-lane NEXT files for parallel branch work:
 
-**기존 사례**: `pi-shell-acp/NEXT.md`, `nixos-config/NEXT.md`,
-`andenken/NEXT.md`, `doomemacs-config/NEXT.md`. NEXT.md가 없는 repo라면
-세션 끝낼 때 만들 만큼 작업 패턴이 누적된 시점이다.
+```bash
+f="NEXT--$(git branch --show-current | tr '/' '_').md"
+```
 
-추가 컨텍스트 복원은 다축 `/recall` — `/recall`은 "어제·오늘 전체 기억축
-복원", NEXT.md는 "다음에 뭐하지". 두 축이 같이 있을 때 세션 시작이 자연스럽다.
-(이전 이름 `/recap`은 Claude Code 내장과 충돌해 2026-05-12 rename.)
+Examples: `main` → `NEXT.md`; `verify/x` → `NEXT--verify_x.md`.
+
+End-of-session loop:
+
+1. Update the relevant NEXT file: remove done items, add the next concrete move.
+2. Keep temporary decisions/reasons/dates there; promote durable facts to `AGENTS.md`, `docs/`, `CHANGELOG.md`, or commit history.
+3. After a detour, reread the relevant NEXT file before returning to work.
+
+Branch close rule: delete `NEXT--<branch>.md` before merging to main, after promoting any durable outcome. Main should not carry branch-lane NEXT files.
+
+Context restoration has two axes: `/recall` restores recent memory; NEXT files name the next move.
 
 ### Information Management (3 Layers)
 
