@@ -14,7 +14,6 @@
       "WebFetch",
       "WebSearch",
       "Skill",
-      "mcp__*",
       "mcp__pi-tools-bridge__*"
     ],
     "deny": [
@@ -81,11 +80,21 @@
     "claude-code-setup@claude-plugins-official": false,
     "gopls-lsp@claude-plugins-official": false,
     "atlassian@claude-plugins-official": false,
-    "telegram@claude-plugins-official": false
+    "telegram@claude-plugins-official": false,
+    "entwurf-meta-receive@meta-bridge-local": true
+  },
+  "extraKnownMarketplaces": {
+    "meta-bridge-local": {
+      "source": {
+        "source": "directory",
+        "path": "/home/junghan/repos/gh/pi-shell-acp/pi/meta-bridge/.assembled"
+      }
+    }
   },
   "language": "Korean",
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
+  "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "editorMode": "normal",
   "verbose": false,
@@ -95,7 +104,6 @@
   "terminalProgressBarEnabled": false,
   "agentPushNotifEnabled": true,
   "useAutoModeDuringPlan": false,
-  "autoMemoryEnabled": false,
   "voiceEnabled": false,
   "autoUpdates": true
 }
