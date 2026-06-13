@@ -1,14 +1,14 @@
 /**
  * 자정 넘기지 마세요 확장 (go-to-bed)
  *
- * 야간 시간(00:00-05:59)에 에이전트 사용을 부드럽게 제한합니다.
+ * 야간 시간(00:00-04:59)에 에이전트 사용을 부드럽게 제한합니다.
  * 원본: agent-stuff/pi-extensions/go-to-bed.ts (한글화 + 시간대 조정)
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 const QUIET_HOURS_START = 0;
-const QUIET_HOURS_END = 6;
+const QUIET_HOURS_END = 5;
 
 const CONFIRM_PHRASE = "confirm-that-we-continue-after-midnight";
 const CONFIRM_COMMAND = `echo ${CONFIRM_PHRASE}`;
