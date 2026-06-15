@@ -68,7 +68,9 @@ Principles:
 - Anchor the stem to a **deadline or delivery gate** when one exists.
 - Classify every detour by **stem impact**: blocks delivery / external dependency / quality improvement / record-only.
 - Every active detour needs a **return condition**: what closes it and sends work back to the stem.
+- A **blocks-delivery** detour still aims at a *ship-able state* (repro + scope + mitigation + known issue), not root-cause perfection.
 - Detours do not become the stem unless GLG explicitly re-declares the stem.
+- A **record-only** detour carries no next-action, owner, or checkbox; re-entry requires re-judging stem impact first.
 - Keep one current `NOW`; move old NOW snapshots to RECENT/LEDGER.
 
 Minimal shape:
