@@ -60,40 +60,26 @@ Use when one repo has one main workstream.
 
 ### Stem + detour mode
 
-Use when one repo has an existential delivery track, but unavoidable detours keep appearing.
+Use when one repo has one existential delivery track, but unavoidable detours keep appearing.
 This is still a single-repo NEXT shape; it adds a **return line** so the agent does not lose the stem.
 
-Examples from live repos:
-- A vendor SDK handoff repo: stem = current-month SDK handoff. A platform robustness issue is a detour only when it is an **handoff quality blocker**; platform-side work is otherwise record-only.
-- A bridge infra repo: stem was a LIVE matrix. Side-effect detours were valid only while they blocked/guarded that matrix. After the matrix closed, the top NOW must be rewritten to the new stem (`release 컷 준비`) and the old detour NOW must move down to RECENT/LEDGER.
+Principles:
+- Name the **stem**: the repo's reason for existing right now.
+- Anchor the stem to a **deadline or delivery gate** when one exists.
+- Classify every detour by **stem impact**: blocks delivery / external dependency / quality improvement / record-only.
+- Every active detour needs a **return condition**: what closes it and sends work back to the stem.
+- Detours do not become the stem unless GLG explicitly re-declares the stem.
+- Keep one current `NOW`; move old NOW snapshots to RECENT/LEDGER.
 
-Rules:
-- Stem is the repo's reason for existing **right now**.
-- A detour may be urgent, but it does not become the stem unless GLG explicitly re-declares it.
-- Every detour needs a `why` tied to the stem and a `return` condition.
-- If a detour no longer affects the stem, move it to RECENT/LEDGER or a linked issue/doc.
-- Do not keep multiple competing `NOW` blocks; keep one current NOW, move old NOW snapshots down.
+Minimal shape:
 
 ```markdown
-# NOW — <repo/project current stem>
-- Stem: <this month / release / delivery reason>
-- Current: <where the stem stands>
-- Next: (1) <detour close or stem step> → (2) <verify> → (3) <return/decide>
-- Detour: <none / D-1 name and why it blocks the stem>
-- Return: <exact condition for going back to the stem>
-- Blocker: <permission / environment / none>
-- Read: <doc/path/heading>
-- Do not touch: <guardrail>
-
-# DETOURS
-- [ ] D-1 <name> — why: <stem impact> / return: <closed when...>
-- [x] D-0 <closed> — result: <evidence/commit/date>
-
-# RECENT
-- [YYYY-MM-DD] <stem-affecting closed fact only>
-
-# LEDGER
-<old rationale/evidence, preferably linked out>
+# NOW — <current stem>
+- Stem: <delivery/release reason>
+- Next: <one move>
+- Detour: <none / active detour + stem impact>
+- Return: <condition for returning to stem>
+- Blocker: <none / permission / environment>
 ```
 
 ### Meta repo: NOW / ACTIVE / DORMANT
