@@ -3,6 +3,12 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
+## [2026-06-15] next-handoff skill 도입 — NEXT 습관을 tag-release와 분리
+
+**완료:** `skills/next-handoff/SKILL.md` 추가. 목적은 세션 종료/중단 때 `NEXT.md`를 부트 섹터로 조이는 습관용 호출면이다. `tag-release`는 CHANGELOG/tag 의식으로 분리하고, 명시 요청 때만 읽도록 경계 박음. 2026-06-15 실제 사례(bridge infra / vendor SDK handoff)를 반영해 `Stem + detour mode`도 추가 — 줄기(stem)·detour·return condition을 명시해 detour가 줄기를 대체하지 않게 함.
+
+**다음:** 다음 agent-config 작업 때 skill discovery/배포 표면(pi/Claude/OpenClaw symlink)에서 `next-handoff`가 보이는지 확인하고, 필요하면 README/AGENTS 빠른 시작에 한 줄 포인터만 추가한다.
+
 ## [2026-06-11] 도구-내장 스킬을 owning repo로 환원 (구조 결함)
 
 **문제:** `bibcli` 스킬이 잘못된 곳에 산다. 소스(`zotero-config/bibcli/*.go`)와
