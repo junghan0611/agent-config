@@ -8,7 +8,7 @@
   "theme": "glg-dark",
   "packages": [
     "../../repos/gh/andenken",
-    "git:github.com/junghan0611/pi-shell-acp",
+    "../../repos/gh/pi-shell-acp",
     "git:github.com/badlogic/pi-telegram"
   ],
   "piShellAcpProvider": {
@@ -19,7 +19,7 @@
     ],
     "mcpServers": {
       "pi-tools-bridge": {
-        "command": "/home/junghan/.pi/agent/git/github.com/junghan0611/pi-shell-acp/mcp/pi-tools-bridge/start.sh"
+        "command": "/home/junghan/repos/gh/pi-shell-acp/mcp/pi-tools-bridge/start.sh"
       }
     }
   },
