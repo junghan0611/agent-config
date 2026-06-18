@@ -91,7 +91,9 @@ def plane_req(method, endpoint, data=None):
     url = f"{PLANE_BASE}/api/v1{endpoint}"
     body = json.dumps(data).encode() if data else None
     req = Request(url, data=body, method=method, headers={
-        "X-API-Key": PLANE_KEY, "Content-Type": "application/json"})
+        "X-API-Key": PLANE_KEY, "Content-Type": "application/json",
+        # Cloudflare(error 1010) bans the default Python-urllib UA.
+        "User-Agent": "plane-skill/1.0"})
     try:
         with urlopen(req, timeout=60) as r:
             return None if r.status == 204 else json.loads(r.read().decode())

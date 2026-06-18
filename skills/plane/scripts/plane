@@ -148,6 +148,9 @@ def api(method: str, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Op
     headers = {
         "X-API-Key": API_KEY,
         "Content-Type": "application/json",
+        # Cloudflare(error 1010) bans the default "Python-urllib/X" UA.
+        # Send an honest identifying UA so CF-fronted hosts pass.
+        "User-Agent": "plane-skill/1.0",
     }
 
     body = json.dumps(data).encode() if data else None

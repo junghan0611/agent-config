@@ -65,8 +65,8 @@ source ~/.env.local
 # 코멘트 / 상태 / 라벨
 "$PLANE" comments list --project <PROJ_UUID> --issue <ISSUE_UUID>
 "$PLANE" comments add  --project <PROJ_UUID> --issue <ISSUE_UUID> --text "코멘트"
-"$PLANE" states list   --project <PROJ_UUID>
-"$PLANE" labels list   --project <PROJ_UUID>
+"$PLANE" states   --project <PROJ_UUID>   # flat 커맨드(하위 list 없음)
+"$PLANE" labels   --project <PROJ_UUID>   # flat 커맨드(하위 list 없음)
 ```
 
 `--format json` 으로 모든 출력 JSON 전환(스크립팅용). 기본은 컬러 테이블.
@@ -94,9 +94,9 @@ source ~/.env.local && jira issue view PROJ-123 --raw  # 단건 상세(코멘트
 | Jira | Plane | 비고 |
 |------|-------|------|
 | issue | work item | `name`=summary, `description_html`=description |
-| status | state | 프로젝트 state로 사전 매핑(`states list`로 ID 확보) |
+| status | state | 프로젝트 state로 사전 매핑(`states`로 ID 확보) |
 | priority | priority | Highest/High→urgent/high, Medium→medium, Low/Lowest→low |
-| labels | labels | `labels list`로 ID 매핑(없으면 생성) |
+| labels | labels | `labels`로 ID 매핑(없으면 생성) |
 | comments | comments | 작성자·시각은 본문에 prefix(API가 작성자 위조 불가) |
 | sprint | cycle | start/end date 보존 |
 | component | module | — |
