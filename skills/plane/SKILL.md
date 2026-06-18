@@ -71,6 +71,44 @@ source ~/.env.local
 
 `--format json` 으로 모든 출력 JSON 전환(스크립팅용). 기본은 컬러 테이블.
 
+## Confluence → Markdown 트리 (`confluence_to_md.py`)
+
+Confluence 문서는 **Plane Pages(HTML/블록)가 아니라 순수 `.md` 파일 트리**로 끌어내린다.
+Plane Pages도 결국 `description_html` + collab binary 저장이라 "활용 가능한 포맷"이 아니다.
+**문서 SSOT = git 관리 md 트리.** Plane Pages 는 선택적 렌더 타겟일 뿐.
+
+```bash
+PY="$HOME/.claude/skills/plane/scripts/confluence_to_md.py"
+source ~/.env.local   # JIRA_HOST / JIRA_USER_EMAIL / JIRA_API_TOKEN
+
+# 스페이스 전체 (dry-run: 트리/카운트만)
+"$PY" --space QA --out ~/repos/gh/memex-kb/docs/confluence
+# 실제 추출
+"$PY" --space QA --out <DIR> --apply
+# 단일 페이지 + 하위 트리
+"$PY" --page-id 426033 --out <DIR> --apply
+```
+
+설계 (선행 자산 통합): `jiracli/confluence_ingest.py`(REST+front matter) +
+`memex-kb/confluence_to_markdown.py`(cleanup + NFC) 를 흡수.
+- 소스 포맷 **`body-format=export_view`** — 매크로/코드/이미지가 이미 렌더된 정적 HTML.
+- pandoc `-t markdown`(**grid table** — `-t gfm` 은 colspan 표를 raw HTML 로 떨굼).
+- **한글**: export_view 는 소스부터 NFC라 pandoc 3.x 가 안 깨뜨림(실측). 그래도 마지막에
+  `unicodedata.normalize('NFC')` 안전망(NFD 페이지 자동 교정). *박살이 관측되면 pandoc 폐기.*
+- ancestors → 디렉토리 미러링, 첨부/이미지 → `_assets/<pageid>/` 다운로드 + 상대경로 치환.
+- front matter 에 `source_version` → **멱등**(버전 동일하면 skip).
+
+### 문서에서 못 옮기는 것 (실측 경계)
+
+| 요소 | 결과 |
+|------|------|
+| 제목/본문/헤딩/리스트/링크 | ✅ 깔끔한 md |
+| 표 | ✅ grid table (`+---+`) — colspan 포함 |
+| 이미지/첨부 | ✅ 다운로드 + 상대경로 |
+| 한글 | ✅ NFC 보존 |
+| Confluence 매크로(jira/include/toc/drawio) | ⚠️ export_view 시점 정적 렌더로 흡수(동적기능 상실) |
+| inline comment / page restrictions / 버전 본문 | ❌ 유실(`source_version` 메타만) |
+
 ## Jira / Confluence → Plane 이관
 
 데이터 동제권 경로: **Jira(클라우드) → 중립 포맷 → Plane(셀프호스트)**, 단방향·read-only 연습.
