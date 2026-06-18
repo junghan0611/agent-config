@@ -1,0 +1,829 @@
+#!/usr/bin/env python3
+"""
+Plane CLI — Zero-dependency Python wrapper for the Plane.so REST API.
+
+Manage projects, work items, cycles, modules, comments, and members
+from the command line or through AI agent integrations.
+
+Vendored from JinkoLLC/plane-skill (MIT). Self-host friendly:
+set PLANE_BASE_URL to your instance (e.g. http://localhost:3388).
+Credentials live in ~/.env.local — `source ~/.env.local` before use.
+
+Requirements:
+  - Python 3.8+
+  - PLANE_API_KEY environment variable
+  - PLANE_WORKSPACE environment variable (workspace slug)
+  - PLANE_BASE_URL (self-host; defaults to https://api.plane.so)
+
+No pip installs needed — stdlib only.
+"""
+
+import os
+import sys
+import json
+import argparse
+from html import escape as html_escape
+from typing import Optional, List, Tuple, Dict, Any
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+
+# ---------------------------------------------------------------------------
+# Configuration — all from environment variables
+# ---------------------------------------------------------------------------
+
+API_KEY = os.environ.get("PLANE_API_KEY")
+WORKSPACE = os.environ.get("PLANE_WORKSPACE")
+BASE_URL = os.environ.get("PLANE_BASE_URL", "https://api.plane.so")
+
+# ---------------------------------------------------------------------------
+# Color helpers — degrade gracefully when not a TTY
+# ---------------------------------------------------------------------------
+
+_COLOR_ENABLED = (
+    sys.stdout.isatty()
+    and os.environ.get("NO_COLOR") is None
+    and os.environ.get("TERM") != "dumb"
+)
+
+
+def _c(code: str, text: str) -> str:
+    """Wrap *text* in ANSI escape *code* if color is enabled."""
+    if _COLOR_ENABLED:
+        return f"\033[{code}m{text}\033[0m"
+    return text
+
+
+def dim(text: str) -> str:
+    return _c("2", text)
+
+
+def bold(text: str) -> str:
+    return _c("1", text)
+
+
+def red(text: str) -> str:
+    return _c("31", text)
+
+
+def green(text: str) -> str:
+    return _c("32", text)
+
+
+def yellow(text: str) -> str:
+    return _c("33", text)
+
+
+def cyan(text: str) -> str:
+    return _c("36", text)
+
+
+# ---------------------------------------------------------------------------
+# API layer
+# ---------------------------------------------------------------------------
+
+def _check_env():
+    """Validate required environment variables and exit with helpful messages."""
+    if not API_KEY:
+        print(red("Error: PLANE_API_KEY is not set."), file=sys.stderr)
+        print(
+            "\nTo get an API key:\n"
+            "  1. Open Plane → Profile Settings → Personal Access Tokens\n"
+            "  2. Create a new token and copy it\n"
+            "  3. Export it:  export PLANE_API_KEY=\"your-token\"\n",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if not WORKSPACE:
+        print(red("Error: PLANE_WORKSPACE is not set."), file=sys.stderr)
+        print(
+            "\nSet it to your workspace slug (the part after plane.so/):\n"
+            "  export PLANE_WORKSPACE=\"my-workspace\"\n",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
+def _validate_id(value: str, name: str = "ID") -> str:
+    """
+    Validate that an ID doesn't contain path-injection characters.
+    
+    Args:
+        value: The ID string to validate.
+        name:  Human-readable name for error messages.
+    
+    Returns:
+        The validated ID.
+    
+    Raises:
+        SystemExit if validation fails.
+    """
+    if "/" in value or "\\" in value or ".." in value:
+        print(red(f"Invalid {name}: contains illegal characters"), file=sys.stderr)
+        sys.exit(1)
+    return value
+
+
+def api(method: str, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Optional[Any]:
+    """
+    Make an authenticated request to the Plane API.
+
+    Args:
+        method:   HTTP method (GET, POST, PATCH, DELETE).
+        endpoint: API path starting with / (e.g., /users/me/).
+        data:     Optional JSON body for POST/PATCH.
+
+    Returns:
+        Parsed JSON response, or None for 204 No Content.
+    """
+    _check_env()
+
+    url = f"{BASE_URL}/api/v1{endpoint}"
+    
+    # Defense-in-depth: ensure we only make HTTP(S) requests (Semgrep audit)
+    if not url.startswith(("http://", "https://")):
+        print(red(f"Invalid URL scheme: {url}"), file=sys.stderr)
+        sys.exit(1)
+    
+    headers = {
+        "X-API-Key": API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    body = json.dumps(data).encode() if data else None
+    req = Request(url, data=body, headers=headers, method=method)
+
+    try:
+        with urlopen(req, timeout=30) as resp:
+            if resp.status == 204:
+                return None
+            return json.loads(resp.read().decode())
+    except HTTPError as e:
+        error_body = e.read().decode() if e.fp else str(e)
+        try:
+            error_json = json.loads(error_body)
+            error_body = json.dumps(error_json, indent=2)
+        except (json.JSONDecodeError, ValueError):
+            pass
+        print(red(f"API Error {e.code}:") + f" {error_body}", file=sys.stderr)
+        sys.exit(1)
+    except URLError as e:
+        print(red(f"Connection error: {e.reason}"), file=sys.stderr)
+        sys.exit(1)
+    except TimeoutError:
+        print(red("Request timed out (30s). The Plane API may be unreachable."), file=sys.stderr)
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
+# Output formatting
+# ---------------------------------------------------------------------------
+
+def _truncate(text: str, width: int) -> str:
+    """Truncate *text* to *width* chars, adding ellipsis if needed."""
+    if len(text) <= width:
+        return text
+    return text[: width - 1] + "…"
+
+
+def _resolve(val):
+    """Pull a human-readable value out of nested dicts."""
+    if isinstance(val, dict):
+        return val.get("name", val.get("display_name", val.get("id", str(val))))
+    if val is None:
+        return "—"
+    return str(val)
+
+
+# Priority number → label mapping
+_PRIORITY_LABELS = {0: "none", 1: "urgent", 2: "high", 3: "medium", 4: "low"}
+_PRIORITY_COLORS = {
+    "urgent": lambda t: _c("1;31", t),  # bold red
+    "high": lambda t: _c("31", t),       # red
+    "medium": lambda t: _c("33", t),     # yellow
+    "low": lambda t: _c("34", t),        # blue
+    "none": lambda t: dim(t),
+}
+
+
+def _priority_str(val) -> str:
+    """Convert a priority value (int or str) to a colored label."""
+    if isinstance(val, int):
+        label = _PRIORITY_LABELS.get(val, str(val))
+    else:
+        label = str(val) if val else "none"
+    color_fn = _PRIORITY_COLORS.get(label, str)
+    return color_fn(label)
+
+
+def _print_table(rows: List[Dict[str, Any]], columns: List[Tuple[str, str, int]]):
+    """
+    Print a list of dicts as an aligned table.
+
+    *columns* is a list of (key, header, max_width) tuples.
+    """
+    if not rows:
+        print(dim("No results."))
+        return
+
+    # Build string matrix
+    header = [h for _, h, _ in columns]
+    lines: List[List[str]] = []
+    raw_lines: List[List[str]] = []  # without color for width calc
+
+    for row in rows:
+        cells = []
+        raw_cells = []
+        for key, _, maxw in columns:
+            if key == "priority":
+                raw_val = _resolve(row.get(key))
+                raw_label = _PRIORITY_LABELS.get(row.get(key), raw_val) if isinstance(row.get(key), int) else raw_val
+                cells.append(_priority_str(row.get(key)))
+                raw_cells.append(raw_label)
+            else:
+                val = _truncate(_resolve(row.get(key)), maxw)
+                cells.append(val)
+                raw_cells.append(val)
+        lines.append(cells)
+        raw_lines.append(raw_cells)
+
+    # Calculate column widths (max of header and content)
+    widths = [len(h) for h in header]
+    for raw in raw_lines:
+        for i, cell in enumerate(raw):
+            widths[i] = max(widths[i], len(cell))
+    # Clamp to declared max
+    for i, (_, _, maxw) in enumerate(columns):
+        widths[i] = min(widths[i], maxw)
+
+    # Print header
+    hdr = "  ".join(bold(h.ljust(w)) for h, w in zip(header, widths))
+    print(hdr)
+    print(dim("─" * (sum(widths) + 2 * (len(widths) - 1))))
+
+    # Print rows
+    for cells, raw in zip(lines, raw_lines):
+        parts = []
+        for i, (cell, rc) in enumerate(zip(cells, raw)):
+            # Pad using raw (uncolored) length
+            pad = widths[i] - len(rc)
+            parts.append(cell + " " * max(pad, 0))
+        print("  ".join(parts))
+
+
+def format_output(data, format_type: str = "table"):
+    """
+    Route data to the appropriate formatter.
+
+    For JSON mode, dumps the raw API response.
+    For table mode, auto-detects the shape and prints a readable table.
+    """
+    if format_type == "json":
+        print(json.dumps(data, indent=2))
+        return
+
+    # Check for pagination and warn user
+    has_more = False
+    if isinstance(data, dict):
+        if data.get("next") or data.get("next_page_offset") or data.get("next_cursor"):
+            has_more = True
+
+    # Unwrap paginated responses
+    if isinstance(data, dict) and "results" in data:
+        data = data["results"]
+        if has_more:
+            print(yellow("⚠ More results available (pagination not yet supported)"), file=sys.stderr)
+
+    if isinstance(data, list):
+        if not data:
+            print(dim("No results."))
+            return
+        # Heuristic: pick table columns based on keys present
+        sample = data[0] if data else {}
+        if "name" in sample and "identifier" in sample:
+            # Projects
+            _print_table(data, [
+                ("identifier", "ID", 10),
+                ("name", "NAME", 40),
+                ("id", "UUID", 36),
+            ])
+        elif "name" in sample and "priority" in sample:
+            # Work items
+            _print_table(data, [
+                ("sequence_id", "SEQ", 8),
+                ("name", "NAME", 50),
+                ("priority", "PRI", 8),
+                ("state", "STATE", 20),
+                ("id", "UUID", 36),
+            ])
+        elif "name" in sample and "start_date" in sample:
+            # Cycles or modules
+            _print_table(data, [
+                ("name", "NAME", 40),
+                ("start_date", "START", 12),
+                ("end_date", "END", 12),
+                ("id", "UUID", 36),
+            ])
+        elif "display_name" in sample:
+            # Members
+            _print_table(data, [
+                ("display_name", "NAME", 30),
+                ("email", "EMAIL", 40),
+                ("role", "ROLE", 10),
+                ("id", "UUID", 36),
+            ])
+        else:
+            # Generic fallback
+            cols = []
+            for key in ["id", "identifier", "name", "title", "state", "priority", "sequence_id"]:
+                if key in sample:
+                    cols.append((key, key.upper(), 40))
+            if cols:
+                _print_table(data, cols)
+            else:
+                for item in data:
+                    print(json.dumps(item, indent=2))
+    elif isinstance(data, dict):
+        # Single-object detail view
+        max_key = max((len(k) for k in data if not k.startswith("_")), default=0)
+        for k, v in data.items():
+            if k.startswith("_"):
+                continue
+            label = bold(k.ljust(max_key))
+            val = _resolve(v)
+            print(f"  {label}  {val}")
+
+
+# ===========================================================================
+# Command handlers — PROJECTS
+# ===========================================================================
+
+def cmd_projects_list(args):
+    """List all projects in the workspace."""
+    data = api("GET", f"/workspaces/{WORKSPACE}/projects/")
+    format_output(data, args.format)
+
+
+def cmd_projects_get(args):
+    """Get details for a specific project."""
+    _validate_id(args.project, "project ID")
+    data = api("GET", f"/workspaces/{WORKSPACE}/projects/{args.project}/")
+    format_output(data, args.format)
+
+
+def cmd_projects_create(args):
+    """Create a new project in the workspace."""
+    payload = {"name": args.name, "identifier": args.identifier}
+    if args.description:
+        payload["description"] = args.description
+    data = api("POST", f"/workspaces/{WORKSPACE}/projects/", payload)
+    print(green("✓ Project created"))
+    format_output(data, args.format)
+
+
+# ===========================================================================
+# Command handlers — WORK ITEMS (ISSUES)
+# ===========================================================================
+
+def cmd_issues_list(args):
+    """List work items in a project, with optional filters."""
+    _validate_id(args.project, "project ID")
+    endpoint = f"/workspaces/{WORKSPACE}/projects/{args.project}/work-items/"
+    params = {}
+    if args.state:
+        params["state"] = args.state
+    if args.priority:
+        params["priority"] = args.priority
+    if args.assignee:
+        params["assignees"] = args.assignee
+    if params:
+        endpoint += "?" + urlencode(params)
+    data = api("GET", endpoint)
+    format_output(data, args.format)
+
+
+def cmd_issues_get(args):
+    """Get full details of a single work item."""
+    _validate_id(args.project, "project ID")
+    _validate_id(args.issue, "issue ID")
+    data = api("GET", f"/workspaces/{WORKSPACE}/projects/{args.project}/work-items/{args.issue}/")
+    format_output(data, args.format)
+
+
+def cmd_issues_create(args):
+    """Create a new work item in a project."""
+    _validate_id(args.project, "project ID")
+    payload = {"name": args.name}
+    if args.description:
+        payload["description_html"] = f"<p>{html_escape(args.description)}</p>"
+    if args.priority:
+        # Plane v1.x API expects the priority as a string label, not an int.
+        payload["priority"] = args.priority.lower()
+    if args.state:
+        payload["state"] = args.state
+    if args.assignee:
+        payload["assignees"] = [args.assignee]
+    if args.label:
+        payload["labels"] = [args.label]
+
+    data = api("POST", f"/workspaces/{WORKSPACE}/projects/{args.project}/work-items/", payload)
+    print(green("✓ Work item created"))
+    format_output(data, args.format)
+
+
+def cmd_issues_update(args):
+    """Update fields on an existing work item."""
+    _validate_id(args.project, "project ID")
+    _validate_id(args.issue, "issue ID")
+    payload = {}
+    if args.name:
+        payload["name"] = args.name
+    if args.description:
+        payload["description_html"] = f"<p>{html_escape(args.description)}</p>"
+    if args.priority:
+        # Plane v1.x API expects the priority as a string label, not an int.
+        payload["priority"] = args.priority.lower()
+    if args.state:
+        payload["state"] = args.state
+
+    if not payload:
+        print(yellow("Nothing to update — pass at least one field."), file=sys.stderr)
+        sys.exit(1)
+
+    data = api("PATCH", f"/workspaces/{WORKSPACE}/projects/{args.project}/work-items/{args.issue}/", payload)
+    print(green("✓ Work item updated"))
+    format_output(data, args.format)
+
+
+def cmd_issues_assign(args):
+    """Assign a work item to one or more members."""
+    _validate_id(args.project, "project ID")
+    _validate_id(args.issue, "issue ID")
+    for assignee in args.assignees:
+        _validate_id(assignee, "assignee ID")
+    payload = {"assignees": args.assignees}
+    data = api("PATCH", f"/workspaces/{WORKSPACE}/projects/{args.project}/work-items/{args.issue}/", payload)
+    print(green(f"✓ Assigned to {len(args.assignees)} member(s)"))
+    format_output(data, args.format)
+
+
+def cmd_issues_delete(args):
+    """Delete a work item (irreversible)."""
+    _validate_id(args.project, "project ID")
+    _validate_id(args.issue, "issue ID")
+    api("DELETE", f"/workspaces/{WORKSPACE}/projects/{args.project}/work-items/{args.issue}/")
+    print(green(f"✓ Deleted work item {args.issue}"))
+
+
+def cmd_issues_search(args):
+    """Search work items across the entire workspace."""
+    params = urlencode({"search": args.query, "type": "work_item"})
+    endpoint = f"/workspaces/{WORKSPACE}/search/?{params}"
+    data = api("GET", endpoint)
+    format_output(data, args.format)
+
+
+# ===========================================================================
+# Command handlers — COMMENTS
+# ===========================================================================
+
+def cmd_comments_list(args):
+    """List comments on a work item."""
+    _validate_id(args.project, "project ID")
+    _validate_id(args.issue, "issue ID")
+    endpoint = f"/workspaces/{WORKSPACE}/projects/{args.project}/work-items/{args.issue}/activities/"
+    data = api("GET", endpoint)
+
+    # Activities include comments and field changes — filter to comments
+    if isinstance(data, dict) and "results" in data:
+        items = data["results"]
+    elif isinstance(data, list):
+        items = data
+    else:
+        items = []
+
+    if args.format == "json":
+        print(json.dumps(items, indent=2))
+        return
+
+    if not items:
+        print(dim("No activity found."))
+        return
+
+    for item in items:
+        actor = _resolve(item.get("actor_detail", item.get("actor", "?")))
+        comment = item.get("comment", item.get("new_value", ""))
+        field = item.get("field", "")
+        created = str(item.get("created_at", ""))[:19]
+
+        if field == "comment":
+            print(f"  {bold(actor)}  {dim(created)}")
+            print(f"    {comment}")
+            print()
+        elif args.all:
+            # Show all activity, not just comments
+            verb = item.get("verb", "changed")
+            print(f"  {dim(created)}  {actor} {verb} {field}: {item.get('old_value', '—')} → {item.get('new_value', '—')}")
+
+
+def cmd_comments_add(args):
+    """Add a comment to a work item."""
+    _validate_id(args.project, "project ID")
+    _validate_id(args.issue, "issue ID")
+    payload = {
+        "comment_html": f"<p>{html_escape(args.body)}</p>",
+    }
+    data = api("POST", f"/workspaces/{WORKSPACE}/projects/{args.project}/work-items/{args.issue}/activities/", payload)
+    print(green("✓ Comment added"))
+    if data and args.format == "json":
+        print(json.dumps(data, indent=2))
+
+
+# ===========================================================================
+# Command handlers — CYCLES
+# ===========================================================================
+
+def cmd_cycles_list(args):
+    """List cycles (sprints) in a project."""
+    _validate_id(args.project, "project ID")
+    data = api("GET", f"/workspaces/{WORKSPACE}/projects/{args.project}/cycles/")
+    format_output(data, args.format)
+
+
+def cmd_cycles_get(args):
+    """Get details for a specific cycle."""
+    _validate_id(args.project, "project ID")
+    _validate_id(args.cycle, "cycle ID")
+    data = api("GET", f"/workspaces/{WORKSPACE}/projects/{args.project}/cycles/{args.cycle}/")
+    format_output(data, args.format)
+
+
+def cmd_cycles_create(args):
+    """Create a new cycle in a project."""
+    _validate_id(args.project, "project ID")
+    payload = {"name": args.name}
+    if args.start:
+        payload["start_date"] = args.start
+    if args.end:
+        payload["end_date"] = args.end
+    data = api("POST", f"/workspaces/{WORKSPACE}/projects/{args.project}/cycles/", payload)
+    print(green("✓ Cycle created"))
+    format_output(data, args.format)
+
+
+# ===========================================================================
+# Command handlers — MODULES
+# ===========================================================================
+
+def cmd_modules_list(args):
+    """List modules in a project."""
+    _validate_id(args.project, "project ID")
+    data = api("GET", f"/workspaces/{WORKSPACE}/projects/{args.project}/modules/")
+    format_output(data, args.format)
+
+
+def cmd_modules_get(args):
+    """Get details for a specific module."""
+    _validate_id(args.project, "project ID")
+    _validate_id(args.module, "module ID")
+    data = api("GET", f"/workspaces/{WORKSPACE}/projects/{args.project}/modules/{args.module}/")
+    format_output(data, args.format)
+
+
+def cmd_modules_create(args):
+    """Create a new module in a project."""
+    _validate_id(args.project, "project ID")
+    payload = {"name": args.name}
+    if args.description:
+        payload["description"] = args.description
+    if args.start:
+        payload["start_date"] = args.start
+    if args.end:
+        payload["target_date"] = args.end
+    data = api("POST", f"/workspaces/{WORKSPACE}/projects/{args.project}/modules/", payload)
+    print(green("✓ Module created"))
+    format_output(data, args.format)
+
+
+# ===========================================================================
+# Command handlers — STATES & LABELS
+# ===========================================================================
+
+def cmd_states_list(args):
+    """List workflow states in a project."""
+    _validate_id(args.project, "project ID")
+    data = api("GET", f"/workspaces/{WORKSPACE}/projects/{args.project}/states/")
+    format_output(data, args.format)
+
+
+def cmd_labels_list(args):
+    """List labels in a project."""
+    _validate_id(args.project, "project ID")
+    data = api("GET", f"/workspaces/{WORKSPACE}/projects/{args.project}/labels/")
+    format_output(data, args.format)
+
+
+# ===========================================================================
+# Command handlers — MEMBERS
+# ===========================================================================
+
+def cmd_members_list(args):
+    """List all members of the workspace."""
+    data = api("GET", f"/workspaces/{WORKSPACE}/members/")
+    format_output(data, args.format)
+
+
+# ===========================================================================
+# Command handlers — ME
+# ===========================================================================
+
+def cmd_me(args):
+    """Display the currently authenticated user."""
+    data = api("GET", "/users/me/")
+    format_output(data, args.format)
+
+
+# ===========================================================================
+# CLI definition
+# ===========================================================================
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="plane",
+        description="Plane.so CLI — manage projects, work items, cycles, modules, and more.",
+        epilog="Set PLANE_API_KEY and PLANE_WORKSPACE environment variables before use.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--format", "-f",
+        choices=["table", "json"],
+        default="table",
+        help="Output format (default: table)",
+    )
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # ── me ──────────────────────────────────────────────────────────────
+    me_parser = subparsers.add_parser("me", help="Show current user info")
+    me_parser.set_defaults(func=cmd_me)
+
+    # ── members ─────────────────────────────────────────────────────────
+    mem_parser = subparsers.add_parser("members", help="List workspace members")
+    mem_parser.set_defaults(func=cmd_members_list)
+
+    # ── projects ────────────────────────────────────────────────────────
+    proj = subparsers.add_parser("projects", help="Manage projects")
+    proj_sub = proj.add_subparsers(dest="subcommand")
+
+    p_list = proj_sub.add_parser("list", help="List all projects")
+    p_list.set_defaults(func=cmd_projects_list)
+
+    p_get = proj_sub.add_parser("get", help="Get project details")
+    p_get.add_argument("project", help="Project ID (UUID)")
+    p_get.set_defaults(func=cmd_projects_get)
+
+    p_create = proj_sub.add_parser("create", help="Create a new project")
+    p_create.add_argument("--name", required=True, help="Project name")
+    p_create.add_argument("--identifier", required=True, help="Short identifier (e.g., PROJ)")
+    p_create.add_argument("--description", help="Optional description")
+    p_create.set_defaults(func=cmd_projects_create)
+
+    # ── issues (work items) ─────────────────────────────────────────────
+    iss = subparsers.add_parser("issues", help="Manage work items (issues)")
+    iss_sub = iss.add_subparsers(dest="subcommand")
+
+    i_list = iss_sub.add_parser("list", help="List work items in a project")
+    i_list.add_argument("--project", "-p", required=True, help="Project ID")
+    i_list.add_argument("--state", help="Filter by state ID")
+    i_list.add_argument("--priority", help="Filter by priority (urgent/high/medium/low/none)")
+    i_list.add_argument("--assignee", help="Filter by assignee ID")
+    i_list.set_defaults(func=cmd_issues_list)
+
+    i_get = iss_sub.add_parser("get", help="Get work item details")
+    i_get.add_argument("--project", "-p", required=True, help="Project ID")
+    i_get.add_argument("issue", help="Work item ID (UUID)")
+    i_get.set_defaults(func=cmd_issues_get)
+
+    i_create = iss_sub.add_parser("create", help="Create a new work item")
+    i_create.add_argument("--project", "-p", required=True, help="Project ID")
+    i_create.add_argument("--name", required=True, help="Work item title")
+    i_create.add_argument("--description", help="Plain-text description")
+    i_create.add_argument("--priority", choices=["urgent", "high", "medium", "low", "none"], help="Priority level")
+    i_create.add_argument("--state", help="State ID")
+    i_create.add_argument("--assignee", help="Assignee user ID")
+    i_create.add_argument("--label", help="Label ID")
+    i_create.set_defaults(func=cmd_issues_create)
+
+    i_update = iss_sub.add_parser("update", help="Update an existing work item")
+    i_update.add_argument("--project", "-p", required=True, help="Project ID")
+    i_update.add_argument("issue", help="Work item ID")
+    i_update.add_argument("--name", help="New title")
+    i_update.add_argument("--description", help="New description")
+    i_update.add_argument("--priority", choices=["urgent", "high", "medium", "low", "none"], help="Priority")
+    i_update.add_argument("--state", help="State ID")
+    i_update.set_defaults(func=cmd_issues_update)
+
+    i_assign = iss_sub.add_parser("assign", help="Assign a work item to members")
+    i_assign.add_argument("--project", "-p", required=True, help="Project ID")
+    i_assign.add_argument("issue", help="Work item ID")
+    i_assign.add_argument("assignees", nargs="+", help="One or more member IDs")
+    i_assign.set_defaults(func=cmd_issues_assign)
+
+    i_delete = iss_sub.add_parser("delete", help="Delete a work item")
+    i_delete.add_argument("--project", "-p", required=True, help="Project ID")
+    i_delete.add_argument("issue", help="Work item ID")
+    i_delete.set_defaults(func=cmd_issues_delete)
+
+    i_search = iss_sub.add_parser("search", help="Search work items across workspace")
+    i_search.add_argument("query", help="Search query text")
+    i_search.set_defaults(func=cmd_issues_search)
+
+    # ── comments ────────────────────────────────────────────────────────
+    cmt = subparsers.add_parser("comments", help="Manage work item comments")
+    cmt_sub = cmt.add_subparsers(dest="subcommand")
+
+    c_list = cmt_sub.add_parser("list", help="List comments / activity on a work item")
+    c_list.add_argument("--project", "-p", required=True, help="Project ID")
+    c_list.add_argument("--issue", "-i", required=True, help="Work item ID")
+    c_list.add_argument("--all", action="store_true", help="Show all activity, not just comments")
+    c_list.set_defaults(func=cmd_comments_list)
+
+    c_add = cmt_sub.add_parser("add", help="Add a comment to a work item")
+    c_add.add_argument("--project", "-p", required=True, help="Project ID")
+    c_add.add_argument("--issue", "-i", required=True, help="Work item ID")
+    c_add.add_argument("body", help="Comment text")
+    c_add.set_defaults(func=cmd_comments_add)
+
+    # ── cycles ──────────────────────────────────────────────────────────
+    cyc = subparsers.add_parser("cycles", help="Manage cycles (sprints)")
+    cyc_sub = cyc.add_subparsers(dest="subcommand")
+
+    cy_list = cyc_sub.add_parser("list", help="List cycles")
+    cy_list.add_argument("--project", "-p", required=True, help="Project ID")
+    cy_list.set_defaults(func=cmd_cycles_list)
+
+    cy_get = cyc_sub.add_parser("get", help="Get cycle details")
+    cy_get.add_argument("--project", "-p", required=True, help="Project ID")
+    cy_get.add_argument("cycle", help="Cycle ID")
+    cy_get.set_defaults(func=cmd_cycles_get)
+
+    cy_create = cyc_sub.add_parser("create", help="Create a new cycle")
+    cy_create.add_argument("--project", "-p", required=True, help="Project ID")
+    cy_create.add_argument("--name", required=True, help="Cycle name")
+    cy_create.add_argument("--start", help="Start date (YYYY-MM-DD)")
+    cy_create.add_argument("--end", help="End date (YYYY-MM-DD)")
+    cy_create.set_defaults(func=cmd_cycles_create)
+
+    # ── modules ─────────────────────────────────────────────────────────
+    mod = subparsers.add_parser("modules", help="Manage modules")
+    mod_sub = mod.add_subparsers(dest="subcommand")
+
+    m_list = mod_sub.add_parser("list", help="List modules")
+    m_list.add_argument("--project", "-p", required=True, help="Project ID")
+    m_list.set_defaults(func=cmd_modules_list)
+
+    m_get = mod_sub.add_parser("get", help="Get module details")
+    m_get.add_argument("--project", "-p", required=True, help="Project ID")
+    m_get.add_argument("module", help="Module ID")
+    m_get.set_defaults(func=cmd_modules_get)
+
+    m_create = mod_sub.add_parser("create", help="Create a new module")
+    m_create.add_argument("--project", "-p", required=True, help="Project ID")
+    m_create.add_argument("--name", required=True, help="Module name")
+    m_create.add_argument("--description", help="Description")
+    m_create.add_argument("--start", help="Start date (YYYY-MM-DD)")
+    m_create.add_argument("--end", help="Target date (YYYY-MM-DD)")
+    m_create.set_defaults(func=cmd_modules_create)
+
+    # ── states ──────────────────────────────────────────────────────────
+    states = subparsers.add_parser("states", help="List workflow states in a project")
+    states.add_argument("--project", "-p", required=True, help="Project ID")
+    states.set_defaults(func=cmd_states_list)
+
+    # ── labels ──────────────────────────────────────────────────────────
+    labels = subparsers.add_parser("labels", help="List labels in a project")
+    labels.add_argument("--project", "-p", required=True, help="Project ID")
+    labels.set_defaults(func=cmd_labels_list)
+
+    # ── parse & dispatch ────────────────────────────────────────────────
+    args = parser.parse_args()
+
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    if hasattr(args, "func"):
+        args.func(args)
+    else:
+        # Subcommand not given — show subparser help
+        # Walk back to find the right subparser
+        for action in parser._subparsers._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                sub = action.choices.get(args.command)
+                if sub:
+                    sub.print_help()
+                    break
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
