@@ -4,12 +4,12 @@
 
 ## 지금 돌고 있는 것 (s3i, 자율 진행)
 
-- **s3i에서 Jira work items 전량 이관 중** — localhost:3388 직격(CF 우회, 빠름).
-  - 명령: `migrate_all.py --items-only --skip MAT`
-  - 로그: `s3i:/tmp/migrate_items.log`  (확인: `ssh s3i 'tail -30 /tmp/migrate_items.log'`)
-  - 순서: TUYA→DEVT→GPRC→GoqualPrj→ITSD→PRJ→LGThinQ→SSVM→GP1(1214,최후)
-  - 멱등(external_id) — 중단/재실행 안전.
-- s3i에 **pandoc 설치 중**: `ssh s3i 'tail /tmp/pandoc-install.log'`. 끝나면 문서도 s3i로.
+- **Jira work items: 전량 완료 ✅** — 2,316건 / 10 프로젝트 / 실패 0 / 415s (localhost).
+- **문서(pages) 이관 진행 중** — `migrate_all.py --pages-only --skip MAT` (CONF_TMP=$HOME/.tmp-confluence-md, s3i)
+  - 로그: `ssh s3i 'tail -40 /tmp/migrate_pages.log'`
+  - 순서: TUYA/GXTQNA(완료 40) → **DEVT/개발팀 689(진행)** → QA 195 → Backend/FW/Mobile/FE
+  - pandoc 3.7 설치됨(`nix profile install nixpkgs#pandoc`).
+  - 완료 확인: 로그 마지막 `총 소요 …s`.
 
 ## 완료
 
