@@ -44,3 +44,4 @@ __pycache__/
 
 skills/incidentcli
 skills/voscli
+.tmp-confluence-md/

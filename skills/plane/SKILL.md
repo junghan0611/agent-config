@@ -109,6 +109,22 @@ source ~/.env.local   # JIRA_HOST / JIRA_USER_EMAIL / JIRA_API_TOKEN
 | Confluence 매크로(jira/include/toc/drawio) | ⚠️ export_view 시점 정적 렌더로 흡수(동적기능 상실) |
 | inline comment / page restrictions / 버전 본문 | ❌ 유실(`source_version` 메타만) |
 
+### (선택) md 트리 → Plane Pages 올리기 (`md_to_plane_pages.py`)
+
+md SSOT 를 Plane 안에서도 열람하려면 Pages 로 올린다. **pages-api-patch 오버레이 필수**
+(self-host v1 에 pages POST/PATCH 노출 — hej-kip/plane/pages-api-patch).
+
+```bash
+PY="$HOME/.claude/skills/plane/scripts/md_to_plane_pages.py"
+"$PY" --dir <MD_DIR> --project <PLANE_PROJ_UUID>          # dry-run
+"$PY" --dir <MD_DIR> --project <PLANE_PROJ_UUID> --apply  # 업로드
+```
+
+- md→html: pandoc `-f gfm -t html`. 멱등: page **title 매칭**(external_id 없음) → 있으면 PATCH.
+- ⚠️ **이미지**: md 의 `_assets/` 상대경로는 Plane 에서 안 풀린다(asset 업로드 미구현 — phase 2).
+  이미지까지 Plane 에 박으려면 generic asset API(`/workspaces/<slug>/assets/`) 업로드 필요.
+- 문서 SSOT 는 어디까지나 md 트리. Plane Pages 는 열람용 사본.
+
 ## Jira / Confluence → Plane 이관
 
 데이터 동제권 경로: **Jira(클라우드) → 중립 포맷 → Plane(셀프호스트)**, 단방향·read-only 연습.
@@ -144,9 +160,12 @@ source ~/.env.local && jira issue view PROJ-123 --raw  # 단건 상세(코멘트
 
 ### 멱등성(idempotency)
 
-재실행 시 중복 생성 방지 — work item `name` 또는 description에 원본 키(`[PROJ-123]`)를
-박고, 적재 전 기존 이슈를 search/list로 확인. 이관 스크립트는 별도(`scripts/jira_to_plane.py`,
-프로젝트별 실행). **첫 실행은 반드시 한 프로젝트·소량으로 dry-run 후 본 적재.**
+`jira_to_plane.py` 는 Plane 네이티브 **`external_id`(=Jira key) + `external_source`(=jira:HOST)**
+로 dedup — 재실행 시 409 로 기존 id 를 회수해 중복 생성 0(이름 prefix 불필요).
+**2-pass**: 1차 전량 생성(external_id/created_at/created_by/state/assignee) → 2차 부모(parent) 배선.
+429 RATE_LIMIT 은 Retry-After/지수 백오프로 자동 재시도. **첫 실행은 `--limit` 소량으로 확인 후 전량.**
+
+실측(MAT 84건): 생성/기존 84 · 실패 0 · 부모연결 80 · created_at 백데이트 보존.
 
 ## 한계 / 주의
 

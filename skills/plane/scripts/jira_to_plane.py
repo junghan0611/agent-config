@@ -24,6 +24,7 @@ jira_to_plane.py — Jira(Cloud) → Plane(self-host) 단방향 이관 브리지
 import os
 import sys
 import json
+import time
 import base64
 import argparse
 from pathlib import Path
@@ -87,18 +88,33 @@ def jira_get(path, params=None):
         die(f"Jira 연결 실패: {e.reason}")
 
 
-def plane_req(method, endpoint, data=None):
+def plane_req(method, endpoint, data=None, _tries=6):
     url = f"{PLANE_BASE}/api/v1{endpoint}"
     body = json.dumps(data).encode() if data else None
     req = Request(url, data=body, method=method, headers={
         "X-API-Key": PLANE_KEY, "Content-Type": "application/json",
         # Cloudflare(error 1010) bans the default Python-urllib UA.
         "User-Agent": "plane-skill/1.0"})
-    try:
-        with urlopen(req, timeout=60) as r:
-            return None if r.status == 204 else json.loads(r.read().decode())
-    except HTTPError as e:
-        raise RuntimeError(f"Plane {e.code}: {e.read().decode()[:300]}")
+    for attempt in range(_tries):
+        try:
+            with urlopen(req, timeout=60) as r:
+                return None if r.status == 204 else json.loads(r.read().decode())
+        except HTTPError as e:
+            body = e.read().decode()
+            # 429 RATE_LIMIT: Retry-After(또는 지수 백오프) 후 재시도.
+            if e.code == 429 and attempt < _tries - 1:
+                wait = float(e.headers.get("Retry-After") or 0) or min(60, 2 ** attempt * 5)
+                time.sleep(wait)
+                continue
+            # external_id 멱등: 409 = 이미 존재. 에러로 안 보고 기존 id 반환.
+            if e.code == 409:
+                try:
+                    d = json.loads(body)
+                    d["_conflict"] = True
+                    return d
+                except (json.JSONDecodeError, ValueError):
+                    pass
+            raise RuntimeError(f"Plane {e.code}: {body[:300]}")
 
 
 def plane_paginated(endpoint):
@@ -263,12 +279,13 @@ MIGRATE_MATRIX = [
     ("status",         "→ state",               "⚠️ 이름/카테고리 매핑(커스텀 상태는 근사)"),
     ("assignee",       "→ assignees",           "⚠️ 이메일이 Plane member 일 때만. 아니면 유실"),
     ("labels",         "→ labels",              "✅ (없으면 생성 필요)"),
-    ("parent",         "→ parent",              "⚠️ 직계만, 2pass 필요(부모 먼저)"),
-    ("comments",       "→ comments",            "⚠️ 작성자/시각은 본문 prefix(API 위조 불가)"),
-    ("reporter",       "✗ Plane API 필드 없음",  "❌ 유실(본문 note 로만)"),
-    ("created/updated","✗ 생성시각 고정 불가",     "❌ 이관시각으로 박힘"),
+    ("parent",         "→ parent",              "✅ 2-pass 배선(직계 + Epic Link cf_10014)"),
+    ("comments",       "→ comments",            "⚠️ 미구현(phase 2; API는 created_by/actor 위조 지원)"),
+    ("reporter",       "→ created_by",          "✅ Plane member 면 보존, 아니면 본문 note"),
+    ("created",        "→ created_at",          "✅ 백데이트 보존 (updated_at 은 불가)"),
+    ("멱등 키",        "→ external_id/source",  "✅ 재실행 409 dedup (이름 prefix 불필요)"),
     ("resolution",     "✗ Plane 개념 없음",      "❌ Done state 에 흡수"),
-    ("epic(cf_10014)", "✗ CE work item type 한정", "❌ 라벨/모듈로 우회"),
+    ("epic(cf_10014)", "→ parent(우회)",        "⚠️ epic을 부모로 배선. epic *type* 은 미생성"),
     ("attachments",    "✗ asset API 별도/복잡",  "❌ 이번 범위 외"),
     ("worklog/votes/watches/rank/charts", "✗ 대응 없음", "❌ 유실"),
     ("issue links",    "✗ ",                    "❌ 유실"),
@@ -342,15 +359,22 @@ def run_audit(args):
 # Migrate
 # ---------------------------------------------------------------------------
 
-def existing_keys(plane_project):
-    """이미 이관된 [JIRA-KEY] 수집 (멱등)."""
-    items = plane_paginated(f"/workspaces/{PLANE_WS}/projects/{plane_project}/work-items/")
-    keys = set()
-    for it in items:
-        name = it.get("name", "")
-        if name.startswith("[") and "]" in name:
-            keys.add(name[1:name.index("]")])
-    return keys
+def _external_source():
+    """external_id 와 함께 쓰는 출처 식별자 — 재실행 멱등의 키."""
+    return f"jira:{JIRA_HOST}"
+
+
+def _parent_key(f):
+    """부모 후보: 직계 parent(하위작업) 우선, 없으면 Epic Link(cf_10014)."""
+    p = f.get("parent")
+    if isinstance(p, dict) and p.get("key"):
+        return p["key"]
+    ep = f.get("customfield_10014")
+    if isinstance(ep, str) and ep.strip():
+        return ep.strip()
+    if isinstance(ep, dict) and ep.get("key"):
+        return ep["key"]
+    return None
 
 
 def run_migrate(args):
@@ -365,37 +389,74 @@ def run_migrate(args):
         by_name[s["name"]] = s["id"]
     members = plane_paginated(f"/workspaces/{PLANE_WS}/members/")
     email_to_id = {(m.get("email") or "").lower(): m["id"] for m in members}
+    source = _external_source()
+    base = f"/workspaces/{PLANE_WS}/projects/{args.plane_project}/work-items/"
 
-    done = existing_keys(args.plane_project)
-    created = skipped = 0
+    # ---- Pass 1: 생성/매칭 (external_id 멱등) → key→plane_id 맵 ----
+    keymap = {}
+    created = existed = failed = 0
     for it in issues:
         key = it["key"]
-        if key in done:
-            skipped += 1
-            continue
         f = it["fields"]
         html, _ = adf_to_html(f.get("description") or "")
-        # reporter/원본키/원본시각을 본문 note 로 보존 (유실 방지)
-        rep = (f.get("reporter") or {}).get("displayName", "—")
-        note = (f"<hr/><p><em>이관: Jira {key} · 보고자 {rep} · "
-                f"생성 {f.get('created','')}</em></p>")
-        payload = {"name": f"[{key}] {f.get('summary','')}",
-                   "description_html": html + note,
-                   "priority": map_priority(f.get("priority"))}
+        rep = f.get("reporter") or {}
+        rep_name = rep.get("displayName", "—")
+        # reporter 가 Plane member 가 아닐 때를 대비한 본문 note (유실 방지)
+        note = f"<hr/><p><em>이관: Jira {key} · 보고자 {rep_name}</em></p>"
+        payload = {
+            "name": f.get("summary", "") or key,
+            "description_html": html + note,
+            "priority": map_priority(f.get("priority")),
+            "external_id": key,
+            "external_source": source,
+        }
         sid, _ = map_state(f.get("status") or {}, by_group, by_name)
         if sid:
             payload["state"] = sid
+        if f.get("created"):                       # 생성시각 백데이트
+            payload["created_at"] = f["created"]
+        rep_id = email_to_id.get((rep.get("emailAddress") or "").lower())
+        if rep_id:                                 # reporter → created_by
+            payload["created_by"] = rep_id
         asg = f.get("assignee") or {}
         mid = email_to_id.get((asg.get("emailAddress") or "").lower())
         if mid:
             payload["assignees"] = [mid]
         try:
-            res = plane_req("POST", f"/workspaces/{PLANE_WS}/projects/{args.plane_project}/work-items/", payload)
-            created += 1
-            print(f"  ✅ {key} → {res.get('sequence_id')}")
+            res = plane_req("POST", base, payload)
         except RuntimeError as e:
             print(f"  ❌ {key}: {e}", file=sys.stderr)
-    print(f"\n완료: 생성 {created}, skip(기존) {skipped}")
+            failed += 1
+            continue
+        if not res or not res.get("id"):
+            print(f"  ❌ {key}: 응답에 id 없음", file=sys.stderr)
+            failed += 1
+            continue
+        keymap[key] = res["id"]
+        if res.get("_conflict"):
+            existed += 1
+        else:
+            created += 1
+            print(f"  ✅ {key} → {res.get('sequence_id', res['id'][:8])}")
+
+    # ---- Pass 2: 부모관계 배선 (둘 다 이관됐을 때만) ----
+    linked = orphan = 0
+    for it in issues:
+        key = it["key"]
+        pkey = _parent_key(it["fields"])
+        if not pkey or key not in keymap:
+            continue
+        if pkey not in keymap:
+            orphan += 1
+            continue
+        try:
+            plane_req("PATCH", f"{base}{keymap[key]}/", {"parent": keymap[pkey]})
+            linked += 1
+        except RuntimeError as e:
+            print(f"  ⚠ parent {key}→{pkey}: {e}", file=sys.stderr)
+
+    print(f"\n완료: 생성 {created} · 기존(409) {existed} · 실패 {failed} "
+          f"· 부모연결 {linked}" + (f" · 부모유실 {orphan}" if orphan else ""))
 
 
 # ---------------------------------------------------------------------------
