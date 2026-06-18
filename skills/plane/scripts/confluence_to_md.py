@@ -126,9 +126,11 @@ def list_pages(space=None, page_id=None, limit=10_000):
         d = jira_get(base, p)
         results = d.get("results", [])
         pages.extend(results)
-        if len(results) < 100 or not d.get("_links", {}).get("next"):
+        # body expand 시 서버가 페이지 크기를 25로 캡 → 요청 limit(100)보다 작아도
+        # next 링크가 있으면 더 있는 것. start 는 실제 받은 수만큼만 전진.
+        start += len(results)
+        if not results or not d.get("_links", {}).get("next"):
             break
-        start += 100
     return pages[:limit]
 
 
