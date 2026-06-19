@@ -68,7 +68,7 @@ TAG="v2026.6.12-fix.1"
 git diff-index --quiet HEAD --
 test -z "$(git tag -l "$TAG")"
 test -z "$(git ls-remote --tags origin "$TAG")"
-awk -v tag="$TAG" '$1=="##" && $2==tag {ok=1} END{exit !ok}' CHANGELOG.md  # exact tag token; title allowed
+grep -qxF "## $TAG" CHANGELOG.md || grep -qF "## $TAG " CHANGELOG.md  # exact tag heading; title suffix allowed. (grep, not awk $1/$2 — bare positionals get stripped when this skill is injected into an agent context)
 git push --dry-run origin HEAD
 ```
 
