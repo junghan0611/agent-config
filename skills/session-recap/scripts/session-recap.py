@@ -45,6 +45,45 @@ def _fmt_ts(ts: str) -> str:
         return ts[:19]
 
 
+# --- Corpus filters (andenken session-indexer.ts와 정합) ---
+# andenken 0d4432b "tighten corpus to garden-native >300KB, drop tmp + legacy".
+# 세션 임베딩 코퍼스와 동일 규율로 session-recap도 핵심 세션만 본다.
+
+# 세션 파일 크기 하한 (KB). 진짜 작업 세션은 수십~수백 KB (pi non-tmp median ≈300KB);
+# test/probe 세션은 수 KB. GLG 정책 "300KB 이하 제외" → 필터는 `size > MIN` (정확히
+# 300KB도 제외). --min-kb 0 으로 끄면 직전 작은 세션도 회수 (recap 탈출구).
+DEFAULT_MIN_KB = 300
+
+
+def _is_excluded_project_dir(dirname: str) -> bool:
+    """tmp/probe scratch 프로젝트 디렉토리 — 양 런타임 인덱싱 제외.
+
+    pi `--tmp…--` / claude `-tmp…` 는 감싸는 하이픈을 벗기면 "tmp"로 시작한다.
+    probe/release-gate/v2matrix scratch 도 전부 `tmp-*` 라 이 규칙이 다 잡는다.
+    andenken isExcludedProjectDir 와 동일.
+    """
+    return dirname.strip("-").startswith("tmp")
+
+
+def _is_garden_native_pi_file(filename: str) -> bool:
+    """0.9.0 이후 garden-native pi 세션 파일명.
+
+    `<created-at>_<sessionId>.jsonl` 에서 sessionId 는 pi-shell-acp SSOT
+    SESSION_ID_RE = /^\\d{8}T\\d{6}-[0-9a-f]{6}$/. 구형 종(`_<uuid>`, `_entwurf-…`,
+    `_delegate-…`)은 폐기·미인덱싱. claude 는 항상 UUID라 미적용. andenken
+    isGardenNativePiFile 과 동일 (full sessionId anchored → future drift fail-fast).
+    """
+    return bool(re.search(r"_\d{8}T\d{6}-[0-9a-f]{6}\.jsonl$", filename))
+
+
+def _default_source() -> str:
+    """현재 하네스에 맞춘 기본 source. Claude Code에서 돌면 claude, 아니면 pi.
+
+    이전 세션을 명확히 이어가려면 같은 하네스의 세션을 봐야 한다. --source 로 override.
+    """
+    return "claude" if os.environ.get("CLAUDECODE") else "pi"
+
+
 def _extract_project(dirname: str) -> str:
     """세션 디렉토리명에서 프로젝트명 추출.
 
@@ -97,9 +136,16 @@ def get_sessions_dirs(source: str = "all") -> list[tuple[Path, str]]:
 
 
 def find_session_files(
-    source: str = "all", project: str | None = None
+    source: str = "all", project: str | None = None, min_kb: int = DEFAULT_MIN_KB
 ) -> list[tuple[float, Path, str, str]]:
-    """(mtime, path, project_name, source) 목록을 최신순 반환."""
+    """(mtime, path, project_name, source) 목록을 최신순 반환.
+
+    andenken 코퍼스 정책 적용:
+    - tmp/probe 프로젝트 디렉토리 제외 (양 런타임)
+    - 크기 `> min_kb*1024` 만 통과 (min_kb=0 이면 비어있지 않은 파일 전부)
+    - pi 는 garden-native 파일명만 (구형 _uuid/_delegate/_entwurf 제외); claude 미적용
+    """
+    min_bytes = min_kb * 1024
     results = []
     for sessions_dir, src in get_sessions_dirs(source):
         for subdir in sessions_dir.iterdir():
@@ -108,6 +154,8 @@ def find_session_files(
             # 프로젝트 이름 추출: strip("-")로 양쪽 하이픈 제거
             # pi:    --home-junghan-repos-gh-agent-config-- → home-junghan-repos-gh-agent-config
             # claude: -home-junghan-repos-gh-agent-config   → home-junghan-repos-gh-agent-config
+            if _is_excluded_project_dir(subdir.name):
+                continue
             dirname = subdir.name.strip("-")
             proj = _extract_project(dirname)
 
@@ -115,8 +163,17 @@ def find_session_files(
                 continue
 
             for f in subdir.iterdir():
-                if f.suffix == ".jsonl":
-                    results.append((f.stat().st_mtime, f, proj, src))
+                if f.suffix != ".jsonl":
+                    continue
+                if src == "pi" and not _is_garden_native_pi_file(f.name):
+                    continue
+                try:
+                    size = f.stat().st_size
+                except OSError:
+                    continue
+                if size <= min_bytes:
+                    continue
+                results.append((f.stat().st_mtime, f, proj, src))
 
     results.sort(key=lambda x: x[0], reverse=True)
     return results
@@ -308,15 +365,24 @@ def main():
         "--skip", type=int, default=1, help="최신 N개 세션 건너뛰기 (기본: 1, 현재 세션)"
     )
     parser.add_argument(
-        "--source", choices=["pi", "claude", "all"], default="all",
-        help="세션 소스 필터 (기본: all). pi=pi 세션만, claude=Claude Code 세션만"
+        "--source", choices=["pi", "claude", "all"], default=None,
+        help="세션 소스 필터 (기본: 현재 하네스 — Claude Code=claude, 그 외=pi). "
+             "pi=pi 세션만, claude=Claude Code 세션만, all=양쪽"
+    )
+    parser.add_argument(
+        "--min-kb", type=int, default=DEFAULT_MIN_KB,
+        help=f"세션 크기 하한 KB, `size > min` (기본: {DEFAULT_MIN_KB}). "
+             "0이면 크기 필터 끔 (직전 작은 세션도 회수)"
     )
 
     args = parser.parse_args()
 
+    source = args.source if args.source else _default_source()
+
     files = find_session_files(
-        source=args.source,
+        source=source,
         project=args.project if not args.all_projects else None,
+        min_kb=args.min_kb,
     )
 
     if not files:
