@@ -7,6 +7,8 @@
 
 ## Unreleased
 
+## v2026.6.19-fix.1 — injection-strip 하드닝
+
 * **Injection-strip hardening across injected skill shell snippets.** `v2026.6.19`를 실제로 컷하던 중, SKILL.md/command `.md` 안의 쉘 스니펫이 에이전트 컨텍스트로 주입될 때 하네스가 **bare `$N` 위치 파라미터**(`$1`/`$2`…)를 빈 문자열로 strip한다는 걸 발견(`${...}`/`$(...)`/`$word`는 생존). 깨진 곳을 전수 수정: `tag-release`의 CHANGELOG heading 체크를 `awk '$1=="##" && $2==tag'` → line-anchored `grep -qE "^## $TAG([[:space:]]|$)"`로 교체(`### `/줄 중간/탭 suffix 오탐까지 차단), `emacs`·`agenda`·`/mend`의 `ec()` emacsclient 헬퍼를 `"$1"` → `"${1}"`로 교체. `.sh`/`.py` 스크립트는 직접 실행이라 무관. GPT 공동검토(`20260619T124915-a4a02a`)로 grep 오탐과 stale 카운트 지적 반영.
 
 * **`session-recap` Claude nested-scan parity.** andenken `scanClaudeDir`와 정합하도록 claude 세션을 top-level + UUID 하위폴더(session-id 폴더)까지 스캔하고 `subagents` 폴더는 제외. 현재 임계 초과 nested 파일은 0이라 동작 변화는 없지만 "인덱서와 정합" 주장을 코드로 맞춤.
