@@ -7,6 +7,10 @@
 
 ## Unreleased
 
+* **Injection-strip hardening across injected skill shell snippets.** `v2026.6.19`를 실제로 컷하던 중, SKILL.md/command `.md` 안의 쉘 스니펫이 에이전트 컨텍스트로 주입될 때 하네스가 **bare `$N` 위치 파라미터**(`$1`/`$2`…)를 빈 문자열로 strip한다는 걸 발견(`${...}`/`$(...)`/`$word`는 생존). 깨진 곳을 전수 수정: `tag-release`의 CHANGELOG heading 체크를 `awk '$1=="##" && $2==tag'` → line-anchored `grep -qE "^## $TAG([[:space:]]|$)"`로 교체(`### `/줄 중간/탭 suffix 오탐까지 차단), `emacs`·`agenda`·`/mend`의 `ec()` emacsclient 헬퍼를 `"$1"` → `"${1}"`로 교체. `.sh`/`.py` 스크립트는 직접 실행이라 무관. GPT 공동검토(`20260619T124915-a4a02a`)로 grep 오탐과 stale 카운트 지적 반영.
+
+* **`session-recap` Claude nested-scan parity.** andenken `scanClaudeDir`와 정합하도록 claude 세션을 top-level + UUID 하위폴더(session-id 폴더)까지 스캔하고 `subagents` 폴더는 제외. 현재 임계 초과 nested 파일은 0이라 동작 변화는 없지만 "인덱서와 정합" 주장을 코드로 맞춤.
+
 ## v2026.6.19 — Plane 이관 스킬 + 세션 코퍼스 정렬
 
 ### Skills / commands
@@ -17,7 +21,7 @@
 
 * **New `/mend` command — 가든 노트 형식 일관성 수선 워크플로.** 기존 `~/org/` 노트를 PROTOCOL canonical shape에 맞추는 의식(섹션 통일·얼굴 정비·denote front-matter rename·ID/역링크/히스토리 보존).
 
-* **`session-recap` corpus filters aligned with andenken `session-indexer.ts` (0d4432b).** recap이 실제 작업 세션만 떠올리도록 tmp/probe 프로젝트 디렉토리 제외, 300KB 이하 세션 제외(`size > MIN`, `--min-kb 0` 탈출구), pi는 garden-native 파일명(`_YYYYMMDDTHHMMSS-<6hex>`)만(구형 `_uuid`/`_delegate`/`_entwurf` 제외, claude는 항상 UUID라 면제). 기본 `--source`를 하네스-매칭(Claude Code=claude, 그 외 pi)으로 바꿔 같은 하네스의 직전 세션이 잡힌다. 코퍼스 카운트 검증: pi 94, claude 282.
+* **`session-recap` corpus filters aligned with andenken `session-indexer.ts` (0d4432b).** recap이 실제 작업 세션만 떠올리도록 tmp/probe 프로젝트 디렉토리 제외, 300KB 이하 세션 제외(`size > MIN`, `--min-kb 0` 탈출구), pi는 garden-native 파일명(`_YYYYMMDDTHHMMSS-<6hex>`)만(구형 `_uuid`/`_delegate`/`_entwurf` 제외, claude는 항상 UUID라 면제). 기본 `--source`를 하네스-매칭(Claude Code=claude, 그 외 pi)으로 바꿔 같은 하네스의 직전 세션이 잡힌다. andenken 인덱서와 동일 path set으로 좁혀짐을 검증(절대 카운트는 라이브 세션이 300KB 임계를 넘으며 변동하므로 박지 않는다).
 
 * **`jiracli` gained Confluence 페이지 생성/갱신/삭제** via `confluence_publish.py`.
 

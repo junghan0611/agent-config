@@ -144,6 +144,8 @@ def find_session_files(
     - tmp/probe 프로젝트 디렉토리 제외 (양 런타임)
     - 크기 `> min_kb*1024` 만 통과 (min_kb=0 이면 비어있지 않은 파일 전부)
     - pi 는 garden-native 파일명만 (구형 _uuid/_delegate/_entwurf 제외); claude 미적용
+    - claude 는 top-level + UUID 하위폴더(session-id 폴더)까지 스캔, `subagents` 폴더 제외
+      (andenken scanClaudeDir 와 정합). pi 는 flat 구조라 top-level 만.
     """
     min_bytes = min_kb * 1024
     results = []
@@ -162,9 +164,20 @@ def find_session_files(
             if project and project != proj:
                 continue
 
-            for f in subdir.iterdir():
-                if f.suffix != ".jsonl":
-                    continue
+            # 후보 jsonl: top-level 항상. claude 는 UUID 하위폴더도(subagents 제외).
+            candidates = [f for f in subdir.iterdir() if f.suffix == ".jsonl"]
+            if src == "claude":
+                for entry in subdir.iterdir():
+                    if not entry.is_dir() or entry.name == "subagents":
+                        continue
+                    try:
+                        candidates.extend(
+                            f for f in entry.iterdir() if f.suffix == ".jsonl"
+                        )
+                    except OSError:
+                        continue
+
+            for f in candidates:
                 if src == "pi" and not _is_garden_native_pi_file(f.name):
                     continue
                 try:

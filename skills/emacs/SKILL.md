@@ -8,7 +8,7 @@ description: "Emacs daemon — org manipulation, denote notes, citar bibliograph
 ## Connect
 
 ```bash
-ec() { emacsclient -s "${PI_EMACS_AGENT_SOCKET:-server}" --eval "${1}"; }  # agent work (${1}, not $1 — bare positionals get stripped when this skill is injected)
+ec() { emacsclient -s "${PI_EMACS_AGENT_SOCKET:-server}" --eval "${1}"; }  # agent work (${1}, not a bare positional — those get stripped when this skill is injected)
 eu() { emacsclient -s user --no-wait "$@"; }  # show file to user
 ```
 
