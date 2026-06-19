@@ -136,18 +136,23 @@ def get_sessions_dirs(source: str = "all") -> list[tuple[Path, str]]:
 
 
 def find_session_files(
-    source: str = "all", project: str | None = None, min_kb: int = DEFAULT_MIN_KB
+    source: str = "all", project: str | None = None
 ) -> list[tuple[float, Path, str, str]]:
     """(mtime, path, project_name, source) 목록을 최신순 반환.
 
-    andenken 코퍼스 정책 적용:
+    **구조 필터만** 적용 (크기 필터는 호출자가 skip 후 적용 — 아래 설명).
     - tmp/probe 프로젝트 디렉토리 제외 (양 런타임)
-    - 크기 `> min_kb*1024` 만 통과 (min_kb=0 이면 비어있지 않은 파일 전부)
+    - 비어있지 않은 파일 전부 (size > 0)
     - pi 는 garden-native 파일명만 (구형 _uuid/_delegate/_entwurf 제외); claude 미적용
     - claude 는 top-level + UUID 하위폴더(session-id 폴더)까지 스캔, `subagents` 폴더 제외
       (andenken scanClaudeDir 와 정합). pi 는 flat 구조라 top-level 만.
+
+    크기 필터(`--min-kb`)를 여기서 적용하지 않는 이유: 현재 라이브 세션은 세션 초반엔
+    아직 작아(<300KB) 크기 필터에 걸려 목록에서 빠진다. 그러면 `--skip 1`(현재 세션
+    제외)이 목록 맨 위의 *직전 실작업* 세션을 대신 버려 엉뚱한 세션을 회수한다.
+    "현재 세션 = mtime 최신"은 하네스 무관 불변식이므로, skip 은 구조 필터만 적용한
+    완전한 최신순 목록 위에서 해야 정확하다. 크기 필터는 skip 이후 표시 후보에만 건다.
     """
-    min_bytes = min_kb * 1024
     results = []
     for sessions_dir, src in get_sessions_dirs(source):
         for subdir in sessions_dir.iterdir():
@@ -181,12 +186,12 @@ def find_session_files(
                 if src == "pi" and not _is_garden_native_pi_file(f.name):
                     continue
                 try:
-                    size = f.stat().st_size
+                    st = f.stat()
                 except OSError:
                     continue
-                if size <= min_bytes:
+                if st.st_size <= 0:
                     continue
-                results.append((f.stat().st_mtime, f, proj, src))
+                results.append((st.st_mtime, f, proj, src))
 
     results.sort(key=lambda x: x[0], reverse=True)
     return results
@@ -395,15 +400,22 @@ def main():
     files = find_session_files(
         source=source,
         project=args.project if not args.all_projects else None,
-        min_kb=args.min_kb,
     )
 
     if not files:
         print("세션 파일 없음", file=sys.stderr)
         sys.exit(1)
 
-    # 현재 세션 건너뛰기
+    # 1) 현재 세션 건너뛰기 — 크기 무관 완전 최신순 목록 위에서 (현재 세션은 세션
+    #    초반엔 작아 크기 필터에 걸릴 수 있으므로 skip 을 크기 필터보다 먼저 한다)
     files = files[args.skip:]
+
+    # 2) 표시 후보에만 크기 필터 적용 — probe/test 단편 제거 (andenken 코퍼스 규율)
+    min_bytes = args.min_kb * 1024
+    if min_bytes > 0:
+        files = [t for t in files if t[1].stat().st_size > min_bytes]
+
+    # 3) 최근 N개 세션
     files = files[: args.sessions]
 
     if not files:

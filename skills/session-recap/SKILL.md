@@ -3,24 +3,41 @@ name: session-recap
 description: "직전 세션 요약 추출 — 세션 JSONL에서 핵심 텍스트만 뽑아 빠르게 맥락 복원. '직전에 뭐했지', '이전 세션', '무슨 작업', 'what did I do', 'last session'. raw JSONL read 대신 사용 — 100KB → 4KB로 85% 토큰 절감."
 ---
 
-# session-recap — 세션 요약 추출
+# session-recap — extract a session summary
 
-세션 JSONL에서 user/assistant **텍스트만** 추출한다.
-raw JSONL을 `read`하면 50KB JSON 노이즈가 컨텍스트에 들어가므로 **절대 하지 않는다.**
+Extract **only** user/assistant text from a session JSONL.
+**Never** `read` a raw JSONL directly — it dumps ~50KB of JSON noise into context.
 
-**멀티 하네스 지원**: pi와 Claude Code 세션 모두 처리. **기본 source는 현재 하네스**
-(Claude Code에서 돌면 `claude`, 그 외 pi). 같은 하네스의 세션을 봐야 직전 작업을
-명확히 이어갈 수 있다. `--source`로 override 가능.
+**Multi-harness**: handles both pi and Claude Code sessions. **Default source is the
+current harness** (running under Claude Code → `claude`, otherwise → `pi`). To continue
+prior work cleanly you want the *same* harness's sessions. Override with `--source`.
 
-**코퍼스 필터** (andenken `session-indexer.ts`와 정합 — 0d4432b "tighten corpus to
-garden-native >300KB, drop tmp + legacy"). 세션 임베딩과 동일 규율로 핵심 세션만 본다:
+**Corpus filters** (aligned with andenken `session-indexer.ts` — 0d4432b "tighten
+corpus to garden-native >300KB, drop tmp + legacy"). Same discipline as session
+embeddings, so recap sees only substantive sessions. Two kinds, applied at different
+points:
 
-- **tmp 디렉토리 제외** (양 런타임) — pi `--tmp…--` / claude `-tmp…` scratch.
-- **300KB 이하 제외** (양 런타임) — `size > 300KB`. test/probe 단편 컷. `--min-kb 0`으로 끔.
-- **pi garden-native 파일명만** — `_YYYYMMDDTHHMMSS-<6hex>.jsonl` (0.9.0+). 구형 종
-  (`_<uuid>`/`_delegate-`/`_entwurf-`)은 제외. claude는 항상 UUID라 파일명 필터 비적용.
+- **Structural filters** (applied *before* skip):
+  - **tmp dirs excluded** (both runtimes) — pi `--tmp…--` / claude `-tmp…` scratch.
+  - **pi garden-native filename only** — `_YYYYMMDDTHHMMSS-<6hex>.jsonl` (0.9.0+). Legacy
+    forms (`_<uuid>`/`_delegate-`/`_entwurf-`) excluded. claude is always UUID, so no
+    filename filter.
+- **Size filter** `--min-kb 300` (applied *after* skip): drops short test/probe
+  fragments from what's *shown*. Disable with `--min-kb 0`.
 
-이 스킬은 `/recall`의 저수준 extractor다. 단일 repo/session 복원은 여기서 처리하고, cross-project 회신·day-query·journal `§`/llmlog까지 엮는 multi-axis recall은 `commands/recall.md`를 따른다. (이전 슬래시명 `/recap`은 Claude Code 내장과 충돌해 2026-05-12 rename.)
+**Why size filter runs after skip (bug fix 2026-06-19).** `--skip 1` drops the current
+live session, identified by the invariant **current session = newest mtime** (true on
+any harness — it's the file being written right now). Early in a session that file is
+still small (<300KB). If the size filter ran first it would drop the current session
+from the list, so `--skip 1` would then drop the most-recent *real* session instead and
+recap would surface a stale one. So: structural filters → skip on the full recency list
+→ size filter on the survivors. This is harness-agnostic; no per-harness session-id
+plumbing is needed.
+
+This skill is the low-level extractor under `/recall`. Single repo/session restore lives
+here; multi-axis recall (cross-project, day-query, journal `§`/llmlog) follows
+`commands/recall.md`. (The old slash name `/recap` collided with a Claude Code built-in
+and was renamed 2026-05-12.)
 
 ## API
 
@@ -37,110 +54,118 @@ python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
 | `-a, --all-projects` | - | Include all projects |
 | `--commits` | off | Include git commit commands |
 | `--cost` | off | Session cost summary |
-| `--skip N` | 1 | Skip latest N sessions (current) |
+| `--skip N` | 1 | Skip newest N sessions (the current one) |
 | `-f, --format` | text | `text` or `json` |
-| `--source` | 현재 하네스 | `pi`, `claude`, `all`. 미지정 시 Claude Code=claude, 그 외=pi |
-| `--min-kb N` | 300 | 세션 크기 하한, `size > N*KB`. `0`이면 끔(작은 직전 세션 회수) |
+| `--source` | current harness | `pi`, `claude`, `all`. Unset → Claude Code=claude, else pi |
+| `--min-kb N` | 300 | Size floor, `size > N*KB`. `0` disables (recover a small recent session) |
 
 ## Examples
 
 ```bash
-# 직전 세션
+# last session
 python3 {baseDir}/scripts/session-recap.py -p agent-config -m 15
 
-# 이전 세션 요약 + 비용
+# previous session + cost
 python3 {baseDir}/scripts/session-recap.py -p dictcli -m 20 --cost
 
-# 전체 최근 세션
+# all recent sessions
 python3 {baseDir}/scripts/session-recap.py -a -m 10
 
-# 최근 3개 세션
+# last 3 sessions
 python3 {baseDir}/scripts/session-recap.py -p notes -s 3 -m 10
 
-# 커밋 목록
+# commit list
 python3 {baseDir}/scripts/session-recap.py -p nixos-config --commits
 
-# pi 세션만
+# pi sessions only
 python3 {baseDir}/scripts/session-recap.py -p agent-config -m 15 --source pi
 
-# Claude Code 세션만
+# Claude Code sessions only
 python3 {baseDir}/scripts/session-recap.py -p agent-config -m 15 --source claude
 
-# 양쪽 통합 (기본은 현재 하네스만 — all로 둘 다)
+# both harnesses (default is current harness only)
 python3 {baseDir}/scripts/session-recap.py -p agent-config -m 15 --source all
 
-# 직전 세션이 작아(<300KB) 안 잡힐 때 — 크기 필터 끄기
+# recent session too small (<300KB) to pass the filter — disable size filter
 python3 {baseDir}/scripts/session-recap.py -p agent-config -m 15 --min-kb 0
 ```
 
-## -p 프로젝트명 결정
+## Choosing `-p` (project name)
 
-기본 규칙은 **CWD의 마지막 디렉토리명**이다.
-프로젝트명 = 리포 디렉토리명 (~/repos/gh/**agent-config** → `agent-config`).
+Default rule: **the last directory component of CWD**.
+project = repo directory name (~/repos/gh/**agent-config** → `agent-config`).
 
 | CWD | `-p` value |
 |-----|-----------|
 | `~/repos/gh/agent-config` | `agent-config` |
 | `~/repos/work/some-proj` | `some-proj` |
-| `/home/junghan` (홈) | `home` |
+| `/home/junghan` (home) | `home` |
 
-### 중요: CWD 규칙보다 사용자 의도가 우선
+### User intent overrides the CWD rule
 
-다음 경우는 CWD basename을 기계적으로 쓰지 말고, **사용자가 가리킨 맥락의 프로젝트명**을 넣는다.
+In these cases don't use the CWD basename mechanically — use **the project of the
+context the user pointed at**:
 
 - "home 디렉토리 분신", "Entwurf", "분신 기록" → `-p home`
-- "COS" / 비서실장 세션 → `-p cos`
-- 특정 리포 담당자 세션을 명시 → 그 리포명 (`andenken`, `notes`, `pi-shell-acp` 등)
+- "COS" / 비서실장 session → `-p cos`
+- a named repo steward session → that repo name (`andenken`, `notes`, `pi-shell-acp`, …)
 
-확실하지 않으면:
+When unsure:
 
 ```bash
 ls -lt ~/.pi/agent/sessions/ | head
 ```
 
-로 최근 세션 디렉토리를 보고, **사용자가 말한 작업명과 최근 세션명이 일치하는지 확인**한다.
+inspect the recent session dirs and **confirm the user's stated task matches a recent
+session name**.
 
-`-p` 없으면 전체 프로젝트에서 최신 1개 — 다른 리포 세션이 나올 수 있다.
+Without `-p`, you get the single newest session across all projects — possibly a
+different repo's.
 
-## Workflow: "직전에 뭐했지?"
+## Workflow: "what was I just doing?"
 
 ```
-Step 0: 사용자가 말한 맥락이 home/Entwurf/COS/특정 repo 담당자인지 먼저 판별
+Step 0: First decide if the user means home / Entwurf / COS / a specific repo steward.
 Step 1: python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
-        (source 미지정 → 현재 하네스 자동: Claude Code면 claude, pi면 pi)
-Step 2: 출력 헤더(`═══ project [source] (file...) ═══`)와 첫 1~3개 메시지로 대상 세션이 맞는지 검증
-Step 3: 결과가 비었거나 짧으면 → --min-kb 0 (작은 직전 세션) → --source all → -s 3 --skip 0
-Step 4: 검증된 출력만 요약 답변
+        (source unset → current harness auto: claude under Claude Code, else pi)
+Step 2: Verify the target via the header (`═══ project [source] (file...) ═══`) and the
+        first 1–3 messages.
+Step 3: If empty or too short → --min-kb 0 (small recent session) → --source all →
+        -s 3 --skip 0
+Step 4: Summarize from the verified output only.
 ```
 
 ## Escalation: multi-axis recall
 
-다음 경우는 session-recap만으로 끝내지 말고 `/recall` 프로토콜로 확장한다.
+Don't stop at session-recap — escalate to the `/recall` protocol when:
 
-- 조회된 세션이 1턴 entwurf / smoke / “Reply OK”처럼 짧다.
-- 사용자가 “어제 전체”, “오늘 이어서”, “기억축”, “compact 없이”, “나를 리콜”을 말한다.
-- 현재 repo 세션은 맞지만 agent-config/andenken/voscli 등 cross-project 회신이 중요해 보인다.
-- journal의 `§repo` 마커나 llmlog가 작업의 본류일 가능성이 있다.
+- The retrieved session is short (1-turn entwurf / smoke / "Reply OK").
+- The user says "어제 전체", "오늘 이어서", "기억축", "compact 없이", "나를 리콜".
+- The current repo session is right but cross-project recall (agent-config / andenken /
+  voscli …) looks important.
+- A journal `§repo` marker or llmlog may be the real spine of the work.
 
-확장 순서: `session-recap` → 결과에서 proper noun 추출 → `session_search` 2단계 → 필요 시 `day-query` (`gitcli --summary`, `denotecli day`, `lifetract`, calendar) → 본 축/안 본 축을 함께 보고.
+Escalation order: `session-recap` → extract proper nouns from the output →
+two-pass `session_search` → if needed `day-query` (`gitcli --summary`, `denotecli day`,
+`lifetract`, calendar) → report both the axis you saw and the one you didn't.
 
-**왜 하네스-매칭 기본값?** 직전 작업을 이어가려면 *같은 하네스*의 세션을 봐야 한다.
-Claude Code에서 돌면 claude 세션을, pi에서 돌면 pi 세션을 본다(기본값 자동). 과거엔
-Claude Code가 1~2 메시지짜리 짧은 세션을 많이 만들어 `pi` 우선을 권했지만, 이제
-**300KB 이하 제외 필터**가 그 단편을 걸러내므로 claude 세션도 실질 작업 기록만 남는다.
-다른 하네스 기록까지 보려면 `--source all`.
+**Why harness-matched default?** To continue prior work you must read the *same*
+harness's sessions (claude under Claude Code, pi under pi — auto). Historically Claude
+Code produced many 1–2 message stubs, which argued for preferring `pi`; the **>300KB
+size filter** now removes those stubs, so claude sessions also retain only real work.
+Use `--source all` to see across harnesses.
 
-## 답변 규칙 (중요)
+## Answer rules (important)
 
-요약 답변에는 최소한 다음 두 줄을 포함한다.
+A summary answer must include at least these two lines:
 
 - `조회 프로젝트: <PROJECT>`
-- `대상 세션: ═══ ... ═══` 의 헤더 정보
+- `대상 세션: ═══ ... ═══` (the header line)
 
-그리고 요약 내용은 **반드시 실제 출력 텍스트에만 근거**해야 한다.
-기억, 다른 세션, 비슷한 작업을 섞어 추론 요약하지 말 것.
+And the summary must be grounded **strictly in the actual output text**. Do not blend in
+memory, other sessions, or similar-looking work.
 
-### 권장 응답 템플릿
+### Recommended response template
 
 ```text
 조회 프로젝트: home
@@ -152,24 +177,26 @@ Claude Code가 1~2 메시지짜리 짧은 세션을 많이 만들어 `pi` 우선
 - ...
 ```
 
-헤더를 먼저 적으면, **지금 무엇을 보고 말하는지**가 답변에 고정된다.
+Writing the header first pins **what you are actually looking at** into the answer.
 
-### 기대 주제와 출력이 다를 때
+### When the output differs from the expected topic
 
-사용자가 기대한 주제(예: denote wrapper)가 출력에 없으면, 억지로 이어붙여 요약하지 말고 먼저 이렇게 말한다.
+If the expected topic (e.g. a denote wrapper) isn't in the output, don't force-fit it —
+say so first:
 
 - `현재 조회된 세션에는 denote wrapper 맥락이 없습니다.`
 - `지금 출력은 모델 확인/인사 세션입니다.`
 - `원하면 -p home 또는 -s 3으로 다시 확인하겠습니다.`
 
-즉, **불일치는 실패가 아니라 신호**다. 먼저 보고하고, 그 다음 범위를 넓힌다.
+A mismatch is a **signal, not a failure**. Report it, then widen scope.
 
-**하지 말 것:**
-- ❌ `read`로 세션 JSONL 직접 읽기 (50KB JSON 노이즈)
-- ❌ `session_search` 후 원본 JSONL 확인 (불필요한 중복)
-- ❌ 결과가 안 나온다고 같은 명령어를 옵션만 바꿔 5회 이상 반복
-- ❌ 스크립트 출력 헤더를 확인하지 않고 기억에 의존해 요약
-- ❌ 사용자가 말한 맥락(home/Entwurf/COS/특정 repo 담당자)을 무시하고 CWD basename만 기계적으로 사용
+**Do not:**
+- ❌ `read` the raw session JSONL (50KB JSON noise)
+- ❌ Re-check the raw JSONL after `session_search` (redundant)
+- ❌ Re-run the same command with tweaked flags 5+ times when empty
+- ❌ Summarize from memory without checking the output header
+- ❌ Use the CWD basename mechanically and ignore the user's stated context
+     (home / Entwurf / COS / a specific repo steward)
 
 ## Cost
 
