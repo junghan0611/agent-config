@@ -7,6 +7,34 @@
 
 ## Unreleased
 
+## v2026.6.19 — Plane 이관 스킬 + 세션 코퍼스 정렬
+
+### Skills / commands
+
+* **New `plane` skill — self-hosted Plane(프로젝트 관리, Jira/Confluence 대체) REST 워크벤치 + Atlassian→Plane 이관 도구.** stdlib-only(의존성 0) 클라이언트로 프로젝트/work item/사이클/모듈/코멘트/멤버/상태/라벨 CRUD를 덮고, `jira_to_plane`(external_id·created_at backdate·created_by·2-pass parent·429 retry), `confluence_to_md`(Confluence 스페이스 → Markdown 트리), `md_to_plane_pages`, 그리고 `migrate_all` 오케스트레이터로 전량 풀(pull)을 묶는다. urllib 기본 UA가 Cloudflare 1010에 막히던 문제와 Confluence 스페이스 목록이 body-expand 25-cap에서 잘리던 페이지네이션 버그를 수정. **1차 이관 실측**: Jira work items 2,316건 / 10 프로젝트 / 실패 0; 문서(pages) 이관은 s3i에서 진행(핸드오프는 `NEXT--plane-migration.md`).
+
+* **New `next-handoff` skill — NEXT 습관을 tag-release와 분리.** 세션 종료/중단 때 `NEXT.md`를 부트 섹터로 조이는 습관용 호출면. `tag-release`는 CHANGELOG/tag 의식으로 떼어내 명시 요청 때만 읽도록 경계를 박았다. 실제 사례(bridge infra / vendor SDK handoff)를 반영한 `Stem + detour mode` — 줄기(stem)·detour·return condition을 명시해 detour가 줄기를 대체하지 않게 한다.
+
+* **New `/mend` command — 가든 노트 형식 일관성 수선 워크플로.** 기존 `~/org/` 노트를 PROTOCOL canonical shape에 맞추는 의식(섹션 통일·얼굴 정비·denote front-matter rename·ID/역링크/히스토리 보존).
+
+* **`session-recap` corpus filters aligned with andenken `session-indexer.ts` (0d4432b).** recap이 실제 작업 세션만 떠올리도록 tmp/probe 프로젝트 디렉토리 제외, 300KB 이하 세션 제외(`size > MIN`, `--min-kb 0` 탈출구), pi는 garden-native 파일명(`_YYYYMMDDTHHMMSS-<6hex>`)만(구형 `_uuid`/`_delegate`/`_entwurf` 제외, claude는 항상 UUID라 면제). 기본 `--source`를 하네스-매칭(Claude Code=claude, 그 외 pi)으로 바꿔 같은 하네스의 직전 세션이 잡힌다. 코퍼스 카운트 검증: pi 94, claude 282.
+
+* **`jiracli` gained Confluence 페이지 생성/갱신/삭제** via `confluence_publish.py`.
+
+* **`bibcli` skill leads with `save --sync --json`** as the one-shot citation recovery path.
+
+### Identity / docs
+
+* **Session End Protocol rewritten in English + per-lane `NEXT--<branch>.md` rule.** main은 branch-lane NEXT 파일을 들고 가지 않으며, 브랜치 종료 전 promote 후 삭제하는 규칙을 명문화. 글로벌 instructions도 압축(condense).
+
+* **`tag-release` skill streamlined** — NEXT → CHANGELOG CalVer snapshot 흐름을 정리.
+
+### Config / fixes
+
+* **Server pi-shell-acp now points at the local v2 repo** instead of the git install, with meta-bridge plugin + keyset registered in server settings; `lastChangelogVersion` bumped to 0.79.6.
+
+* **Fix — `go-to-bed` quiet hours shortened to 5am.**
+
 ## v2026.6.6
 
 * **`~/.claude/settings.json` is no longer symlinked on workstations — it is merged.** The live file is co-owned with pi-shell-acp's meta-bridge installer (disjoint keysets), and a symlink is whole-file ownership: the next writer's atomic rename silently clobbers the other side, which is why a stale meta-bridge block kept resurfacing as a dirty working tree. `run.sh setup` now injects only the agent-config keyset via a new `merge_settings` helper (`jq` `existing * fragment` — recursive object merge, array replace, legacy symlink auto-dereferenced, atomic write, idempotent). The former `claude/settings.json` is renamed to `claude/settings.fragment.json` and carries agent-config keys only. Server devices have no meta-bridge, so they stay a single-owner symlink to `claude/settings.server.json`.
