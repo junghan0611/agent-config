@@ -119,7 +119,7 @@ If another agent needs to pick something up, use the Entwurf task hub surface (`
 ### Preferred: unified agenda API via Emacs
 
 ```bash
-ec() { emacsclient -s server --eval "$1"; }
+ec() { emacsclient -s server --eval "${1}"; }   # ${1}, not $1 — bare positionals get stripped when this skill is injected
 ec '(agent-org-agenda-day)'          # today's integrated timeline
 ec '(agent-org-agenda-week)'         # this week
 ec '(agent-org-agenda-todos)'        # all Entwurf TODO/NEXT grouped by project
