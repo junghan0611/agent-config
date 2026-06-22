@@ -1,6 +1,6 @@
 ---
 name: session-recap
-description: "직전 세션 요약 추출 — 세션 JSONL에서 핵심 텍스트만 뽑아 빠르게 맥락 복원. '직전에 뭐했지', '이전 세션', '무슨 작업', 'what did I do', 'last session'. raw JSONL read 대신 사용 — 100KB → 4KB로 85% 토큰 절감."
+description: "Extract a compact recap from previous pi or Claude Code session JSONL without reading raw JSONL. Use for 'last session', 'what was I doing', continuity restore, and pi-internal GPT vs ACP recall via --source pi --harness gpt|acp. Preserves the skip-before-size edge case; retry with --min-kb 0 when a real recent session is below the default size floor."
 ---
 
 # session-recap — extract a session summary
@@ -11,19 +11,26 @@ Extract **only** user/assistant text from a session JSONL.
 **Multi-harness**: handles both pi and Claude Code sessions. **Default source is the
 current harness** (running under Claude Code → `claude`, otherwise → `pi`). To continue
 prior work cleanly you want the *same* harness's sessions. Override with `--source`.
+Inside `--source pi`, use `--harness gpt|acp|all` to distinguish pi native GPT/Codex
+from pi-shell-acp Claude/Opus. `--source claude` still means Claude Code only.
 
 **Corpus filters** (aligned with andenken `session-indexer.ts` — 0d4432b "tighten
 corpus to garden-native >300KB, drop tmp + legacy"). Same discipline as session
-embeddings, so recap sees only substantive sessions. Two kinds, applied at different
-points:
+embeddings, so recap usually sees substantive sessions instead of probes. Three filters
+exist, and their order is part of the contract:
 
 - **Structural filters** (applied *before* skip):
   - **tmp dirs excluded** (both runtimes) — pi `--tmp…--` / claude `-tmp…` scratch.
   - **pi garden-native filename only** — `_YYYYMMDDTHHMMSS-<6hex>.jsonl` (0.9.0+). Legacy
     forms (`_<uuid>`/`_delegate-`/`_entwurf-`) excluded. claude is always UUID, so no
     filename filter.
-- **Size filter** `--min-kb 300` (applied *after* skip): drops short test/probe
-  fragments from what's *shown*. Disable with `--min-kb 0`.
+- **Pi harness filter** `--harness gpt|acp|all` (applied *after* skip, before size):
+  `gpt` = pi native OpenAI/Codex (`openai-codex` / `gpt-*`), `acp` = pi-shell-acp
+  Claude (`pi-shell-acp` / `claude-*`). Unknown pi sessions pass only with `all`.
+- **Size filter** `--min-kb 300` (applied *after* skip + harness): drops short test/probe
+  fragments from what's *shown*. This is a heuristic, not truth: a real GPT/Codex
+  session can be below 300KB. Disable with `--min-kb 0` when the expected session is
+  missing or the header looks stale.
 
 **Why size filter runs after skip (bug fix 2026-06-19).** `--skip 1` drops the current
 live session, identified by the invariant **current session = newest mtime** (true on
@@ -31,8 +38,13 @@ any harness — it's the file being written right now). Early in a session that 
 still small (<300KB). If the size filter ran first it would drop the current session
 from the list, so `--skip 1` would then drop the most-recent *real* session instead and
 recap would surface a stale one. So: structural filters → skip on the full recency list
-→ size filter on the survivors. This is harness-agnostic; no per-harness session-id
-plumbing is needed.
+→ optional pi harness filter → size filter on the survivors.
+
+**Size-floor edge case.** If `--source pi --harness gpt` (or `acp`) returns no session or
+an older-than-expected header, do **not** switch project names or read raw JSONL. First
+retry the same command with `--min-kb 0` (or a lower floor such as `--min-kb 100`). The
+300KB default is there to suppress probes; it is allowed to hide a real but shorter
+conversation.
 
 This skill is the low-level extractor under `/recall`. Single repo/session restore lives
 here; multi-axis recall (cross-project, day-query, journal `§`/llmlog) follows
@@ -57,7 +69,8 @@ python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
 | `--skip N` | 1 | Skip newest N sessions (the current one) |
 | `-f, --format` | text | `text` or `json` |
 | `--source` | current harness | `pi`, `claude`, `all`. Unset → Claude Code=claude, else pi |
-| `--min-kb N` | 300 | Size floor, `size > N*KB`. `0` disables (recover a small recent session) |
+| `--harness` | all | pi-internal filter: `gpt`, `acp`, `all`. Use with `--source pi` or `all` |
+| `--min-kb N` | 300 | Size floor, `size > N*KB`. `0` disables; use it when a real recent GPT/ACP session is below the default floor |
 
 ## Examples
 
@@ -79,6 +92,12 @@ python3 {baseDir}/scripts/session-recap.py -p nixos-config --commits
 
 # pi sessions only
 python3 {baseDir}/scripts/session-recap.py -p agent-config -m 15 --source pi
+
+# pi native GPT/Codex sessions only
+python3 {baseDir}/scripts/session-recap.py -p pi-shell-acp -m 15 --source pi --harness gpt
+
+# pi-shell-acp Claude/Opus sessions only (not Claude Code)
+python3 {baseDir}/scripts/session-recap.py -p pi-shell-acp -m 15 --source pi --harness acp
 
 # Claude Code sessions only
 python3 {baseDir}/scripts/session-recap.py -p agent-config -m 15 --source claude
@@ -128,10 +147,10 @@ different repo's.
 Step 0: First decide if the user means home / Entwurf / COS / a specific repo steward.
 Step 1: python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
         (source unset → current harness auto: claude under Claude Code, else pi)
-Step 2: Verify the target via the header (`═══ project [source] (file...) ═══`) and the
-        first 1–3 messages.
-Step 3: If empty or too short → --min-kb 0 (small recent session) → --source all →
-        -s 3 --skip 0
+Step 2: Verify the target via the header (`═══ project [source] (file...) ═══` or
+        `═══ project [pi:gpt|pi:acp] (...) ═══`) and the first 1–3 messages.
+Step 3: If empty, stale, or too short → rerun the SAME axis with --min-kb 0 first
+        (small recent session), then widen to --source all → -s 3 --skip 0
 Step 4: Summarize from the verified output only.
 ```
 
@@ -153,7 +172,8 @@ two-pass `session_search` → if needed `day-query` (`gitcli --summary`, `denote
 harness's sessions (claude under Claude Code, pi under pi — auto). Historically Claude
 Code produced many 1–2 message stubs, which argued for preferring `pi`; the **>300KB
 size filter** now removes those stubs, so claude sessions also retain only real work.
-Use `--source all` to see across harnesses.
+Use `--source all` to see across harnesses. Use `--source pi --harness gpt` when the
+operator says "GPT session" and means pi native GPT/Codex, not a project named `gpt`.
 
 ## Answer rules (important)
 
@@ -170,6 +190,7 @@ memory, other sessions, or similar-looking work.
 ```text
 조회 프로젝트: home
 대상 세션: ═══ home [pi] (2026-04-19T23-53-12-415Z_...) ═══
+# or: 대상 세션: ═══ pi-shell-acp [pi:gpt] (...) ═══
 
 요약:
 - ...

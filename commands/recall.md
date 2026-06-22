@@ -46,11 +46,25 @@ ls -lt ~/.pi/agent/sessions/ | head
 python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15 --source pi
 ```
 
+When the operator says “GPT session” inside pi, do not treat `gpt` as a project name.
+Use the pi-internal harness axis:
+
+```bash
+python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15 --source pi --harness gpt
+```
+
+Use `--source pi --harness acp` for pi-shell-acp Claude/Opus sessions. `--source claude`
+still means Claude Code sessions. If the expected GPT/ACP session is missing or the
+header is older than expected, keep the same project/harness axis and retry with
+`--min-kb 0` before widening scope; the default 300KB floor can hide real shorter
+sessions.
+
 Always lead your reply with this header:
 
 ```text
 조회 프로젝트: <PROJECT>
 대상 세션: ═══ <project> [pi] (...) ═══
+# or: 대상 세션: ═══ <project> [pi:gpt] (...) ═══
 ```
 
 Immediately after §1 output, glance at the cheapest conscious markers:
@@ -82,6 +96,13 @@ The objective form matters because the text-pattern list will never be exhaustiv
 
 ```bash
 python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 20 -s 5 --skip 0 --source all
+```
+
+For pi-only model-axis expansion:
+
+```bash
+python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 20 -s 5 --skip 0 --source pi --harness gpt --min-kb 0
+python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 20 -s 5 --skip 0 --source pi --harness acp --min-kb 0
 ```
 
 ## 3. Semantic recall — shift axis, do not narrow

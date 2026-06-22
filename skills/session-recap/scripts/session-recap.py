@@ -17,6 +17,7 @@ Usage:
   session-recap.py --cost              # 세션별 비용 요약
   session-recap.py --source pi         # pi 세션만
   session-recap.py --source claude     # Claude Code 세션만
+  session-recap.py --source pi --harness gpt  # pi native GPT/Codex 세션만
 """
 
 import argparse
@@ -133,6 +134,47 @@ def get_sessions_dirs(source: str = "all") -> list[tuple[Path, str]]:
     if source in ("all", "claude") and claude_dir.exists():
         dirs.append((claude_dir, "claude"))
     return dirs
+
+
+def detect_pi_harness(filepath: Path, max_lines: int = 200) -> str:
+    """Classify a pi session by assistant message metadata.
+
+    pi session records do not carry model/provider in the top-level session row.
+    The first assistant message usually has message.api/provider/model:
+    - openai-codex / gpt-*      → gpt
+    - pi-shell-acp / claude-*   → acp
+    Unknown sessions pass only when --harness=all.
+    """
+    try:
+        with open(filepath) as f:
+            for i, line in enumerate(f):
+                if i >= max_lines:
+                    break
+                try:
+                    d = json.loads(line.strip())
+                except (json.JSONDecodeError, ValueError):
+                    continue
+
+                msg = d.get("message", {})
+                if not isinstance(msg, dict):
+                    msg = {}
+
+                role = msg.get("role", "")
+                if role != "assistant":
+                    continue
+
+                api = str(msg.get("api") or d.get("api") or "").lower()
+                provider = str(msg.get("provider") or d.get("provider") or "").lower()
+                model = str(msg.get("model") or d.get("model") or "").lower()
+
+                if "openai-codex" in api or "openai-codex" in provider or model.startswith("gpt-"):
+                    return "gpt"
+                if "pi-shell-acp" in api or "pi-shell-acp" in provider or model.startswith("claude-"):
+                    return "acp"
+    except OSError:
+        return "unknown"
+
+    return "unknown"
 
 
 def find_session_files(
@@ -324,7 +366,11 @@ def format_output(sessions_data: list[dict], output_format: str) -> str:
         data = sd["data"]
         stats = data["stats"]
 
-        source_label = f" [{meta['source']}]" if meta.get("source") else ""
+        source = meta.get("source")
+        if source == "pi" and meta.get("harness"):
+            source_label = f" [pi:{meta['harness']}]"
+        else:
+            source_label = f" [{source}]" if source else ""
         lines.append(f"═══ {meta['project']}{source_label} ({meta['file'][:40]}...) ═══")
         lines.append(f"  기간: {_fmt_ts(stats.get('start', ''))} → {_fmt_ts(stats.get('end', ''))}")
         if "cost" in stats:
@@ -388,6 +434,11 @@ def main():
              "pi=pi 세션만, claude=Claude Code 세션만, all=양쪽"
     )
     parser.add_argument(
+        "--harness", choices=["gpt", "acp", "all"], default="all",
+        help="pi 내부 하네스 필터. gpt=pi native OpenAI/Codex, "
+             "acp=pi-shell-acp Claude, all=필터 없음. Claude Code source 의미는 바꾸지 않음"
+    )
+    parser.add_argument(
         "--min-kb", type=int, default=DEFAULT_MIN_KB,
         help=f"세션 크기 하한 KB, `size > min` (기본: {DEFAULT_MIN_KB}). "
              "0이면 크기 필터 끔 (직전 작은 세션도 회수)"
@@ -410,20 +461,34 @@ def main():
     #    초반엔 작아 크기 필터에 걸릴 수 있으므로 skip 을 크기 필터보다 먼저 한다)
     files = files[args.skip:]
 
-    # 2) 표시 후보에만 크기 필터 적용 — probe/test 단편 제거 (andenken 코퍼스 규율)
+    # 2) pi 내부 하네스 필터 — 현재 세션 skip 이후 적용해야 최신 GPT/ACP가
+    #    --skip 1 로 잘못 빠지지 않는다. Claude Code source 의미는 변경하지 않는다.
+    if args.harness != "all":
+        files = [t for t in files if t[3] == "pi" and detect_pi_harness(t[1]) == args.harness]
+
+    # 3) 표시 후보에만 크기 필터 적용 — probe/test 단편 제거 (andenken 코퍼스 규율)
+    pre_size_count = len(files)
     min_bytes = args.min_kb * 1024
     if min_bytes > 0:
         files = [t for t in files if t[1].stat().st_size > min_bytes]
 
-    # 3) 최근 N개 세션
+    # 4) 최근 N개 세션
     files = files[: args.sessions]
 
     if not files:
-        print("해당하는 세션 없음", file=sys.stderr)
+        if pre_size_count > 0 and args.min_kb > 0:
+            print(
+                f"No matching sessions after --min-kb {args.min_kb}; "
+                "retry the same project/source/harness with --min-kb 0.",
+                file=sys.stderr,
+            )
+        else:
+            print("해당하는 세션 없음", file=sys.stderr)
         sys.exit(1)
 
     sessions_data = []
     for mtime, fpath, proj, src in files:
+        harness = detect_pi_harness(fpath) if src == "pi" else None
         data = extract_messages(
             fpath, args.messages, args.chars, args.commits, args.cost
         )
@@ -433,6 +498,7 @@ def main():
                     "project": proj,
                     "file": fpath.name,
                     "source": src,
+                    "harness": harness,
                     "size_kb": fpath.stat().st_size // 1024,
                     "mtime": datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat(),
                 },
