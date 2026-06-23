@@ -7,6 +7,20 @@
 
 ## Unreleased
 
+## v2026.6.23 — pi-shell-acp → entwurf 컨슈머 cutover
+
+### entwurf rename (consumer cutover)
+
+* **`pi-shell-acp` → `entwurf` 전면 cutover (23 files).** owning repo가 `pi-shell-acp`를 `entwurf`로 rename(코드 S1~S3 + repo/dir/remote)함에 따라, reference consumer인 이 repo의 모든 소비 면을 entwurf로 절단했다. workstation(`pi/settings.json`·`antigravity/mcp_config.json`·`codex/config.toml`) + server(`pi/settings.server.json`·`antigravity/mcp_config.server.json`·`claude/settings.server.json`) 양쪽에서: provider 키 `piShellAcpProvider`→`entwurfProvider`, MCP bridge 서버명/경로 `pi-tools-bridge`→`entwurf-bridge`(tool id `mcp__pi-tools-bridge__*`→`mcp__entwurf-bridge__*`), 로컬 클론 경로 `~/repos/gh/pi-shell-acp`→`~/repos/gh/entwurf`, install spec `git:github.com/junghan0611/pi-shell-acp`→`…/entwurf`, meta-bridge `.assembled` 경로를 일괄 전환. `run.sh`의 자체 셸 변수(`PI_SHELL_ACP_{DIR,INSTALL_SPEC,TRACKING_REF}`→`ENTWURF_{REPO_DIR,INSTALL_SPEC,TRACKING_REF}` — `ENTWURF_DIR` 의미충돌 회피로 `REPO_DIR`)와 함수(`pi_shell_acp_dir`→`entwurf_repo_dir`)도 정리. KEEP 토큰(`pi-telegram`·`pi-extensions`·`pi-mono`·`pi-coding-agent`·`pi-tui`·`PI_KEY`·`PI_SETTINGS`·`PI_SKIP_SKILLS`·`PI_ENTWURF_BOT_TOKEN`(텔레그램 봇))은 불변, `CHANGELOG.md` 0.x 역사 섹션도 보존.
+
+* **`session-recap` historical dual-accept (cutover 정렬).** 과거 세션 transcript는 `provider:"pi-shell-acp"`로 영구 기록돼 있어, `session-recap.py`의 ACP 하네스 감지를 `entwurf` + `pi-shell-acp` 양쪽 수용으로 바꿔 옛 세션 recall을 유지한다. 런타임은 entwurf로 결별(cutover)하되 immutable 과거 데이터는 계속 읽는 consumer 측 historical-reader 정책. `entwurf-peek.py`(live 세션)·`test-discovery.py`(테스트)는 dual-accept 불필요라 전면 entwurf.
+
+### Fixes (baseline 이후)
+
+* **`session-recap` pi harness recall filter.** `--harness gpt|acp` 필터를 추가해 같은 하네스의 직전 세션을 정확히 떠올린다(`gpt`=pi native OpenAI/Codex, `acp`=entwurf Claude). `/recall`이 이 필터를 태운다.
+
+* **`session-recap` size 필터 순서 수정.** `--min-kb` 가 `--skip` 보다 먼저 돌아 작은 현재 세션이 먼저 탈락 → `--skip 1` 이 실제 최신 세션을 떨궈 stale recap을 내던 버그를 고침. 구조 필터(tmp/garden-native명) → skip(full mtime 정렬) → `--min-kb`(생존자) 순으로 재배열.
+
 ## v2026.6.19-fix.1 — injection-strip 하드닝
 
 * **Injection-strip hardening across injected skill shell snippets.** `v2026.6.19`를 실제로 컷하던 중, SKILL.md/command `.md` 안의 쉘 스니펫이 에이전트 컨텍스트로 주입될 때 하네스가 **bare `$N` 위치 파라미터**(`$1`/`$2`…)를 빈 문자열로 strip한다는 걸 발견(`${...}`/`$(...)`/`$word`는 생존). 깨진 곳을 전수 수정: `tag-release`의 CHANGELOG heading 체크를 `awk '$1=="##" && $2==tag'` → line-anchored `grep -qE "^## $TAG([[:space:]]|$)"`로 교체(`### `/줄 중간/탭 suffix 오탐까지 차단), `emacs`·`agenda`·`/mend`의 `ec()` emacsclient 헬퍼를 `"$1"` → `"${1}"`로 교체. `.sh`/`.py` 스크립트는 직접 실행이라 무관. GPT 공동검토(`20260619T124915-a4a02a`)로 grep 오탐과 stale 카운트 지적 반영.
