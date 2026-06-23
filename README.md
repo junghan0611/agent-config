@@ -2,32 +2,32 @@
 
 **Contextual continuity infrastructure for AI agents.** Every new AI session starts at zero — no memory of past conversations, no access to your knowledge base, no awareness of your tools. agent-config solves this: when you switch agents, sessions, or even models, the same human's memory, knowledge, and work context carries over.
 
-**Official reference consumer of [`pi-shell-acp`](https://github.com/junghan0611/pi-shell-acp).**
+**Official reference consumer of [`entwurf`](https://github.com/junghan0611/entwurf).**
 
-agent-config is the resident-side layer: skills, extensions, themes, prompts, profile, and operating conventions. `pi-shell-acp` is the bridge layer: it connects pi to Claude Code, Codex, and Gemini ACP backends while keeping the surface under pi's control.
+agent-config is the resident-side layer: skills, extensions, themes, prompts, profile, and operating conventions. `entwurf` is the bridge layer: it connects pi to Claude Code, Codex, and Gemini ACP backends while keeping the surface under pi's control.
 
 Together they ship as a pair:
 
-- **pi-shell-acp** → backend bridge, MCP injection, entwurf surface, verification harnesses
+- **entwurf** → backend bridge, MCP injection, entwurf surface, verification harnesses
 - **agent-config** → real consumer profile, real skills, real day-to-day operating surface, real production proof
 
 > **What this is NOT:** not a prompt collection, not a LangChain-style automation layer, not a generic multi-agent framework. It is the infrastructure that lets one human's memory, knowledge, and working surface survive across sessions, harnesses, and models.
 
-## Official Reference Surface for pi-shell-acp
+## Official Reference Surface for entwurf
 
-If `pi-shell-acp` asks “what does a real consumer look like?”, this repo is the answer.
+If `entwurf` asks “what does a real consumer look like?”, this repo is the answer.
 
 | Surface | Owned by | Reference in this repo |
 |---------|----------|------------------------|
-| ACP backend bridge | `pi-shell-acp` | consumed through `pi/settings.json` / `pi/settings.server.json` |
-| MCP servers (`pi-tools-bridge`) | `pi-shell-acp` | wired in `piShellAcpProvider.mcpServers` |
-| Entwurf target policy | `pi-shell-acp` | pinned/installed here; exercised in real workflows |
-| Claude skill plugin farm | pair boundary | this repo builds one consumer layout at `~/.pi/agent/claude-plugin/`, then points `pi-shell-acp` at it |
+| ACP backend bridge | `entwurf` | consumed through `pi/settings.json` / `pi/settings.server.json` |
+| MCP servers (`entwurf-bridge`) | `entwurf` | wired in `entwurfProvider.mcpServers` |
+| Entwurf target policy | `entwurf` | pinned/installed here; exercised in real workflows |
+| Claude skill plugin farm | pair boundary | this repo builds one consumer layout at `~/.pi/agent/claude-plugin/`, then points `entwurf` at it |
 | Skills / prompts / themes / profile | `agent-config` | SSOT in `skills/`, `commands/`, `pi-themes/`, `home/AGENTS.md` |
 | Consumer install/update policy | `agent-config` | `run.sh setup` / server-device upgrade path |
-| Production verification | pair boundary | day-to-day use here, bridge invariants in `pi-shell-acp` |
+| Production verification | pair boundary | day-to-day use here, bridge invariants in `entwurf` |
 
-In short: **pi-shell-acp defines the bridge contract; agent-config proves the contract against lived use.**
+In short: **entwurf defines the bridge contract; agent-config proves the contract against lived use.**
 
 ## Why This Exists
 
@@ -51,11 +51,11 @@ The result: context survives across sessions, across harnesses, across models. O
 
 | Harness | Memory | Skills | Notes |
 |---------|--------|--------|-------|
-| **pi + pi-shell-acp** (default Claude path) | andenken extension on pi side; Claude side gets full skill set via this repo's plugin farm | full skill set on both sides — `semantic-memory` mounted as a SKILL.md skill, plus `session_search` / `knowledge_search` registerTool on pi for direct calls | SDK isolation (`settingSources: []`); skills injected via `piShellAcpProvider.skillPlugins` |
+| **pi + entwurf** (default Claude path) | andenken extension on pi side; Claude side gets full skill set via this repo's plugin farm | full skill set on both sides — `semantic-memory` mounted as a SKILL.md skill, plus `session_search` / `knowledge_search` registerTool on pi for direct calls | SDK isolation (`settingSources: []`); skills injected via `entwurfProvider.skillPlugins` |
 | **pi + anthropic** (`claude-opus-4-7` / `claude-sonnet-4-6`) | andenken extension (in-process LanceDB) | full skill set including `semantic-memory` skill; `session_search` / `knowledge_search` registerTool also available | Direct provider — available, not the current default |
 | **pi-entwurf** (Oracle, tmux) | andenken extension + pi-telegram | full skill set + Telegram bridge | Persistent Opus session via `@glg_entwurf_bot` |
-| **Claude Code** | andenken skill (CLI wrapper) | full skill set | CLAUDE.md + hooks; `pi-tools-bridge` MCP available; settings tuned to mirror pi-shell-acp overlay (`defaultMode: default`, `autoMemoryEnabled: false`, binary/external tools deny-listed) |
-| **Codex CLI** | skill surface + repo-managed MCP registration | full skill set | `~/.codex/skills/` from SSOT + `codex/config.toml` carries `pi-tools-bridge`; direct `entwurf` / `entwurf_resume` verified |
+| **Claude Code** | andenken skill (CLI wrapper) | full skill set | CLAUDE.md + hooks; `entwurf-bridge` MCP available; settings tuned to mirror entwurf overlay (`defaultMode: default`, `autoMemoryEnabled: false`, binary/external tools deny-listed) |
+| **Codex CLI** | skill surface + repo-managed MCP registration | full skill set | `~/.codex/skills/` from SSOT + `codex/config.toml` carries `entwurf-bridge`; direct `entwurf` / `entwurf_resume` verified |
 | **Antigravity CLI (`agy`)** | repo-managed settings + skills + MCP | full skill set | `~/.gemini/antigravity-cli/{settings,skills,mcp_config}.json` from SSOT; direct `entwurf` / sync `entwurf_resume` verified |
 | **OpenCode / OpenClaw** | andenken skill (same SSOT via symlink) | full skill set | settings / Nix store mount |
 
@@ -89,36 +89,36 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 
 External pi packages — semantic-memory ([andenken](https://github.com/junghan0611/andenken)) and Telegram bridges ([entwurf](https://github.com/junghan0611/entwurf), [pi-telegram](https://github.com/badlogic/pi-telegram)) — see [§ -config Ecosystem](#the--config-ecosystem).
 
-### pi-shell-acp Surface Reference
+### entwurf Surface Reference
 
-This repo is the **official consumer reference** for the `pi-shell-acp` surface.
+This repo is the **official consumer reference** for the `entwurf` surface.
 
-| pi-shell-acp surface | Where this repo consumes it |
+| entwurf surface | Where this repo consumes it |
 |---|---|
-| backend provider (`piShellAcpProvider`) | `pi/settings.json`, `pi/settings.server.json` |
-| MCP bridge (`pi-tools-bridge`) | same settings files |
+| backend provider (`entwurfProvider`) | `pi/settings.json`, `pi/settings.server.json` |
+| MCP bridge (`entwurf-bridge`) | same settings files |
 | `entwurf` / `entwurf_resume` / `entwurf_send` / `entwurf_peers` | `home/AGENTS.md`, operational use, skills like `entwurf-peek` |
 | skill plugin injection | `run.sh setup` builds this repo's local plugin root and points settings at it |
 | release pin | `package.json` + `pi/settings.server.json` + `run.sh` + `CHANGELOG.md` |
 
-So when `pi-shell-acp` changes, this is the first consumer that should stay green.
+So when `entwurf` changes, this is the first consumer that should stay green.
 
-Spec, verification harnesses, and the sync/async contract remain in [pi-shell-acp `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md).
+Spec, verification harnesses, and the sync/async contract remain in [entwurf `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/entwurf/blob/main/AGENTS.md).
 
 ### Claude Code as Native Pi Surface
 
-When pi-shell-acp isn't the path (operator chooses native Claude Code, or the 2026-06-15 Anthropic billing shift puts more sessions on direct Claude Code), `claude/settings.fragment.json` (workstation) and `claude/settings.server.json` (server) keep the native session as close to pi-shell-acp's ACP overlay as possible.
+When entwurf isn't the path (operator chooses native Claude Code, or the 2026-06-15 Anthropic billing shift puts more sessions on direct Claude Code), `claude/settings.fragment.json` (workstation) and `claude/settings.server.json` (server) keep the native session as close to entwurf's ACP overlay as possible.
 
-`~/.claude/settings.json` is **co-owned** with pi-shell-acp's meta-bridge installer (disjoint keysets). On workstations `setup` therefore **merges** the agent-config keyset (`settings.fragment.json`) into the live file instead of symlinking it — a symlink is whole-file ownership and the next writer's atomic rename would silently clobber the other side. agent-config owns hooks / language / 개인취향 toggles / `enabledPlugins.*@claude-plugins-official`; pi-shell-acp owns `permissions.allow/deny` / `statusLine` / B-lite single-driver scalars / meta wiring (`enabledPlugins.entwurf-meta-receive`, `extraKnownMarketplaces`). The fragment is verified disjoint from pi-shell-acp's keyset (SSOT: `pi-shell-acp.install-state.json`). Server devices have no meta-bridge, so they stay a single-owner symlink to `settings.server.json`.
+`~/.claude/settings.json` is **co-owned** with entwurf's meta-bridge installer (disjoint keysets). On workstations `setup` therefore **merges** the agent-config keyset (`settings.fragment.json`) into the live file instead of symlinking it — a symlink is whole-file ownership and the next writer's atomic rename would silently clobber the other side. agent-config owns hooks / language / 개인취향 toggles / `enabledPlugins.*@claude-plugins-official`; entwurf owns `permissions.allow/deny` / `statusLine` / B-lite single-driver scalars / meta wiring (`enabledPlugins.entwurf-meta-receive`, `extraKnownMarketplaces`). The fragment is verified disjoint from entwurf's keyset (SSOT: `entwurf.install-state.json`). Server devices have no meta-bridge, so they stay a single-owner symlink to `settings.server.json`.
 
-| Axis | pi-shell-acp overlay | agent-config Claude Code |
+| Axis | entwurf overlay | agent-config Claude Code |
 |---|---|---|
 | `permissions.defaultMode` | `"default"` | `"default"` |
 | auto-memory | `autoMemoryEnabled: false` + empty `projects/` tree | same — per-cwd `memory/` kept empty |
 | binary tools (PlanMode / Worktree) | not exposed | deny-listed |
 | external surface tools (AskUserQuestion / Task* / Cron*) | not exposed | deny-listed |
 | plugin farm | none | `enabledPlugins` false for all |
-| MCP entwurf bridge | `pi-tools-bridge` mounted | `mcp__pi-tools-bridge__*` allowed |
+| MCP entwurf bridge | `entwurf-bridge` mounted | `mcp__entwurf-bridge__*` allowed |
 | operator hooks | empty (`hooks: {}`) | `peon-ping` retained (deliberate) |
 
 Aside from the hook channel, the two surfaces are interchangeable. This is the resident-side counterpart to **Asymmetric Mitsein** (비대칭 공존) — pi can spawn or message native Claude Code without the native surface drifting from pi conventions. Both halves of the harness pair stay aligned regardless of which one the operator is sitting in.
@@ -137,19 +137,19 @@ Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, da
 
 | File | Purpose |
 |------|---------|
-| `settings.json` | Default model, theme, thinking level, `piShellAcpProvider` |
+| `settings.json` | Default model, theme, thinking level, `entwurfProvider` |
 | `keybindings.json` | Custom keybindings |
-| `claude-plugin.json` | Manifest used by this repo's local pi-shell-acp Claude plugin root |
+| `claude-plugin.json` | Manifest used by this repo's local entwurf Claude plugin root |
 
-### pi-shell-acp Skill Plugin (agent-config local layout)
+### entwurf Skill Plugin (agent-config local layout)
 
-pi-shell-acp runs Claude with `settingSources: []` (SDK isolation), so `~/.claude/skills/` is **not** auto-discovered. The bridge's install contract — plugin shape, `skillPlugins`, fail-fast validation — is documented upstream in pi-shell-acp's README §Custom Skills.
+entwurf runs Claude with `settingSources: []` (SDK isolation), so `~/.claude/skills/` is **not** auto-discovered. The bridge's install contract — plugin shape, `skillPlugins`, fail-fast validation — is documented upstream in entwurf's README §Custom Skills.
 
-What this repo does is narrower: `run.sh setup` builds **one local consumer layout** under `~/.pi/agent/claude-plugin/` (manifest + per-skill symlinks back to `agent-config/skills/`) and points this repo's pi settings at that path. That path is an agent-config convention, not a pi-shell-acp contract.
+What this repo does is narrower: `run.sh setup` builds **one local consumer layout** under `~/.pi/agent/claude-plugin/` (manifest + per-skill symlinks back to `agent-config/skills/`) and points this repo's pi settings at that path. That path is an agent-config convention, not a entwurf contract.
 
 Adding a new skill here still works the same way: drop it into `agent-config/skills/<name>/SKILL.md` and re-run `./run.sh setup`. The same SSOT now fans out to `~/.claude/skills/`, `~/.config/opencode/skills/`, `~/.pi/agent/skills/pi-skills/`, `~/.pi/agent/claude-plugin/skills/`, `~/.codex/skills/`, `~/.gemini/skills/` (Gemini legacy), and `~/.gemini/antigravity-cli/skills/` (Antigravity direct).
 
-Codex direct mode also uses this repo-managed surface for MCP now: `codex/config.toml` carries a `pi-tools-bridge` stdio registration, so direct Codex sessions can see the same bridge family instead of remaining the one MCP-empty harness.
+Codex direct mode also uses this repo-managed surface for MCP now: `codex/config.toml` carries a `entwurf-bridge` stdio registration, so direct Codex sessions can see the same bridge family instead of remaining the one MCP-empty harness.
 
 For Antigravity direct mode, `run.sh setup` also wires `antigravity/settings.json` into `~/.gemini/antigravity-cli/settings.json` so statusline / permission / model choices live in-repo instead of only inside agy's self-written local state.
 
@@ -166,7 +166,7 @@ Because Antigravity and Codex do not expose the same repo-managed custom command
 | Command | Purpose |
 |---------|---------|
 | `/recall` | Multi-axis context hydration without compact — daily memory-axis ritual |
-| `/boom` | Capture a crashed pi-shell-acp session into `.agent-reports/` for later triage |
+| `/boom` | Capture a crashed entwurf session into `.agent-reports/` for later triage |
 | `/pandoc-html` | Markdown/Org → Google Docs HTML/DOCX |
 | `/glg-image` | Image generation entry |
 | `/metaplay` | Meta agent play |
@@ -187,10 +187,10 @@ cd agent-config
 - Build native CLI binaries (Go + GraalVM)
 - Symlink pi extensions, full skill set (including `semantic-memory`), themes, settings, keybindings, prompts
 - Install andenken as a pi package (compiled extension — exposes `session_search` / `knowledge_search` registerTool alongside the SKILL.md skill)
-- Symlink OpenCode / Codex / Gemini legacy / Antigravity surfaces (`~/.codex/config.toml`, `~/.gemini/settings.json`, `~/.gemini/antigravity-cli/settings.json`, `~/.gemini/antigravity-cli/skills`, `~/.gemini/antigravity-cli/mcp_config.json`) plus skills and Claude Code commands. `~/.claude/settings.json` is **merged** (keyset, not symlinked) on workstations — co-owned with pi-shell-acp meta-bridge; servers symlink `settings.server.json`
+- Symlink OpenCode / Codex / Gemini legacy / Antigravity surfaces (`~/.codex/config.toml`, `~/.gemini/settings.json`, `~/.gemini/antigravity-cli/settings.json`, `~/.gemini/antigravity-cli/skills`, `~/.gemini/antigravity-cli/mcp_config.json`) plus skills and Claude Code commands. `~/.claude/settings.json` is **merged** (keyset, not symlinked) on workstations — co-owned with entwurf meta-bridge; servers symlink `settings.server.json`
 - Symlink `~/.local/bin` PATH binaries
 - pnpm install for extensions and skills
-- Hand off pi-shell-acp validation (typecheck, MCP, dual-backend smoke, persisted-bootstrap continuity, cancel-cleanup) to pi-shell-acp's own `run.sh`
+- Hand off entwurf validation (typecheck, MCP, dual-backend smoke, persisted-bootstrap continuity, cancel-cleanup) to entwurf's own `run.sh`
 
 ## Session Management — No Compact
 
@@ -202,7 +202,7 @@ Instead:
 2. Run `memory-sync` / `/memory reindex` explicitly when recent sessions need fresh indexing (no hidden paid auto-indexing)
 3. In the new session, recover context with `/recall`
 
-`/recall` is the **multi-axis context hydration** protocol owned by agent-config — not a per-session recap, not a pi-shell-acp bridge contract. It starts with `session-recap -p <repo> -m 15` but does not stop at one repo transcript. When the work crossed projects or days, it combines:
+`/recall` is the **multi-axis context hydration** protocol owned by agent-config — not a per-session recap, not a entwurf bridge contract. It starts with `session-recap -p <repo> -m 15` but does not stop at one repo transcript. When the work crossed projects or days, it combines:
 
 - `session-recap` — repo-local transcript extractor, no raw JSONL
 - `session_search` — cross-project / cross-session semantic recall
@@ -218,7 +218,7 @@ The protocol itself lives in [`commands/recall.md`](commands/recall.md). The 202
 
 This repo also owns the **resident-side policy** for publishing session artifacts when GLG wants public verification of harness behavior.
 
-- `pi-shell-acp` owns bridge mechanism and invariants.
+- `entwurf` owns bridge mechanism and invariants.
 - `agent-config` owns export/review/upload workflow and publication criteria.
 - Goal: long-term trust through evidence — raw-session publication, reject history, and later failure/drift analysis.
 - Minimum publication gates: secret redaction, deny patterns, secret scanning (e.g. TruffleHog), semantic privacy review, small-batch dry-run.
@@ -237,11 +237,11 @@ Bridges: [pi-telegram](https://github.com/badlogic/pi-telegram) (production — 
 alias claude-tg='claude --channels plugin:telegram@claude-plugins-official'
 alias claude-tgd='claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions'
 
-# pi garden launcher helper (pi-shell-acp 0.9.0): every --entwurf-control
+# pi garden launcher helper (entwurf 0.9.0): every --entwurf-control
 # resident session must be born with a garden-native session id.
 _pi_garden_pi() {
   local sid
-  sid="$($HOME/repos/gh/pi-shell-acp/run.sh new-session-id)" || return
+  sid="$($HOME/repos/gh/entwurf/run.sh new-session-id)" || return
   command pi --session-id "$sid" "$@"
 }
 
@@ -258,7 +258,7 @@ pia() { _pi_garden_pi --entwurf-control --emacs-agent-socket server "$@"; }
 | [doomemacs-config](https://github.com/junghan0611/doomemacs-config) | Editor | Doom Emacs, org-mode, denote |
 | [zotero-config](https://github.com/junghan0611/zotero-config) | Bibliography | 8,000+ references, bibcli |
 | **[agent-config](https://github.com/junghan0611/agent-config)** | **Agent infra** | **Extensions, skills, themes, settings — this repo** |
-| **[pi-shell-acp](https://github.com/junghan0611/pi-shell-acp)** | **Provider (ACP bridge)** | **Default Claude path in pi. ACP bridge to Claude Code + Codex** |
+| **[entwurf](https://github.com/junghan0611/entwurf)** | **Provider (ACP bridge)** | **Default Claude path in pi. ACP bridge to Claude Code + Codex** |
 | **[andenken](https://github.com/junghan0611/andenken)** | **Memory** | **Semantic memory — sessions + md public garden knowledge** |
 | **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — minimal presence bridge** |
 | **[pi-telegram](https://github.com/badlogic/pi-telegram)** | **Transport** | **Production Telegram DM bridge — queue/file/streaming** |

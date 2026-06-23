@@ -161,12 +161,12 @@ ensure_link() {
 }
 
 # Merge a JSON keyset fragment into a destination settings file WITHOUT owning
-# the whole file. Used where another tool (pi-shell-acp meta-bridge) co-owns the
+# the whole file. Used where another tool (entwurf meta-bridge) co-owns the
 # same file by a disjoint keyset: we inject only OUR keys, every other key — incl.
 # the co-owner's — survives. NEVER symlink such a file: a symlink = whole-file
 # ownership, and the next writer's atomic rename silently clobbers the other side.
 #   jq '.[0] * .[1]'  =  existing * fragment  →  fragment wins on overlap,
-#   objects merge recursively, arrays replace. So pi-shell-acp keys absent from
+#   objects merge recursively, arrays replace. So entwurf keys absent from
 #   the fragment (statusLine, B-lite scalars, enabledPlugins.entwurf-meta-receive,
 #   extraKnownMarketplaces) are preserved untouched. Idempotent.
 merge_settings() {
@@ -217,21 +217,21 @@ declare -A CLI_REPOS=(
 declare -A THIRD_PARTY_PACKAGE_REPOS=()
 
 # Local provider/package repos used by the harness (developer mode only).
-# pi-shell-acp is the current Claude path in pi via ACP. On server devices we
+# entwurf is the current Claude path in pi via ACP. On server devices we
 # install it via `pi install git:...` instead — see is_server_device + setup_npm.
 declare -A PACKAGE_REPOS=(
-  [pi-shell-acp]="https://github.com/junghan0611/pi-shell-acp.git"
+  [entwurf]="https://github.com/junghan0611/entwurf.git"
 )
 
-# pi-shell-acp install source for server devices.
+# entwurf install source for server devices.
 # During the OpenClaw 0.6.0 prerelease / Oracle validation window, servers
 # intentionally track the latest `main` commit instead of the v0.5.0 tag.
-# Restore a tagged pin here when the next stable pi-shell-acp release ships.
-PI_SHELL_ACP_INSTALL_SPEC="git:github.com/junghan0611/pi-shell-acp"
-PI_SHELL_ACP_TRACKING_REF="main"
+# Restore a tagged pin here when the next stable entwurf release ships.
+ENTWURF_INSTALL_SPEC="git:github.com/junghan0611/entwurf"
+ENTWURF_TRACKING_REF="main"
 
 # Server devices use the consumer install path (pi-managed) instead of cloning
-# pi-shell-acp into ~/repos/gh/.
+# entwurf into ~/repos/gh/.
 #
 # Primary signal: ~/.current-forge-profile (the forge skill's machine SSOT).
 # A forge *host* machine writes its profile there (oracle / work) and is, by
@@ -274,14 +274,14 @@ is_server_device() {
   server_devices_list | grep -Fxq "$device"
 }
 
-# Resolve pi-shell-acp install path for the current device.
-# - server: pi-managed ~/.pi/agent/git/github.com/junghan0611/pi-shell-acp
-# - dev:    ~/repos/gh/pi-shell-acp
-pi_shell_acp_dir() {
+# Resolve entwurf install path for the current device.
+# - server: pi-managed ~/.pi/agent/git/github.com/junghan0611/entwurf
+# - dev:    ~/repos/gh/entwurf
+entwurf_repo_dir() {
   if is_server_device; then
-    echo "$HOME/.pi/agent/git/github.com/junghan0611/pi-shell-acp"
+    echo "$HOME/.pi/agent/git/github.com/junghan0611/entwurf"
   else
-    echo "$REPOS/pi-shell-acp"
+    echo "$REPOS/entwurf"
   fi
 }
 
@@ -298,7 +298,7 @@ declare -A CLI_GO_SRC=(
 setup_preflight() {
   section "Preflight"
 
-  # Node >= 22.6 — pi-shell-acp's MCP launchers run TS via --experimental-strip-types.
+  # Node >= 22.6 — entwurf's MCP launchers run TS via --experimental-strip-types.
   local node_v
   node_v="$(node --version 2>/dev/null | sed 's/^v//')"
   if [ -z "$node_v" ]; then
@@ -307,7 +307,7 @@ setup_preflight() {
   fi
   local node_major="${node_v%%.*}"
   if [ "$node_major" -lt 22 ]; then
-    fail "node >= 22.6 required (found $node_v) — pi-shell-acp uses --experimental-strip-types"
+    fail "node >= 22.6 required (found $node_v) — entwurf uses --experimental-strip-types"
     return 1
   fi
   ok "node $node_v"
@@ -322,15 +322,15 @@ setup_preflight() {
   # ~/.current-device — drives device-specific Claude + pi settings selection
   if [ -f "$HOME/.current-device" ]; then
     if is_server_device; then
-      ok "device: $(cat "$HOME/.current-device") (server / consumer install of pi-shell-acp)"
+      ok "device: $(cat "$HOME/.current-device") (server / consumer install of entwurf)"
     else
-      ok "device: $(cat "$HOME/.current-device") (developer / local clone of pi-shell-acp)"
+      ok "device: $(cat "$HOME/.current-device") (developer / local clone of entwurf)"
     fi
   else
     warn "~/.current-device not set — server-mode hooks/settings won't activate"
   fi
 
-  # Anthropic auth — pi-shell-acp's sync-auth alias copies from here.
+  # Anthropic auth — entwurf's sync-auth alias copies from here.
   if [ -f "$HOME/.pi/agent/auth.json" ] || [ -f "$HOME/.claude.json" ]; then
     ok "claude auth detected"
   else
@@ -353,8 +353,8 @@ setup_repos() {
 
   section "Provider Package Repositories"
   if is_server_device; then
-    log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping pi-shell-acp dev clone"
-    log "  (pi will install it at $HOME/.pi/agent/git/github.com/junghan0611/pi-shell-acp via setup_npm)"
+    log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping entwurf dev clone"
+    log "  (pi will install it at $HOME/.pi/agent/git/github.com/junghan0611/entwurf via setup_npm)"
   else
     for name in "${!PACKAGE_REPOS[@]}"; do
       ensure_repo "$name" "${PACKAGE_REPOS[$name]}"
@@ -415,7 +415,7 @@ setup_refresh_managed_repos() {
     refresh_repo_if_clean "$THIRD_REPOS/$name" "$name"
   done
   if is_server_device; then
-    log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping pi-shell-acp dev refresh"
+    log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping entwurf dev refresh"
   else
     for name in "${!PACKAGE_REPOS[@]}"; do
       refresh_repo_if_clean "$REPOS/$name" "$name"
@@ -434,8 +434,8 @@ update_repos() {
     pull_repo_if_clean "$THIRD_REPOS/$name" "$name"
   done
   if is_server_device; then
-    log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping pi-shell-acp dev pull"
-    log "  (run \`./run.sh setup\` to refresh pi-shell-acp from latest main)"
+    log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping entwurf dev pull"
+    log "  (run \`./run.sh setup\` to refresh entwurf from latest main)"
   else
     for name in "${!PACKAGE_REPOS[@]}"; do
       pull_repo_if_clean "$REPOS/$name" "$name"
@@ -526,17 +526,17 @@ setup_links() {
   # control.ts: formerly from 3rd-party agent-stuff, now managed in agent-config/pi-extensions/
   # (2026-04-13: forked with targetSessionId fallback + gcStaleSockets)
 
-  # Phase 4 migration cleanup — entwurf surface moved to pi-shell-acp.
+  # Phase 4 migration cleanup — entwurf surface moved to entwurf.
   # Old machines (Oracle etc.) may still have these from pre-migration setups.
   for legacy in delegate.ts delegate-targets.json lib semantic-memory; do
     if [ -e "$HOME/.pi/agent/extensions/$legacy" ] || [ -L "$HOME/.pi/agent/extensions/$legacy" ]; then
       rm -rf "$HOME/.pi/agent/extensions/$legacy"
-      log "extensions/$legacy: removed legacy entry (now owned by pi-shell-acp / andenken)"
+      log "extensions/$legacy: removed legacy entry (now owned by entwurf / andenken)"
     fi
   done
   if [ -e "$HOME/.pi/agent/delegate-targets.json" ] || [ -L "$HOME/.pi/agent/delegate-targets.json" ]; then
     rm -f "$HOME/.pi/agent/delegate-targets.json"
-    log "delegate-targets.json: removed (entwurf-targets.json now owned by pi-shell-acp)"
+    log "delegate-targets.json: removed (entwurf-targets.json now owned by entwurf)"
   fi
 
   # Settings + Keybindings — server devices use consumer install paths
@@ -577,11 +577,11 @@ setup_links() {
     log "cleaned up: $(basename "$bak_dir")"
   done
 
-  section "Pi-Shell-ACP Claude Plugin"
-  # pi-shell-acp는 SDK 격리 모드(settingSources: [])라 ~/.claude/skills/를 자동 발견하지 않음.
+  section "ENTWURF Claude Plugin"
+  # entwurf는 SDK 격리 모드(settingSources: [])라 ~/.claude/skills/를 자동 발견하지 않음.
   # 그래서 agent-config는 SDK plugins:[{type:"local", path}]가 읽을 local plugin root 한 벌을 구성한다.
-  # 이 디렉토리(~/.pi/agent/claude-plugin/)는 agent-config의 운영 경로일 뿐, pi-shell-acp 자체 계약은 아님.
-  # semantic-memory 포함: pi-shell-acp Claude 세션은 andenken 네이티브 tool이 없음 → 스킬로 제공.
+  # 이 디렉토리(~/.pi/agent/claude-plugin/)는 agent-config의 운영 경로일 뿐, entwurf 자체 계약은 아님.
+  # semantic-memory 포함: entwurf Claude 세션은 andenken 네이티브 tool이 없음 → 스킬로 제공.
   mkdir -p "$HOME/.pi/agent/claude-plugin/.claude-plugin"
   mkdir -p "$HOME/.pi/agent/claude-plugin/skills"
   ensure_link "$SCRIPT_DIR/pi/claude-plugin.json" \
@@ -667,9 +667,9 @@ TGJSON
   # CLAUDE.md — Claude Code가 non-append 모드에서 읽는 진입점 (@AGENTS.md include)
   ensure_link "$SCRIPT_DIR/home/CLAUDE.md"              "$HOME/.claude/CLAUDE.md"
   # 디바이스별 settings.json 전략:
-  #   - 서버: pi-shell-acp meta-bridge 미설치 → 단일 owner → full 파일 심링크 (그대로)
-  #   - 워크스테이션: pi-shell-acp meta-bridge 공동 소유 → 심링크 금지.
-  #     agent-config 키셋만 merge-in 하고 pi-shell-acp 키(statusLine/B-lite/meta wiring)는 보존.
+  #   - 서버: entwurf meta-bridge 미설치 → 단일 owner → full 파일 심링크 (그대로)
+  #   - 워크스테이션: entwurf meta-bridge 공동 소유 → 심링크 금지.
+  #     agent-config 키셋만 merge-in 하고 entwurf 키(statusLine/B-lite/meta wiring)는 보존.
   local DEVICE
   DEVICE=$(cat "$HOME/.current-device" 2>/dev/null || echo "unknown")
   if is_server_device; then
@@ -693,7 +693,7 @@ TGJSON
 
   section "Claude Code Commands"
   # 백엔드 직접 사용 모드 슬래시 자리 (~/.claude/commands/<name>.md).
-  # pi-shell-acp 경유 모드는 ~/.pi/agent/prompts/가 이미 처리하므로 충돌 없음 — 모드별 분리.
+  # entwurf 경유 모드는 ~/.pi/agent/prompts/가 이미 처리하므로 충돌 없음 — 모드별 분리.
   # plugin namespace 측(~/.pi/agent/claude-plugin/commands/)도 같은 SSOT를 가리키게 둔다.
   # Codex / Gemini는 surface 비대칭(Codex: 사용자 슬래시 surface 자체 없음 / Gemini: .toml 변환 magic
   # 필요)이라 박지 않는다 — North Star "thin bridge / no magic".
@@ -775,92 +775,92 @@ setup_npm() {
   fi
 
   # entwurf (self-built telegram bridge) — deprecated 2026-05-03 in favor of
-  # pi-telegram (badlogic). The "entwurf" name now belongs to pi-shell-acp's
+  # pi-telegram (badlogic). The "entwurf" name now belongs to entwurf's
   # sibling-spawn surface only. Repo at ~/repos/gh/entwurf/ is preserved for
   # history; not loaded as a pi package and not built here.
 
   # pi-packages (ben-vargas) intentionally disabled for now.
   log "pi-packages: disabled (skipping pi-claude-code-use install)"
 
-  # pi-shell-acp (ACP bridge provider) — install + auth + light verification.
+  # entwurf (ACP bridge provider) — install + auth + light verification.
   # Server devices use the consumer install path (pi-managed clone via
   # `pi install git:...`); dev machines use the local clone in ~/repos/gh/.
   # Either way the post-install steps (sync-auth + check-mcp) run from the
   # resolved directory.
-  local PI_SHELL_ACP_DIR
-  PI_SHELL_ACP_DIR="$(pi_shell_acp_dir)"
+  local ENTWURF_REPO_DIR
+  ENTWURF_REPO_DIR="$(entwurf_repo_dir)"
 
   # Read installed package version / git commit for diagnostics. During the
   # OpenClaw prerelease window package.json may still say 0.5.0 while the
   # needed plugin commits live past the v0.5.0 tag, so commit is the authority.
   local installed_version=""
   local installed_commit=""
-  if [ -f "$PI_SHELL_ACP_DIR/package.json" ]; then
-    installed_version="$(node -p "require('$PI_SHELL_ACP_DIR/package.json').version" 2>/dev/null || echo "")"
-    installed_commit="$(git -C "$PI_SHELL_ACP_DIR" rev-parse --short HEAD 2>/dev/null || echo "")"
+  if [ -f "$ENTWURF_REPO_DIR/package.json" ]; then
+    installed_version="$(node -p "require('$ENTWURF_REPO_DIR/package.json').version" 2>/dev/null || echo "")"
+    installed_commit="$(git -C "$ENTWURF_REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo "")"
   fi
 
   if is_server_device; then
-    if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
-      log "pi-shell-acp: pi install $PI_SHELL_ACP_INSTALL_SPEC (fresh, latest main)"
-      if ! pi install "$PI_SHELL_ACP_INSTALL_SPEC"; then
-        fail "pi-shell-acp: pi install failed"
+    if [ ! -f "$ENTWURF_REPO_DIR/package.json" ]; then
+      log "entwurf: pi install $ENTWURF_INSTALL_SPEC (fresh, latest main)"
+      if ! pi install "$ENTWURF_INSTALL_SPEC"; then
+        fail "entwurf: pi install failed"
         return 1
       fi
     else
       # pi's git package manager may treat an existing checkout as already
       # installed. Oracle prerelease validation needs the latest main commit,
       # so refresh the pi-managed checkout directly and reinstall deps.
-      log "pi-shell-acp: refresh latest $PI_SHELL_ACP_TRACKING_REF ($installed_commit)"
-      if ! (cd "$PI_SHELL_ACP_DIR" && git fetch --tags origin "$PI_SHELL_ACP_TRACKING_REF" >/dev/null 2>&1 && git checkout -B "$PI_SHELL_ACP_TRACKING_REF" "origin/$PI_SHELL_ACP_TRACKING_REF" >/dev/null 2>&1 && pnpm install --silent --frozen-lockfile); then
-        fail "pi-shell-acp: refresh latest $PI_SHELL_ACP_TRACKING_REF failed"
+      log "entwurf: refresh latest $ENTWURF_TRACKING_REF ($installed_commit)"
+      if ! (cd "$ENTWURF_REPO_DIR" && git fetch --tags origin "$ENTWURF_TRACKING_REF" >/dev/null 2>&1 && git checkout -B "$ENTWURF_TRACKING_REF" "origin/$ENTWURF_TRACKING_REF" >/dev/null 2>&1 && pnpm install --silent --frozen-lockfile); then
+        fail "entwurf: refresh latest $ENTWURF_TRACKING_REF failed"
         return 1
       fi
     fi
-    if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
-      fail "pi-shell-acp: expected install at $PI_SHELL_ACP_DIR (pi install did not produce it)"
+    if [ ! -f "$ENTWURF_REPO_DIR/package.json" ]; then
+      fail "entwurf: expected install at $ENTWURF_REPO_DIR (pi install did not produce it)"
       return 1
     fi
-    installed_version="$(node -p "require('$PI_SHELL_ACP_DIR/package.json').version" 2>/dev/null || echo "")"
-    installed_commit="$(git -C "$PI_SHELL_ACP_DIR" rev-parse --short HEAD 2>/dev/null || echo "")"
-    ok "pi-shell-acp consumer install ($PI_SHELL_ACP_DIR @ $PI_SHELL_ACP_TRACKING_REF/$installed_commit, package v$installed_version)"
+    installed_version="$(node -p "require('$ENTWURF_REPO_DIR/package.json').version" 2>/dev/null || echo "")"
+    installed_commit="$(git -C "$ENTWURF_REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo "")"
+    ok "entwurf consumer install ($ENTWURF_REPO_DIR @ $ENTWURF_TRACKING_REF/$installed_commit, package v$installed_version)"
   else
-    if [ ! -f "$PI_SHELL_ACP_DIR/package.json" ]; then
-      fail "pi-shell-acp: repo not found at $PI_SHELL_ACP_DIR"
+    if [ ! -f "$ENTWURF_REPO_DIR/package.json" ]; then
+      fail "entwurf: repo not found at $ENTWURF_REPO_DIR"
       return 1
     fi
-    log "pi-shell-acp: install + auth..."
-    if ! (cd "$PI_SHELL_ACP_DIR" && pnpm install --silent --frozen-lockfile); then
-      fail "pi-shell-acp: pnpm install failed"
+    log "entwurf: install + auth..."
+    if ! (cd "$ENTWURF_REPO_DIR" && pnpm install --silent --frozen-lockfile); then
+      fail "entwurf: pnpm install failed"
       return 1
     fi
-    installed_commit="$(git -C "$PI_SHELL_ACP_DIR" rev-parse --short HEAD 2>/dev/null || echo "")"
-    ok "pi-shell-acp pnpm install (package v$installed_version, git $installed_commit)"
+    installed_commit="$(git -C "$ENTWURF_REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo "")"
+    ok "entwurf pnpm install (package v$installed_version, git $installed_commit)"
   fi
 
   # Entwurf target registry — consumer install path must expose the canonical
-  # pi-shell-acp registry at ~/.pi/agent/entwurf-targets.json. In practice,
+  # entwurf registry at ~/.pi/agent/entwurf-targets.json. In practice,
   # `pi install` can leave this missing on server devices, and a manual copy can
   # silently drift from the installed tag. Re-point it to the installed package.
-  local ENTWURF_TARGETS_TARGET="$PI_SHELL_ACP_DIR/pi/entwurf-targets.json"
+  local ENTWURF_TARGETS_TARGET="$ENTWURF_REPO_DIR/pi/entwurf-targets.json"
   if [ -f "$ENTWURF_TARGETS_TARGET" ]; then
     ensure_link "$ENTWURF_TARGETS_TARGET" "$HOME/.pi/agent/entwurf-targets.json"
   else
-    warn "pi-shell-acp: entwurf target registry missing at $ENTWURF_TARGETS_TARGET"
+    warn "entwurf: entwurf target registry missing at $ENTWURF_TARGETS_TARGET"
   fi
 
-  if ! (cd "$PI_SHELL_ACP_DIR" && ./run.sh sync-auth); then
-    fail "pi-shell-acp: auth sync failed"
+  if ! (cd "$ENTWURF_REPO_DIR" && ./run.sh sync-auth); then
+    fail "entwurf: auth sync failed"
     return 1
   fi
-  ok "pi-shell-acp auth alias"
+  ok "entwurf auth alias"
 
   # Light verification — deterministic, no auth, no subprocess.
-  # Catches MCP wiring drift if pi-shell-acp's bundle changes between releases.
-  if (cd "$PI_SHELL_ACP_DIR" && ./run.sh check-mcp >/dev/null 2>&1); then
-    ok "pi-shell-acp check-mcp"
+  # Catches MCP wiring drift if entwurf's bundle changes between releases.
+  if (cd "$ENTWURF_REPO_DIR" && ./run.sh check-mcp >/dev/null 2>&1); then
+    ok "entwurf check-mcp"
   else
-    warn "pi-shell-acp: check-mcp failed — MCP wiring may be misconfigured"
+    warn "entwurf: check-mcp failed — MCP wiring may be misconfigured"
   fi
 
   # Stale project-local .pi/settings.json detection.
@@ -873,7 +873,7 @@ setup_npm() {
     fi
   fi
 
-  # pi-tools-bridge + native async delegate validations moved to pi-shell-acp's
+  # entwurf-bridge + native async delegate validations moved to entwurf's
   # own run.sh after the Entwurf Orchestration migration — their code now lives
   # there, and owning validation belongs with owning code.
 
@@ -1020,7 +1020,7 @@ setup_all() {
   echo "  Binaries: $pass/$total"
   echo "  Skills:   $(find "$SKILLS_DIR" -name "SKILL.md" | wc -l)"
   echo "  Arch:     $ARCH"
-  echo "  Claude in pi (default): pi-shell-acp via ACP"
+  echo "  Claude in pi (default): entwurf via ACP"
   echo "  Pi ext:   $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo 'not linked')"
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged (keyset, not linked)' || echo 'absent'; })"
@@ -1029,7 +1029,7 @@ setup_all() {
   echo "  Gemini:   legacy $(readlink "$HOME/.gemini/settings.json" 2>/dev/null || echo 'config not linked') + $(readlink "$HOME/.gemini/skills" 2>/dev/null || echo 'skills not linked')"
   echo "  Antigrav: $(readlink "$HOME/.gemini/antigravity-cli/settings.json" 2>/dev/null || echo 'settings not linked') + $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo 'skills not linked') + $(readlink "$HOME/.gemini/antigravity-cli/mcp_config.json" 2>/dev/null || echo 'mcp not linked')"
 
-  # Sentinel (delegate matrix) moved to pi-shell-acp with the rest of the
+  # Sentinel (delegate matrix) moved to entwurf with the rest of the
   # Entwurf Orchestration surface — run it from there when exercising the
   # delegate paths.
 
@@ -1176,7 +1176,7 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Pi extension: $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo '❌ not linked')"
     echo "  Pi skills:    $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Pi theme:     $(cat "$HOME/.pi/agent/settings.json" 2>/dev/null | grep -oP '"defaultTheme":\s*"\K[^"]+' || echo 'default')"
-    echo "  Claude conf:  $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged keyset (real file, co-owned w/ pi-shell-acp)' || echo '❌ absent'; })"
+    echo "  Claude conf:  $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged keyset (real file, co-owned w/ entwurf)' || echo '❌ absent'; })"
     echo "  Claude skills:$(readlink "$HOME/.claude/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  OpenCode:     $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Codex conf:   $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo '❌ not linked')"

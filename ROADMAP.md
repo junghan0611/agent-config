@@ -5,11 +5,11 @@
 
 ## [2026-06-06] boundary settlement — ownership ceded, essence kept (`v2026.6.6`)
 
-The line between agent-config and pi-shell-acp got drawn clean. What used to be a
+The line between agent-config and entwurf got drawn clean. What used to be a
 quietly-contested whole-file (`~/.claude/settings.json` symlinked into this repo) is
 now **co-owned by disjoint keysets**: agent-config injects only its keyset
 (`claude/settings.fragment.json` — hooks / language / 개인취향 / official-plugin flags)
-via `merge_settings`, and pi-shell-acp owns the single-driver policy (permissions /
+via `merge_settings`, and entwurf owns the single-driver policy (permissions /
 B-lite scalars / `statusLine` / meta wiring) and verifies it through its own
 install/uninstall/doctor. Coexistence itself collapsed to one primitive — the
 **garden id**, a single universal address above every backend (pi / ACP / Claude Code /
@@ -18,17 +18,17 @@ privileged.
 
 Forward implications:
 
-- **Never re-claim pi-shell-acp's keyset.** Before adding any `~/.claude/settings.json`
-  key, check it against the SSOT (`~/.claude/pi-shell-acp.install-state.json`); the
+- **Never re-claim entwurf's keyset.** Before adding any `~/.claude/settings.json`
+  key, check it against the SSOT (`~/.claude/entwurf.install-state.json`); the
   fragment must stay disjoint. agent-config touches Claude settings only for its own
   essence, not for driver policy.
 - **New harnesses inherit coexistence for free.** Any future backend becomes a garden
   citizen through the meta-bridge `SessionStart` hook — addressable + wakeable by garden
   id with no per-backend reply wiring to add here.
-- **Lean on pi-shell-acp's defense once it stabilizes.** When its doctor gains
+- **Lean on entwurf's defense once it stabilizes.** When its doctor gains
   keyset-survival + overlap checks, agent-config can stop guarding the boundary by hand.
 - The repo now concentrates on what it is: **skills, identity, alignment** spread across
-  every harness. Important machinery went to pi-shell-acp on purpose, so the essence has
+  every harness. Important machinery went to entwurf on purpose, so the essence has
   room.
 
 ## [2026-05-29] multi-harness command surface

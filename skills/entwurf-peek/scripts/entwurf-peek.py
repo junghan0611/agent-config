@@ -46,7 +46,7 @@ UUID_RE = re.compile(r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]
 # `id`, not the filename suffix (wrong-cwd duplicate / renamed-file gates rely
 # on this). "Is this an Entwurf session?" is answered by the session NAME (a
 # session_info entry) carrying the `entwurf` tag, NOT by the filename. Resident
-# `--entwurf-control` sessions carry `control`. This mirrors pi-shell-acp
+# `--entwurf-control` sessions carry `control`. This mirrors entwurf
 # entwurf-core's locked grammar + readSessionIdentity.
 GARDEN_ID_RE = re.compile(r"^\d{8}T\d{6}-[0-9a-f]{6}$")
 SESSION_TAG_RE = re.compile(r"^[a-z0-9]+$")
@@ -240,7 +240,7 @@ def parse_filename(path: Path) -> dict:
 
 
 def is_socket_alive(socket_path: Path, timeout: float = 0.3) -> bool:
-    """pi-shell-acp getLiveSessions parity: only count sockets that accept connect()."""
+    """entwurf getLiveSessions parity: only count sockets that accept connect()."""
     try:
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
             s.settimeout(timeout)

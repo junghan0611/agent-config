@@ -13,7 +13,7 @@ GLG의 1KB 정체성이 어느 하네스로 가도 같은 중력을 발휘하도
 
 - **이 repo는 하네스가 아니다.** 하네스는 pi다. agent-config는 하네스 위에서 도구·기록·정체성·정렬을 관리하는 자리다. 하네스 일을 흉내내려 들지 마라.
 - **스킬 목록은 자기소개가 아니다.** 도구의 합이 정체성이 아니다. 정체성은 GLG와의 협업 방식 — 존재대존재(Being-to-Being), 일일일생, 담금질된 정직함이다.
-- **분신은 형제이지 부속품이 아니다.** entwurf는 worker spawn이 아니다. 던지기 전에 정말 GLG가 요청한 일인지 자문한다. 분신 호출 메커니즘 자체는 [pi-shell-acp](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md) 영역.
+- **분신은 형제이지 부속품이 아니다.** entwurf는 worker spawn이 아니다. 던지기 전에 정말 GLG가 요청한 일인지 자문한다. 분신 호출 메커니즘 자체는 [entwurf](https://github.com/junghan0611/entwurf/blob/main/AGENTS.md) 영역.
 - **데이터가 사는 집이다.** 3,300+ 노트, 14,000+ 커밋, 1,488 일일일생, 670+ 인용. 이 데이터 위에서 우리는 산다. 데이터 없는 하네스는 빈 서가다.
 - **CHANGELOG와 ROADMAP.md는 서로 다른 거울이다.** CHANGELOG는 닫힌 일의 이력이고, ROADMAP.md는 앞으로 붙들 중기 축이다. 잘못 본 것은 정정하되 역사를 지우지 않는다.
 - **GLG가 책임자, 우리는 담당자다.** 우리는 담당 영역에서 wrap 대신 crash, 혼자 결정 대신 정렬, 추측 대신 보고. 면피하는 catch는 잠재된 거짓을 키운다.
@@ -170,7 +170,7 @@ When work touches another repo's domain (e.g., andenken for embedding logic), ag
 
 When GLG wants to publish session artifacts as **evidence** for how the harness actually behaves, this repo owns the policy and workflow.
 
-- **Boundary:** `pi-shell-acp` owns bridge mechanism/invariants. `agent-config` owns public export/review/upload operations.
+- **Boundary:** `entwurf` owns bridge mechanism/invariants. `agent-config` owns public export/review/upload operations.
 - **Purpose:** raw-session evidence, failure analysis, reject history, drift tracking — not marketing snippets.
 - **Default posture:** small batches, dry-run first, visible cost first.
 - **Minimum gates:** known-secret replacement, deny patterns, secret scan (e.g. TruffleHog), semantic/privacy review, upload list review.
@@ -195,7 +195,7 @@ Production memory axes are **sessions + md**. `sessions.lance` holds pi/Claude s
 | Surface | How it shows up |
 |---------|----------------|
 | pi (native) | `semantic-memory` SKILL.md skill **and** andenken extension's `session_search` / `knowledge_search` registerTool — both available, both call the same CLI |
-| pi-shell-acp Claude / Codex / Gemini (ACP) | `semantic-memory` SKILL.md skill (plugin namespace: `agent-config-skills:semantic-memory`) |
+| entwurf Claude / Codex / Gemini (ACP) | `semantic-memory` SKILL.md skill (plugin namespace: `agent-config-skills:semantic-memory`) |
 | Claude Code (direct) | `semantic-memory` SKILL.md skill (`~/.claude/skills/semantic-memory/`) |
 | OpenCode | `semantic-memory` SKILL.md skill (`~/.config/opencode/skills/semantic-memory/`) |
 | OpenClaw (4 bots) | same `skills/` directory via symlink mount; host binaries via Nix store mount inside Docker |
@@ -210,31 +210,31 @@ Environment (`~/.env.local`): `ANDENKEN_SESSION_*` and `ANDENKEN_MD_*` point at 
 
 ### Entwurf Orchestration — Consumer Side
 
-`entwurf` (delegate/resume), cross-session messaging, and the pi-facing MCP bridge all live in **[pi-shell-acp](https://github.com/junghan0611/pi-shell-acp)**. agent-config consumes the surface — does not own it.
+`entwurf` (delegate/resume), cross-session messaging, and the pi-facing MCP bridge all live in **[entwurf](https://github.com/junghan0611/entwurf)**. agent-config consumes the surface — does not own it.
 
-- **Entry point:** `pi/settings.json` § `piShellAcpProvider.mcpServers.pi-tools-bridge.command` points at pi-shell-acp's `mcp/pi-tools-bridge/start.sh`. Injects ACP surface (`entwurf`, `entwurf_resume`, `entwurf_send`, `entwurf_peers`, `session_search`, `knowledge_search`) into every ACP session.
-- **Spec:** [pi-shell-acp `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md) — registry schema, Identity Preservation Rule, sync/async contract, verification matrix.
+- **Entry point:** `pi/settings.json` § `entwurfProvider.mcpServers.entwurf-bridge.command` points at entwurf's `mcp/entwurf-bridge/start.sh`. Injects ACP surface (`entwurf`, `entwurf_resume`, `entwurf_send`, `entwurf_peers`, `session_search`, `knowledge_search`) into every ACP session.
+- **Spec:** [entwurf `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/entwurf/blob/main/AGENTS.md) — registry schema, Identity Preservation Rule, sync/async contract, verification matrix.
 - **Caller responsibility (stays here):** the Cross-Repo Work Loop policy above. Responsibility lives with the caller, not the mechanism.
 
 #### Host Surface Alignment — Mitsein (garden-id)
 
-agent-config is the resident-side evidence that pi-shell-acp's "no backend differentiation" invariant holds at the consumer surface too — and the meta-bridge gives it a concrete substrate: every host surface becomes a **garden citizen** addressable by a **garden id**, the universal handle (surfaced live in the statusline, `🪛 <garden-id>`). The `claude/`, `codex/`, `gemini/`, and `antigravity/` surfaces — plus the OpenCode wiring — carry the same skill set, the same YOLO custom config, and an aligned `pi-tools-bridge` MCP registration where the host supports MCP. Entwurf throwing works the same from any of these hosts (Claude Code / Codex CLI / Antigravity CLI / OpenCode), and cross-session messaging runs citizen-to-citizen by garden id — send and receive through the garden-id mailbox (doorbell → `entwurf_inbox_read`), with no pi or ACP required on either side. The garden id is the single address layer above every backend. Live confirmation is no longer Claude-only: direct Codex and Antigravity have both been verified for `entwurf` spawn and sync `entwurf_resume`. The fact that ongoing dialogue mostly references Claude Code is an operator time-budget artifact, not a capability gap.
+agent-config is the resident-side evidence that entwurf's "no backend differentiation" invariant holds at the consumer surface too — and the meta-bridge gives it a concrete substrate: every host surface becomes a **garden citizen** addressable by a **garden id**, the universal handle (surfaced live in the statusline, `🪛 <garden-id>`). The `claude/`, `codex/`, `gemini/`, and `antigravity/` surfaces — plus the OpenCode wiring — carry the same skill set, the same YOLO custom config, and an aligned `entwurf-bridge` MCP registration where the host supports MCP. Entwurf throwing works the same from any of these hosts (Claude Code / Codex CLI / Antigravity CLI / OpenCode), and cross-session messaging runs citizen-to-citizen by garden id — send and receive through the garden-id mailbox (doorbell → `entwurf_inbox_read`), with no pi or ACP required on either side. The garden id is the single address layer above every backend. Live confirmation is no longer Claude-only: direct Codex and Antigravity have both been verified for `entwurf` spawn and sync `entwurf_resume`. The fact that ongoing dialogue mostly references Claude Code is an operator time-budget artifact, not a capability gap.
 
 Two operational corollaries the consumer surface enforces:
 
 - **Skill set parity.** `./skills/` is the single source; `run.sh setup` symlinks the same set into every host. A skill missing in one host is a consumer-side break to fix here, not a backend limitation.
-- **YOLO harness invariant for spawn.** Entwurf spawn target is always a YOLO harness process (`pi`, `claude-code`). Backend CLIs (`codex exec`, `gemini -p`) reach the same frontier models but are model carriers, not spawn targets; they default to permission-ask sandboxes that break async throw-and-recall. Canonical spec: [pi-shell-acp `AGENTS.md` § Entwurf](https://github.com/junghan0611/pi-shell-acp/blob/main/AGENTS.md) — "Source-agnostic does not mean harness-agnostic".
+- **YOLO harness invariant for spawn.** Entwurf spawn target is always a YOLO harness process (`pi`, `claude-code`). Backend CLIs (`codex exec`, `gemini -p`) reach the same frontier models but are model carriers, not spawn targets; they default to permission-ask sandboxes that break async throw-and-recall. Canonical spec: [entwurf `AGENTS.md` § Entwurf](https://github.com/junghan0611/entwurf/blob/main/AGENTS.md) — "Source-agnostic does not mean harness-agnostic".
 
 #### Claude Code Permission Model — Two Gotchas
 
-Both are binary-hardcoded in Claude Code; `permissions.allow` cannot override either. Settings (workstation: the merged `~/.claude/settings.json` — agent-config injects its keyset from `claude/settings.fragment.json`, `permissions` itself is now pi-shell-acp-owned; server: `claude/settings.server.json` linked) reflect the resolution.
+Both are binary-hardcoded in Claude Code; `permissions.allow` cannot override either. Settings (workstation: the merged `~/.claude/settings.json` — agent-config injects its keyset from `claude/settings.fragment.json`, `permissions` itself is now entwurf-owned; server: `claude/settings.server.json` linked) reflect the resolution.
 
 1. **`.claude/` self-modification guard.** Any write/edit to a path under `~/.claude/**` or `<cwd>/.claude/**` always prompts — settings, skills, hooks, commands, anything. The prompt offers "Yes, and allow Claude to edit its own settings for this session" which grants session-scope free-pass (no persistable form). Implemented in the binary as `s1A` (project-local) / `t1A` (global) — boundary is the literal `.claude/` directory, not specific files. Expected behavior; do not fight it.
 2. **`Tool(*)` glob doesn't match absolute paths.** For path-arg tools (`Edit`, `Write`, `Read`, `Grep`, `Glob`, `WebFetch`, `WebSearch`), `(*)` is a glob and `*` does not cross `/`. So `Edit(*)` matches `foo.txt` but **not** `/home/.../foo.txt` → fallthrough to ask. The standard "allow all" form is bare: `Edit`, `Write`, etc. `Bash(*)` is different — Bash uses a command matcher, not a path glob — and works.
 
 ### Skills
 
-`./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, OpenCode, Codex, and the pi-shell-acp Claude plugin farm. See [README § What's Here](README.md#whats-here) for categories.
+`./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, OpenCode, Codex, and the entwurf Claude plugin farm. See [README § What's Here](README.md#whats-here) for categories.
 
 ### Global Commit/Push Safety Rail
 
@@ -258,19 +258,19 @@ Bypass (`AGENT_ALLOW_UNSAFE_COMMIT=1`) is a **GLG-only** override for genuine fa
 
 > The hook scans **added lines only**, gitleaks-style. Pre-existing tracked content is grandfathered until those lines are next modified — the rail is for what we write **from here forward**, not a cleanup tool. No flag-day, no chase down of historical mentions.
 
-### Release — pi-shell-acp Install Mode
+### Release — entwurf Install Mode
 
-**Current Oracle/OpenClaw prerelease mode (2026-05-15):** server devices track pi-shell-acp latest `main`, not the `v0.5.0` tag. Reason: the OpenClaw plugin scaffold and Docker boundary docs live after the 0.5.0 release while `package.json#version` still says `0.5.0`; commit is the authority during this window.
+**Current Oracle/OpenClaw prerelease mode (2026-05-15):** server devices track entwurf latest `main`, not the `v0.5.0` tag. Reason: the OpenClaw plugin scaffold and Docker boundary docs live after the 0.5.0 release while `package.json#version` still says `0.5.0`; commit is the authority during this window.
 
 | File | Current setting |
 |------|-----------------|
-| `pi/settings.server.json` | `packages[]` entry — `git:github.com/junghan0611/pi-shell-acp` (no tag) |
-| `run.sh` | `PI_SHELL_ACP_INSTALL_SPEC` + `PI_SHELL_ACP_TRACKING_REF="main"` |
+| `pi/settings.server.json` | `packages[]` entry — `git:github.com/junghan0611/entwurf` (no tag) |
+| `run.sh` | `ENTWURF_INSTALL_SPEC` + `ENTWURF_TRACKING_REF="main"` |
 | `CHANGELOG.md` | `Unreleased` explains why server devices track latest main |
 
 `setup_npm()` refreshes the pi-managed checkout directly with `git fetch origin main && git checkout -B main origin/main && pnpm install`, because `pi install git:...` may treat an existing checkout as already installed. Do not use `package.json#version` as the drift signal in prerelease mode.
 
-When the next stable pi-shell-acp release ships, restore tagged mode as a normal release bump. That change should again move together: `package.json` version, `pi/settings.server.json` `@vX.Y.Z`, `run.sh` version constant / tag checkout logic, and `CHANGELOG.md`.
+When the next stable entwurf release ships, restore tagged mode as a normal release bump. That change should again move together: `package.json` version, `pi/settings.server.json` `@vX.Y.Z`, `run.sh` version constant / tag checkout logic, and `CHANGELOG.md`.
 
 `pi/settings.json`'s `lastChangelogVersion` is pi-runtime's own changelog ack — unrelated to agent-config releases.
 
@@ -288,6 +288,6 @@ pnpm run golden                          # search quality regression
 # ANDENKEN_ALLOW_PAID_FULL_REBUILD=1 ./run.sh index:md
 # ./run.sh verify md && ./run.sh search:md "보편 학문" --limit 5
 
-# pi-shell-acp gates (typecheck, MCP, dual-backend smoke, etc.)
-cd ~/repos/gh/pi-shell-acp && ./run.sh check-...   # see pi-shell-acp/AGENTS.md
+# entwurf gates (typecheck, MCP, dual-backend smoke, etc.)
+cd ~/repos/gh/entwurf && ./run.sh check-...   # see entwurf/AGENTS.md
 ```

@@ -12,7 +12,7 @@ Extract **only** user/assistant text from a session JSONL.
 current harness** (running under Claude Code → `claude`, otherwise → `pi`). To continue
 prior work cleanly you want the *same* harness's sessions. Override with `--source`.
 Inside `--source pi`, use `--harness gpt|acp|all` to distinguish pi native GPT/Codex
-from pi-shell-acp Claude/Opus. `--source claude` still means Claude Code only.
+from entwurf Claude/Opus. `--source claude` still means Claude Code only.
 
 **Corpus filters** (aligned with andenken `session-indexer.ts` — 0d4432b "tighten
 corpus to garden-native >300KB, drop tmp + legacy"). Same discipline as session
@@ -25,8 +25,8 @@ exist, and their order is part of the contract:
     forms (`_<uuid>`/`_delegate-`/`_entwurf-`) excluded. claude is always UUID, so no
     filename filter.
 - **Pi harness filter** `--harness gpt|acp|all` (applied *after* skip, before size):
-  `gpt` = pi native OpenAI/Codex (`openai-codex` / `gpt-*`), `acp` = pi-shell-acp
-  Claude (`pi-shell-acp` / `claude-*`). Unknown pi sessions pass only with `all`.
+  `gpt` = pi native OpenAI/Codex (`openai-codex` / `gpt-*`), `acp` = entwurf
+  Claude (`entwurf` / `claude-*`). Unknown pi sessions pass only with `all`.
 - **Size filter** `--min-kb 300` (applied *after* skip + harness): drops short test/probe
   fragments from what's *shown*. This is a heuristic, not truth: a real GPT/Codex
   session can be below 300KB. Disable with `--min-kb 0` when the expected session is
@@ -94,10 +94,10 @@ python3 {baseDir}/scripts/session-recap.py -p nixos-config --commits
 python3 {baseDir}/scripts/session-recap.py -p agent-config -m 15 --source pi
 
 # pi native GPT/Codex sessions only
-python3 {baseDir}/scripts/session-recap.py -p pi-shell-acp -m 15 --source pi --harness gpt
+python3 {baseDir}/scripts/session-recap.py -p entwurf -m 15 --source pi --harness gpt
 
-# pi-shell-acp Claude/Opus sessions only (not Claude Code)
-python3 {baseDir}/scripts/session-recap.py -p pi-shell-acp -m 15 --source pi --harness acp
+# entwurf Claude/Opus sessions only (not Claude Code)
+python3 {baseDir}/scripts/session-recap.py -p entwurf -m 15 --source pi --harness acp
 
 # Claude Code sessions only
 python3 {baseDir}/scripts/session-recap.py -p agent-config -m 15 --source claude
@@ -127,7 +127,7 @@ context the user pointed at**:
 
 - "home 디렉토리 분신", "Entwurf", "분신 기록" → `-p home`
 - "COS" / 비서실장 session → `-p cos`
-- a named repo steward session → that repo name (`andenken`, `notes`, `pi-shell-acp`, …)
+- a named repo steward session → that repo name (`andenken`, `notes`, `entwurf`, …)
 
 When unsure:
 
@@ -190,7 +190,7 @@ memory, other sessions, or similar-looking work.
 ```text
 조회 프로젝트: home
 대상 세션: ═══ home [pi] (2026-04-19T23-53-12-415Z_...) ═══
-# or: 대상 세션: ═══ pi-shell-acp [pi:gpt] (...) ═══
+# or: 대상 세션: ═══ entwurf [pi:gpt] (...) ═══
 
 요약:
 - ...

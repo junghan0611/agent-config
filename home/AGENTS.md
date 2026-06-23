@@ -110,7 +110,7 @@ Entwurf opens siblings, not disposable workers.
 - Entwurfs prepare work; GLG decides final commit/push.
 - When spawning with project context, pass `cwd` exactly. Do not use `workingDirectory`.
 - Resume existing entwurf sessions when continuity matters; do not change the model on resume.
-- For pi-shell-acp / garden-id / meta-bridge details, treat `~/repos/gh/pi-shell-acp/AGENTS.md` as SSOT.
+- For entwurf / garden-id / meta-bridge details, treat `~/repos/gh/entwurf/AGENTS.md` as SSOT.
 
 ## Knowledge Work
 

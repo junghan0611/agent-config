@@ -69,7 +69,7 @@ def _is_excluded_project_dir(dirname: str) -> bool:
 def _is_garden_native_pi_file(filename: str) -> bool:
     """0.9.0 이후 garden-native pi 세션 파일명.
 
-    `<created-at>_<sessionId>.jsonl` 에서 sessionId 는 pi-shell-acp SSOT
+    `<created-at>_<sessionId>.jsonl` 에서 sessionId 는 entwurf SSOT
     SESSION_ID_RE = /^\\d{8}T\\d{6}-[0-9a-f]{6}$/. 구형 종(`_<uuid>`, `_entwurf-…`,
     `_delegate-…`)은 폐기·미인덱싱. claude 는 항상 UUID라 미적용. andenken
     isGardenNativePiFile 과 동일 (full sessionId anchored → future drift fail-fast).
@@ -142,7 +142,7 @@ def detect_pi_harness(filepath: Path, max_lines: int = 200) -> str:
     pi session records do not carry model/provider in the top-level session row.
     The first assistant message usually has message.api/provider/model:
     - openai-codex / gpt-*      → gpt
-    - pi-shell-acp / claude-*   → acp
+    - entwurf / claude-*        → acp  (historical sessions: provider "pi-shell-acp")
     Unknown sessions pass only when --harness=all.
     """
     try:
@@ -169,7 +169,9 @@ def detect_pi_harness(filepath: Path, max_lines: int = 200) -> str:
 
                 if "openai-codex" in api or "openai-codex" in provider or model.startswith("gpt-"):
                     return "gpt"
-                if "pi-shell-acp" in api or "pi-shell-acp" in provider or model.startswith("claude-"):
+                if ("entwurf" in api or "entwurf" in provider
+                        or "pi-shell-acp" in api or "pi-shell-acp" in provider
+                        or model.startswith("claude-")):
                     return "acp"
     except OSError:
         return "unknown"
@@ -436,7 +438,7 @@ def main():
     parser.add_argument(
         "--harness", choices=["gpt", "acp", "all"], default="all",
         help="pi 내부 하네스 필터. gpt=pi native OpenAI/Codex, "
-             "acp=pi-shell-acp Claude, all=필터 없음. Claude Code source 의미는 바꾸지 않음"
+             "acp=entwurf Claude (historical: pi-shell-acp), all=필터 없음. Claude Code source 의미는 바꾸지 않음"
     )
     parser.add_argument(
         "--min-kb", type=int, default=DEFAULT_MIN_KB,

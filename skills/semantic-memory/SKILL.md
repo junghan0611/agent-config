@@ -60,7 +60,7 @@ Sessions are a **time axis + project/cwd axis** for continuing work. Use the met
 
 # Recent entwurf-related work (slice by time/project)
 {baseDir}/semantic-memory search-sessions "분신 작업 Session ID entwurf" \
-  --project pi-shell-acp \
+  --project entwurf \
   --date-from 2026-05-11T15:00:00Z \
   --date-to 2026-05-12T15:00:00Z \
   --mode recent

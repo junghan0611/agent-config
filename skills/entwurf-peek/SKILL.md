@@ -6,7 +6,7 @@ description: "sync entwurf 자식을 들여다보는 손. 호출자가 'Matterin
 # entwurf-peek — 분신을 들여다보는 손
 
 세 개의 서브커맨드. live control socket probe + 세션 JSONL header/name 스캔만으로 동작.
-pi-shell-acp 새 surface 없음. session-recap의 JSONL 파서 패턴 재사용.
+entwurf 새 surface 없음. session-recap의 JSONL 파서 패턴 재사용.
 
 ## API
 

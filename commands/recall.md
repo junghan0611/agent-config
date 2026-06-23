@@ -53,7 +53,7 @@ Use the pi-internal harness axis:
 python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15 --source pi --harness gpt
 ```
 
-Use `--source pi --harness acp` for pi-shell-acp Claude/Opus sessions. `--source claude`
+Use `--source pi --harness acp` for entwurf Claude/Opus sessions. `--source claude`
 still means Claude Code sessions. If the expected GPT/ACP session is missing or the
 header is older than expected, keep the same project/harness axis and retry with
 `--min-kb 0` before widening scope; the default 300KB floor can hide real shorter
@@ -125,7 +125,7 @@ Before reading §3 results, check whether the returned session file paths are al
 | Backend | Primary call (skill) | Extra surface |
 |---------|---------------------|---------------|
 | pi native | `semantic-memory` skill (SKILL.md) | andenken extension's `session_search` / `knowledge_search` registerTool |
-| ACP Claude (via pi-shell-acp) | `agent-config-skills:semantic-memory` Skill (plugin namespace) | — |
+| ACP Claude (via entwurf) | `agent-config-skills:semantic-memory` Skill (plugin namespace) | — |
 | ACP Codex / Gemini | `semantic-memory` skill (SKILL.md) | direct binary path |
 | Claude Code (direct) | `semantic-memory` skill (`~/.claude/skills/`) | — |
 

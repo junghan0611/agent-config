@@ -14,7 +14,7 @@
       "WebFetch",
       "WebSearch",
       "Skill",
-      "mcp__pi-tools-bridge__*"
+      "mcp__entwurf-bridge__*"
     ],
     "deny": [
       "Agent",
@@ -87,7 +87,7 @@
     "meta-bridge-local": {
       "source": {
         "source": "directory",
-        "path": "/home/junghan/repos/gh/pi-shell-acp/pi/meta-bridge/.assembled"
+        "path": "/home/junghan/repos/gh/entwurf/pi/meta-bridge/.assembled"
       }
     }
   },

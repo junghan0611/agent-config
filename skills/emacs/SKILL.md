@@ -14,7 +14,7 @@ eu() { emacsclient -s user --no-wait "$@"; }  # show file to user
 
 Define ec/eu in EVERY bash call (subshell resets).
 
-`PI_EMACS_AGENT_SOCKET` is injected by pi-shell-acp when launched with
+`PI_EMACS_AGENT_SOCKET` is injected by entwurf when launched with
 `--emacs-agent-socket <name>` (e.g. `server`, `/run/emacs/server` for Docker).
 Falls back to `server` when unset.
 

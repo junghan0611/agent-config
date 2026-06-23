@@ -1,6 +1,6 @@
 ---
 name: agent-config
-description: "agent-config 담당자의 운영 면(operating surface) — 스킬·정체성·정렬을 여러 하네스(pi / pi-shell-acp Claude / Claude Code / OpenCode / Codex / Gemini / Antigravity)로 펼치는 repo에서 실제로 손을 쓸 때. AGENTS.md가 '정신'을 담고 run.sh가 '로컬 명령'을 담는다면, 이 스킬은 그 둘이 못 가진 삽질 지식을 담는다: 스킬을 추가/수정해서 모든 하네스에 제대로 뜨게 하는 법, 새 기기 setup, '내 스킬이 안 보여요' 진단, .bak 함정, 바이너리-from-sibling-repo 패턴, 스킬 테스트 공백, git-hooks 안전벽. 트리거: 'agent-config', '스킬 추가', '스킬 안 떠', '스킬 링크', 'run.sh setup', '새 기기 셋업', '하네스 펼침', 'setup:links', '담당자 스킬', 'repo-local skill', 'consumer skill 이주'."
+description: "agent-config 담당자의 운영 면(operating surface) — 스킬·정체성·정렬을 여러 하네스(pi / entwurf Claude / Claude Code / OpenCode / Codex / Gemini / Antigravity)로 펼치는 repo에서 실제로 손을 쓸 때. AGENTS.md가 '정신'을 담고 run.sh가 '로컬 명령'을 담는다면, 이 스킬은 그 둘이 못 가진 삽질 지식을 담는다: 스킬을 추가/수정해서 모든 하네스에 제대로 뜨게 하는 법, 새 기기 setup, '내 스킬이 안 보여요' 진단, .bak 함정, 바이너리-from-sibling-repo 패턴, 스킬 테스트 공백, git-hooks 안전벽. 트리거: 'agent-config', '스킬 추가', '스킬 안 떠', '스킬 링크', 'run.sh setup', '새 기기 셋업', '하네스 펼침', 'setup:links', '담당자 스킬', 'repo-local skill', 'consumer skill 이주'."
 user_invocable: true
 ---
 
@@ -22,7 +22,7 @@ skills/<name>/SKILL.md (+바이너리)   ← SSOT (이 repo)
         │  ./run.sh setup → setup_links
         ▼
    ┌─ ~/.pi/agent/skills/pi-skills/<name>          (pi, 개별 링크)
-   ├─ ~/.pi/agent/claude-plugin/skills/<name>      (pi-shell-acp Claude, 개별 — SDK 격리)
+   ├─ ~/.pi/agent/claude-plugin/skills/<name>      (entwurf Claude, 개별 — SDK 격리)
    ├─ ~/.claude/skills            → skills/         (Claude Code, 디렉토리 통링크)
    ├─ ~/.config/opencode/skills   → skills/         (OpenCode, 디렉토리 통링크)
    ├─ ~/.codex/skills/<name>                        (Codex, 개별 — .system/ 빌트인 때문)
@@ -89,7 +89,7 @@ cd ~/repos/gh/agent-config && ./run.sh setup
 ```
 - **server vs dev 기기 자동 분기**: `~/.current-forge-profile`가 `oracle`/`work`면 server
   → consumer pi install 경로 + `pi/settings.server.json`. 클라이언트(thinkpad/laptop/nuc)는
-  파일 없음 → dev 경로(pi-shell-acp를 `~/repos/gh/`로 clone). 사설 기기명은
+  파일 없음 → dev 경로(entwurf를 `~/repos/gh/`로 clone). 사설 기기명은
   `~/.config/agent-config/server-devices.txt`.
 - 끝나면 `./run.sh env`로 7개 하네스 링크 + 바이너리 arch 한눈에 검증.
 
@@ -119,7 +119,7 @@ cd ~/repos/gh/agent-config && ./run.sh setup
   install 경로)을 쓴다. forge profile 감지가 틀어지면 잘못된 settings가 링크된다 →
   `cat ~/.current-forge-profile`로 확인.
 - **레거시 잔재 청소 로직이 setup에 박혀 있다.** `delegate.ts` / `delegate-targets.json` /
-  pi `semantic-memory` extension 등은 pi-shell-acp/andenken로 이관됨 → setup이 옛 기기에서
+  pi `semantic-memory` extension 등은 entwurf/andenken로 이관됨 → setup이 옛 기기에서
   자동 제거. 손으로 되살리지 마라(곧 다시 지워진다).
 - **PI_SKIP_SKILLS는 일부러 비어 있다.** semantic-memory를 pi 네이티브 registerTool과
   SKILL.md 스킬 **양쪽으로** 노출하는 건 정책상 중립(SSOT 하나, 호출 표면 둘). 충돌 아님.
@@ -131,7 +131,7 @@ cd ~/repos/gh/agent-config && ./run.sh setup
 (`$SM_DIR/run.sh`), 스킬을 검증하지 않는다. 현재 유일한 deterministic gate는
 `skills/entwurf-peek/scripts/test-discovery.py`(수동 실행, 15-check). 이게 구조적 약점이다.
 
-진행 중 방향(2026-06): **pi-shell-acp 같은 owning repo의 내부를 port/wrap하는 consumer
+진행 중 방향(2026-06): **entwurf 같은 owning repo의 내부를 port/wrap하는 consumer
 스킬(예: entwurf-peek)은 그 owning repo로 이주**해서 거기 CI(`./run.sh check-*` 배터리)에
 parity gate로 편입한다. voscli 패턴(스킬이 코드와 한 집에 살고 그 repo CI가 테스트). 이주
 후 agent-config는 SSOT를 잃고 `setup:links`로 **링크만** 한다 — 바이너리-from-sibling-repo
