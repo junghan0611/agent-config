@@ -1,6 +1,6 @@
 ---
 name: emacs
-description: "Emacs daemon — org manipulation, denote notes, citar bibliography, org-agenda, arbitrary elisp. Two sockets: server (agent work), user (show file to user). Core: agent-denote-add-history(ID,CONTENT), agent-denote-add-heading(ID,TITLE,BODY) or (ID,TITLE,TAG,BODY) — no tag? body as 3rd arg. Never pass nil. agent-denote-add-link(ID,TARGET-ID,DESC). DESC required — hang if omitted."
+description: "Emacs daemon — org manipulation, denote notes, citar bibliography, org-agenda, arbitrary elisp. Two sockets: server (agent work), user (show file to user). Core: agent-denote-add-history(ID,CONTENT), agent-denote-add-heading(ID,TITLE,BODY) or (ID,TITLE,TAG,BODY) — no tag? body as 3rd arg. Never pass nil. agent-denote-add-link(ID,TARGET-ID,DESC). All 3 args required."
 ---
 
 # Emacs Agent Server
@@ -25,7 +25,7 @@ Falls back to `server` when unset.
 | `agent-denote-add-history` | ID, CONTENT | `ec '(agent-denote-add-history "ID" "@pi — msg")'` |
 | `agent-denote-add-heading` | ID, TITLE, BODY | `ec '(agent-denote-add-heading "ID" "Title" "body")'` |
 | | ID, TITLE, TAG, BODY | `ec '(agent-denote-add-heading "ID" "Title" "LLMLOG" "body")'` |
-| `agent-denote-add-link` | ID, TARGET-ID, DESC | `ec '(agent-denote-add-link "ID1" "ID2" "desc")'` ⚠️ DESC required — hang if omitted |
+| `agent-denote-add-link` | ID, TARGET-ID, DESC | `ec '(agent-denote-add-link "ID1" "ID2" "desc")'` ⚠️ all 3 args required (see Gotchas) |
 | `agent-denote-set-front-matter` | ID, &rest PLIST | `ec '(agent-denote-set-front-matter "ID" :title "새 제목" :filetags (quote ("meta" "reasoning")) :rename t)'` |
 | `agent-denote-search` | QUERY, ?TYPE(title/tag/fulltext) | `ec '(agent-denote-search "term" (quote tag))'` |
 | `agent-denote-keywords` | — | `ec '(agent-denote-keywords)'` → all tags list |
@@ -96,6 +96,20 @@ ec '(mapcar #'\''buffer-name (buffer-list))'
 ### Daemon management
 - thinkpad: `cd ~/repos/gh/doomemacs-config && ./run.sh agent start|stop|restart`
 - oracle: `~/openclaw/emacs-agent.sh start|stop|restart`
+- agent-server.el 을 고치면 **데몬 재시작해야 반영**된다 (위 restart). 데몬이
+  hang 상태면 `(kill-emacs)` eval 도 막힐 수 있으니 그땐 `pkill -f 'daemon=.*agent'`.
+
+### Gotchas — stale buffer / rename (issue #9, fixed 2026-06-24)
+- **add-* / set-front-matter 는 매 호출 디스크에서 새로 읽는다** (stale 버퍼 폐기).
+  그래서 ~/org 파일을 일반 Write 도구로 직접 고친 뒤 곧바로 이 API 를 불러도 안전.
+  과거엔 stale 버퍼 + "file changed on disk; really edit?" 프롬프트로 데몬이
+  **조용히 hang** 했다 (DESC 누락과 무관한 hang — bbot 가 헷갈린 지점). 이제 그
+  케이스는 hang 대신 `ERROR: ...` 문자열을 돌려준다.
+- 그래도 ~/org 편집의 계약(contract)은 가능하면 raw Write 가 아니라 agent-denote-* API.
+- **rename 은 데몬 cwd 와 무관하게 repo 안에서 git mv** 한다. 과거 `agent-denote-rename-*`
+  가 데몬 cwd(예: `~/openclaw/`)에 따라 `../org/...` 상대경로 + `.git` 없는 cwd 로
+  `git mv` 를 돌려 **"status 128"** 으로 죽던 버그를 `default-directory` 고정으로 수정.
+- 위 수정은 `bin/agent-server.el` 에 있다 → **데몬 재시작 후** 유효.
 
 ### Agenda
 DATE format: nil=today, "-1"=yesterday, "+3"=3days, "2026-03-01"=specific date.
