@@ -7,6 +7,28 @@
 
 ## Unreleased
 
+## v2026.6.30 — entwurf 릴리즈 싱크: skills-home + 시험소 포지셔닝
+
+### Positioning (entwurf 릴리즈 싱크)
+
+* **목적 전환 문서화 — agent-config = 스킬 SSOT + entwurf 시험소(proving ground).** entwurf가 `v0.12+`에서 garden-citizen dispatch substrate(`@junghanacs/entwurf`, 구 `pi-shell-acp` 은퇴)로 릴리즈되며 **모든 하네스 통합 설정·에이전트 통합관리의 강한 본체**가 됨에 따라, agent-config의 포지셔닝을 "co-equal pair"에서 **스킬 홈 + 시험소(인큐베이터)**로 재정렬했다. 하네스 config/hook/wiring은 여기서 먼저 담금질하고 몇 주 soak-test 한 뒤 깨끗하면 entwurf로 승격한다 — 검증 안 된 설정을 곧장 entwurf로 보내면 본체가 약해지므로 churn은 agent-config이 흡수한다. README 오프닝의 pi-centric "bridge layer that connects pi to…" 옛 설명을 제거했고, `ROADMAP.md [2026-06-30] purpose shift` 항목 신규, `AGENTS.md` 정체성에 "entwurf의 시험소이자 스킬 관리소" bullet을 추가했다. 방향 SSOT: `ROADMAP.md`.
+
+### Fixed
+
+* **git-hooks 시크릿 스캔이 모든 repo에서 죽어 있던 것 복구.** `_scan.sh`가 deprecated된 `gitleaks detect --source=-`를 호출하는데, gitleaks 8.x는 `-`를 존재하지 않는 파일 경로(`lstat -`)로 취급해 **0바이트만 스캔하고 항상 "no leaks"**를 반환했다 — gitleaks 시크릿 안전망이 strict/loose 양쪽 모두에서 조용히 무력화돼 있었다(identity-term/secretlint 레이어는 별개라 영향 없음). `gitleaks stdin` 서브커맨드로 교체해 파이프 diff를 실제로 읽고 발견 시 exit 1 하도록 고쳤다. 검증: `sk-ant` 고엔트로피 키가 strict·loose 양쪽에서 정상 차단, 일반 코드·identity-term-only(loose)는 통과하는 5케이스 매트릭스 통과.
+
+### Added
+
+* **`autholog` raw intake mend 스킬.** 링크드인·페이스북·텔레그램 날것을 `~/org/notes`의 기존 빈방/outdated 방에 원문(quote 보존) + 해설본으로 승격하는 ROSSE/autholog 수선 워크플로.
+
+### Docs
+
+* **`emacs` 스킬 — add-link hang 주의 + issue #9 gotchas 보강.** `agent-denote-add-link` nil 인자 hang 노트와 관련 gotcha를 추가했다.
+
+### Notes
+
+* `pi/settings.json` `lastChangelogVersion` → `0.80.2` (pi-runtime 자체 changelog ack; agent-config 릴리즈와 무관).
+
 ## v2026.6.23 — pi-shell-acp → entwurf 컨슈머 cutover
 
 ### entwurf rename (consumer cutover)

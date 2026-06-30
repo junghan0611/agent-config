@@ -3,6 +3,10 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
+> NOW (`v2026.6.30`, entwurf 릴리즈 싱크): active 한 점은 ① bibcli 도구-내장 스킬
+> owning-repo 환원(구조), ② pi-chat Add-group blocker. 방향(시험소·승격 파이프라인)은
+> `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+
 ## [2026-06-11] 도구-내장 스킬을 owning repo로 환원 (구조 결함)
 
 **문제:** `bibcli` 스킬이 잘못된 곳에 산다. 소스(`zotero-config/bibcli/*.go`)와
@@ -33,59 +37,20 @@ openclaw 6개 사본까지 드리프트한다.
 README/AGENTS.md/SKILL.md 내용만 바로잡았고(= save --sync --json 전면화, beads 제거),
 **구조 이주는 이 NEXT 항목으로 보류**.
 
-## [2026-06-06] claude/settings.json — 키셋-owner merge 전환 (워크스테이션 경로 LANDED)
+## [2026-06-06] claude/settings.json keyset-merge — CLOSED, 잔여는 entwurf lane
 
-**불변식: 워크스테이션에서 `~/.claude/settings.json`을 심링크하지 않는다.**
-entwurf meta-bridge가 같은 파일을 공동 소유하므로, 심링크(=파일 통째 소유)는
-다음 writer의 atomic rename에 조용히 덮인다. entwurf 쪽은 1.0.0에서
-state 기반 키셋 in/out(`scripts/meta-bridge-state.py`, `entwurf.install-state.json`)으로
-이미 완성됨 — 이 항목은 **agent-config 쪽 미이주 절반**을 닫는 작업이었다.
+워크스테이션 fragment-merge 전환 LANDED (`v2026.6.6` + `ROADMAP.md [2026-06-06]`).
+**불변식: 워크스테이션에서 `~/.claude/settings.json`을 심링크하지 않는다** — entwurf
+meta-bridge와 공동 소유라 심링크(=파일 통째 소유)는 다음 writer의 atomic rename에 덮인다.
+분담선 SSOT: entwurf `~/.claude/entwurf.install-state.json`의 `files.settings.keys`가
+entwurf 소유 권위, agent-config 키셋 = 그 여집합(새 키 추가 시 교차 확인). 원칙: pi 영역
+permissions/B-lite/statusLine/meta는 일절 세팅 안 함 — 스킬·커맨드 경로 + 순수 agent-config
+키(hooks/언어/개인취향)만.
 
-### LANDED (이번 세션)
-
-- `claude/settings.json` → `claude/settings.fragment.json` (git mv). **agent-config 키셋만** 남김:
-  hooks / language / effortLevel / editorMode / preferredNotifChannel /
-  agentPushNotifEnabled / voiceEnabled / autoUpdates / enabledPlugins(official toggles).
-  **permissions.allow/deny/defaultMode 제거 → entwurf 단독 소유**(아래 결정). 결과:
-  fragment ∩ pi 키셋 = **완전 무중첩**(install-state SSOT 대조로 검증). merge가 permissions를
-  아예 안 건드려 pi의 doctor가 단일 권위로 소유·검증 가능.
-  양도(제거): statusLine, B-lite 스칼라(cleanupPeriodDays·env.DISABLE_AUTOCOMPACT·
-  promptSuggestionEnabled·awaySummaryEnabled·autoMemoryEnabled·skipDangerousModePermissionPrompt·
-  verbose·autoCompactEnabled·showTurnDuration·terminalProgressBarEnabled·useAutoModeDuringPlan),
-  enabledPlugins.entwurf-meta-receive, extraKnownMarketplaces → **전부 entwurf 소유**.
-- `run.sh`: `merge_settings()` 헬퍼 추가(`jq -s '.[0]*.[1]'` = existing*fragment, 객체 재귀 merge·
-  배열 replace·co-owner 키 보존·legacy 심링크 자동 de-reference·atomic write). setup_links 분기:
-  **서버 = full `settings.server.json` 심링크(단일 owner)**, **워크스테이션 = fragment merge**.
-- status/doctor 라인: settings.json이 심링크 아니어도 `merged (keyset)`로 정직 표기.
-- `claude/settings.local.json`: stale `enabledMcpjsonServers:["entwurf-bridge"]` 제거
-  (애초 "New MCP server" 프롬프트 원인 — entwurf-bridge는 user-scope라 불필요).
-- 검증: 라이브 파일 dry-run merge → entwurf 키(statusLine/meta/B-lite) 전부 보존 +
-  agent-config 키 주입 + idempotent 확인.
-
-### 분담선 SSOT
-
-entwurf `~/.claude/entwurf.install-state.json`의 `files.settings.keys`가
-"entwurf 소유 키"의 권위. agent-config 키셋 = 그 여집합. 새 키 추가 시 양쪽이
-같은 키를 잡지 않는지 이 state로 교차 확인.
-
-**[2026-06-06 결정] permissions.allow/deny → entwurf 단독 소유.** single-driver 도구
-제한은 ACP 백엔드와 동일한 pi의 근본 책임. 이전엔 양 repo가 같은 permissions 배열을
-소유하고 값이 우연히 같아 증상이 가려진 "조용한 시한폭탄"(한쪽이 항목 추가 시 다른 쪽
-setup이 옛 배열로 replace)이었다. agent-config가 permissions를 손에서 놓아 폭탄 제거.
-→ **원칙: entwurf의 install/uninstall/doctor가 안정화될 때까지 agent-config는 Claude
-settings에서 pi 영역을 일절 세팅하지 않는다. 우리가 세팅하는 건 스킬·커맨드 경로 + 순수
-agent-config 키(hooks/언어/개인취향)뿐.** pi 쪽 방어막(doctor keyset-survival 체크,
-check-keyset-overlap 진단)은 entwurf 트랙.
-
-### 남은 follow-up (이번 범위 밖, 의도적 보류)
-
-- **서버 디바이스**: 현재 full 심링크 유지 = B-lite 스칼라가 서버에도 박힘. entwurf가
-  서버까지 확장되면 그때 서버도 fragment merge로. 지금은 서버에 meta-bridge 없어 충돌 없음.
-- **같은 심링크 함정 점검**: `settings.local.json`은 단일 owner라 심링크 유지(안전). 단
-  `pi/settings.json`·`gemini/settings.json`·`antigravity/settings.json`·`mcp_config.json`은
-  앱/다른 installer가 쓰면 동일 위험 — 공동 소유 발생 시 같은 merge 모델로.
-- **statusLine 테마 환원**: entwurf Phase 3가 statusLine을 통째 소유 중. 풀기능에서
-  색/테마만 agent-config로 일부 이관 합의(entwurf NEXT.md). 그 시점 키 분리.
+조건부 follow-up (이제 entwurf 본체 lane — `ROADMAP.md [2026-06-30]` 기준):
+- 서버 디바이스: entwurf가 서버까지 확장되면 server도 fragment merge로(현재 서버 meta-bridge 없어 충돌 없음).
+- 심링크 함정: `pi/`·`gemini/`·`antigravity/`의 settings/mcp_config도 공동 소유 발생 시 같은 merge 모델.
+- statusLine 테마: entwurf가 통째 소유 중, 색/테마만 일부 환원 합의 시점에 키 분리.
 
 ## [2026-05-29] pi-chat Add group blocker — 다음 세션 첫 한 점
 
