@@ -3,6 +3,41 @@
 > Forward-looking work. Unlike `CHANGELOG.md`, this is not closed history.
 > Unlike `NEXT.md`, this is not the volatile next-step scratchpad.
 
+## [2026-06-30] purpose shift — skills home + 시험소 (incubator) for entwurf
+
+Building on the 2026-06-06 boundary settlement, the division of labor sharpens
+again. **entwurf is now the integrated place that configures every harness and
+where agent integration is unified** — the strong, stable core (it ships v0.12+
+as a garden-citizen dispatch substrate, not a pi adapter; `pi-shell-acp` is
+retired). agent-config stops trying to be a co-equal half of a "pair" and settles
+into two standing roles:
+
+1. **Skills home.** `./skills/` is the SSOT for the capability surface. Managing,
+   adding, and aligning skills across harnesses is agent-config's standing job.
+2. **시험소 (proving ground / incubator).** Before any harness config, hook, or
+   wiring is trusted by entwurf, it is hardened and soak-tested *here* first — on
+   the operator's real day-to-day surface — and watched for at least a few weeks.
+   Only config that stays clean over that window is handed to entwurf to absorb
+   into the integrated core.
+
+Why the soak gate matters: pushing unproven config straight into entwurf weakens
+the very thing meant to be the stable core. agent-config absorbs the churn and the
+risk so entwurf stays strong. Corollary: **agent-config quiet = pipeline healthy.**
+A busy agent-config means something is still being proven, not that the repo is
+growing — "거의 손댈 게 없어야 정상."
+
+Forward implications:
+
+- **agent-config should shrink, not grow.** The natural end state is a thin skills
+  SSOT + a test bench. Resist re-accumulating harness-config ownership that belongs
+  in entwurf once proven.
+- **Promotion is explicit, not automatic.** Soak window → clean → hand to entwurf.
+  Record what graduated and when, so the boundary stays legible.
+- **Harness wiring still living here is incubator state, not the destination.** The
+  pi / claude / codex / antigravity wiring tables in README/AGENTS describe what is
+  currently being proven on the operator's surface; expect them to thin as entwurf
+  absorbs the stable parts.
+
 ## [2026-06-06] boundary settlement — ownership ceded, essence kept (`v2026.6.6`)
 
 The line between agent-config and entwurf got drawn clean. What used to be a

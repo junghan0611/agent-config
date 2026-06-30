@@ -2,14 +2,16 @@
 
 **Contextual continuity infrastructure for AI agents.** Every new AI session starts at zero — no memory of past conversations, no access to your knowledge base, no awareness of your tools. agent-config solves this: when you switch agents, sessions, or even models, the same human's memory, knowledge, and work context carries over.
 
-**Official reference consumer of [`entwurf`](https://github.com/junghan0611/entwurf).**
+**Official reference consumer and proving ground for [`entwurf`](https://github.com/junghan0611/entwurf).**
 
-agent-config is the resident-side layer: skills, extensions, themes, prompts, profile, and operating conventions. `entwurf` is the bridge layer: it connects pi to Claude Code, Codex, and Gemini ACP backends while keeping the surface under pi's control.
+`entwurf` is the integrated substrate that configures every harness and unifies agent integration — the strong, stable core (a garden-citizen dispatch substrate, not a pi adapter). agent-config is the resident-side layer that feeds it: the **skills SSOT** (`skills/`) plus a **시험소 (proving ground)** where harness config, hooks, and wiring are hardened on the operator's real surface and soak-tested for weeks before being promoted into entwurf. Pushing unproven config straight into entwurf would weaken the core, so agent-config absorbs that churn first.
 
-Together they ship as a pair:
+The two are not co-equal halves — entwurf is the destination, agent-config is where things are proven before they get there:
 
-- **entwurf** → backend bridge, MCP injection, entwurf surface, verification harnesses
-- **agent-config** → real consumer profile, real skills, real day-to-day operating surface, real production proof
+- **entwurf** → integrated harness config, agent integration, backend bridge, MCP injection, verification harnesses — the stable core
+- **agent-config** → skills SSOT, real consumer profile, day-to-day operating surface, and the incubator that hardens config before promotion
+
+> The natural end state is a thin skills SSOT plus a test bench: **agent-config quiet means the pipeline is healthy.** See [ROADMAP § purpose shift](ROADMAP.md).
 
 > **What this is NOT:** not a prompt collection, not a LangChain-style automation layer, not a generic multi-agent framework. It is the infrastructure that lets one human's memory, knowledge, and working surface survive across sessions, harnesses, and models.
 
