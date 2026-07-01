@@ -146,5 +146,7 @@
   "preferredNotifChannel": "notifications_disabled",
   "agentPushNotifEnabled": true,
   "voiceEnabled": true,
-  "autoUpdates": true
+  "autoUpdates": true,
+  "enableWorkflows": false,
+  "workflowKeywordTriggerEnabled": false
 }

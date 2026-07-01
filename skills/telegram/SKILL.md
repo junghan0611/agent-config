@@ -37,12 +37,12 @@ python3 {baseDir}/scripts/tg.py read 123456789 -n 5
 
 ## 힣봇군단 봇 목록
 
-| 봇 | Username | 모델 |
-|---|---|---|
-| 힣봇클로드 (glg) | @glg_junghanacs_bot | Claude Sonnet 4.6 |
-| 힣봇GPT | @glg_gpt_bot | GPT-5.4 |
-| 힣봇제미나이 | @glg_gemini_bot | Gemini 3.1 Pro |
-| B (아이온스클럽) | @junghan_openclaw_bot | Claude Opus 4.6 | 힣과 깊은 대화 |
+| 봇 | Username | 모델 | 비고 |
+|---|---|---|---|
+| 힣봇클로드 (glg) | @glg_junghanacs_bot | Claude Sonnet 5 | |
+| 힣봇GPT | @glg_gpt_bot | GPT-5.5 | |
+| 힣봇제미나이 | @glg_gemini_bot | Gemini 3.1 Pro | |
+| B (아이온스클럽) | @junghan_openclaw_bot | Claude Opus 4.8 | 힣과 깊은 대화 |
 
 ## When to Use
 

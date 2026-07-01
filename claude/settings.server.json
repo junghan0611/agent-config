@@ -105,5 +105,7 @@
   "agentPushNotifEnabled": true,
   "useAutoModeDuringPlan": false,
   "voiceEnabled": false,
-  "autoUpdates": true
+  "autoUpdates": true,
+  "enableWorkflows": false,
+  "workflowKeywordTriggerEnabled": false
 }

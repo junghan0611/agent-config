@@ -161,14 +161,24 @@ ensure_link() {
 }
 
 # Merge a JSON keyset fragment into a destination settings file WITHOUT owning
-# the whole file. Used where another tool (entwurf meta-bridge) co-owns the
-# same file by a disjoint keyset: we inject only OUR keys, every other key — incl.
-# the co-owner's — survives. NEVER symlink such a file: a symlink = whole-file
-# ownership, and the next writer's atomic rename silently clobbers the other side.
-#   jq '.[0] * .[1]'  =  existing * fragment  →  fragment wins on overlap,
-#   objects merge recursively, arrays replace. So entwurf keys absent from
-#   the fragment (statusLine, B-lite scalars, enabledPlugins.entwurf-meta-receive,
-#   extraKnownMarketplaces) are preserved untouched. Idempotent.
+# the whole file. Used where another writer co-owns the same file by a disjoint
+# keyset — entwurf meta-bridge (Claude settings.json) or the pi runtime
+# (pi settings.json, e.g. lastChangelogVersion). We inject only OUR keys; every
+# other key survives. NEVER symlink such a file: a symlink = whole-file ownership,
+# and the next writer's atomic rename silently clobbers the other side (this is
+# exactly why the pi runtime kept dirtying the repo through the old symlink).
+#
+# Co-owner is authoritative — the merge is EXISTING-WINS:
+#   jq '.[1] * .[0]'  =  fragment * existing  →  existing wins on overlap,
+#   objects merge recursively, arrays replace. The fragment only FILLS keys the
+#   live file lacks; it never overwrites a value the co-owner already set. So
+#   entwurf/runtime keys (statusLine, B-lite scalars, enabledPlugins.entwurf-
+#   meta-receive, extraKnownMarketplaces, lastChangelogVersion) survive untouched.
+#
+# Divergence guard: if the live file already carries a leaf our fragment also
+# sets, but with a DIFFERENT value, we WARN (and keep the live value) so the
+# operator reconciles instead of a silent clobber. To push a new agent-config
+# default onto such a key, clear it from the live file first. Idempotent.
 merge_settings() {
   local fragment=$1 dest=$2
   local existing='{}'
@@ -181,8 +191,41 @@ merge_settings() {
   elif [ -f "$dest" ]; then
     existing=$(cat "$dest" 2>/dev/null || echo '{}')
   fi
+  # Warn on any fragment leaf where the live (co-owner) value diverges.
+  local collisions
+  # NB: do not use paths(scalars): it drops false/null leaves. Also treat arrays
+  # as a single leaf because jq object merge replaces arrays wholesale.
+  collisions=$(jq -rs '
+    def leaf_paths:
+      if type == "object" then
+        to_entries[] | [.key] + (.value | leaf_paths)
+      else
+        []
+      end;
+    def path_exists($p):
+      if ($p | length) == 0 then true
+      elif type == "object" and ($p[0] | type) == "string" and has($p[0]) then
+        .[$p[0]] | path_exists($p[1:])
+      elif type == "array" and ($p[0] | type) == "number" and $p[0] >= 0 and $p[0] < length then
+        .[$p[0]] | path_exists($p[1:])
+      else
+        false
+      end;
+    .[0] as $live | .[1] as $frag |
+    [ ($frag | leaf_paths) as $p
+      | select($live | path_exists($p))
+      | ($live | getpath($p)) as $lv
+      | ($frag | getpath($p)) as $fv
+      | select($lv != $fv)
+      | "\($p | map(tostring) | join(".")): live=\($lv|tojson) ≠ agent-config=\($fv|tojson)"
+    ] | .[]
+  ' <(printf '%s' "$existing") "$fragment" 2>/dev/null) || true
+  if [ -n "$collisions" ]; then
+    warn "$(basename "$dest"): live diverges from agent-config fragment — keeping live (co-owner authoritative):"
+    while IFS= read -r _line; do warn "    · $_line"; done <<< "$collisions"
+  fi
   local merged
-  merged=$(jq -s '.[0] * .[1]' <(printf '%s' "$existing") "$fragment") || {
+  merged=$(jq -s '.[1] * .[0]' <(printf '%s' "$existing") "$fragment") || {
     fail "$(basename "$dest"): jq merge failed — left unchanged"
     return 1
   }
@@ -190,7 +233,7 @@ merge_settings() {
   parent=$(dirname "$dest"); mkdir -p "$parent"
   tmp="${dest}.tmp.$$"
   printf '%s\n' "$merged" > "$tmp" && mv "$tmp" "$dest"
-  ok "$(basename "$dest") ← merged $(basename "$fragment") keyset (co-owner keys preserved)"
+  ok "$(basename "$dest") ← merged $(basename "$fragment") keyset (existing-wins; co-owner keys preserved)"
 }
 
 # Build Go binary — CGO_ENABLED=0, static, stripped
@@ -504,7 +547,7 @@ setup_build() {
   return 0
 }
 
-# --- setup:links — Symlinks for pi, claude, opencode ---
+# --- setup:links — Symlinks for pi, claude, codex, gemini, antigravity ---
 
 setup_links() {
   section "Pi Agent Links"
@@ -539,13 +582,15 @@ setup_links() {
     log "delegate-targets.json: removed (entwurf-targets.json now owned by entwurf)"
   fi
 
-  # Settings + Keybindings — server devices use consumer install paths
+  # Settings — keyset-merge, never symlink: the pi runtime co-owns settings.json
+  # (writes lastChangelogVersion), so a symlink lets it dirty the repo. Merge keeps
+  # a co-ownable real file; agent-config keys apply, runtime keys are preserved.
   local PI_SETTINGS_FILE="$SCRIPT_DIR/pi/settings.json"
   if is_server_device; then
     PI_SETTINGS_FILE="$SCRIPT_DIR/pi/settings.server.json"
-    log "device=$(cat "$HOME/.current-device") → server pi settings (consumer install paths)"
+    log "device=$(cat "$HOME/.current-device") → server pi settings (keyset-merge)"
   fi
-  ensure_link "$PI_SETTINGS_FILE" "$HOME/.pi/agent/settings.json"
+  merge_settings "$PI_SETTINGS_FILE" "$HOME/.pi/agent/settings.json"
   ensure_link "$SCRIPT_DIR/pi/keybindings.json" "$HOME/.pi/agent/keybindings.json"
 
   # Skills (pi) — 개별 링크.
@@ -666,15 +711,14 @@ TGJSON
   mkdir -p "$HOME/.claude/hooks"
   # CLAUDE.md — Claude Code가 non-append 모드에서 읽는 진입점 (@AGENTS.md include)
   ensure_link "$SCRIPT_DIR/home/CLAUDE.md"              "$HOME/.claude/CLAUDE.md"
-  # 디바이스별 settings.json 전략:
-  #   - 서버: entwurf meta-bridge 미설치 → 단일 owner → full 파일 심링크 (그대로)
-  #   - 워크스테이션: entwurf meta-bridge 공동 소유 → 심링크 금지.
-  #     agent-config 키셋만 merge-in 하고 entwurf 키(statusLine/B-lite/meta wiring)는 보존.
+  # settings.json 전략 (서버·워크스테이션 공통): 심링크 금지 — entwurf meta-bridge가
+  # 공동 소유할 수 있으므로 항상 keyset-merge(co-ownable 실제 파일). 서버는 서버용
+  # 프래그먼트, 워크스테이션은 기본 프래그먼트를 merge-in 하고 co-owner 키는 보존.
   local DEVICE
   DEVICE=$(cat "$HOME/.current-device" 2>/dev/null || echo "unknown")
   if is_server_device; then
-    log "device=$DEVICE → server settings (no hooks/sound, single-owner link)"
-    ensure_link "$SCRIPT_DIR/claude/settings.server.json" "$HOME/.claude/settings.json"
+    log "device=$DEVICE → server settings (keyset-merge, co-ownable real file)"
+    merge_settings "$SCRIPT_DIR/claude/settings.server.json" "$HOME/.claude/settings.json"
   else
     merge_settings "$SCRIPT_DIR/claude/settings.fragment.json" "$HOME/.claude/settings.json"
   fi
@@ -705,11 +749,6 @@ TGJSON
     [ -f "$cmd_file" ] || continue
     ensure_link "$cmd_file" "$HOME/.pi/agent/claude-plugin/commands/$(basename "$cmd_file")"
   done
-
-  section "OpenCode Skills"
-  # ~/.config/opencode/skills → skills/ (단일 디렉토리 링크)
-  mkdir -p "$HOME/.config/opencode"
-  ensure_link "$SKILLS_DIR" "$HOME/.config/opencode/skills"
 
   section "Codex Skills"
   # ~/.codex/skills/ has .system/ (built-in) — individual skill links, not directory replace
@@ -1024,7 +1063,6 @@ setup_all() {
   echo "  Pi ext:   $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo 'not linked')"
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged (keyset, not linked)' || echo 'absent'; })"
-  echo "  OpenCode: $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo 'not linked')"
   echo "  Codex:    $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo 'config not linked') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
   echo "  Gemini:   legacy $(readlink "$HOME/.gemini/settings.json" 2>/dev/null || echo 'config not linked') + $(readlink "$HOME/.gemini/skills" 2>/dev/null || echo 'skills not linked')"
   echo "  Antigrav: $(readlink "$HOME/.gemini/antigravity-cli/settings.json" 2>/dev/null || echo 'settings not linked') + $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo 'skills not linked') + $(readlink "$HOME/.gemini/antigravity-cli/mcp_config.json" 2>/dev/null || echo 'mcp not linked')"
@@ -1178,7 +1216,6 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Pi theme:     $(cat "$HOME/.pi/agent/settings.json" 2>/dev/null | grep -oP '"defaultTheme":\s*"\K[^"]+' || echo 'default')"
     echo "  Claude conf:  $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged keyset (real file, co-owned w/ entwurf)' || echo '❌ absent'; })"
     echo "  Claude skills:$(readlink "$HOME/.claude/skills" 2>/dev/null || echo '❌ not linked')"
-    echo "  OpenCode:     $(readlink "$HOME/.config/opencode/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Codex conf:   $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo '❌ not linked')"
     echo "  Codex skills: $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) linked"
     echo "  Gemini conf:  $(readlink "$HOME/.gemini/settings.json" 2>/dev/null || echo '❌ not linked')"

@@ -123,7 +123,7 @@ cat /path/to/file.txt | source ~/.env.local && summarize - --plain
 
 ```bash
 # 다른 모델 사용 시
-source ~/.env.local && summarize "URL" --model openrouter/anthropic/claude-sonnet-4-5 --plain
+source ~/.env.local && summarize "URL" --model openrouter/anthropic/claude-sonnet-5 --plain
 ```
 
 ## 출력 길이 가이드

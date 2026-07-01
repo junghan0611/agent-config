@@ -54,7 +54,7 @@ The result: context survives across sessions, across harnesses, across models. O
 | Harness | Memory | Skills | Notes |
 |---------|--------|--------|-------|
 | **pi + entwurf** (default Claude path) | andenken extension on pi side; Claude side gets full skill set via this repo's plugin farm | full skill set on both sides — `semantic-memory` mounted as a SKILL.md skill, plus `session_search` / `knowledge_search` registerTool on pi for direct calls | SDK isolation (`settingSources: []`); skills injected via `entwurfProvider.skillPlugins` |
-| **pi + anthropic** (`claude-opus-4-7` / `claude-sonnet-4-6`) | andenken extension (in-process LanceDB) | full skill set including `semantic-memory` skill; `session_search` / `knowledge_search` registerTool also available | Direct provider — available, not the current default |
+| **pi + anthropic** (`claude-opus-4-8` / `claude-sonnet-5`) | andenken extension (in-process LanceDB) | full skill set including `semantic-memory` skill; `session_search` / `knowledge_search` registerTool also available | Direct provider — available, not the current default |
 | **pi-entwurf** (Oracle, tmux) | andenken extension + pi-telegram | full skill set + Telegram bridge | Persistent Opus session via `@glg_entwurf_bot` |
 | **Claude Code** | andenken skill (CLI wrapper) | full skill set | CLAUDE.md + hooks; `entwurf-bridge` MCP available; settings tuned to mirror entwurf overlay (`defaultMode: default`, `autoMemoryEnabled: false`, binary/external tools deny-listed) |
 | **Codex CLI** | skill surface + repo-managed MCP registration | full skill set | `~/.codex/skills/` from SSOT + `codex/config.toml` carries `entwurf-bridge`; direct `entwurf` / `entwurf_resume` verified |
@@ -189,7 +189,7 @@ cd agent-config
 - Build native CLI binaries (Go + GraalVM)
 - Symlink pi extensions, full skill set (including `semantic-memory`), themes, settings, keybindings, prompts
 - Install andenken as a pi package (compiled extension — exposes `session_search` / `knowledge_search` registerTool alongside the SKILL.md skill)
-- Symlink OpenCode / Codex / Gemini legacy / Antigravity surfaces (`~/.codex/config.toml`, `~/.gemini/settings.json`, `~/.gemini/antigravity-cli/settings.json`, `~/.gemini/antigravity-cli/skills`, `~/.gemini/antigravity-cli/mcp_config.json`) plus skills and Claude Code commands. `~/.claude/settings.json` is **merged** (keyset, not symlinked) on workstations — co-owned with entwurf meta-bridge; servers symlink `settings.server.json`
+- Symlink OpenCode / Codex / Gemini legacy / Antigravity surfaces (`~/.codex/config.toml`, `~/.gemini/settings.json`, `~/.gemini/antigravity-cli/settings.json`, `~/.gemini/antigravity-cli/skills`, `~/.gemini/antigravity-cli/mcp_config.json`) plus skills and Claude Code commands. `~/.claude/settings.json` is **merged** (keyset, never symlinked) — co-owned with entwurf meta-bridge; both workstation (`settings.fragment.json`) and server (`settings.server.json`) merge the same way, and `pi/settings.json` merges too (co-owned with the pi runtime)
 - Symlink `~/.local/bin` PATH binaries
 - pnpm install for extensions and skills
 - Hand off entwurf validation (typecheck, MCP, dual-backend smoke, persisted-bootstrap continuity, cancel-cleanup) to entwurf's own `run.sh`
@@ -228,7 +228,7 @@ This repo also owns the **resident-side policy** for publishing session artifact
 
 ## Persistent Agent — pi-entwurf
 
-A persistent pi session on Oracle VM, accessible via Telegram `@glg_entwurf_bot`. The always-on presence agent — a 분신(Entwurf) that carries context across days. tmux session `pi-entwurf`, model `claude-opus-4-6`, full skill set.
+A persistent pi session on Oracle VM, accessible via Telegram `@glg_entwurf_bot`. The always-on presence agent — a 분신(Entwurf) that carries context across days. tmux session `pi-entwurf`, model `claude-opus-4-8`, full skill set.
 
 Bridges: [pi-telegram](https://github.com/badlogic/pi-telegram) (production — queue · file I/O · stop · streaming preview) + [entwurf](https://github.com/junghan0611/entwurf) (minimal presence — `--telegram` flag). See [§ -config Ecosystem](#the--config-ecosystem) for both rows.
 

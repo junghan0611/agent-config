@@ -39,7 +39,7 @@ def check(label, got, exp):
 def write(d, fn, header_id, name, extra_lines=None):
     lines = [
         json.dumps({"type": "session", "version": 3, "id": header_id, "cwd": "/home/junghan/x"}),
-        json.dumps({"type": "model_change", "provider": "entwurf", "modelId": "claude-sonnet-4-6"}),
+        json.dumps({"type": "model_change", "provider": "entwurf", "modelId": "claude-sonnet-5"}),
     ]
     if name:
         lines.append(json.dumps({"type": "session_info", "name": name}))
@@ -56,7 +56,7 @@ def main():
             d,
             "2026-06-04T00-00-00-000Z_20260604T090000-aaaaaa.jsonl",
             "20260604T090000-aaaaaa",
-            "20260604T090000-aaaaaa==entwurf/claude-sonnet-4-6--reply-ok-only__entwurf_async",
+            "20260604T090000-aaaaaa==entwurf/claude-sonnet-5--reply-ok-only__entwurf_async",
         )
         ctrl = write(
             d,
@@ -69,7 +69,7 @@ def main():
             d,
             "2026-06-04T00-03-00-000Z_20260604T090999-deadbe.jsonl",
             "20260604T091000-dddddd",
-            "20260604T091000-dddddd==entwurf/claude-sonnet-4-6--header-authority__entwurf",
+            "20260604T091000-dddddd==entwurf/claude-sonnet-5--header-authority__entwurf",
         )
         legacy = write(
             d,
