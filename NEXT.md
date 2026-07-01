@@ -3,7 +3,7 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-> NOW (`v2026.6.30`, entwurf 릴리즈 싱크): active 한 점은 ① bibcli 도구-내장 스킬
+> NOW (`v2026.7.1`, co-owned settings merge closed): active 한 점은 ① bibcli 도구-내장 스킬
 > owning-repo 환원(구조), ② pi-chat Add-group blocker. 방향(시험소·승격 파이프라인)은
 > `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
 
@@ -36,21 +36,6 @@ openclaw 6개 사본까지 드리프트한다.
 심링크 패턴)을 식별 → owning repo로 환원하는 일반 정책. 이번 세션엔 zotero-config
 README/AGENTS.md/SKILL.md 내용만 바로잡았고(= save --sync --json 전면화, beads 제거),
 **구조 이주는 이 NEXT 항목으로 보류**.
-
-## [2026-06-06] claude/settings.json keyset-merge — CLOSED, 잔여는 entwurf lane
-
-워크스테이션 fragment-merge 전환 LANDED (`v2026.6.6` + `ROADMAP.md [2026-06-06]`).
-**불변식: 워크스테이션에서 `~/.claude/settings.json`을 심링크하지 않는다** — entwurf
-meta-bridge와 공동 소유라 심링크(=파일 통째 소유)는 다음 writer의 atomic rename에 덮인다.
-분담선 SSOT: entwurf `~/.claude/entwurf.install-state.json`의 `files.settings.keys`가
-entwurf 소유 권위, agent-config 키셋 = 그 여집합(새 키 추가 시 교차 확인). 원칙: pi 영역
-permissions/B-lite/statusLine/meta는 일절 세팅 안 함 — 스킬·커맨드 경로 + 순수 agent-config
-키(hooks/언어/개인취향)만.
-
-조건부 follow-up (이제 entwurf 본체 lane — `ROADMAP.md [2026-06-30]` 기준):
-- 서버 디바이스: entwurf가 서버까지 확장되면 server도 fragment merge로(현재 서버 meta-bridge 없어 충돌 없음).
-- 심링크 함정: `pi/`·`gemini/`·`antigravity/`의 settings/mcp_config도 공동 소유 발생 시 같은 merge 모델.
-- statusLine 테마: entwurf가 통째 소유 중, 색/테마만 일부 환원 합의 시점에 키 분리.
 
 ## [2026-05-29] pi-chat Add group blocker — 다음 세션 첫 한 점
 

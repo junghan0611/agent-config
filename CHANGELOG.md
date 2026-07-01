@@ -7,6 +7,14 @@
 
 ## Unreleased
 
+## v2026.7.1 — co-owned settings merge
+
+### Config
+
+* **Co-owned settings are now keyset-merged instead of symlinked.** `run.sh setup:links` now breaks legacy `~/.pi/agent/settings.json` symlinks into real live files and merges `pi/settings*.json` with **existing-wins** semantics, matching the Claude settings path. This keeps pi runtime-owned `lastChangelogVersion` out of the repo while preserving it in the live file, and applies the same co-owner model to server/workstation Claude settings. Divergence warnings now compare fragment leaves explicitly, including `false`, `null`, nested values, and arrays.
+
+* **Workflow toggles and model labels refreshed.** Claude settings fragments now disable workflow triggers explicitly; docs/skills/test fixtures moved active examples to Claude Opus 4.8, Claude Sonnet 5, and GPT-5.5 where applicable. `scripts/pi-entwurf.sh` now starts GPT-5.5, and the Telegram bot table was normalized to a four-column shape.
+
 ## v2026.6.30 — entwurf 릴리즈 싱크: skills-home + 시험소 포지셔닝
 
 ### Positioning (entwurf 릴리즈 싱크)
