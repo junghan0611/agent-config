@@ -46,6 +46,16 @@ detect_mode() {
     return
   fi
 
+  # Known private personal repos that legitimately store identity-bearing
+  # memory/config data. Keep secret scanning on, but skip public identity-term
+  # blocking even though the GitHub owner matches the strict namespace.
+  case "$(basename "$repo_root")" in
+    openclaw-config)
+      echo "loose"
+      return
+      ;;
+  esac
+
   local remote
   remote=$(git remote get-url origin 2>/dev/null || true)
   case "$remote" in

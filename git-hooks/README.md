@@ -28,8 +28,12 @@ The hook auto-detects mode per-repo:
 | Mode | Trigger | Scans |
 |------|---------|-------|
 | `strict` | `origin` matches `github.com/junghan0611/*` or `github.com/junghanacs/*` | secrets **and** identity terms |
-| `loose` | any other origin (work repos, third-party clones, local-only) | secrets only |
+| `loose` | any other origin (work repos, third-party clones, local-only), plus known private memory/config repos such as `openclaw-config` | secrets only |
 | `off` | per-repo override file says so | nothing (with WARN) |
+
+**Known private loose repos**: `openclaw-config` is forced to `loose` in
+`_scan.sh` because it is private memory/config data: identity-term scanning is
+skipped, but gitleaks/secret scanning still runs.
 
 **Per-repo override**: write `strict` / `loose` / `off` (single word) to
 `<repo>/.git-hooks-mode`. Useful for:

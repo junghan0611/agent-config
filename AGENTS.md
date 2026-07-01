@@ -251,7 +251,7 @@ Both are binary-hardcoded in Claude Code; `permissions.allow` cannot override ei
 | `git-hooks/gitleaks.toml` | Secret detection config — applies in **every** mode |
 | `git-hooks/allowlist-paths.txt` | Path skip list (lockfiles, node_modules, binaries) |
 
-Mode is auto-detected per repo: **strict** for `github.com/junghan0611/*` and `github.com/junghanacs/*` (secrets + identity terms), **loose** for everywhere else (secrets only). Per-repo override: write `strict|loose|off` to `<repo>/.git-hooks-mode`.
+Mode is auto-detected per repo: **strict** for `github.com/junghan0611/*` and `github.com/junghanacs/*` (secrets + identity terms), **loose** for everywhere else (secrets only). Known private memory/config repos such as `openclaw-config` are forced to **loose**: identity-term scanning off, secret scanning still on. Per-repo override: write `strict|loose|off` to `<repo>/.git-hooks-mode`.
 
 Wiring lives in `nixos-config` (`users/junghan/modules/shell.nix` sets `core.hooksPath`, `development/default.nix` adds `gitleaks` to home.packages). For immediate activation before the next `home-manager switch`, run `./run.sh setup:git-hooks` — it writes the same value to `~/.gitconfig` so the rail is live now and the future rebuild is a no-op.
 

@@ -7,6 +7,10 @@
 
 ## Unreleased
 
+### Config
+
+* **`openclaw-config` git hook mode is forced to loose.** The repo is private memory/config data, so identity-term blocking is skipped there while gitleaks/secret scanning remains active. This makes the global hook policy match the Oracle `~/openclaw -> ~/repos/gh/openclaw-config` checkout without requiring a per-repo `.git-hooks-mode` override.
+
 ## v2026.7.1 — co-owned settings merge
 
 ### Config

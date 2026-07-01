@@ -6,6 +6,7 @@
 #   - Scans only ADDED lines in staged diff (gitleaks-style)
 #   - Mode auto-detected from `origin` URL:
 #       github.com/junghan0611/* | github.com/junghanacs/* → strict (secrets + terms)
+#       known private memory/config repos (e.g. openclaw-config) → loose (secrets only)
 #       else → loose (secrets only)
 #   - Override per-repo: write `strict` | `loose` | `off` to <repo>/.git-hooks-mode
 #   - Then chains to repo-local pre-commit (husky/.git/hooks/) if present
