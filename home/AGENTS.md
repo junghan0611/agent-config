@@ -156,6 +156,25 @@ Common roots:
 
 Personal devices are managed in `~/repos/gh/nixos-config`.
 
+## Tooling and Skill Binaries — SSOT
+
+External CLIs, pnpm globals, and harness binaries are **single-sourced through
+nixos-config**, not scattered per-skill. The SSOT is
+`~/repos/gh/nixos-config/scripts/external-packages.sh` (driven by `run.sh e)/E)`;
+the old `EXTERNAL_PACKAGES.md` and `~/update-claude.sh` are retired).
+
+- **pnpm**: one install only — the NixOS-provided pnpm. Do not add a second via
+  corepack / `npm i -g` (earlier duplicates were the "garbage scattered around"
+  that this cleanup removed). pnpm globals (netlify, summarize, codex, pi, …) live
+  under that single store.
+- **Global upstream tools on PATH** (e.g. `gog` → upstream `steipete/gogcli`,
+  `~/.local/bin/gog`; harness binaries like `agy`): installed to PATH by
+  external-packages.sh, invoked bare (`gog …`). Do **not** copy them into skill
+  folders. The `junghan0611/gogcli` fork is retired — upstream is newer.
+- **Sibling-repo skill CLIs** (`dictcli`, `gitcli`, `lifetract`) are the
+  exception: still built from their sibling repos and bundled in the skill dir
+  (gitignored). These keep `{baseDir}/<bin>` invocation.
+
 ## Git, Commit, and Release
 
 Use the `commit` skill before making commits. Use the `tag-release` skill before releases.

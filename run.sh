@@ -511,21 +511,9 @@ setup_build() {
   go_build "$REPOS/lifetract/lifetract" "$SKILLS_DIR/lifetract/lifetract"
   ok "lifetract $(du -h "$SKILLS_DIR/lifetract/lifetract" | cut -f1)"
 
-  log "--- gog (junghan0611/gogcli fork) ---"
-  # gogcli는 로컬 수정본 + feature 브랜치(feat/searchconsole) 워크플로우.
-  # upstream sync는 사용자가 직접 수행 — setup에서는 클론 유무만 확인하고 빌드만 한다.
-  if [ ! -d "$REPOS/gogcli/.git" ]; then
-    log "gogcli: cloning (first time only)..."
-    git clone https://github.com/junghan0611/gogcli.git "$REPOS/gogcli"
-  else
-    log "gogcli: skip auto-sync (local fork — run pull manually in $REPOS/gogcli)"
-  fi
-  if [ -d "$REPOS/gogcli" ]; then
-    go_build "$REPOS/gogcli/cmd/gog" "$SKILLS_DIR/gogcli/gog"
-    ok "gog $(du -h "$SKILLS_DIR/gogcli/gog" | cut -f1)"
-  else
-    warn "gog: repo not found"
-  fi
+  # gog — NOT built here. The junghan0611/gogcli fork bundle is retired; gog is now
+  # a global upstream install managed by nixos-config
+  # (scripts/external-packages.sh install gog → ~/.local/bin/gog). See gogcli SKILL.md.
 
   log "--- dictcli (GraalVM native-image + Kiwi stem) ---"
   if [ -d "$REPOS/dictcli" ]; then
@@ -656,10 +644,10 @@ setup_links() {
   done
   # dictcli PATH 심링크가 남아있으면 제거 (심링크에 write하면 바이너리 파괴)
   [ -e "$HOME/.local/bin/dictcli" ] && rm -f "$HOME/.local/bin/dictcli" && log "dictcli: removed from PATH (skill-only)"
-  # gog
-  if [ -f "$SKILLS_DIR/gogcli/gog" ]; then
-    ensure_link "$SKILLS_DIR/gogcli/gog" "$HOME/.local/bin/gog"
-  fi
+  # gog: managed globally by nixos-config (upstream go install → ~/.local/bin/gog).
+  # Only drop a stale symlink from the old bundled-fork setup; never touch the real
+  # binary that `go install` writes (-L matches symlinks only, not regular files).
+  [ -L "$HOME/.local/bin/gog" ] && rm -f "$HOME/.local/bin/gog" && log "gog: removed stale skill-dir symlink (now nixos-managed global)"
 
   section "Pi Themes"
   mkdir -p "$HOME/.pi/agent/themes"
@@ -1045,13 +1033,12 @@ setup_all() {
     fi
     total=$((total + 1))
   done
-  # gog
-  local gog_bin="$SKILLS_DIR/gogcli/gog"
-  if [ -f "$gog_bin" ] && [ -x "$gog_bin" ]; then
-    ok "gog ($(du -h "$gog_bin" | cut -f1))"
+  # gog — global on PATH (nixos-config managed, upstream), not bundled here
+  if command -v gog >/dev/null 2>&1; then
+    ok "gog ($(gog --version 2>/dev/null | head -1), PATH)"
     pass=$((pass + 1))
   else
-    fail "gog: missing"
+    fail "gog: not on PATH — nixos-config: external-packages.sh install gog"
   fi
   total=$((total + 1))
 
@@ -1235,11 +1222,10 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
         echo "  ❌ $cli: not built"
       fi
     done
-    _gog="$SKILLS_DIR/gogcli/gog"
-    if [ -f "$_gog" ]; then
-      echo "  ✅ gog: $(du -h "$_gog" | cut -f1)"
+    if command -v gog >/dev/null 2>&1; then
+      echo "  ✅ gog: $(gog --version 2>/dev/null | head -1) (PATH, nixos-managed)"
     else
-      echo "  ❌ gog: not built"
+      echo "  ❌ gog: not on PATH (nixos-config: external-packages.sh install gog)"
     fi
 
     section "Memory Index"

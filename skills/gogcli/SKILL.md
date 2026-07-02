@@ -1,13 +1,19 @@
 ---
 name: gogcli
-description: "Google Workspace + Search Console all-in-one CLI (gog). Calendar, Gmail, Drive, Tasks, Chat, Contacts, Sheets, Docs, Search Console. Single binary. Source: junghan0611/gogcli (fork of steipete/gogcli)."
+description: "Google Workspace + Search Console all-in-one CLI (gog). Calendar, Gmail, Drive, Tasks, Chat, Contacts, Sheets, Docs, Search Console, YouTube, Photos, Meet, and more. Single binary. Source: steipete/gogcli (upstream)."
 ---
 
 # gogcli (gog)
 
-All-in-one Google CLI. Single binary covering Calendar, Gmail, Drive, Tasks, Chat, Contacts, Sheets, Docs, Search Console, and more.
+All-in-one Google CLI. Single binary covering Calendar, Gmail, Drive, Tasks, Chat, Contacts, Sheets, Docs, Search Console, YouTube, Photos, Meet, Maps, Analytics, and more.
 
-Binary is bundled in the skill directory. Invoke via `{baseDir}/gog`.
+Binary is a **global install on PATH** — `~/.local/bin/gog`, managed by
+nixos-config (`scripts/external-packages.sh install gog`, upstream `go install`).
+Invoke as `gog`. Do **not** bundle a copy in this skill directory (the SSOT is
+nixos-config; a stale bundle was already arch-broken and is retired).
+
+Tracks **upstream `steipete/gogcli`** — the `junghan0611` fork is retired (its
+custom work is either merged upstream or superseded). Use the official release.
 
 ## Accounts
 
@@ -18,100 +24,103 @@ Tip: `GOG_ACCOUNT=junghanacs@gmail.com` env var sets the default account.
 
 ## Search Console
 
-Aliases: `sc`, `search-console`.
+Command: `gog searchconsole`. Aliases: `gsc`, `search-console`, `webmasters`.
+(Note: the old fork alias `sc` no longer exists — use `gsc`.)
 
-Source: `junghan0611/gogcli` fork, branch `feat/searchconsole`.
 OAuth scope: `webmasters` (read+write) or `webmasters.readonly`.
+
+**Key difference from the old fork:** `siteUrl` is now a **positional argument**
+(not `--site`), the query subcommand uses `--from/--to` (not `--days`), and there
+is **no `inspect` (URL Inspection) subcommand** upstream.
 
 ### Sites
 
 ```bash
-# List verified properties
-gog sc sites
+# List accessible properties (default subcommand)
+gog gsc sites
+
+# Get one property
+gog gsc sites get https://notes.junghanacs.com/
 ```
 
-### Analytics
+### Search Analytics (query)
 
-Query search traffic data: clicks, impressions, CTR, position.
+Query search traffic: clicks, impressions, CTR, position. `siteUrl` is positional.
+Both `gog gsc query <siteUrl>` and `gog gsc searchanalytics query <siteUrl>` work.
 
 ```bash
-# Top search queries (last 28 days, default)
-gog sc analytics --site https://notes.junghanacs.com --dim query --limit 30
+# Top search queries (dimensions default to QUERY)
+gog gsc query https://notes.junghanacs.com/ --from 2026-06-01 --to 2026-06-28 --max 30
 
-# Top pages by impressions
-gog sc analytics --site https://notes.junghanacs.com --dim page --order-by impressions
+# Top pages
+gog gsc query https://notes.junghanacs.com/ --dimensions PAGE --from 2026-06-01 --to 2026-06-28
 
-# Query-page matching (which query lands on which page)
-gog sc analytics --site https://notes.junghanacs.com --dim query,page --days 7
+# Query-page matching
+gog gsc query https://notes.junghanacs.com/ --dimensions QUERY,PAGE --from 2026-06-22 --to 2026-06-28
 
 # Date breakdown
-gog sc analytics --site https://notes.junghanacs.com --dim date --days 14
+gog gsc query https://notes.junghanacs.com/ --dimensions DATE --from 2026-06-01 --to 2026-06-28
 
-# Specific date range
-gog sc analytics --site https://notes.junghanacs.com --dim query --start 2026-04-01 --end 2026-04-13
-
-# Filter: only queries containing a term
-gog sc analytics --site https://notes.junghanacs.com --dim query,page --filter query=contains=emacs
-
-# Filter: only a specific page path
-gog sc analytics --site https://notes.junghanacs.com --dim query --filter page=contains=bib
+# Filter: dimension:operator:expression (colon-separated, repeatable)
+gog gsc query https://notes.junghanacs.com/ --dimensions QUERY,PAGE --filter query:contains:emacs
+gog gsc query https://notes.junghanacs.com/ --filter page:contains:bib --filter country:equals:kor
 
 # JSON output for scripting
-gog sc analytics --site https://notes.junghanacs.com --dim query --limit 50 --json
+gog gsc query https://notes.junghanacs.com/ --dimensions QUERY --max 50 --json
 ```
 
 **Flags:**
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--site` | (required) | Site URL or `sc-domain:example.com` |
-| `--dim` | `query` | Comma-separated: `query`, `page`, `date`, `country`, `device` |
-| `--days` | `28` | Lookback days from today |
-| `--start` | — | Start date `YYYY-MM-DD`, overrides `--days` |
-| `--end` | — | End date `YYYY-MM-DD`, defaults to today |
-| `--limit` | `25` | Max rows (API max: 25,000) |
-| `--type` | `web` | Search type: `web`, `image`, `video`, `news`, `discover` |
-| `--filter` | — | `dim=operator=value` (e.g. `query=contains=emacs`, `country=equals=KOR`) |
-| `--order-by` | `clicks` | Sort: `clicks`, `impressions`, `ctr`, `position` |
+| Flag | Alias | Default | Description |
+|------|-------|---------|-------------|
+| `<siteUrl>` | — | (required, positional) | Site URL or `sc-domain:example.com` |
+| `--from` | `--start` | — | Start date `YYYY-MM-DD` |
+| `--to` | `--end` | — | End date `YYYY-MM-DD` |
+| `--dimensions` | — | `QUERY` | Comma-separated: `DATE,QUERY,PAGE,COUNTRY,DEVICE,SEARCH_APPEARANCE,HOUR` |
+| `--type` | — | `WEB` | `WEB,IMAGE,VIDEO,NEWS,DISCOVER,GOOGLE_NEWS` |
+| `--aggregation` | — | — | `AUTO,BY_PROPERTY,BY_PAGE,BY_NEWS_SHOWCASE_PANEL` |
+| `--data-state` | — | — | `FINAL,ALL,HOURLY_ALL` |
+| `--max` | `--limit` | `1000` | Max rows (1–25,000) |
+| `--offset` | `--start-row` | `0` | Row offset for pagination |
+| `--filter` | — | — | `dimension:operator:expression`, repeatable |
+| `--request` | — | — | Raw `SearchAnalyticsQueryRequest` JSON (`@file`, path, `-`, or inline) |
+| `--fail-empty` | — | — | Exit code 3 if no rows |
 
-**Filter operators:** `CONTAINS`, `EQUALS`, `NOT_CONTAINS`, `NOT_EQUALS`, `INCLUDING_REGEX`, `EXCLUDING_REGEX`.
+**Filter operators** (in `dimension:operator:expression`): `contains`, `equals`,
+`notContains`, `notEquals`, `includingRegex`, `excludingRegex`.
 
-### Inspect
+Note: there is no `--order-by`; rows come back in API order. Sort client-side
+(e.g. pipe `--json` to `jq`) if you need a specific ordering.
 
-Check a URL's index status, crawl info, mobile usability, canonical.
+### Sitemaps
 
-⚠️ Quota: 2,000/day, 600/min. Use for single-URL checks, not batch loops.
-⚠️ `--site` must match the property string exactly as registered in Search Console, including trailing slash (e.g. `https://notes.junghanacs.com/` not `https://notes.junghanacs.com`).
-
-```bash
-gog sc inspect --site https://notes.junghanacs.com https://notes.junghanacs.com/notes/20231120t065213
-
-# JSON output (full inspection result)
-gog sc inspect --site https://notes.junghanacs.com https://notes.junghanacs.com/notes/20231120t065213 --json
-```
-
-Output fields: `coverage_state`, `indexing_state`, `last_crawl`, `crawled_as`, `robots_txt`, `page_fetch`, `google_canonical`, `user_canonical`, `mobile_usability`.
-
-### Sitemap
+`siteUrl` and `feedpath` are positional args.
 
 ```bash
 # List submitted sitemaps
-gog sc sitemap --site https://notes.junghanacs.com
+gog gsc sitemaps https://notes.junghanacs.com/
 
-# Submit (ping) a sitemap
-gog sc sitemap submit --site https://notes.junghanacs.com https://notes.junghanacs.com/sitemap.xml
+# Get one sitemap's status
+gog gsc sitemaps get https://notes.junghanacs.com/ https://notes.junghanacs.com/sitemap.xml
 
-# Delete a sitemap
-gog sc sitemap delete --site https://notes.junghanacs.com https://notes.junghanacs.com/sitemap.xml
+# Submit a sitemap
+gog gsc sitemaps submit https://notes.junghanacs.com/ https://notes.junghanacs.com/sitemap.xml
+
+# Delete a sitemap (destructive — confirmation required)
+gog gsc sitemaps delete https://notes.junghanacs.com/ https://notes.junghanacs.com/sitemap.xml
 ```
+
+⚠️ `siteUrl` must match the property string exactly as registered in Search
+Console, including trailing slash (e.g. `https://notes.junghanacs.com/`).
 
 ### Quotas
 
 | API | Daily limit | Per-minute limit |
 |-----|-------------|------------------|
 | searchanalytics.query | 25,000 | 1,200 |
-| URL Inspection | 2,000 | 600 |
 | Sitemaps | generous | — |
+
+(URL Inspection is not exposed by the upstream CLI.)
 
 ## Calendar
 
@@ -309,7 +318,7 @@ gog login <email> --client <name>
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--account <email>` | `-a` | Account selection |
+| `--account <email>` | `-a` | Account selection (email, alias, or `auto`) |
 | `--json` | `-j` | JSON output |
 | `--plain` | `-p` | TSV output |
 | `--dry-run` | `-n` | Preview without executing |
@@ -317,13 +326,33 @@ gog login <email> --client <name>
 | `--no-input` | — | Fail instead of prompting (CI) |
 | `--verbose` | `-v` | Verbose logging |
 
+### Agent-safety flags (upstream additions)
+
+| Flag | Description |
+|------|-------------|
+| `--readonly` | Block all mutating API requests at runtime; `auth add` also requests read-only OAuth scopes |
+| `--gmail-no-send` | Block Gmail send operations |
+| `--disable-commands <list>` | Comma-separated commands to disable (dot paths allowed) |
+| `--enable-commands <list>` | Restrict CLI to these command prefixes |
+| `--wrap-untrusted` | In JSON/raw output, wrap fetched text in untrusted-content markers |
+| `--home <dir>` | Override config/data/state/cache root (= `GOG_HOME`) |
+
 ## Notes
 
 - **Confirmation required**: before sending email, creating/deleting events
 - **calendarId**: required for calendar create/get/update/delete — usually the account email
-- **--from/--to**: calendar time flags (NOT --start/--end)
-- **--start/--end**: searchconsole date range flags
+- **--from/--to**: both calendar time flags AND searchconsole date range (upstream unified these)
 - **--given/--family**: contacts name flags (NOT --given-name/--family-name)
 - `gog schema` for machine-readable command schema
 - `gog <command> --help` for latest flags
-- Source repo: `junghan0611/gogcli` (fork of `steipete/gogcli`, branch `feat/searchconsole`)
+- Source repo: `steipete/gogcli` (upstream — the `junghan0611` fork is retired)
+
+## Other services (upstream)
+
+Beyond the sections above, upstream also ships: `youtube` (`yt`), `photos`,
+`meet`, `maps`, `analytics` (`ga`), `sites`, `zoom`, `keep`, `forms`, `slides`,
+`classroom`, `groups`, `admin`, `backup` (encrypted account backups), and
+`api` (generic Google Discovery method calls). Run `gog <service> --help`.
+
+`gog mcp` runs a typed, allowlisted MCP server over stdio — useful for wiring
+gog into an agent as an MCP tool instead of shelling out.
