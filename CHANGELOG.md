@@ -7,9 +7,19 @@
 
 ## Unreleased
 
+## v2026.7.2 — gogcli upstream 전환
+
+### Changed
+
+* **gogcli: 포크 로컬빌드 → nixos-managed 글로벌 upstream `gog`.** `junghan0611/gogcli` 포크 번들을 은퇴하고 upstream `steipete/gogcli`(v0.31.1)의 글로벌 설치(`~/.local/bin/gog`, nixos-config `scripts/external-packages.sh install gog`)로 전환했다. `run.sh`에서 포크 clone/build·스킬디렉토리→PATH 심링크·번들경로 검증 4곳을 제거하고 `command -v gog` PATH 검증으로 바꿨으며(실파일은 건드리지 않고 stale 심링크만 청소), `home/AGENTS.md`에 "Tooling and Skill Binaries — SSOT" 섹션(pnpm 단일소스, 글로벌 upstream 도구, sibling-repo CLI 번들 예외)을 추가했다. 배경: 과거 amd64 번들은 aarch64(oracle 봇)에서 실행 불가였고, upstream이 포크보다 최신 = 포크 불필요 확정.
+
 ### Config
 
 * **`openclaw-config` git hook mode is forced to loose.** The repo is private memory/config data, so identity-term blocking is skipped there while gitleaks/secret scanning remains active. This makes the global hook policy match the Oracle `~/openclaw -> ~/repos/gh/openclaw-config` checkout without requiring a per-repo `.git-hooks-mode` override.
+
+### Docs
+
+* **gogcli 스킬을 upstream 서피스로 전면 재작성.** `SKILL.md`를 `steipete/gogcli` 기준으로 갱신했다: `{baseDir}/gog`(깨진 번들 참조) → 글로벌 `gog` 호출, Search Console의 positional `siteUrl`·`--from/--to`·`gsc` 별칭 등 upstream 문법 반영. **Maps 섹션**(API-key 인증 `places_api_key`; `places`는 서브커맨드인 반면 directions/distance/reverse는 플래그를 받는 함정; 광역지오코딩 driving `ZERO_RESULTS` caveat)과 **YouTube 섹션**(`youtube` OAuth 스코프; group→leaf 서브커맨드; search query는 positional)을 추가하고, Other-services 나열에서 `maps`를 뺐다.
 
 ## v2026.7.1 — co-owned settings merge
 

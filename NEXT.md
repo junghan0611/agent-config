@@ -4,8 +4,36 @@
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
 > NOW (`v2026.7.1`, co-owned settings merge closed): active 한 점은 ① bibcli 도구-내장 스킬
-> owning-repo 환원(구조), ② pi-chat Add-group blocker. 방향(시험소·승격 파이프라인)은
-> `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+> owning-repo 환원(구조), ② pi-chat Add-group blocker, ③ gogcli 재인증 마무리(선택 — 아래
+> [2026-07-02]). 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+
+## [2026-07-02] gogcli 재인증 — 이어서 (구조/문서는 v2026.7.2로 릴리즈됨)
+
+> 코드(fork→글로벌 gog)·문서(SKILL.md upstream/Maps/YouTube, AGENTS.md SSOT)는
+> `CHANGELOG.md v2026.7.2`로 닫힘. 여기 남는 건 **인증 상태 + 남은 선택 커맨드**뿐.
+
+### 현재 auth 상태 (state)
+- **personal `junghanacs@gmail.com`** (토큰 2026-07-02T06:35): analytics, appscript, calendar,
+  chat, classroom, contacts, docs, drive, forms, gmail, people, searchconsole, sheets, slides,
+  tasks, youtube. `ads` 제외(developer token 없으면 `unknownerror`로 전체 실패). ⚠️ 개인 gmail은 Chat API 불가.
+- **work `<work-email>`** (jhkim2@회사도메인, 토큰 2026-05-24): 기존 14종. Chat 동작(알림용) — 재인증 불필요.
+- **Maps**: `places_api_key` 설정됨. geocode/places search/directions/reverse 검증 OK.
+  `distance --mode driving`은 광역지오코딩 시 ZERO_RESULTS(transit OK / place_id 쓰면 driving도 OK).
+
+### 남은 선택 커맨드 (next, 전부 optional)
+1. 개인계정에 photos/meet 더 얹기(테스트모드라 통과할 것):
+   `gog login junghanacs@gmail.com --client personal --force-consent --services <위 personal 목록>,photos,meet`
+2. 회사계정 넓히기(Chat엔 불필요):
+   `gog login <work-email> --client work --force-consent --services appscript,calendar,chat,classroom,contacts,docs,drive,forms,gmail,people,searchconsole,sheets,slides,tasks,analytics,youtube`
+3. commit 스킬 Chat 알림 발송 검증: work 계정 `gog chat messages send "$GOG_CHAT_SPACE_ID" ...`.
+4. oracle 봇: nixos-config가 oracle(aarch64)에 글로벌 gog 설치(봇 필수). GLG가 nixos-config쪽 전달 완료.
+
+### 재인증 명령 템플릿
+```bash
+gog login <email> --client <personal|work> --force-consent --services <a,b,c,...>
+gog auth list
+```
+
 
 ## [2026-06-11] 도구-내장 스킬을 owning repo로 환원 (구조 결함)
 
