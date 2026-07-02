@@ -280,6 +280,65 @@ gog chat messages send <spaceId> --text "message"
 gog chat dm send <userId> --text "DM message"
 ```
 
+## Maps
+
+**Auth model differs from the rest of gog**: Maps uses a **Google Maps Platform
+API key**, NOT user OAuth. Set it once — no `--account` needed:
+
+```bash
+gog config set places_api_key <KEY>     # stored in ~/.config/gogcli/config.json
+```
+
+The key's Cloud project must have the relevant APIs enabled (Geocoding, Places,
+Directions, Distance Matrix). `gog config keys` also lists `youtube_api_key` for
+the YouTube Data API (same key-based model).
+
+**Syntax gotcha**: `places` takes a **subcommand** (`search`); the others take
+**flags**, not positional args (calling them positionally → `unexpected argument`).
+
+```bash
+# Geocode / reverse-geocode
+gog maps geocode "강남역"
+gog maps reverse-geocode --lat 37.497952 --lng 127.027619
+
+# Places — subcommand form
+gog maps places search "스타벅스 강남"
+
+# Directions — --origin / --destination (mode: driving|walking|bicycling|transit)
+gog maps directions --origin "강남역" --destination "서울역" --mode transit
+
+# Distance matrix — --origins / --destinations (comma-separated)
+gog maps distance --origins "강남역" --destinations "서울역" --mode transit
+```
+
+⚠️ A vague query like `"강남역"` geocodes to the **"강남" area centroid**
+(`GEOMETRIC_CENTER`), which can return `ZERO_RESULTS` for `--mode driving`. Use a
+precise address or a `place_id` for driving routes; `transit` is more forgiving.
+
+## YouTube
+
+Uses the **`youtube` OAuth scope** (add via `gog login <email> --services …,youtube`).
+User-context reads work on the OAuth token alone — no `youtube_api_key` needed for
+the calls below (that config key is only for API-key-only / higher-quota paths).
+
+Every service is a **command group → leaf subcommand** (alias `yt`). Groups:
+`activities`, `videos`, `playlists`, `comments`, `channels`, `search`,
+`subscriptions`.
+
+```bash
+# My subscriptions / my channel (--mine requires -a <account>)
+gog youtube subscriptions list -a junghanacs@gmail.com --max 20
+gog youtube channels list --mine -a junghanacs@gmail.com
+gog youtube channels list --id UCpXfS8bu7ILGCuOtsnJMtxQ   # by channel id
+
+# Search — query is POSITIONAL (not --query)
+gog youtube search list "lofi hip hop" --max 5
+
+# Videos / playlists / comments (same group→subcommand shape)
+gog youtube videos list --id <videoId>
+gog youtube playlists list --mine -a junghanacs@gmail.com
+```
+
 ## Shortcuts
 
 ```bash
@@ -350,7 +409,7 @@ gog login <email> --client <name>
 ## Other services (upstream)
 
 Beyond the sections above, upstream also ships: `youtube` (`yt`), `photos`,
-`meet`, `maps`, `analytics` (`ga`), `sites`, `zoom`, `keep`, `forms`, `slides`,
+`meet`, `analytics` (`ga`), `sites`, `zoom`, `keep`, `forms`, `slides`,
 `classroom`, `groups`, `admin`, `backup` (encrypted account backups), and
 `api` (generic Google Discovery method calls). Run `gog <service> --help`.
 
