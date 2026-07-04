@@ -772,17 +772,11 @@ TGJSON
   # agy direct harness global skills path
   ensure_link "$SKILLS_DIR" "$HOME/.gemini/antigravity-cli/skills"
 
-  section "Antigravity CLI MCP"
-  # Docs point at ~/.gemini/antigravity-cli/mcp_config.json, but current agy
-  # runtime also probes ~/.gemini/config/mcp_config.json during discovery.
-  # Keep both paths on one SSOT so 문서 경로와 live binary 경로가 어긋나도
-  # multi-harness surface stays aligned.
-  local AGY_MCP_FILE="$SCRIPT_DIR/antigravity/mcp_config.json"
-  if is_server_device; then
-    AGY_MCP_FILE="$SCRIPT_DIR/antigravity/mcp_config.server.json"
-  fi
-  ensure_link "$AGY_MCP_FILE" "$HOME/.gemini/antigravity-cli/mcp_config.json"
-  ensure_link "$AGY_MCP_FILE" "$HOME/.gemini/config/mcp_config.json"
+  # agy MCP config는 agent-config가 아니라 entwurf의 install-agy-bridge
+  # adapter(봉인 7)가 소유한다: 그 adapter가 regular file을 adopt/create 하고
+  # bare `entwurf-bridge` stable bin을 command로 기록한다. 여기서 심링크를 걸면
+  # adapter가 REFUSE 하므로, agent-config는 agy mcp_config를 더 이상 링크하지
+  # 않는다. (위 skills 링크는 유지 — 소유 이관 대상은 mcp_config 뿐)
 
   return 0
 }
@@ -1052,7 +1046,7 @@ setup_all() {
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged (keyset, not linked)' || echo 'absent'; })"
   echo "  Codex:    $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo 'config not linked') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
   echo "  Gemini:   legacy $(readlink "$HOME/.gemini/settings.json" 2>/dev/null || echo 'config not linked') + $(readlink "$HOME/.gemini/skills" 2>/dev/null || echo 'skills not linked')"
-  echo "  Antigrav: $(readlink "$HOME/.gemini/antigravity-cli/settings.json" 2>/dev/null || echo 'settings not linked') + $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo 'skills not linked') + $(readlink "$HOME/.gemini/antigravity-cli/mcp_config.json" 2>/dev/null || echo 'mcp not linked')"
+  echo "  Antigrav: $(readlink "$HOME/.gemini/antigravity-cli/settings.json" 2>/dev/null || echo 'settings not linked') + $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo 'skills not linked') (mcp: entwurf-owned)"
 
   # Sentinel (delegate matrix) moved to entwurf with the rest of the
   # Entwurf Orchestration surface — run it from there when exercising the
@@ -1209,8 +1203,7 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Gemini skills:$(readlink "$HOME/.gemini/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Antigrav conf:   $(readlink "$HOME/.gemini/antigravity-cli/settings.json" 2>/dev/null || echo '❌ not linked')"
     echo "  Antigrav skills: $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo '❌ not linked')"
-    echo "  Antigrav MCP:    $(readlink "$HOME/.gemini/antigravity-cli/mcp_config.json" 2>/dev/null || echo '❌ not linked')"
-    echo "  Antigrav MCP(rt):$(readlink "$HOME/.gemini/config/mcp_config.json" 2>/dev/null || echo '❌ not linked')"
+    echo "  Antigrav MCP:    entwurf-owned (install-agy-bridge / doctor-agy-bridge)"
 
     section "CLI Binaries"
     for cli in denotecli bibcli gitcli lifetract dictcli; do

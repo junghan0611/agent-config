@@ -1,7 +1,0 @@
-{
-  "mcpServers": {
-    "entwurf-bridge": {
-      "command": "/home/junghan/repos/gh/entwurf/mcp/entwurf-bridge/start.sh"
-    }
-  }
-}
