@@ -259,22 +259,17 @@ declare -A CLI_REPOS=(
 # Reason: pause the Claude Code-style compatibility patch path until account-risk is clearer.
 declare -A THIRD_PARTY_PACKAGE_REPOS=()
 
-# Local provider/package repos used by the harness (developer mode only).
-# entwurf is the current Claude path in pi via ACP. On server devices we
-# install it via `pi install git:...` instead — see is_server_device + setup_npm.
+# Local provider/package repos cloned as SOURCE for dev dogfooding.
+# entwurf is the current Claude path in pi via ACP. agent-config clones it as
+# source only — install/auth/setup belong to entwurf's own `./run.sh setup`.
+# A consumer install here would weaken entwurf's own release-gate 검증면.
 declare -A PACKAGE_REPOS=(
   [entwurf]="https://github.com/junghan0611/entwurf.git"
 )
 
-# entwurf install source for server devices.
-# During the OpenClaw 0.6.0 prerelease / Oracle validation window, servers
-# intentionally track the latest `main` commit instead of the v0.5.0 tag.
-# Restore a tagged pin here when the next stable entwurf release ships.
-ENTWURF_INSTALL_SPEC="git:github.com/junghan0611/entwurf"
-ENTWURF_TRACKING_REF="main"
-
-# Server devices use the consumer install path (pi-managed) instead of cloning
-# entwurf into ~/repos/gh/.
+# is_server_device drives device-specific settings/hooks selection only.
+# (entwurf is NOT consumer-installed by device class anymore — always the dev
+# clone in ~/repos/gh/; see setup_repos + setup_npm.)
 #
 # Primary signal: ~/.current-forge-profile (the forge skill's machine SSOT).
 # A forge *host* machine writes its profile there (oracle / work) and is, by
@@ -317,17 +312,6 @@ is_server_device() {
   server_devices_list | grep -Fxq "$device"
 }
 
-# Resolve entwurf install path for the current device.
-# - server: pi-managed ~/.pi/agent/git/github.com/junghan0611/entwurf
-# - dev:    ~/repos/gh/entwurf
-entwurf_repo_dir() {
-  if is_server_device; then
-    echo "$HOME/.pi/agent/git/github.com/junghan0611/entwurf"
-  else
-    echo "$REPOS/entwurf"
-  fi
-}
-
 # Go src subdirectory within each repo
 declare -A CLI_GO_SRC=(
   [denotecli]="denotecli"
@@ -365,9 +349,9 @@ setup_preflight() {
   # ~/.current-device — drives device-specific Claude + pi settings selection
   if [ -f "$HOME/.current-device" ]; then
     if is_server_device; then
-      ok "device: $(cat "$HOME/.current-device") (server / consumer install of entwurf)"
+      ok "device: $(cat "$HOME/.current-device") (server)"
     else
-      ok "device: $(cat "$HOME/.current-device") (developer / local clone of entwurf)"
+      ok "device: $(cat "$HOME/.current-device") (developer)"
     fi
   else
     warn "~/.current-device not set — server-mode hooks/settings won't activate"
@@ -395,14 +379,11 @@ setup_repos() {
   done
 
   section "Provider Package Repositories"
-  if is_server_device; then
-    log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping entwurf dev clone"
-    log "  (pi will install it at $HOME/.pi/agent/git/github.com/junghan0611/entwurf via setup_npm)"
-  else
-    for name in "${!PACKAGE_REPOS[@]}"; do
-      ensure_repo "$name" "${PACKAGE_REPOS[$name]}"
-    done
-  fi
+  # entwurf source clone on EVERY device (dev dogfooding). install/auth belong
+  # to entwurf's own ./run.sh setup, not here.
+  for name in "${!PACKAGE_REPOS[@]}"; do
+    ensure_repo "$name" "${PACKAGE_REPOS[$name]}"
+  done
 
   return 0
 }
@@ -457,13 +438,9 @@ setup_refresh_managed_repos() {
   for name in "${!THIRD_PARTY_PACKAGE_REPOS[@]}"; do
     refresh_repo_if_clean "$THIRD_REPOS/$name" "$name"
   done
-  if is_server_device; then
-    log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping entwurf dev refresh"
-  else
-    for name in "${!PACKAGE_REPOS[@]}"; do
-      refresh_repo_if_clean "$REPOS/$name" "$name"
-    done
-  fi
+  for name in "${!PACKAGE_REPOS[@]}"; do
+    refresh_repo_if_clean "$REPOS/$name" "$name"
+  done
 }
 
 # --- update — pull every known repo that's clean; warn-and-skip on dirty ---
@@ -476,14 +453,9 @@ update_repos() {
   for name in "${!THIRD_PARTY_PACKAGE_REPOS[@]}"; do
     pull_repo_if_clean "$THIRD_REPOS/$name" "$name"
   done
-  if is_server_device; then
-    log "device=$(cat "$HOME/.current-device" 2>/dev/null) → consumer mode, skipping entwurf dev pull"
-    log "  (run \`./run.sh setup\` to refresh entwurf from latest main)"
-  else
-    for name in "${!PACKAGE_REPOS[@]}"; do
-      pull_repo_if_clean "$REPOS/$name" "$name"
-    done
-  fi
+  for name in "${!PACKAGE_REPOS[@]}"; do
+    pull_repo_if_clean "$REPOS/$name" "$name"
+  done
   return 0
 }
 
@@ -803,86 +775,12 @@ setup_npm() {
   # pi-packages (ben-vargas) intentionally disabled for now.
   log "pi-packages: disabled (skipping pi-claude-code-use install)"
 
-  # entwurf (ACP bridge provider) — install + auth + light verification.
-  # Server devices use the consumer install path (pi-managed clone via
-  # `pi install git:...`); dev machines use the local clone in ~/repos/gh/.
-  # Either way the post-install steps (sync-auth + check-mcp) run from the
-  # resolved directory.
-  local ENTWURF_REPO_DIR
-  ENTWURF_REPO_DIR="$(entwurf_repo_dir)"
-
-  # Read installed package version / git commit for diagnostics. During the
-  # OpenClaw prerelease window package.json may still say 0.5.0 while the
-  # needed plugin commits live past the v0.5.0 tag, so commit is the authority.
-  local installed_version=""
-  local installed_commit=""
-  if [ -f "$ENTWURF_REPO_DIR/package.json" ]; then
-    installed_version="$(node -p "require('$ENTWURF_REPO_DIR/package.json').version" 2>/dev/null || echo "")"
-    installed_commit="$(git -C "$ENTWURF_REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo "")"
-  fi
-
-  if is_server_device; then
-    if [ ! -f "$ENTWURF_REPO_DIR/package.json" ]; then
-      log "entwurf: pi install $ENTWURF_INSTALL_SPEC (fresh, latest main)"
-      if ! pi install "$ENTWURF_INSTALL_SPEC"; then
-        fail "entwurf: pi install failed"
-        return 1
-      fi
-    else
-      # pi's git package manager may treat an existing checkout as already
-      # installed. Oracle prerelease validation needs the latest main commit,
-      # so refresh the pi-managed checkout directly and reinstall deps.
-      log "entwurf: refresh latest $ENTWURF_TRACKING_REF ($installed_commit)"
-      if ! (cd "$ENTWURF_REPO_DIR" && git fetch --tags origin "$ENTWURF_TRACKING_REF" >/dev/null 2>&1 && git checkout -B "$ENTWURF_TRACKING_REF" "origin/$ENTWURF_TRACKING_REF" >/dev/null 2>&1 && pnpm install --silent --frozen-lockfile); then
-        fail "entwurf: refresh latest $ENTWURF_TRACKING_REF failed"
-        return 1
-      fi
-    fi
-    if [ ! -f "$ENTWURF_REPO_DIR/package.json" ]; then
-      fail "entwurf: expected install at $ENTWURF_REPO_DIR (pi install did not produce it)"
-      return 1
-    fi
-    installed_version="$(node -p "require('$ENTWURF_REPO_DIR/package.json').version" 2>/dev/null || echo "")"
-    installed_commit="$(git -C "$ENTWURF_REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo "")"
-    ok "entwurf consumer install ($ENTWURF_REPO_DIR @ $ENTWURF_TRACKING_REF/$installed_commit, package v$installed_version)"
-  else
-    if [ ! -f "$ENTWURF_REPO_DIR/package.json" ]; then
-      fail "entwurf: repo not found at $ENTWURF_REPO_DIR"
-      return 1
-    fi
-    log "entwurf: install + auth..."
-    if ! (cd "$ENTWURF_REPO_DIR" && pnpm install --silent --frozen-lockfile); then
-      fail "entwurf: pnpm install failed"
-      return 1
-    fi
-    installed_commit="$(git -C "$ENTWURF_REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo "")"
-    ok "entwurf pnpm install (package v$installed_version, git $installed_commit)"
-  fi
-
-  # Entwurf target registry — consumer install path must expose the canonical
-  # entwurf registry at ~/.pi/agent/entwurf-targets.json. In practice,
-  # `pi install` can leave this missing on server devices, and a manual copy can
-  # silently drift from the installed tag. Re-point it to the installed package.
-  local ENTWURF_TARGETS_TARGET="$ENTWURF_REPO_DIR/pi/entwurf-targets.json"
-  if [ -f "$ENTWURF_TARGETS_TARGET" ]; then
-    ensure_link "$ENTWURF_TARGETS_TARGET" "$HOME/.pi/agent/entwurf-targets.json"
-  else
-    warn "entwurf: entwurf target registry missing at $ENTWURF_TARGETS_TARGET"
-  fi
-
-  if ! (cd "$ENTWURF_REPO_DIR" && ./run.sh sync-auth); then
-    fail "entwurf: auth sync failed"
-    return 1
-  fi
-  ok "entwurf auth alias"
-
-  # Light verification — deterministic, no auth, no subprocess.
-  # Catches MCP wiring drift if entwurf's bundle changes between releases.
-  if (cd "$ENTWURF_REPO_DIR" && ./run.sh check-mcp >/dev/null 2>&1); then
-    ok "entwurf check-mcp"
-  else
-    warn "entwurf: check-mcp failed — MCP wiring may be misconfigured"
-  fi
+  # entwurf install/auth/setup는 agent-config가 소유하지 않는다. entwurf는 자기
+  # repo(~/repos/gh/entwurf)에서 `./run.sh setup`으로 스스로 설치·auth·검증한다
+  # (dev dogfooding). agent-config가 consumer로 install하면 entwurf의 release-gate
+  # 검증면이 약해지므로, 여기서는 소스 clone/pull(setup_repos)까지만 관여하고
+  # 설치면(pi install / pnpm / sync-auth / check-mcp / entwurf-targets 링크)은
+  # entwurf에 맡긴다. agy MCP도 install-agy-bridge adapter가 소유(위 참조).
 
   # Stale project-local .pi/settings.json detection.
   # Pre-migration leftovers (e.g. claude-agent-sdk-pi) override the global SSOT

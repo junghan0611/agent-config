@@ -7,8 +7,8 @@
   "theme": "glg-dark",
   "packages": [
     "../../repos/gh/andenken",
-    "../../repos/gh/entwurf",
-    "git:github.com/badlogic/pi-telegram"
+    "git:github.com/badlogic/pi-telegram",
+    "/home/junghan/repos/gh/entwurf"
   ],
   "entwurfProvider": {
     "appendSystemPrompt": false,
@@ -24,5 +24,6 @@
   },
   "compaction": {
     "enabled": false
-  }
+  },
+  "lastChangelogVersion": "0.80.3"
 }
