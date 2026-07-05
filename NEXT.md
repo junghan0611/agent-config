@@ -3,9 +3,41 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-> NOW (`v2026.7.1`, co-owned settings merge closed): active 한 점은 ① bibcli 도구-내장 스킬
-> owning-repo 환원(구조), ② pi-chat Add-group blocker, ③ gogcli 재인증 마무리(선택 — 아래
-> [2026-07-02]). 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+> NOW: active ① **설치면 소유 경계 — entwurf 이관** (issue #46: agy statusline + pi
+> provider/entwurfProvider), ② bibcli 도구-내장 스킬 owning-repo 환원(구조),
+> ③ pi-chat Add-group blocker, ④ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
+> 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+
+## [2026-07-04] 설치면 소유 경계 — entwurf 이관 (issue #46)
+
+트래킹: https://github.com/junghan0611/entwurf/issues/46 — 같이 묶어 수정.
+
+**원칙:** 소유는 파일 위치가 아니라 **배선 대상**으로 결정한다. `entwurf-bridge`/
+`entwurfProvider`/statusline driver+gid를 가리키면 pi 설정 파일 *안*이라도 entwurf
+`setup`이 멱등 소유한다. pi = 4번째 하네스일 뿐. 이관 순서: **새 소유자가 먼저 잡고 →
+옛 소유자가 놓는다** (반대면 무소유 공백 = 기능 깨짐).
+
+**완료 (이 세션):**
+- agy MCP config → entwurf `install-agy-bridge` adapter 이관. LIVE ⑨ 13 checks green,
+  DELIVERY shipped. (`bba0dcf`)
+- `run.sh`에서 entwurf consumer install 설치면 제거 — pi install/pnpm/sync-auth/
+  check-mcp/entwurf-targets 링크 + server=consumer 분기 전부. 소스 clone/pull만 유지
+  (dev dogfooding). (`208b8d2`)
+
+**남은 것 (issue #46, 테스트 밀도 높음):**
+1. **agy statusline 이관** — `install-agy-bridge`가 agy `settings.json`의
+   `statusLine.command`를 entwurf 소유 안정-bin 렌더러(driver+gid)로 세팅 + install-state +
+   honest uninstall. 설계 변수: **agy 세션 → garden-id 조회 권위**(SessionStart 훅?
+   `conversationId → gid` 역조회?). tripwire: statusLine.command는 안정 bin만(repo/
+   agent-config 경로 금지 — 오라클 dangling 교훈).
+2. **pi provider(entwurfProvider) 이관** — 순서 필수(라이브 provider, 공백 나면 깨짐):
+   - `pi/settings.server.json` `packages[]`의 entwurf 줄 제거 (⚠️ **선행: 스코프 커버 확인**
+     — entwurf user-scope citizen 등록 `register-pi-package.py`와 이 `settings.server.json`을
+     같은 pi 인스턴스가 읽는지).
+   - entwurf `install`이 `entwurfProvider` mcpServer 등록(안정 bin `entwurf-bridge`
+     command, repo start.sh 절대경로 금지)을 멱등 소유하도록 확장 (**선행**).
+   - 그 후 agent-config에서 `entwurfProvider` 블록 제거 = 완성. 옵션 (a)유지·(b)command만
+     안정bin = 탈락(소유가 agent-config 잔존), **(c)블록 제거가 정답**.
 
 ## [2026-07-02] gogcli 재인증 — 이어서 (구조/문서는 v2026.7.2로 릴리즈됨)
 
@@ -33,7 +65,6 @@
 gog login <email> --client <personal|work> --force-consent --services <a,b,c,...>
 gog auth list
 ```
-
 
 ## [2026-06-11] 도구-내장 스킬을 owning repo로 환원 (구조 결함)
 
