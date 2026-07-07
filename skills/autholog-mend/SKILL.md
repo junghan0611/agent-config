@@ -22,6 +22,7 @@ This is a specialized lane of `/mend`: not generic formatting, but **raw → not
 - **Add an explanation layer.** Explain time/place/concepts, possible misreadings, related botlog, and why this raw piece belongs here.
 - **Update meta magnets.** If the raw text introduces terms, repair/create links to `meta/` notes and add English tags/keywords when useful.
 - **Separate rails.** `notes/` = GLG raw + recovered explanation. `botlog/` = agents' research/exposition. Link botlog; do not merge roles.
+- **Respect consolidation direction.** If GLG intentionally folds a book-only note into a person/hub note and leaves the old ID as a future room, do not auto-restore it as a loss. Preserve the decision in history and keep the empty room useful for later raw material.
 
 ## Workflow
 
@@ -29,7 +30,7 @@ This is a specialized lane of `/mend`: not generic formatting, but **raw → not
 2. **Find candidate rooms.** Use `denotecli search`, `search-content`, `knowledge_search`; inspect 2–5 candidates with `read --outline`.
 3. **Choose one room.** Criteria: stale/thin/outdated, conceptually resonant, not already a complete autholog with a different raw piece.
 4. **Undo wrong placement first.** If you appended the raw text to a related note, remove that addition before continuing.
-5. **Remodel the note.** Set title/tags/description/abstract, add `히스토리`, `관련메타`, `관련노트`, explanatory sections, raw `[!danger]` block, optional follow-up comment `[!danger]` block, and `옛 방의 씨앗 :noexport:` when reusing a room.
+5. **Remodel the note.** Set title/tags/description/abstract, add `히스토리`, `관련메타`, `관련노트`, explanatory sections, raw `[!danger]` block, optional follow-up comment `[!danger]` block, and a short visible `옛 방의 씨앗` section when reusing a room. Do not mark the old-room seed `:noexport:` by default; use `:noexport:` only for private, noisy, or explicitly hidden material.
 6. **Repair meta notes.** Add missing concept anchors and English tags, e.g. `재주 → talent/skill/ability`, `재수 → luck/fortune/chance/fate`.
 7. **Rename via Emacs front matter.** Use `agent-denote-set-front-matter ... :rename t`; never raw `mv`.
 8. **Verify.** `denotecli read ID --outline`, `git status --short`, and a focused diff.
@@ -63,7 +64,7 @@ This is a specialized lane of `/mend`: not generic formatting, but **raw → not
 [!danger]
 ...
 #+end_quote
-* 옛 방의 씨앗 :noexport:
+* 옛 방의 씨앗
 ```
 
 ## Example anchor
