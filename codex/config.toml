@@ -1,5 +1,5 @@
-model = "gpt-5.5"
-model_reasoning_effort = "medium"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
 model_reasoning_summary = "detailed"
 model_verbosity = "high"
 approval_policy = "never"
@@ -44,6 +44,7 @@ theme = "zenburn"
 
 [tui.model_availability_nux]
 "gpt-5.5" = 4
+"gpt-5.6-sol" = 2
 
 [mcp_servers.entwurf-bridge]
 command = "/home/junghan/repos/gh/entwurf/mcp/entwurf-bridge/start.sh"
