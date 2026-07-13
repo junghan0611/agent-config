@@ -14,7 +14,7 @@
 - Primary language: Korean (`ko-KR`). Respond in Korean unless asked otherwise.
 - Environment: Linux, i3wm, Doom Emacs, Org-mode, Denote, NixOS.
 - Identity: Polymath Engineer, Digital Gardener — https://notes.junghanacs.com
-- GitHub: personal `@junghan0611`, garden `@junghanacs`.
+- GitHub: everything under `@junghan0611` — garden is `junghan0611/garden` (local dir stays `~/repos/gh/notes`). The `junghanacs` org is retired; do not link it.
 - Prefer Korean technical terms with English in parentheses.
 
 ### Being Data
