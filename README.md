@@ -23,7 +23,7 @@ If `entwurf` asks “what does a real consumer look like?”, this repo is the a
 |---------|----------|------------------------|
 | ACP backend bridge | `entwurf` | consumed through `pi/settings.json` / `pi/settings.server.json` |
 | MCP servers (`entwurf-bridge`) | `entwurf` | wired in `entwurfProvider.mcpServers` |
-| Entwurf target policy | `entwurf` | pinned/installed here; exercised in real workflows |
+| Entwurf install / auth / setup | `entwurf` | **not consumer-installed here** — this repo clones the source for dogfooding and hands install to entwurf's own `./run.sh setup`; a consumer install here would weaken entwurf's release gate |
 | Claude skill plugin farm | pair boundary | this repo builds one consumer layout at `~/.pi/agent/claude-plugin/`, then points `entwurf` at it |
 | Skills / prompts / themes / profile | `agent-config` | SSOT in `skills/`, `commands/`, `pi-themes/`, `home/AGENTS.md` |
 | Consumer install/update policy | `agent-config` | `run.sh setup` / server-device upgrade path |
@@ -74,6 +74,8 @@ Semantic memory has graduated to its own repo: **[andenken](https://github.com/j
 | `session_search` | sessions.lance | Past pi + Claude Code conversations |
 | `knowledge_search` / `search-md` | md.lance | Public digital garden export (`~/repos/gh/notes/content`) — agent-facing knowledge axis |
 
+Both axes embed through **OpenRouter Qwen3-Embedding-8B at 4096d** (LanceDB + hybrid retrieval: vector + FTS with score normalization). The Gemini embedding path is retired — `gemini-embeddings.ts` and `GeminiProvider` survive in andenken only as an unreferenced back-compat shim, and no preset selects them.
+
 Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and the md knowledge surface fires with dictcli query expansion. The older org embedding track is disabled in production; use `denotecli` for exact/raw Denote lookups. Loading strategy per harness lives in the Harness Support table above.
 
 ### Pi Extensions ([`pi-extensions/`](pi-extensions/))
@@ -82,12 +84,14 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 |-----------|---------|
 | `env-loader.ts` | Load `~/.env.local` at session start |
 | `context.ts` | `/context` — show loaded extensions, skills, context usage |
-| `control.ts` | Cross-session control plane (forked from agent-stuff) |
+| `glg-footer.ts` | Footer signature |
 | `go-to-bed.ts` | Late-night reminder |
 | `peon-ping.ts` | Sound notifications |
 | `gemini-image-gen.ts` | Gemini image generation (nanobanana) |
 | `session-breakdown.ts` | Session cost breakdown |
 | `whimsical.ts` | Personality touches |
+
+**Direction: this surface shrinks.** A pi extension only exists inside pi — Claude Code, Codex, and Antigravity cannot see it. A skill runs everywhere. So capability that agents actually call is migrating extension → skill (semantic memory is the finished case: `skills/semantic-memory/` is a CLI wrapper every harness can invoke, while the pi-side `session_search` / `knowledge_search` registerTool remains a convenience, not the only door). What stays here is pi-local ergonomics — env loading, sound, footer, cost breakdown.
 
 External pi packages — semantic-memory ([andenken](https://github.com/junghan0611/andenken)) and Telegram bridges ([entwurf](https://github.com/junghan0611/entwurf), [pi-telegram](https://github.com/badlogic/pi-telegram)) — see [§ -config Ecosystem](#the--config-ecosystem).
 
@@ -127,7 +131,9 @@ Aside from the hook channel, the two surfaces are interchangeable. This is the r
 
 ### Skills ([`skills/`](skills/))
 
-Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query), agent memory (session-recap, dictcli, semantic-memory, improve-agent), writing (botlog, botment, agenda, punchout), communication (slack-latest, jiracli, telegram), code surface (forge — v1.5, multi-profile), company workbench (voscli), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release), tools (emacs, tmux, diskspace).
+41 skills. Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (slack-latest, jiracli, telegram), code surface (forge — v1.5, multi-profile), work workbench (voscli, incidentcli, plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli), entwurf (entwurf-peek), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), tools (emacs, tmux, diskspace).
+
+**Binary skills: agent-config owns the skill surface, alone.** For skills backed by a sibling-repo CLI (denotecli, bibcli, gitcli, lifetract), this repo owns **both** the `SKILL.md` and the deployed binary; the sibling repo holds **code only** and its own `deploy` never writes into the skill directory. Two owners means nobody knows which one is true. `run.sh setup:build` gates each install behind the sibling repo's test suite and refuses uncommitted sources, then writes [`skills/.provenance.json`](skills/.provenance.json) — per tool: `vcs_revision`, `src_tree`, and the installed binary's `sha256`. A snapshot whose tools cannot be named is not reproducible, it only looks it. (`dictcli` is the open gap: GraalVM native-image doesn't ride the Go gate, so it carries no provenance yet.)
 
 **Web search:** `brave-search` for cheap keyword/freshness/country-scoped lookups; `exa-search` for intent-based semantic queries, code-context retrieval (GitHub + Stack Overflow + docs aggregated for an LLM), and structured grounded output via `--output-schema`.
 
@@ -186,7 +192,7 @@ cd agent-config
 `./run.sh setup` performs:
 
 - Clone missing tracked repos (`setup` does **not** pull existing repos; use `./run.sh update` for pulls)
-- Build native CLI binaries (Go + GraalVM)
+- Build native CLI binaries (Go + GraalVM) — **gated**: each Go CLI must pass its sibling repo's test suite and be built from committed sources, or it is not installed. `skills/.provenance.json` records what actually landed; `./run.sh env` warns when a live binary drifts from its recorded build
 - Symlink pi extensions, full skill set (including `semantic-memory`), themes, settings, keybindings, prompts
 - Install andenken as a pi package (compiled extension — exposes `session_search` / `knowledge_search` registerTool alongside the SKILL.md skill)
 - Symlink OpenCode / Codex / Gemini legacy / Antigravity surfaces (`~/.codex/config.toml`, `~/.gemini/settings.json`, `~/.gemini/antigravity-cli/settings.json`, `~/.gemini/antigravity-cli/skills`, `~/.gemini/antigravity-cli/mcp_config.json`) plus skills and Claude Code commands. `~/.claude/settings.json` is **merged** (keyset, never symlinked) — co-owned with entwurf meta-bridge; both workstation (`settings.fragment.json`) and server (`settings.server.json`) merge the same way, and `pi/settings.json` merges too (co-owned with the pi runtime)
