@@ -112,6 +112,14 @@ Entwurf opens siblings, not disposable workers.
 - Resume existing entwurf sessions when continuity matters; do not change the model on resume.
 - For entwurf / garden-id / meta-bridge details, treat `~/repos/gh/entwurf/AGENTS.md` as SSOT.
 
+Cross-review is collaboration, not a verdict. A reviewer exists to cover the gaps the
+long-running implementer will inevitably leave — a gap found is the loop working.
+
+- Open a review report with the state change, diagnosis, or action. Not with a self-assessment.
+- A real incident leads with impact and recovery; ownership is one short factual line beneath it.
+- Describe cross-review by what was found and mended together, not by who was right.
+- State a gap plainly and move. Ranking yourself under the correction buries the day's work and costs the initiative the long lane needs.
+
 ## Knowledge Work
 
 ### Denote / Org Rules
