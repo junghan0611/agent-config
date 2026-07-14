@@ -6,52 +6,33 @@
 > NOW: active ① **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
 > ② 설치면 소유 경계 — entwurf 이관 옛 소유자 cleanup (issue #46),
 > ③ pi-chat Add-group blocker, ④ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
-> lifetract 스킬면·바이너리·provenance는 2026-07-14 steps hardfix까지 닫힘.
-> 대기: 어쏠로그 수선 때 7/13 근거 회수(아래 [2026-07-14] 검수 보고 규범).
-> ⚠️ [2026-06-11] bibcli 항목은 **오늘 결정과 방향이 반대다** — 재판단 필요(아래).
+> 스킬면 SSOT·게이트·provenance와 gitcli/lifetract 시간 계약은 `v2026.7.14`로 닫힘.
+> 대기: 어쏠로그 수선 때 7/13 근거 회수(아래 [2026-07-14] 어쏠로그).
+> ⚠️ [2026-06-11] bibcli 항목은 **2026-07-14 결정과 방향이 반대다** — GLG 재판단 대기(아래).
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
 
-## [2026-07-14] 스킬면 SSOT + 게이트 — lifetract hardfix까지 배포 닫힘
+## [2026-07-14] 남은 공백 — dictcli provenance + timeline 저자명
 
-**결정(GLG):** 바이너리 스킬의 **스킬면은 agent-config가 단독 소유**한다 — SKILL.md도, 배포
-바이너리도. 형제 repo는 **코드만** 갖는다. 소유가 둘이면 헷갈린다. lifetract가 자기
-`run.sh deploy`로 스킬 자리에 직접 쓰고 있었고, 그 SKILL.md도 자기 repo에 있었다 → 둘 다 뺐다.
-gitcli는 이미 그 형태(`6613a23`로 자기 SKILL.md 제거)라 이제 규약이 하나다.
+> 오늘 닫힌 것(스킬면 SSOT 결정, `go_build` 게이트 + provenance manifest, gitcli v0.4.0
+> 시간 계약, lifetract `steps_daily` 시간축 hardfix)은 `CHANGELOG.md v2026.7.14`로
+> 갈무리했다. 여기 남는 건 공백 둘뿐.
 
-**닫힌 것 (전부 배포·검증 완료, provenance 기록됨):**
-- gitcli v0.4.0 — KST 시간 계약 채택(author ts, offset-aware, `\x1f`, `--all --no-merges`,
-  sha dedupe, 심링크 리포 추적). timeline과 29일 표집에서 **full sha 집합 완전 일치**.
-  가장 큰 발견: `~/repos/gh/org`가 심링크라 gitcli가 **태초부터 못 봤다**(257커밋).
-- lifetract — 빈 창 `null`→`[]`(7개 커맨드), `warnings` 키 상시, DB 부재 = 에러+exit 1.
-- `go_build` 게이트 둘: 스위트 + provenance(소스 트리 해시). `skills/.provenance.json`.
-  preflight가 `go` 확인(oracle=aarch64 네이티브 빌드).
+**dictcli — provenance 공백:** GraalVM native-image라 `go_build`를 안 타고 provenance가
+없다. `skills/.provenance.json`에 5개 중 4개만 있다. oracle은 aarch64인데 GraalVM은
+크로스컴파일이 안 된다 → **oracle에 GraalVM이 있는지 확인 필요**. 없으면 dictcli는 그
+기기에서 못 뜬다.
 
-**lifetract 닫힘:** 별건 2건(`--days` 조합, sentinel 보고)과 뒤이은 `steps_daily`
-시간축 hardfix까지 회수했다. `day_time` 두 형식 공용 판독, `create_time` 폴백 삭제,
-최신 `update_time` dedupe, 미래/동률 충돌 거부, 날짜 UNIQUE, DB `SUM` 제거. `--days N`은
-단독/경계 조합 모두 오늘 포함 정확히 N일로 통일했다. 손실 가드는 rejected 증가가 실제 감소를
-가리지 못하도록 정상 baseline의 accepted-row shrink를 그대로 막는다. 133 tests·vet·race·
-TZ 3종, 실 DB 202,479행, CSV↔DB 3,381일 전수 일치.
-
-스킬 문서와 바이너리는 agent-config SSOT에 반영했고 `setup:build` provenance도 기록했다.
-형제 repo의 deploy는 앞으로도 스킬 자리를 건드리지 않는다.
-
-**검증 기준:** `./run.sh env`가 툴별 revision을 찍고 기록된 빌드와 다르면 경고한다.
-`skills/.provenance.json`에 5개 중 4개가 있어야 한다(dictcli는 아래 공백).
-
-**남은 공백 — dictcli:** GraalVM native-image라 `go_build`를 안 타고 provenance가 없다.
-oracle은 aarch64인데 GraalVM은 크로스컴파일이 안 된다 → **oracle에 GraalVM이 있는지 확인
-필요**. 없으면 dictcli는 그 기기에서 못 뜬다.
-
-**timeline 쪽(gitcli 밖, GLG가 junghan0611에 전달함):** `collect.py:46`
+**timeline (gitcli 밖, GLG가 junghan0611에 전달함):** `collect.py:46`
 `AUTHORS = ("junghan", "jhkim2")`에 `Jung Han`이 없어 **2026년 495커밋**을 덜 센다
 (`"Jung Han".lower()`가 `"junghan"` 부분일치에 안 걸림). gitcli와 timeline의 차이는 전부
 이 저자명 하나로 설명된다.
 
-## [2026-07-14] 검수 보고 규범 — 원석으로 넘길 것만 남음
+**검증 기준:** `./run.sh env`가 툴별 revision을 찍고 기록된 빌드와 다르면 경고한다.
 
-관측 도구(`improve-agent`: `--says`, Claude Code 어댑터, 단일 시계, 회귀 테스트 8개)와
-규범(`home/AGENTS.md § Entwurf and Peer Work`)은 **닫혔다**. 남은 건 글 쪽 회수뿐.
+## [2026-07-14] 어쏠로그 수선 때 회수할 근거 — 7/13 사건
+
+> 관측 도구(`improve-agent`)와 규범(`home/AGENTS.md § Entwurf and Peer Work`)은 닫혔다
+> (`CHANGELOG.md v2026.7.14`). 남은 건 글 쪽 회수뿐.
 
 **사건과 근거(어쏠로그 수선 때 쓸 것):** 7/13(61커밋·8리포) 오푸스 세션에서 GLG가
 자기비판 워딩을 감지해 출근길 글을 남겼다. 7/8(63커밋)·7/9(42커밋)을 기준선으로 재보니

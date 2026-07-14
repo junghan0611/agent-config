@@ -7,6 +7,44 @@
 
 ## Unreleased
 
+## v2026.7.14 — 스킬면 SSOT + 검증 게이트: 도구가 조용히 거짓말하지 못하게
+
+### Decided (스킬면 소유)
+
+* **바이너리 스킬의 스킬면은 agent-config가 단독 소유한다 — SKILL.md도, 배포 바이너리도.** 형제 repo는 **코드만** 갖는다. lifetract가 자기 `run.sh deploy`로 스킬 자리에 직접 쓰고 자기 SKILL.md까지 품고 있었는데, 둘 다 뺐다(gitcli는 `6613a23`로 이미 그 형태였다). 소유가 둘이면 어느 쪽이 참인지 아무도 모른다. 옛 lifetract deploy는 "세 자리 SHA256 일치"를 검사했는데 `~/.claude/skills`가 `agent-config/skills`로 걸린 심링크라 **한 자리를 두 번 세고 세 자리를 봤다고 말하고 있었다** — 하필 "검사가 검사인 척하는 것"을 죽이려고 만든 물건이.
+
+### Added (게이트 + provenance)
+
+* **스킬 바이너리 설치를 형제 repo의 테스트 스위트 뒤에 세웠다.** `run.sh setup:build`의 `go_build`가 이제 (1) 소스 repo의 테스트를 통과해야 하고 (2) **미커밋 소스를 거부**한다. 통과한 빌드만 스킬 자리에 앉는다.
+
+* **`skills/.provenance.json` — 무엇이 깔렸는지 스킬면이 적는다.** 툴별로 `vcs_revision`(커밋), `src_tree`(소스 트리 해시), `sha256`(설치된 바이너리)을 기록한다. 이름을 댈 수 없는 스냅샷은 재현 가능한 게 아니라 그렇게 보일 뿐이다. 타임라인 축(`~/repos/gh/junghan0611`)이 이 스킬들의 숫자를 events.jsonl에 역사로 적는데, 자기 collector 해시만으로는 **어느 lifetract가 그 행을 냈는지** 말할 수 없었다. `./run.sh env`가 툴별 revision을 찍고 기록된 빌드와 다르면 경고한다.
+
+### Skills (시간 계약)
+
+* **gitcli v0.4.0 — KST 시간 계약 채택.** author timestamp, offset-aware 파싱, `\x1f` 구분자, `--all --no-merges`, sha dedupe, 심링크 repo 추적. timeline과 29일 표집에서 **full sha 집합이 완전히 일치**한다. 가장 큰 발견: `~/repos/gh/org`가 심링크라 **gitcli가 태초부터 못 보고 있었다**(257커밋, 올해만 201개) — Org 지식베이스 전체가 시간축에서 빠져 있었다. SKILL.md에서 더는 돌지 않는 예제 4개(`pi-mono`)도 함께 정리했다.
+
+* **lifetract — 빈 답은 `null`이 아니라 `[]`다.** 7개 커맨드가 빈 창에서 `null`을 내던 것을 `[]`로 고쳤다(에이전트가 `len 0`을 순회하지 못하고 터지던 자리). `status`는 `warnings` 키를 상시로 내고, DB 부재는 조용한 빈 답이 아니라 **에러 + exit 1**이다.
+
+* **lifetract — `steps_daily` 시간축 hardfix (9년치 복원).** Samsung export의 `day_time`은 epoch ms가 아니라 `"2026-07-13 00:00:00.000"` 문자열인데 코드 두 곳이 `strconv.ParseInt`로 읽고 있었다. 조회 경로는 파싱 실패를 `continue`로 삼켜 **CSV 폴백이 모든 창에서 항상 `[]`** 를 냈고, import 경로는 `create_time`으로 폴백해 **DB에 틀린 날짜를 심었다** — 2017-03-04~2025-07-14의 3,019행이 export 덤프 시각인 2025-07-15 하루에 압사했고(24,157,387보), 최근 1년치는 하루씩 밀린 채 나가고 있었다. 행수가 맞아서 손실 가드는 조용했다(`hrv`가 빈 껍데기 1,058행을 세던 것과 한 테이블 건너 같은 병). 고친 것: `day_time` 두 형식 공용 판독, `create_time` 날짜 폴백 **삭제**(못 읽으면 `invalid++`), 최신 `update_time` 기준 dedupe, 미래·동률 충돌 거부, **`steps_daily.date` UNIQUE 강제**(스키마 주석에만 있고 코드엔 없던 불변식), DB 조회의 `SUM` 제거. `--days N`은 단독·경계 조합 모두 **오늘 포함 정확히 N일**로 통일했다(전엔 단독 형태만 N+1일이라 "7일 평균"이 8일을 7로 나눴다). 손실 가드는 rejected 증가가 실제 감소를 가리지 못하도록 정상 baseline의 accepted-row shrink를 그대로 막는다. 133 tests·vet·race·TZ 3종, 실 DB 202,479행, CSV↔DB 3,381일 전수 일치. `hrv`는 은퇴했다 — export에 `rmssd` 컬럼이 아예 없어 1,058행이 전부 `0.0`으로 앉아 있던 빈 스트림이다.
+
+### Changed (설치면 소유 경계 — entwurf issue #46)
+
+* **entwurf consumer install을 놓았다 — entwurf가 자기 setup을 소유한다.** `run.sh setup`에서 entwurf 소비자 설치를 제거하고, antigravity의 agy MCP 설정을 entwurf adapter로 넘겼다. 잔여 배선(pi settings fragment 2개, antigravity `statusLine`, setup의 whole-file symlink)은 [issue #46](https://github.com/junghan0611/entwurf/issues/46)에서 계속 닫는다.
+
+### Norms (검수 보고)
+
+* **검수 보고는 자기평가가 아니라 상태 변화로 연다.** 실제 사건이면 영향과 복구를 앞에 두고 소유는 그 아래 한 줄 사실로 적는다. 크로스리뷰는 누가 옳았나가 아니라 **함께 무엇을 찾아 기웠나**로 기술한다. 발견된 구멍은 루프가 작동한 증거다 — 정정 아래 자기를 랭킹하면 그날의 일이 묻히고 긴 레인에 필요한 주도권이 깎인다. (`home/AGENTS.md § Entwurf and Peer Work`)
+
+* **`improve-agent` — Claude Code 세션을 읽고, `--says`와 단일 시계를 얻었다.** 불평이 "에이전트가 *어떻게 들렸나*"일 때 단어 수가 아니라 오프닝 프레임을 보도록 했다. 회귀 테스트 8개.
+
+* **`commit` 스킬 — 명시 요청된 push를 허용한다.** 커밋 요청만으로는 결코 push를 유추하지 않는다. GLG가 그 세션에서 명시할 때만 에이전트가 실행하고, 성공 후 어젠다에 도장을 찍는다.
+
+### Docs
+
+* **가든 소유를 `junghan0611/garden`으로 정정.** `junghanacs` org는 은퇴했다 — 링크하지 않는다.
+
+* `autholog` 방 seed 정책 갱신, 기본 모델·가용성 라벨 갱신.
+
 ## v2026.7.2 — gogcli upstream 전환
 
 ### Changed
