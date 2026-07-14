@@ -42,8 +42,9 @@ lifetract timeline --days 30        # 30일 횡단 뷰
 ## Architecture
 
 ```
-lifetract.db 존재? → DB 쿼리 (~90ms) → JSON
-                  → CSV 파싱 (~300ms) → JSON (fallback)
+lifetract.db 있음 → 모든 명령: DB 쿼리 (~90ms) → JSON
+lifetract.db 없음 → sleep/steps/heart/stress/exercise: CSV 파싱 (~300ms) → JSON
+                  → time/timeline/today/read:          exit 1
 ```
 
 - `lifetract import --exec` 실행 후 모든 조회가 DB 모드
