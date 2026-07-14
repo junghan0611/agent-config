@@ -1,6 +1,6 @@
 ---
 name: lifetract
-description: "Query personal life-tracking data: Samsung Health (sleep, steps, heart rate, stress, exercise, weight, HRV) + aTimeLogger (18 time categories) + Home Assistant REST (live sensors via ha.junghanacs.com). All records use Denote IDs (YYYYMMDDTHHMMSS) for cross-referencing with denotecli. DB mode (lifetract.db) for instant queries, CSV fallback when DB absent, automatic HA fallback for today's gaps (today/read <오늘> 시 DB 가 빈 자리를 HA 라이브로 자동 채움)."
+description: "Query personal life-tracking data: Samsung Health (sleep, steps, heart rate, stress, exercise, weight) + aTimeLogger (18 time categories) + Home Assistant REST (live sensors via ha.junghanacs.com). All records use Denote IDs (YYYYMMDDTHHMMSS) for cross-referencing with denotecli. DB mode (lifetract.db) for instant queries, individual Samsung commands have CSV fallback, and today's DB gaps can use Home Assistant."
 ---
 
 # lifetract — Life Tracking CLI
@@ -47,7 +47,8 @@ lifetract.db 존재? → DB 쿼리 (~90ms) → JSON
 ```
 
 - `lifetract import --exec` 실행 후 모든 조회가 DB 모드
-- DB 없으면 CSV 직접 파싱 (Samsung Health만, aTimeLogger 불가)
+- DB 없으면 개별 Samsung 명령(`sleep`/`steps`/`heart`/`stress`/`exercise`)만 CSV 직접 파싱
+- `time`과 시간축을 합치는 `timeline`/`today`/`read`는 DB가 없으면 **exit 1** — aTimeLogger를 못 읽은 구멍을 0으로 내보내지 않는다
 
 ## Commands
 
@@ -64,7 +65,7 @@ lifetract status
   "database": {
     "path": "...", "available": true, "size_mb": 37.3, "mode": "db",
     "last_time_block": "2026-07-13", "last_sleep": "2026-07-13", "last_steps": "2026-07-13",
-    "stale_days": 1, "warnings": []
+    "stale_days": 1, "freshness_checked": true, "warnings": []
   }
 }
 ```
@@ -73,6 +74,10 @@ lifetract status
 폰에서 손으로 내보내야 흐른다 — 안 넣어주면 조용히 낡는다. 숫자를 저널에 사실로 박기
 전에 여기부터 봐라 (§시간 계약 4항).
 
+**`warnings: []` 는 `freshness_checked: true` 일 때만 "성하다"는 뜻이다.** DB 가 없거나
+검사 자체가 실패하면 `freshness_checked: false` 이고, 그때의 빈 목록은 "이상 없음"이 아니라
+**"보지 않았음"** 이다. 검사하지 않은 것이 합격으로 보이면 그건 검사가 아니다.
+
 ### import — DB 생성
 
 ```bash
@@ -80,8 +85,9 @@ lifetract import                    # dry-run: 매니페스트 확인
 lifetract import --exec             # 실행: CSV+aTimeLogger → lifetract.db
 ```
 
-203,539 rows, 38MB, ~2s. Tables: sleep, sleep_stage, heart_rate, steps_daily, stress,
-exercise, weight, hrv, atl_category, atl_interval.
+202,479 rows, ~38MB, ~2s. Active tables: sleep, sleep_stage, heart_rate, steps_daily,
+stress, exercise, weight, atl_category, atl_interval. HRV는 은퇴했다: Samsung export 1,058행에
+`rmssd`가 없고 `binning_data`만 있어, 예전 importer가 전부 `0.0`으로 넣던 빈 껍데기였다.
 
 **import 는 자기가 뭘 잃었는지 말한다.** `total_rows` 말고 **`status` 를 먼저 봐라.**
 
@@ -107,6 +113,34 @@ exercise, weight, hrv, atl_category, atl_interval.
 **첫 import 는 비교 대상이 없으니 경고하지 않는다** — `note` 가 그렇게 말한다.
 원장을 직접 읽는다면 **`GROUP BY import_id`** 를 써라. `imported_at` 은 한 import 를
 묶지 못한다 (옛 행들은 초 경계를 넘어 2~3 개로 쪼개져 있다).
+
+**`rows` 는 DB 에 실제로 앉은 행수다** — 우리가 건넨 행수가 아니라. 예전엔 `INSERT` 결과를
+안 보고 세서, DB 가 거부한 행도 "imported" 로 원장에 박혔다. **손실 가드가 그 가짜 숫자를
+기준으로 삼고 있었다.**
+
+**`rejected` 는 승격을 막지 않지만 반드시 보고된다.** 재본 적 없는 시각(1970-01-01 epoch,
+2000-01-01)을 실은 행과, Samsung 이 같은 날을 다시 동기화해 최신 개정판으로 대체된 행이다.
+조용히 버리는 도구는 조용히 잃는 도구와 같은 침묵이라 매 run 이 이유별 개수를 말한다.
+거절은 영구적인 손실 예산이 아니다. 정상 baseline 뒤에는 accepted rows 가 하나라도 줄면
+현재 rejected 가 몇 개든 `shrunk` 다. 새 거절 정책은 전수 대조한 명시적 baseline 전환으로만
+들어오며, 산술 허용량을 상시 열어두지 않는다.
+
+**경고가 하나라도 있으면 승격되지 않는다 — 첫 import 도 예외가 아니다. 우회 플래그는 없다.**
+예전엔 "빈 것만" 막았는데, Samsung 여러 스트림 성공 + aTimeLogger 실패 같은 **부분 성공**은 그대로
+운영 DB 가 됐다. 그 순간 "못 봤다"를 말할 에러 경로가 사라진다 — DB 가 있으니 이후로는 그냥
+`[]` 다. **불완전한 DB 는 운영 자리에 오지 않는다.** 스트림 하나가 빠진 DB 는 그 스트림에
+대해 영원히 `[]` 를 답하고, 소비자(관측소)는 그 구멍을 0 으로 기록한다.
+
+**`rows` 옆의 `invalid` 를 봐라.** 파일에 행은 있는데 필수 필드가 없거나 시각·필수 수치가
+파싱 안 되는 행 수다. Samsung 이 헤더 하나만 개명하거나 숫자 자리에 garbage를 넣어도 예전엔
+`empty` 또는 측정값 0으로 보였다 (첫 import 는 baseline 이 없어 경고조차 없었다).
+**`invalid > 0` 이면 승격이 막힌다.** 빈 선택 필드는 0으로 둘 수 있지만, 값이 있는데 읽히지
+않는 것은 0이 아니다.
+
+**`atl_category` 는 독립 스트림이다.** `time` 조회는 카테고리를 INNER JOIN 하므로,
+카테고리가 사라지면 블록 수가 그대로여도 **시간축이 전멸한다.** 예전 원장은 interval 만
+세서 이 손실을 못 봤다 (`status: ok`, `warnings: []`, time 30일 → 0). 세지 않는 스트림은
+잃어도 모른다. 고아 블록(없는 카테고리를 가리키는 블록) 검사도 함께 돈다.
 
 *왜 있나: 2026-07-14, 글롭 하나가 7MB stress 대신 1KB histogram 을 집어 27,598 행이
 통째로 0 이 됐는데 import 는 `"ok"` 라고 했다. 테스트는 초록불이었다. 잡은 건 총 행수가
@@ -137,7 +171,7 @@ lifetract today
 
 `time_categories` 가 비면 JSON 에서 키 자체가 빠진다 (omitempty). 데이터 있는 날 vs 없는 날 둘 다 정상 출력.
 
-**자동 HA fallback (오늘 자리에 한정)**: DB 가 오늘 자리를 비웠으면 (Samsung CSV 가 아직 안 들어왔으면) `today` 와 `read <오늘>` 이 자동으로 HA 라이브 값으로 채운다. `source` 가 `"db+ha"` / `"csv+ha"` 로 바뀌고, `ha_sources` 가 어떤 필드가 HA 에서 왔는지 알려준다. *과거 날짜는 enrichment 안 됨* — HA recorder 는 backfill 자리가 아니다. 끄려면 `LIFETRACT_NO_HA=1`. Sleep 은 *옛 row 가 오늘로 잡히는 stale* 자리도 감지해서 HA 로 덮어쓴다 (최근 36h 의 sleep_duration history 를 합산 — main sleep + nap 둘 다 잡음).
+**자동 HA fallback (오늘 자리에 한정)**: DB 가 오늘 자리를 비웠으면 (Samsung CSV 가 아직 안 들어왔으면) `today` 와 `read <오늘>` 이 자동으로 HA 라이브 값으로 채운다. `source` 가 `"db+ha"` 로 바뀌고, `ha_sources` 가 어떤 필드가 HA 에서 왔는지 알려준다. *과거 날짜는 enrichment 안 됨* — HA recorder 는 backfill 자리가 아니다. 끄려면 `LIFETRACT_NO_HA=1`. Sleep 은 *옛 row 가 오늘로 잡히는 stale* 자리도 감지해서 HA 로 덮어쓴다 (최근 36h 의 sleep_duration history 를 합산 — main sleep + nap 둘 다 잡음).
 
 ### timeline — 날짜별 횡단 뷰
 
@@ -158,6 +192,12 @@ lifetract heart --days 7
 lifetract stress --days 7
 lifetract exercise --days 30
 ```
+
+**걸음 수 계약:** `steps_daily` 는 측정일마다 정확히 한 행이다. 날짜는 Samsung의
+`day_time` 만 읽으며 `create_time` 으로 대신하지 않는다. `day_time` 은 epoch-ms와
+벽시계 문자열 양쪽을 지원하고, 못 읽거나 미래면 invalid로 승격을 막는다. 같은 날의
+재동기화 행은 최신 `update_time` 한 건만 남기며, 동시각에 값이 충돌하면 임의로 고르지
+않고 invalid다. DB도 날짜 UNIQUE로 같은 불변식을 강제한다.
 
 ### time — aTimeLogger 시간 추적
 
@@ -223,24 +263,45 @@ lifetract ha history sleep_duration --days 7   # 7일치 state 변화 (HA record
 }
 ```
 
-**현재 상태 (phase 7 read-only)**: `cmdToday` / `cmdRead <오늘>` 이 DB miss 또는 stale sleep 자리에서 자동으로 HA `GetState` + `GetHistory` 를 호출해 응답에 채워준다 (`source: "db+ha"`, `ha_sources: [...]`). DB upsert 는 아직 안 함 — 다음 turn 에 `source TEXT` 컬럼 + `(date, source)` upsert 로 *on-query lazy ingest* 완성 예정 (plan.md Phase 7 후반부).
+**현재 상태 (phase 7 read-only)**: `cmdToday` / `cmdRead <오늘>` 이 DB miss 또는 stale sleep 자리에서 자동으로 HA `GetState` + `GetHistory` 를 호출해 응답에 채워준다 (`source: "db+ha"`, `ha_sources: [...]`). DB upsert 는 의도적으로 하지 않는다. Samsung export 가 영구 SSOT이고 HA recorder 는 30일 보조면이라, 덜 아는 값을 본 DB에 흡수하지 않는다.
 
 ## Flags
 
 | Flag | Default | 설명 |
 |------|---------|------|
-| `--days N` | 7 | 오늘 기준 상대 기간 |
-| `--from YYYY-MM-DD` | — | 창 시작 (포함). `--days` 를 덮어씀 |
-| `--to YYYY-MM-DD` | — | 창 끝 (**배타적**). `--days` 를 덮어씀 |
+| `--days N` | 7 | 창 길이 (**무시되지 않는다** — 아래 조합표) |
+| `--from YYYY-MM-DD` | — | 창 시작 (포함) |
+| `--to YYYY-MM-DD` | — | 창 끝 (**배타적**) |
 | `--data-dir DIR` | `~/repos/gh/self-tracking-data` | 데이터 루트 |
 | `--shealth-dir DIR` | 최신 자동감지 | Samsung Health 디렉토리 |
 | `--summary` | false | 요약 모드 |
 | `--category CAT` | 전체 | 시간 카테고리 필터 |
 | `--exec` | false | import 실행 모드 |
 
+### 창 조합 — 모든 조합이 뜻을 갖는다
+
+| 조합 | 창 |
+|------|-----|
+| `--days N` | `[오늘-N, 내일)` — 최근 N일 + 오늘 |
+| `--days N --to T` | `[T-N, T)` — **T 에 끝나는 N일** |
+| `--days N --from F` | `[F, F+N)` — **F 에 시작하는 N일** |
+| `--from F --to T` | `[F, T)` |
+| `--from F` | `[F, 내일)` |
+| `--to T` | T 이전 전부 (하한 개방) |
+| `--days N --from F --to T` | **에러** (과지정 — 둘만 말해라) |
+
+`--days` 는 예전에 `--from`/`--to` 앞에서 **조용히 죽었다.** `--days 3 --to 2026-07-01`
+이 1,701일치를 답하고도 "3일"이라 했다. **틀린 숫자보다 그럴듯한 틀린 숫자가 나쁘다** —
+아무도 다시 안 보고, 저널에 사실로 박힌다.
+
+파싱 안 되는 값·오타·중복 플래그는 전부 **exit 1**. `--fro 2026-07-01` 은 조용히 무시되고
+기본 7일을 답하고 있었다. 받아놓고 무시하는 플래그는 도구가 조용히 하는 거짓말이다.
+
+DB 모드와 CSV 폴백은 **같은 창에 같은 답**을 낸다 (예전엔 CSV 쪽이 창을 통째로 무시했다).
+
 ## 시간 계약 (Time Contract)
 
-에이전트가 이 CLI 의 숫자를 저널·노트에 **사실로 기록**하기 전에 알아야 할 다섯.
+에이전트가 이 CLI 의 숫자를 저널·노트에 **사실로 기록**하기 전에 알아야 할 여섯.
 전문·근거는 [AGENTS.md §3.5](AGENTS.md), 강제는 `lifetract/timeaxis_test.go`.
 
 **1. 모든 날짜는 KST 고정.** 호출한 셸의 `$TZ` 가 답을 바꾸지 못한다.
@@ -324,22 +385,22 @@ denotecli search "20251004"
 
 같은 Denote ID 축 → 두 CLI의 결과를 날짜로 조인 가능.
 
-## Data Coverage (DB snapshot 2026-07-14, Samsung CSV → 2026-07-13)
+## Data Coverage (DB snapshot 2026-07-14; Samsung complete days → 2026-07-13, steps includes 2026-07-14 partial)
 
 | Source | Period | Rows |
 |--------|--------|------|
 | Samsung Health sleep | 2017-03 ~ 2026-07 | 4,737 |
 | Samsung Health sleep_stage | 2017-03 ~ 2026-07 | 85,103 |
-| Samsung Health heart rate | 2017-05 ~ 2026-07 | 64,555 |
-| Samsung Health steps_daily | 2017-03 ~ 2026-07 | 3,387 |
+| Samsung Health heart rate | 2017-05 ~ 2026-07 | 64,541 |
+| Samsung Health steps_daily | 2017-03 ~ 2026-07 | 3,381 |
 | Samsung Health stress | 2017-03 ~ 2026-07 | 27,598 |
 | Samsung Health exercise | 2017-03 ~ 2026-07 | 2,199 |
 | Samsung Health weight | — | 285 |
-| Samsung Health HRV | 2017 ~ 2025 | 1,058 (S26 이후 0건) |
 | aTimeLogger | 2021-10 ~ 2026-07 | 14,617 intervals (18 categories) |
 | Home Assistant REST | live (recorder 30일 보관) | 24 sensor (phase 7 read-only fallback 활성) |
 
-합계 **203,539 rows**. **이 표는 손으로 관리하는 낡는 숫자다** — 믿기 전에 `lifetract status`
+합계 **202,479 rows** (HRV 빈 껍데기 1,058행 은퇴, heart sentinel 14행 거부,
+`atl_category` 18행 포함). **이 표는 손으로 관리하는 낡는 숫자다** — 믿기 전에 `lifetract status`
 를 봐라 (`stale_days`, `warnings`). Samsung CSV 가 본 SSOT 이고 사람이 폰에서 주기적으로
 내보내야 흐른다. 오늘 자리 라이브는 `ha` 커맨드 + `today`/`read <오늘>` 의 자동 HA fallback.
 
