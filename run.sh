@@ -236,10 +236,38 @@ merge_settings() {
   ok "$(basename "$dest") ← merged $(basename "$fragment") keyset (existing-wins; co-owner keys preserved)"
 }
 
-# Build Go binary — CGO_ENABLED=0, static, stripped
+# Build Go binary — CGO_ENABLED=0, static, stripped.
+#
+# The suite gates the install. setup fans one binary out to seven harnesses at once, so a
+# build with no test step is a one-command way to deploy a broken skill everywhere — which
+# is how a gitcli day-summary bug reached every harness and sat there. A failing suite
+# leaves the previously installed binary in place, records the failure, and setup_build
+# exits non-zero at the end; the other CLIs still build, so one bad sibling repo cannot
+# leave a fresh machine with no skills at all.
+GO_BUILD_FAILURES=()
+
 go_build() {
-  local src_dir=$1 output=$2
-  (cd "$src_dir" && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "$output" .)
+  local src_dir=$1 output=$2 extra_ldflags=${3:-}
+  local name test_log
+  name=$(basename "$output")
+  test_log=$(mktemp)
+
+  if ! (cd "$src_dir" && CGO_ENABLED=0 go test ./...) >"$test_log" 2>&1; then
+    fail "$name tests FAILED — not installed"
+    sed 's/^/      /' "$test_log" | tail -20
+    rm -f "$test_log"
+    GO_BUILD_FAILURES+=("$name")
+    if [ -x "$output" ]; then
+      warn "$name: keeping the previously installed binary ($(du -h "$output" | cut -f1))"
+    else
+      warn "$name: no binary installed — the skill will not work on this machine"
+    fi
+    return 0   # keep building the rest; setup_build fails at the end
+  fi
+  rm -f "$test_log"
+
+  (cd "$src_dir" && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w $extra_ldflags" -o "$output" .)
+  ok "$name $(du -h "$output" | cut -f1)"
 }
 
 # --- CLI Repo Definitions ---
@@ -464,24 +492,22 @@ update_repos() {
 setup_build() {
   section "Build CLI Binaries ($ARCH)"
 
+  GO_BUILD_FAILURES=()
+
   # Go-based CLIs
   log "--- denotecli ---"
   go_build "$REPOS/denotecli/denotecli" "$SKILLS_DIR/denotecli/denotecli"
-  ok "denotecli $(du -h "$SKILLS_DIR/denotecli/denotecli" | cut -f1)"
 
   log "--- bibcli ---"
   local BIBCLI_VERSION
   BIBCLI_VERSION="$(git -C "$REPOS/zotero-config" describe --tags --always --dirty 2>/dev/null || echo dev)"
-  (cd "$REPOS/zotero-config/bibcli" && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$BIBCLI_VERSION" -o "$SKILLS_DIR/bibcli/bibcli" .)
-  ok "bibcli $(du -h "$SKILLS_DIR/bibcli/bibcli" | cut -f1)"
+  go_build "$REPOS/zotero-config/bibcli" "$SKILLS_DIR/bibcli/bibcli" "-X main.version=$BIBCLI_VERSION"
 
   log "--- gitcli ---"
   go_build "$REPOS/gitcli/gitcli" "$SKILLS_DIR/gitcli/gitcli"
-  ok "gitcli $(du -h "$SKILLS_DIR/gitcli/gitcli" | cut -f1)"
 
   log "--- lifetract ---"
   go_build "$REPOS/lifetract/lifetract" "$SKILLS_DIR/lifetract/lifetract"
-  ok "lifetract $(du -h "$SKILLS_DIR/lifetract/lifetract" | cut -f1)"
 
   # gog — NOT built here. The junghan0611/gogcli fork bundle is retired; gog is now
   # a global upstream install managed by nixos-config
@@ -502,6 +528,13 @@ setup_build() {
     fi
   else
     warn "dictcli: repo not found at $REPOS/dictcli"
+  fi
+
+  if [ ${#GO_BUILD_FAILURES[@]} -gt 0 ]; then
+    echo ""
+    fail "test suite failed, binary NOT installed: ${GO_BUILD_FAILURES[*]}"
+    log "fix it in the sibling repo (SSOT), then re-run: ./run.sh setup:build"
+    return 1
   fi
 
   return 0
@@ -906,7 +939,10 @@ setup_all() {
   setup_preflight || return 1
   setup_repos
   setup_refresh_managed_repos
-  setup_build
+  # A failing suite must not block the links: the other skills still deserve to reach the
+  # harnesses. It is carried to the end and fails the run there instead.
+  local build_rc=0
+  setup_build || build_rc=$?
   setup_links
   setup_npm
   setup_git_hooks
@@ -951,6 +987,10 @@ setup_all() {
   # delegate paths.
 
   echo ""
+  if [ "$build_rc" -ne 0 ]; then
+    fail "setup finished, but a CLI failed its test suite and was NOT installed (see Build above)"
+    return 1
+  fi
   echo "DONE: agent-config setup complete"
 }
 
