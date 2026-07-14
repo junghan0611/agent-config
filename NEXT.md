@@ -3,41 +3,69 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-> NOW: active ① **설치면 소유 경계 — entwurf 이관** (issue #46: agy statusline + pi
-> provider/entwurfProvider), ② bibcli 도구-내장 스킬 owning-repo 환원(구조),
-> ③ pi-chat Add-group blocker, ④ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
+> NOW: active ① **검수 보고 규범을 홈 AGENTS.md에 박기** (아래 [2026-07-14]),
+> ② **설치면 소유 경계 — entwurf 이관의 옛 소유자 cleanup** (issue #46),
+> ③ bibcli 도구-내장 스킬 owning-repo 환원(구조),
+> ④ pi-chat Add-group blocker, ⑤ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
 
-## [2026-07-04] 설치면 소유 경계 — entwurf 이관 (issue #46)
+## [2026-07-14] 검수 보고 규범 — improve-agent 관측 결과의 착지
 
-트래킹: https://github.com/junghan0611/entwurf/issues/46 — 같이 묶어 수정.
+관측 도구는 커밋됐다(`improve-agent`: `--says`, Claude Code 어댑터, 단일 시계,
+회귀 테스트 8개). 남은 건 **관측에서 나온 규범을 어디에 박느냐**다.
 
-**원칙:** 소유는 파일 위치가 아니라 **배선 대상**으로 결정한다. `entwurf-bridge`/
-`entwurfProvider`/statusline driver+gid를 가리키면 pi 설정 파일 *안*이라도 entwurf
-`setup`이 멱등 소유한다. pi = 4번째 하네스일 뿐. 이관 순서: **새 소유자가 먼저 잡고 →
-옛 소유자가 놓는다** (반대면 무소유 공백 = 기능 깨짐).
+**배경(사건):** 7/13(61커밋·8리포) 오푸스 세션에서 GLG가 자기비판 워딩을 감지해
+출근길 글을 남겼다. 7/8(63커밋)·7/9(42커밋)을 기준선으로 재보니 **오푸스가 통계적으로
+무너진 날은 아니었다** — 자책률·ESC·피어 서사 점유 모두 기준선 이하거나 동등. 남은 정직한
+사실은 하나: 검수자 정당성과 자기 책임을 전면에 둔 문장이 몇 번 나타났고, 그중 **한 건은
+명백히 판결형**(`notes:L299` "GPT가 1번과 2번 모두 맞습니다. 제 잘못이 둘입니다")이었다.
+GLG가 그 배열을 협업에 맞지 않는 것으로 느꼈다. 그 이상은 데이터가 증명하지 않는다.
 
-**완료 (이 세션):**
-- agy MCP config → entwurf `install-agy-bridge` adapter 이관. LIVE ⑨ 13 checks green,
-  DELIVERY shipped. (`bba0dcf`)
-- `run.sh`에서 entwurf consumer install 설치면 제거 — pi install/pnpm/sync-auth/
-  check-mcp/entwurf-targets 링크 + server=consumer 분기 전부. 소스 clone/pull만 유지
-  (dev dogfooding). (`208b8d2`)
+**다음 한 걸음 — 홈 `AGENTS.md`(`home/AGENTS.md`)에 넣을 규범 초안:**
+> 검수 보고는 승패나 자기평가가 아니라 **상태 변화·진단·조치**로 시작한다. 실제 사고는
+> **영향과 복구를 먼저** 알리고 책임은 사실만 짧게 기록한다. 교차검수는 누가 옳았는지가
+> 아니라 **무엇을 함께 찾아 메웠는지**로 기술한다.
 
-**남은 것 (issue #46, 테스트 밀도 높음):**
-1. **agy statusline 이관** — `install-agy-bridge`가 agy `settings.json`의
-   `statusLine.command`를 entwurf 소유 안정-bin 렌더러(driver+gid)로 세팅 + install-state +
-   honest uninstall. 설계 변수: **agy 세션 → garden-id 조회 권위**(SessionStart 훅?
-   `conversationId → gid` 역조회?). tripwire: statusLine.command는 안정 bin만(repo/
-   agent-config 경로 금지 — 오라클 dangling 교훈).
-2. **pi provider(entwurfProvider) 이관** — 순서 필수(라이브 provider, 공백 나면 깨짐):
-   - `pi/settings.server.json` `packages[]`의 entwurf 줄 제거 (⚠️ **선행: 스코프 커버 확인**
-     — entwurf user-scope citizen 등록 `register-pi-package.py`와 이 `settings.server.json`을
-     같은 pi 인스턴스가 읽는지).
-   - entwurf `install`이 `entwurfProvider` mcpServer 등록(안정 bin `entwurf-bridge`
-     command, repo start.sh 절대경로 금지)을 멱등 소유하도록 확장 (**선행**).
-   - 그 후 agent-config에서 `entwurfProvider` 블록 제거 = 완성. 옵션 (a)유지·(b)command만
-     안정bin = 탈락(소유가 agent-config 잔존), **(c)블록 제거가 정답**.
+핵심은 새로 가르치는 게 아니라 **되찾는 것**이다 — 7/9 오푸스는 이미 이 배열을 지켰다
+("닫았습니다", "M3-1이 실기로 닫혔습니다"). 문안 확정 후 `home/AGENTS.md`에 반영한다.
+
+**연결:** 원석(출근길 글)과 이 근거는 **어쏠로그 수선 때 별도 축으로** 다룬다. org 근거표는
+그때 만든다(지금 만들지 않는다). 대화 자체가 오늘의 원자료다.
+
+## [2026-07-13] issue #46 마지막 단계 — 옛 소유자가 놓기
+
+트래킹: https://github.com/junghan0611/entwurf/issues/46
+
+entwurf 쪽 새 소유자는 이미 섰다: user/project `packages[]` +
+`entwurfProvider.mcpServers.entwurf-bridge` writer/doctor/smoke, agy MCP·exact permission,
+statusline, PreInvocation birth hook까지 모두 state-backed install/doctor/inverse로 닫혔다.
+최종 감사에서 **agent-config의 옛 배선이 아직 남아 재실행 시 되돌릴 수 있음**을 확인했다.
+
+**현재 남은 실제 파일:**
+- `pi/settings.json`, `pi/settings.server.json`: entwurf package + repo-path
+  `entwurfProvider.mcpServers.entwurf-bridge` 잔존.
+- `antigravity/settings.json`: agent-config 절대경로 `statusLine` 잔존.
+- `run.sh setup`: 위 agy settings 전체를 symlink로 다시 소유함. entwurf adapter는 symlink를
+  정직하게 refuse하므로 다음 agent-config setup이 #46 배선을 다시 깨뜨릴 수 있다.
+- `antigravity/statusline.sh`: 이관 완료 뒤 retired 후보.
+
+**닫는 순서(반드시 새 소유자 먼저):**
+1. entwurf repo에서 `./run.sh setup <project>`을 실행해 live user/project provider를 bare
+   `entwurf-bridge`로 normalize. `doctor-pi-provider`가 EFFECTIVE bare + state-owned인지 확인.
+2. 이 repo의 두 pi settings fragment에서 entwurf package와
+   `entwurfProvider.mcpServers`를 제거한다. issue 원칙대로 최종적으로
+   `entwurfProvider` 블록 전체를 template에서 놓되, live operator의 기존 sibling 설정을
+   삭제하지 않도록 merge/inverse 순서를 검증한다.
+3. `antigravity/settings.json`에서 `statusLine`을 제거하고, setup을 whole-file symlink에서
+   **disjoint-key merge**로 바꾼다. permissions/model/trustedWorkspaces는 agent-config가,
+   statusLine + exact entwurf permission은 entwurf가 같은 regular file에서 원소별 소유한다.
+4. `antigravity/statusline.sh` 참조 0 확인 후 제거한다.
+5. agent-config setup을 두 번 재실행하고 다음을 확인한다:
+   - `doctor-pi-provider` EFFECTIVE bare, provider load 유지
+   - `doctor-agy-bridge` / `doctor-agy-statusline` / `doctor-agy-hooks` green
+   - `~/.gemini/antigravity-cli/settings.json` regular file 유지
+   - agent-config repo path 재유입 0, unrelated operator 설정 보존
+6. agent-config NEXT/CHANGELOG에서 #46 항목을 닫고 entwurf issue에 최종 증거를 남긴다.
 
 ## [2026-07-02] gogcli 재인증 — 이어서 (구조/문서는 v2026.7.2로 릴리즈됨)
 
