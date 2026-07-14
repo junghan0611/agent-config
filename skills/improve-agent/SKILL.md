@@ -1,24 +1,39 @@
 ---
 name: improve-agent
-description: Analyze past session files to find recurring AI agent issues and fix them via AGENTS.md updates, new skills, or code/infra changes. Use when asked to improve agent workflow, find recurring problems, optimize AGENTS.md, create skills from session patterns, or understand what went wrong across sessions.
+description: Analyze past session files (pi or Claude Code) to find recurring AI agent issues and fix them via AGENTS.md updates, new skills, or code/infra changes. Use when asked to improve agent workflow, find recurring problems, optimize AGENTS.md, create skills from session patterns, or understand what went wrong across sessions. Also covers tone — when the complaint is that the agent *sounded* defeated, self-critical, or that collaboration felt heavy, use `--says` and the opening-frame method in Step 3c rather than word counts.
 ---
 
 # Improve Agent
 
-Analyze past pi coding sessions to find recurring agent issues, then fix
-them by updating AGENTS.md, creating new skills, or improving code/infra.
+Analyze past coding sessions to find recurring agent issues, then fix them by
+updating AGENTS.md, creating new skills, or improving code/infra.
 
-> **Note:** This skill is pi-specific. It reads pi session files from
-> `~/.pi/agent/sessions/` and produces AGENTS.md entries, new skills,
-> or infrastructure fixes.
+**Multi-harness.** Both pi (`~/.pi/agent/sessions/<mangled-cwd>/`) and Claude Code
+(`~/.claude/projects/<mangled-cwd>/`) are supported. `extract.py` translates Claude
+Code records into the pi schema on read, so every mode below works on either source.
+Default source is the harness you are running under; override with `--source`.
 
 ## How It Works
 
-Pi stores every session as a JSONL file in `~/.pi/agent/sessions/<mangled-cwd>/`.
-Each session captures tool calls (bash, read, edit, write), tool results
-(with success/failure), user messages, assistant reasoning, and compaction
-summaries. By analyzing patterns across sessions, we identify where the
-agent repeatedly struggles and fix the root causes.
+Each session is a JSONL file capturing tool calls, tool results (with
+success/failure), user messages, assistant prose, and compaction summaries.
+Patterns across sessions show where the agent repeatedly struggles.
+
+The two harnesses record the same events under different names. What the adapter
+normalizes — worth knowing when you drop to raw JSONL in Step 3b:
+
+| Signal | pi | Claude Code |
+|---|---|---|
+| tool call | `toolCall`, `arguments.path` | `tool_use`, `input.file_path` |
+| tool result | `role: toolResult`, `isError` | `tool_result` block in a **user** message, `is_error` |
+| user abort | `stopReason: "aborted"` | text `[Request interrupted by user]` |
+| **permission denial** | — | `is_error` result: *"user doesn't want to proceed"* |
+| compaction | `type: "compaction"` | user record, `isCompactSummary: true` |
+
+Claude Code carries one signal pi does not: a **denied permission prompt** — the
+user reading a proposed tool call and pressing No. It is reported as a
+correction, not a failure: nothing broke, the agent was about to do the wrong
+thing. High-value, and easy to lose in the failure stats if you don't split it.
 
 ## Extraction Script
 
@@ -26,7 +41,16 @@ agent repeatedly struggles and fix the root causes.
 python3 {baseDir}/extract.py [options]
 ```
 
-Auto-discovers the sessions directory from `$PWD`. Use `--sessions-dir` to override.
+Auto-discovers the sessions directory from `$PWD` for the current harness.
+Use `--source` to pick a harness, `--sessions-dir` to point somewhere explicit.
+
+Changing `extract.py`? Run the regression suite — it pins the clock, the
+prose/thinking split, and the denial-vs-failure boundary, all of which have
+broken before:
+
+```bash
+python3 {baseDir}/test_extract.py
+```
 
 ### Modes
 
@@ -35,6 +59,7 @@ Auto-discovers the sessions directory from `$PWD`. Use `--sessions-dir` to overr
 | `--summary` | Overview: session count, tool usage, failure count, abort count |
 | `--commands --stats` | Most common bash commands (frequency table) |
 | `--reads --stats` | Most read files |
+| `--says --match REGEX` | What the agent *said* — its prose. The only window on tone |
 | `--failures --stats` | Tool failures (`isError=true`) with triggering command context |
 | `--corrections` | User corrections: aborted agent turns paired with next user message |
 | `--sequences` | Narrative view: tool calls, user messages, failures in order |
@@ -46,6 +71,7 @@ Auto-discovers the sessions directory from `$PWD`. Use `--sessions-dir` to overr
 
 | Flag | Description |
 |------|-------------|
+| `--source pi\|claude\|all` | Harness to analyze (default: the one you're running under) |
 | `--match REGEX` | Filter items by regex |
 | `--stats` | Frequency table instead of raw output |
 | `--last N` | Number of recent sessions (default: 10) |
@@ -159,18 +185,25 @@ questions it can't answer — correlating events far apart in a session,
 counting patterns across the whole file, or extracting specific fields.
 For those, go straight to the JSONL with jq, grep, or python one-liners.
 
-Session files live in `~/.pi/agent/sessions/<mangled-cwd>/`. Each line is
-a self-contained JSON object. Key fields:
+**Mind the schema.** The recipes below are **pi-shaped**. Run them against a
+Claude Code file and they return nothing — which reads like "no problems found"
+and is the easiest way to draw a false conclusion here. `extract.py` hides this
+difference; raw `jq` does not. Check which harness the file belongs to first
+(`~/.pi/…` vs `~/.claude/projects/…`) and use the matching column:
 
-```
-type: "message" | "compaction" | "session" | ...
-message.role: "user" | "assistant" | "toolResult"
-message.content[].type: "text" | "toolCall"
-message.content[].name: "bash" | "read" | "edit" | "write" | ...
-message.isError: true/false  (on toolResult messages)
-```
+| | pi (`~/.pi/agent/sessions/<mangled>/`) | Claude Code (`~/.claude/projects/<mangled>/`) |
+|---|---|---|
+| record | `.type == "message"` | `.type == "user"` / `"assistant"` |
+| role | `.message.role` (incl. `"toolResult"`) | `.message.role` (no toolResult role) |
+| tool call | `.type == "toolCall"`, `.arguments` | `.type == "tool_use"`, `.input` |
+| tool result | role `toolResult`, `.message.isError` | `.type == "tool_result"` block **inside a user message**, `.is_error` |
+| tool name on a result | `.message.toolName` | absent — join `.tool_use_id` → the `tool_use` `.id` |
+| abort | `.message.stopReason == "aborted"` | text `[Request interrupted by user]` |
 
-Example investigations:
+Claude Code file paths also appear under per-session UUID subdirs; `subagents/`
+holds Task sidechains (a different agent's story — exclude unless that's the target).
+
+Example investigations (pi schema):
 
 ```bash
 # Get full context around a suspicious line
@@ -212,10 +245,104 @@ jq -r 'select(.type=="message") | select(.message.role=="assistant")
   | uniq -c | sort -rn | head
 ```
 
-Trust your judgment. If the extract.py output raises a question, answer
-it directly from the data. The JSONL has everything — full tool output,
-full user messages, full assistant reasoning. Don't stay at the summary
-level when the details matter.
+The same investigations against a **Claude Code** session:
+
+```bash
+S=~/.claude/projects/<dir>/<uuid>.jsonl
+
+# All tool calls in order (quick narrative)
+jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use")
+  | "\(.name): \(.input | tostring | .[0:120])"' "$S"
+
+# Failed tool results, full output. Add `| select(test("doesn.t want to
+# proceed"))` to isolate permission denials — the user pressed No.
+jq -r 'select(.type=="user") | .message.content[]?
+  | select(.type=="tool_result" and .is_error==true)
+  | (.content | if type=="array" then .[0].text else . end)' "$S"
+
+# What the user actually says (drop injected context and tool results)
+jq -r 'select(.type=="user" and (.isMeta|not)) | .message.content
+  | if type=="string" then . else (.[]? | select(.type=="text") | .text) end' "$S"
+```
+
+Note `isMeta` records: local-command caveats and skill preambles injected into the
+transcript. They are *not* the user talking, and they outnumber real user messages —
+filter them out or your "what did the user complain about" query drowns.
+
+Trust your judgment. If extract.py's output raises a question, answer it from the
+data — the JSONL has full tool output, user messages, and assistant reasoning.
+Don't stay at the summary level when the details matter.
+
+### Step 3c: When the Complaint Is About *Tone*
+
+Sometimes the operator reports a feeling, not a bug — the agent sounded
+defeated, the collaboration felt heavy. `--says` is the only mode that shows
+what the agent actually said, so start there. Then be careful: this analysis
+misleads easily, and each rule below is here because it already went wrong once.
+
+**Report scenes and rate separately.** A tone shift can be a handful of
+sentences among thousands of turns, so a rate may stay flat while the operator
+plainly met the thing several times. Neither number cancels the other, and
+neither one alone is the answer:
+
+- *Scenes*: the operator hit this 4 times today, 0 times last week.
+- *Rate*: 0.35% of turns — present, but not a statistical outlier.
+
+**Regex finds candidates, not findings.** In a real run `실수` matched *"이제
+실수로 `git push`해도 구 저장소로 안 갑니다"* — a success report scored as
+self-blame. Candidate sets here are small (a dozen, not a thousand): **read
+every one in full context and label by hand.** Never ship a tone statistic
+straight from a pattern match.
+
+**Label the opening clause by what it does — descriptively.** Keyword position
+("is there a self-blame word in line 1?") groups *"원인 정확히 나왔습니다 —
+죄송합니다…"* (a diagnosis that apologizes in passing) with *"제 실수입니다."*
+(a verdict). What differs is the speech act the reader gets first:
+
+| Opening frame | The reader first learns… |
+|---|---|
+| State / result | what closed, what changed |
+| Diagnosis / repair | the cause, and the fix going in |
+| Incident disclosure | a risk they must know now, and who owns it |
+| Verdict / self-assessment | who was right, and how wrong the agent was |
+
+These are **descriptive labels, not a health scale.** Any of them can be right
+or wrong for the moment: a verdict frame is exactly right in an audit, and a
+diagnosis frame can be used to duck responsibility. Most messages carry more
+than one frame — allow multiple labels rather than forcing a winner. What you
+can report is the *distribution* and how it moved, not a diagnosis of the agent.
+
+### Step 3d: Killed Hypotheses Are the Deliverable
+
+Most of what you suspect will be wrong. That is the skill working. Keep the
+negative results in the report — they are what stops everyone from acting on a
+story the data won't carry. One real run ended with four dead hypotheses and a
+single small surviving fact, and the small fact was worth more precisely because
+the four had been ruled out.
+
+Do not repair a dead hypothesis into a live one to hand the operator the answer
+they expected. When the felt sense and the data disagree, report both and name
+the axis each one measures. The operator's sense is a strong source of
+hypotheses; it is not a verdict the data must be bent to confirm, and the data
+is not a verdict on their experience either. Say what you measured, say what you
+did not, and let the disagreement stand if it stands.
+
+### Step 3e: Watch the Clock You Measure With
+
+Comparing days? Then how a session gets its date is load-bearing. Both harnesses
+store UTC; `extract.py` converts both to the **local start date** so that
+`--source all` doesn't split one evening across two buckets. Note the limit: a
+session running past midnight keeps its start day.
+
+It used to use mtime, which was a real bug — any later touch walks a session's
+mtime into the next day, silently moving it between `--before`/`--after` and
+reshuffling which files `--last N` picks. Two runs an hour apart disagreed on
+the day's session count, and every rate computed from them moved too. **If day
+totals shift between runs, suspect the clock before you suspect the data.**
+
+Pick baseline days with **comparable activity** (similar commits, repos,
+sessions). A quiet day next to a heavy one manufactures a spike out of volume
+alone.
 
 ### Step 4: Rank Issues by Impact
 
@@ -257,11 +384,15 @@ Verify the change works:
 
 ```bash
 # Test that the updated AGENTS.md is loaded and understood
+# (pi -p; under Claude Code use: claude -p)
 pi -p "Read AGENTS.md and confirm you see the new guidance about <topic>"
 
 # Or test the specific behavior the new guidance should produce
 pi -p "Show me how you would <thing the agent kept getting wrong>"
 ```
+
+Verify against the harness whose sessions surfaced the issue — a Claude Code
+finding (e.g. a Read-before-Edit stumble) proves nothing when replayed in pi.
 
 Then commit and move to the next issue.
 
@@ -348,11 +479,16 @@ python3 {baseDir}/extract.py --corrections \
   --projects ~/co/project-a ~/co/project-b --last 5
 ```
 
-Each project directory gets resolved to its pi sessions directory
-automatically. Output labels include the project name for context.
+Each project directory gets resolved to its sessions directory for the selected
+`--source` automatically. Output labels include the project name for context;
+Claude Code sessions are prefixed `c:` so mixed `--source all` output stays
+unambiguous.
 
-Cross-project patterns are strong signals for global skills (placed
-in `~/.agents/skills/`) or global AGENTS.md entries.
+A pattern that shows up in **both** harnesses is a fact about the work or the repo.
+One that shows up in only one is usually a fact about that harness — fix it there
+(harness config, hooks, that harness's skill surface), not in the shared AGENTS.md.
+
+Cross-project patterns are strong signals for global skills (`~/.agents/skills/`) or global AGENTS.md entries.
 
 ## Writing Good AGENTS.md Entries
 

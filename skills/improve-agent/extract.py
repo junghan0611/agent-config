@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Extract patterns from pi coding agent session files.
+"""Extract patterns from pi / Claude Code coding agent session files.
 
-Session files are JSONL in ~/.pi/agent/sessions/<mangled-cwd>/.
-Each line is a JSON object with a "type" field:
+Two harnesses, two on-disk schemas. Everything downstream of `iter_lines`
+speaks the **pi schema**; Claude Code records are translated into it on read
+(see `iter_claude_lines`), so every mode works on both sources.
+
+pi: JSONL in ~/.pi/agent/sessions/<mangled-cwd>/, one object per line:
   - "session": session metadata (id, cwd, timestamp)
   - "message": user/assistant messages with content blocks
   - "compaction": compacted conversation summary
@@ -21,6 +24,19 @@ Assistant messages have a "stopReason" field:
   - "toolUse": agent made a tool call
   - "stop": agent finished its turn
   - "aborted": user interrupted/cancelled the agent's turn
+
+Claude Code: JSONL in ~/.claude/projects/<mangled-cwd>/ (also in per-session
+UUID subdirs). The differences the adapter absorbs:
+  - type is "user"/"assistant" directly, not "message"
+  - tool calls are "tool_use" blocks with `input` (file_path, not path)
+  - tool results are "tool_result" blocks inside a *user* message, carrying
+    `is_error` but no tool name — resolved via tool_use_id → name
+  - there is no stopReason=aborted. Interruption shows up as the text
+    "[Request interrupted by user]", and a denied permission prompt shows up
+    as an is_error result saying the user doesn't want to proceed. Both are
+    synthesized into stopReason="aborted" on the assistant turn they killed,
+    which is what --corrections keys off.
+  - compaction is a user record with isCompactSummary=true
 
 Usage examples:
   # Overview: session count, tool usage
@@ -47,6 +63,10 @@ Usage examples:
   # Session summaries from compaction
   extract.py --compactions
 
+  # Harness selection (default: current harness — claude under Claude Code, else pi)
+  extract.py --failures --stats --source claude
+  extract.py --corrections --source all
+
   # Multi-project analysis
   extract.py --failures --stats --projects ~/co/project-a ~/co/project-b
 
@@ -68,57 +88,184 @@ import os
 import re
 import sys
 from collections import Counter
+from datetime import datetime, timezone
 
 
-def find_sessions_dir(project_path: str | None = None) -> str | None:
-    """Find the pi sessions directory for a project path (or CWD)."""
-    path = project_path or os.getcwd()
-    path = os.path.expanduser(path)
-    path = os.path.realpath(path)
-    mangled = "--" + path.strip("/").replace("/", "-") + "--"
-    sessions_base = os.path.expanduser("~/.pi/agent/sessions")
-    candidate = os.path.join(sessions_base, mangled)
-    if os.path.isdir(candidate):
-        return candidate
-    return None
+PI_BASE = os.path.expanduser("~/.pi/agent/sessions")
+CLAUDE_BASE = os.path.expanduser("~/.claude/projects")
+
+
+def default_source() -> str:
+    """Analyze the harness we are running under unless told otherwise."""
+    return "claude" if os.environ.get("CLAUDECODE") else "pi"
+
+
+_FORMAT_CACHE: dict[str, bool] = {}
+
+
+def is_claude_file(filepath: str) -> bool:
+    """True if this is a Claude Code transcript rather than a pi session.
+
+    Location decides it for the real session stores. Anywhere else (a copy, a
+    fixture, an explicit --sessions-dir) sniff the first record instead: pi
+    tags every row with type "session"/"message", Claude Code uses
+    "user"/"assistant" and hangs a parentUuid off it.
+    """
+    real = os.path.realpath(filepath)
+    if real.startswith(CLAUDE_BASE):
+        return True
+    if real.startswith(PI_BASE):
+        return False
+    if real in _FORMAT_CACHE:
+        return _FORMAT_CACHE[real]
+
+    claude = False
+    try:
+        with open(filepath) as f:
+            for line in f:
+                try:
+                    rec = json.loads(line)
+                except (json.JSONDecodeError, ValueError):
+                    continue
+                if rec.get("type") in ("message", "compaction", "session"):
+                    break
+                if rec.get("type") in ("user", "assistant") or "parentUuid" in rec:
+                    claude = True
+                    break
+    except OSError:
+        pass
+    _FORMAT_CACHE[real] = claude
+    return claude
+
+
+_START_CACHE: dict[str, float] = {}
+
+
+def session_start(filepath: str) -> float:
+    """Epoch seconds when the session started. One clock for both harnesses.
+
+    Sorting, date bucketing, and labels all read from here, so they cannot
+    disagree. Never mtime: any later touch (a resume, an indexer) walks mtime
+    forward into another day, which silently moves a session between
+    --before/--after buckets and reshuffles which files --last N picks. The
+    same query then answers differently on two runs an hour apart.
+
+    pi puts UTC in the filename (2026-03-05T14-45-39-708Z_<id>.jsonl); Claude
+    Code names files by bare UUID, so read the first record's `timestamp`.
+    Both are UTC and get compared as absolute instants.
+    """
+    if filepath in _START_CACHE:
+        return _START_CACHE[filepath]
+
+    ts = None
+    name = os.path.basename(filepath)
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})", name)
+    if m and not is_claude_file(filepath):
+        y, mo, d, h, mi, s = (int(x) for x in m.groups())
+        ts = datetime(y, mo, d, h, mi, s, tzinfo=timezone.utc).timestamp()
+    else:
+        try:
+            with open(filepath) as f:
+                for i, line in enumerate(f):
+                    if i >= 20:
+                        break
+                    try:
+                        raw = json.loads(line).get("timestamp", "")
+                    except (json.JSONDecodeError, ValueError):
+                        continue
+                    if raw:
+                        ts = datetime.fromisoformat(
+                            raw.replace("Z", "+00:00")
+                        ).timestamp()
+                        break
+        except OSError:
+            pass
+
+    if ts is None:  # no timestamped record — mtime is all that is left
+        ts = os.path.getmtime(filepath)
+
+    _START_CACHE[filepath] = ts
+    return ts
+
+
+def find_sessions_dirs(project_path: str | None = None,
+                       source: str = "pi") -> list[str]:
+    """Sessions directories for a project path (or CWD), per harness.
+
+    pi mangles the cwd as --home-user-repos-x--, Claude Code as
+    -home-user-repos-x.
+    """
+    path = os.path.realpath(os.path.expanduser(project_path or os.getcwd()))
+    flat = path.strip("/").replace("/", "-")
+    candidates = []
+    if source in ("pi", "all"):
+        candidates.append(os.path.join(PI_BASE, f"--{flat}--"))
+    if source in ("claude", "all"):
+        candidates.append(os.path.join(CLAUDE_BASE, f"-{flat}"))
+    return [c for c in candidates if os.path.isdir(c)]
+
+
+def file_date(filepath: str) -> str:
+    """Local ISO date the session started.
+
+    Both harnesses store UTC, so both are converted here — otherwise a pi
+    session begun at 23:00 UTC and a Claude session begun the same evening
+    land in different buckets under `--source all`.
+
+    This is the session's **start** day. A session running past midnight keeps
+    it, so its later turns are counted under the day it began.
+    """
+    return datetime.fromtimestamp(session_start(filepath)).strftime("%Y-%m-%d")
 
 
 def filter_by_date(files: list[str],
                    before: str | None = None,
                    after: str | None = None) -> list[str]:
-    """Filter session files by the date embedded in their filename.
+    """Filter session files by local start date.
 
-    before/after are ISO date strings like '2026-03-01'. The filename
-    format is: 2026-03-05T14-45-39-708Z_<uuid>.jsonl
+    before/after are ISO date strings like '2026-03-01'.
     """
     if not before and not after:
         return files
     filtered = []
     for f in files:
-        file_date = os.path.basename(f)[:10]
-        if before and file_date >= before:
+        fdate = file_date(f)
+        if before and fdate >= before:
             continue
-        if after and file_date < after:
+        if after and fdate < after:
             continue
         filtered.append(f)
     return filtered
 
 
-def get_session_files(sessions_dir: str, last: int,
+def list_jsonl(sessions_dir: str) -> list[str]:
+    """All session JSONL in a sessions dir.
+
+    Claude Code also nests transcripts in per-session UUID subdirs; `subagents`
+    holds Task sidechains, which are a different agent's story — skip them.
+    """
+    files = glob.glob(os.path.join(sessions_dir, "*.jsonl"))
+    for entry in sorted(glob.glob(os.path.join(sessions_dir, "*"))):
+        if os.path.isdir(entry) and os.path.basename(entry) != "subagents":
+            files.extend(glob.glob(os.path.join(entry, "*.jsonl")))
+    return files
+
+
+def get_session_files(sessions_dirs: list[str], last: int,
                       before: str | None = None,
                       after: str | None = None) -> list[str]:
     """Get the N most recent session files, optionally filtered by date."""
-    files = sorted(
-        glob.glob(os.path.join(sessions_dir, "*.jsonl")),
-        key=os.path.getmtime,
-        reverse=True,
-    )
+    files: list[str] = []
+    for d in sessions_dirs:
+        files.extend(list_jsonl(d))
+    files.sort(key=session_start, reverse=True)
     return filter_by_date(files, before, after)[:last]
 
 
 def get_multi_project_files(
     project_dirs: list[str], last: int,
     before: str | None = None, after: str | None = None,
+    source: str = "pi",
 ) -> tuple[list[str], dict[str, str]]:
     """Get session files across multiple project directories.
 
@@ -128,40 +275,40 @@ def get_multi_project_files(
     all_files: list[str] = []
     project_map: dict[str, str] = {}
     for project_dir in project_dirs:
-        sessions_dir = find_sessions_dir(project_dir)
-        if not sessions_dir:
+        sessions_dirs = find_sessions_dirs(project_dir, source)
+        if not sessions_dirs:
             print(
                 f"Warning: no sessions found for {project_dir}",
                 file=sys.stderr,
             )
             continue
         name = os.path.basename(os.path.realpath(project_dir))
-        files = glob.glob(os.path.join(sessions_dir, "*.jsonl"))
-        for f in files:
-            project_map[f] = name
-        all_files.extend(files)
-    all_files.sort(key=os.path.getmtime, reverse=True)
+        for d in sessions_dirs:
+            for f in list_jsonl(d):
+                project_map[f] = name
+                all_files.append(f)
+    all_files.sort(key=session_start, reverse=True)
     result = filter_by_date(all_files, before, after)[:last]
     return result, project_map
 
 
 def session_label(filepath: str, project_name: str | None = None) -> str:
-    """Short unique label like '01-30T17:56_21f5' from filename.
+    """Short unique label like '01-30T17:56_21f5' — local start time + id.
 
-    Input: 2026-01-30T17-56-34-023Z_21f5ff0a-f0f3-4639-...jsonl
-    Output: 01-30T17:56_21f5
+    Claude labels carry a `c:` prefix so mixed `--source all` output stays
+    unambiguous. The time is local, matching the date filters; reading a UTC
+    filename straight off disk would print a label that disagrees with the day
+    the session is filed under.
 
     With project_name, prepends it: roblox-pi-template/01-30T17:56_21f5
     """
     name = os.path.basename(filepath)
-    try:
-        month_day = name[5:10]  # "01-30"
-        hour = name[11:13]
-        minute = name[14:16]
+    stamp = datetime.fromtimestamp(session_start(filepath)).strftime("%m-%dT%H:%M")
+    if is_claude_file(filepath):
+        label = f"c:{stamp}_{name[:4]}"
+    else:
         uuid4 = name.split("_")[1][:4] if "_" in name else "????"
-        label = f"{month_day}T{hour}:{minute}_{uuid4}"
-    except (IndexError, ValueError):
-        label = name[:20]
+        label = f"{stamp}_{uuid4}"
 
     if project_name:
         label = f"{project_name}/{label}"
@@ -189,8 +336,159 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
+# A denied permission prompt, and a Ctrl-C / ESC interrupt. Neither is a tool
+# failure — both are the user vetoing the agent, so they become corrections.
+REJECTED_RE = re.compile(
+    r"user doesn't want to proceed with this tool use|"
+    r"\[Request interrupted by user",
+    re.IGNORECASE,
+)
+
+# Claude Code capitalizes tool names and calls the path `file_path`. Map the
+# core four onto pi's spelling so extract_* can stay schema-agnostic; leave
+# everything else (Grep, Task, Skill, mcp__*) verbatim.
+CLAUDE_TOOL_MAP = {"Bash": "bash", "Read": "read",
+                   "Edit": "edit", "Write": "write"}
+
+
+def _claude_args(name: str, tool_input: dict) -> dict:
+    """Translate a Claude tool_use `input` into pi `arguments`."""
+    args = dict(tool_input)
+    if "file_path" in args:
+        args["path"] = args.pop("file_path")
+    if name == "edit":
+        args["oldText"] = args.pop("old_string", "")
+        args["newText"] = args.pop("new_string", "")
+    return args
+
+
+def _claude_text(content) -> str:
+    """Flatten a Claude content field (str or block list) to plain text."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = [b.get("text", "") for b in content
+                 if isinstance(b, dict) and b.get("type") == "text"]
+        return "\n".join(p for p in parts if p)
+    return ""
+
+
+def iter_claude_lines(filepath: str):
+    """Yield (line_number, pi-shaped object) from a Claude Code session file.
+
+    Buffered rather than streaming: an interrupt is only visible *after* the
+    turn it killed, so the assistant record has to stay reachable to be marked
+    stopReason="aborted" retroactively.
+    """
+    raw: list[tuple[int, dict]] = []
+    with open(filepath) as f:
+        for lineno, line in enumerate(f, 1):
+            try:
+                raw.append((lineno, json.loads(line)))
+            except (json.JSONDecodeError, ValueError):
+                continue
+
+    out: list[tuple[int, dict]] = []
+    tool_names: dict[str, str] = {}  # tool_use_id → tool name
+    last_assistant: dict | None = None
+
+    def abort_last():
+        if last_assistant is not None:
+            last_assistant["message"]["stopReason"] = "aborted"
+
+    for lineno, rec in raw:
+        rtype = rec.get("type")
+
+        if rtype == "user" and rec.get("isCompactSummary"):
+            summary = _claude_text(rec.get("message", {}).get("content", []))
+            out.append((lineno, {"type": "compaction", "summary": summary}))
+            continue
+
+        # Injected context (local-command caveats, skill preambles) — not the
+        # user talking, and loud enough to swamp --corrections if kept.
+        if rec.get("isMeta") or rtype not in ("user", "assistant"):
+            continue
+
+        content = rec.get("message", {}).get("content", [])
+        if isinstance(content, str):
+            content = [{"type": "text", "text": content}]
+        if not isinstance(content, list):
+            continue
+
+        if rtype == "assistant":
+            blocks = []
+            for b in content:
+                if not isinstance(b, dict):
+                    continue
+                btype = b.get("type")
+                if btype == "text":
+                    text = b.get("text", "")
+                    if REJECTED_RE.search(text):
+                        abort_last()
+                        continue
+                    blocks.append({"type": "text", "text": text})
+                elif btype == "thinking":
+                    blocks.append({"type": "thinking",
+                                   "thinking": b.get("thinking", "")})
+                elif btype == "tool_use":
+                    raw_name = b.get("name", "")
+                    name = CLAUDE_TOOL_MAP.get(raw_name, raw_name)
+                    tool_names[b.get("id", "")] = name
+                    blocks.append({
+                        "type": "toolCall",
+                        "name": name,
+                        "arguments": _claude_args(name, b.get("input", {})),
+                    })
+            if not blocks:
+                continue
+            obj = {"type": "message",
+                   "message": {"role": "assistant", "content": blocks}}
+            out.append((lineno, obj))
+            last_assistant = obj
+            continue
+
+        # rtype == "user": either tool results, or the human speaking.
+        results = [b for b in content
+                   if isinstance(b, dict) and b.get("type") == "tool_result"]
+        if results:
+            for b in results:
+                text = _claude_text(b.get("content", ""))
+                rejected = bool(REJECTED_RE.search(text))
+                if rejected:
+                    abort_last()
+                out.append((lineno, {"type": "message", "message": {
+                    "role": "toolResult",
+                    "isError": bool(b.get("is_error")),
+                    "isRejection": rejected,
+                    "toolName": tool_names.get(b.get("tool_use_id", ""), "?"),
+                    "content": [{"type": "text", "text": text}],
+                }}))
+            continue
+
+        text = _claude_text(content)
+        if REJECTED_RE.search(text):
+            # The interrupt marker itself carries no intent — the correction is
+            # the message the user types next. Drop it, keep the abort mark.
+            abort_last()
+            continue
+        if not text.strip():
+            continue
+        out.append((lineno, {"type": "message", "message": {
+            "role": "user", "content": [{"type": "text", "text": text}],
+        }}))
+
+    yield from out
+
+
 def iter_lines(filepath: str):
-    """Yield (line_number, parsed_object) from a session file."""
+    """Yield (line_number, pi-shaped object) from a session file.
+
+    Claude Code files are translated into the pi schema on the way out, so
+    every extractor below sees one shape.
+    """
+    if is_claude_file(filepath):
+        yield from iter_claude_lines(filepath)
+        return
     with open(filepath) as f:
         for lineno, line in enumerate(f, 1):
             try:
@@ -231,6 +529,27 @@ def extract_reads(filepath: str):
                 path = block.get("arguments", {}).get("path", "")
                 if path:
                     yield path, lineno
+
+
+def extract_says(filepath: str):
+    """Yield (text, lineno) for what the agent said out loud.
+
+    Not thinking, not tool calls — the prose the operator actually reads. This
+    is where tone lives: how the agent receives review, reports a mistake, or
+    hedges. Nothing else in this script surfaces it, so patterns in *how the
+    agent talks* stay invisible until you look here.
+    """
+    for lineno, obj in iter_lines(filepath):
+        if obj.get("type") != "message":
+            continue
+        msg = obj["message"]
+        if msg.get("role") != "assistant":
+            continue
+        parts = [b.get("text", "") for b in msg.get("content", [])
+                 if isinstance(b, dict) and b.get("type") == "text"]
+        text = "\n".join(p for p in parts if p.strip()).strip()
+        if text:
+            yield text, lineno
 
 
 FAIL_PATTERN = re.compile(
@@ -281,6 +600,11 @@ def extract_failures(filepath: str, include_heuristic: bool = False):
             continue
 
         is_error = msg.get("isError", False)
+        # A denied permission prompt is an is_error result, but it says nothing
+        # about the tooling — the user simply said no. Counting it here would
+        # inflate the failure stats; --corrections is where it belongs.
+        if msg.get("isRejection"):
+            continue
         tool = msg.get("toolName", "?")
         text = ""
         for block in msg.get("content", []):
@@ -677,6 +1001,11 @@ def main():
         help="Sessions directory (auto-discovered from CWD if omitted)",
     )
     parser.add_argument(
+        "--source", choices=["pi", "claude", "all"], default=None,
+        help="Harness to analyze (default: the one we run under — "
+             "claude under Claude Code, else pi)",
+    )
+    parser.add_argument(
         "--projects", nargs="+", metavar="DIR",
         help="Analyze sessions from multiple project directories",
     )
@@ -732,6 +1061,10 @@ def main():
         help="Extract file read paths",
     )
     group.add_argument(
+        "--says", action="store_true",
+        help="Extract assistant prose (tone, how it receives review, hedging)",
+    )
+    group.add_argument(
         "--failures", action="store_true",
         help="Extract tool failures (isError=true or error patterns in output)",
     )
@@ -767,18 +1100,21 @@ def main():
         return
 
     # Require a mode if not --context
-    if not any([args.commands, args.reads, args.failures, args.corrections,
-                args.sequences, args.compactions, args.summary]):
-        parser.error("one of --commands, --reads, --failures, --corrections, "
-                      "--sequences, --compactions, --summary, or --context is required")
+    if not any([args.commands, args.reads, args.says, args.failures,
+                args.corrections, args.sequences, args.compactions,
+                args.summary]):
+        parser.error("one of --commands, --reads, --says, --failures, "
+                      "--corrections, --sequences, --compactions, --summary, "
+                      "or --context is required")
 
     # Resolve session files: --projects, --sessions-dir, or auto-discover
     project_map: dict[str, str] = {}  # filepath → project name
+    source = args.source or default_source()
 
     if args.projects:
         files, project_map = get_multi_project_files(
             args.projects, args.last,
-            before=args.before, after=args.after,
+            before=args.before, after=args.after, source=source,
         )
         if not files:
             print("No session files found for given projects.", file=sys.stderr)
@@ -787,35 +1123,37 @@ def main():
             os.path.basename(p) for p in args.projects
         )
         print(
-            f"Analyzing {len(files)} sessions across: {project_names}",
+            f"Analyzing {len(files)} [{source}] sessions across: {project_names}",
             file=sys.stderr,
         )
     else:
-        sessions_dir = args.sessions_dir
-        if not sessions_dir:
-            sessions_dir = find_sessions_dir()
-            if not sessions_dir:
+        if args.sessions_dir:
+            sessions_dirs = [os.path.expanduser(args.sessions_dir)]
+        else:
+            sessions_dirs = find_sessions_dirs(source=source)
+            if not sessions_dirs:
                 print(
-                    f"No sessions directory found for {os.getcwd()}",
+                    f"No [{source}] sessions directory found for {os.getcwd()}",
                     file=sys.stderr,
                 )
                 print(
-                    "Use --sessions-dir or --projects to specify explicitly.",
+                    "Use --source, --sessions-dir, or --projects to specify "
+                    "explicitly.",
                     file=sys.stderr,
                 )
                 sys.exit(1)
 
         files = get_session_files(
-            sessions_dir, args.last,
+            sessions_dirs, args.last,
             before=args.before, after=args.after,
         )
         if not files:
             print("No session files found.", file=sys.stderr)
             sys.exit(1)
 
+        where = ", ".join(os.path.basename(d) for d in sessions_dirs)
         print(
-            f"Analyzing {len(files)} sessions from "
-            f"{os.path.basename(sessions_dir)}",
+            f"Analyzing {len(files)} [{source}] sessions from {where}",
             file=sys.stderr,
         )
 
@@ -892,6 +1230,8 @@ def main():
             raw = list(extract_commands(fpath))
         elif args.reads:
             raw = list(extract_reads(fpath))
+        elif args.says:
+            raw = list(extract_says(fpath))
         elif args.failures:
             raw = list(extract_failures(fpath, args.include_heuristic))
         elif args.corrections:
