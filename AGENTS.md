@@ -5,7 +5,7 @@
 agent-config를 만질 때 먼저 이 자리를 붙든다.
 
 이 저장소는 두 번째 하네스가 아니다. 스킬 가게도 아니다.
-GLG의 1KB 정체성이 어느 하네스로 가도 같은 중력을 발휘하도록 — pi, Claude Code, OpenCode, OpenClaw를 지나갈 때마다 — **정렬축을 보존하는 자리**다.
+GLG의 1KB 정체성이 어느 하네스로 가도 같은 중력을 발휘하도록 — pi, Claude Code, Codex, Antigravity, OpenClaw를 지나갈 때마다 — **정렬축을 보존하는 자리**다.
 
 영문으로 적힌 도구·API 문단만 읽으면 이것이 spec처럼 보일 수 있다. 그렇게 읽지 마라. 이 섹션은 도구 목록이 아니라 **이 집의 담당자가 스스로 결정할 때 가져갈 정신**이다.
 
@@ -198,8 +198,9 @@ Production memory axes are **sessions + md**. `sessions.lance` holds pi/Claude s
 | pi (native) | `semantic-memory` SKILL.md skill **and** andenken extension's `session_search` / `knowledge_search` registerTool — both available, both call the same CLI |
 | entwurf Claude / Codex / Gemini (ACP) | `semantic-memory` SKILL.md skill (plugin namespace: `agent-config-skills:semantic-memory`) |
 | Claude Code (direct) | `semantic-memory` SKILL.md skill (`~/.claude/skills/semantic-memory/`) |
-| OpenCode | `semantic-memory` SKILL.md skill (`~/.config/opencode/skills/semantic-memory/`) |
 | OpenClaw (4 bots) | same `skills/` directory via symlink mount; host binaries via Nix store mount inside Docker |
+
+**OpenCode is not used and not wired.** `run.sh` has no OpenCode branch and never created `~/.config/opencode/skills`; the row that claimed it did was removed 2026-07-14.
 
 Call rule: **use whichever surface your schema shows first**. registerTool and SKILL.md skill coexist on pi by design (no conflict). Slash command equivalent (`/recall`, etc.) is also wired across direct + plugin + pi-prompt surfaces — see `commands/` and `run.sh § Claude Code Commands`.
 
@@ -219,7 +220,7 @@ Environment (`~/.env.local`): `ANDENKEN_SESSION_*` and `ANDENKEN_MD_*` point at 
 
 #### Host Surface Alignment — Mitsein (garden-id)
 
-agent-config is the resident-side evidence that entwurf's "no backend differentiation" invariant holds at the consumer surface too — and the meta-bridge gives it a concrete substrate: every host surface becomes a **garden citizen** addressable by a **garden id**, the universal handle (surfaced live in the statusline, `🪛 <garden-id>`). The `claude/`, `codex/`, `gemini/`, and `antigravity/` surfaces — plus the OpenCode wiring — carry the same skill set, the same YOLO custom config, and an aligned `entwurf-bridge` MCP registration where the host supports MCP. Entwurf throwing works the same from any of these hosts (Claude Code / Codex CLI / Antigravity CLI / OpenCode), and cross-session messaging runs citizen-to-citizen by garden id — send and receive through the garden-id mailbox (doorbell → `entwurf_inbox_read`), with no pi or ACP required on either side. The garden id is the single address layer above every backend. Live confirmation is no longer Claude-only: direct Codex and Antigravity have both been verified for `entwurf` spawn and sync `entwurf_resume`. The fact that ongoing dialogue mostly references Claude Code is an operator time-budget artifact, not a capability gap.
+agent-config is the resident-side evidence that entwurf's "no backend differentiation" invariant holds at the consumer surface too — and the meta-bridge gives it a concrete substrate: every host surface becomes a **garden citizen** addressable by a **garden id**, the universal handle (surfaced live in the statusline, `🪛 <garden-id>`). The `claude/`, `codex/`, `gemini/`, and `antigravity/` surfaces carry the same skill set, the same YOLO custom config, and an aligned `entwurf-bridge` MCP registration where the host supports MCP. Entwurf throwing works the same from any of these hosts (Claude Code / Codex CLI / Antigravity CLI), and cross-session messaging runs citizen-to-citizen by garden id — send and receive through the garden-id mailbox (doorbell → `entwurf_inbox_read`), with no pi or ACP required on either side. The garden id is the single address layer above every backend. Live confirmation is no longer Claude-only: direct Codex and Antigravity have both been verified for `entwurf` spawn and sync `entwurf_resume`. The fact that ongoing dialogue mostly references Claude Code is an operator time-budget artifact, not a capability gap.
 
 Two operational corollaries the consumer surface enforces:
 
@@ -235,7 +236,7 @@ Both are binary-hardcoded in Claude Code; `permissions.allow` cannot override ei
 
 ### Skills
 
-`./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, OpenCode, Codex, and the entwurf Claude plugin farm. See [README § What's Here](README.md#whats-here) for categories.
+`./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, Codex, Gemini, Antigravity, and the entwurf Claude plugin farm. See [README § What's Here](README.md#whats-here) for categories.
 
 ### Global Commit/Push Safety Rail
 

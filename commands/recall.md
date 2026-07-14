@@ -6,7 +6,7 @@ description: Multi-axis context hydration — restore the working memory the ope
 
 ## Why this exists
 
-`/recall` is the operator's daily memory-axis restoration. Not a per-session recap — sessions are a 담당자 unit, just one of the axes seen. The goal is to revive the operator's **overall** memory axis: at minimum, what is happening across yesterday and today, across repos / harnesses / domains. Run between sessions, after `/new`, when the date rolls over, or when the thread has been lost. It is called dozens of times per day across pi, Claude Code, OpenCode — so token efficiency matters as much as correctness.
+`/recall` is the operator's daily memory-axis restoration. Not a per-session recap — sessions are a 담당자 unit, just one of the axes seen. The goal is to revive the operator's **overall** memory axis: at minimum, what is happening across yesterday and today, across repos / harnesses / domains. Run between sessions, after `/new`, when the date rolls over, or when the thread has been lost. It is called dozens of times per day across pi, Claude Code, Codex — so token efficiency matters as much as correctness.
 
 ## Goal-state — stop when this holds
 
@@ -120,7 +120,7 @@ Narrowing within the same topic is a wasted call. If §1 covered topic X well, �
 
 Before reading §3 results, check whether the returned session file paths are already covered by §1+§2. If yes, the new information value is near zero — note that in your §6 and move on.
 
-`semantic-memory` is exposed identically on every backend (pi native / ACP Claude / Codex / Gemini / Claude Code / OpenCode). Use whichever surface your own tool schema shows first.
+`semantic-memory` is exposed identically on every backend (pi native / ACP Claude / Codex / Gemini / Claude Code / Antigravity). Use whichever surface your own tool schema shows first.
 
 | Backend | Primary call (skill) | Extra surface |
 |---------|---------------------|---------------|
