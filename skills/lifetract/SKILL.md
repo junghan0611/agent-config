@@ -282,7 +282,7 @@ lifetract ha history sleep_duration --days 7   # 7일치 state 변화 (HA record
 
 | 조합 | 창 |
 |------|-----|
-| `--days N` | `[오늘-N, 내일)` — 최근 N일 + 오늘 |
+| `--days N` | `[내일-N, 내일)` — **오늘 포함 정확히 N일** (`1`=오늘) |
 | `--days N --to T` | `[T-N, T)` — **T 에 끝나는 N일** |
 | `--days N --from F` | `[F, F+N)` — **F 에 시작하는 N일** |
 | `--from F --to T` | `[F, T)` |
