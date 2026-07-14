@@ -280,6 +280,30 @@ lifetract import --exec | jq '{status, warnings, candidate_path}'
 갈아끼운다. `candidate_path` 가 있으면 그 run 은 **승격되지 않았고**, 조회는 여전히
 직전의 성한 DB 를 읽는다. 잃었다고 말하면서 잃은 DB 를 넘겨주면 그 경고는 묘비명이다.
 
+**6. 빈 것은 `[]` 다. `null` 이 아니다.**
+
+목록을 내는 모든 명령(`sleep` `steps` `heart` `stress` `exercise` `timeline` `time`)은
+빈 창에서도 **배열**을 낸다. 그냥 돌려도 된다:
+
+```python
+for row in json.loads(out):   # 조용한 날에도 안 터진다
+    ...
+```
+
+`warnings` 도 같다 — **비어도 키가 사라지지 않는다** (`"warnings": []`). 키의 부재는
+"검사했고 아무것도 없었다"가 아니라 "검사한 적 없는 옛 바이너리"와 구별되지 않는다.
+영(零)은 답이고, 구멍은 답이 아니다.
+
+**단, 답할 수 없을 때는 빈 배열이 아니라 실패다.** `time` 은 DB 가 없으면 `[]` 가 아니라
+**에러 + exit 1** 을 낸다 — "시간을 안 썼다"와 "못 봤다"는 다른 말이고, 같은 모양으로
+나가면 안 된다. 창은 비었는데 DB 가 낡아서 그런 것이면 stdout 은 `[]` 를 주고 그 사정은
+**stderr** 에 적는다:
+
+```
+warning: no aTimeLogger blocks in the requested window;
+         DB holds blocks only through 2026-07-13 — run 'lifetract import --exec' …
+```
+
 **도구가 조용하다고 데이터가 온전한 것이 아니었다** — 그래서 이제 도구가 먼저 말한다.
 
 ## Denote ID 체계
