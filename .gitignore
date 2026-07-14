@@ -45,3 +45,4 @@ __pycache__/
 skills/incidentcli
 skills/voscli
 .tmp-confluence-md/
+skills/.provenance.json

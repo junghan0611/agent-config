@@ -238,36 +238,75 @@ merge_settings() {
 
 # Build Go binary — CGO_ENABLED=0, static, stripped.
 #
-# The suite gates the install. setup fans one binary out to seven harnesses at once, so a
-# build with no test step is a one-command way to deploy a broken skill everywhere — which
-# is how a gitcli day-summary bug reached every harness and sat there. A failing suite
-# leaves the previously installed binary in place, records the failure, and setup_build
-# exits non-zero at the end; the other CLIs still build, so one bad sibling repo cannot
-# leave a fresh machine with no skills at all.
+# Two gates, both the manager's job because setup fans one binary out to seven harnesses at
+# once. Neither belongs in a sibling repo: doing it there means doing it five times, and the
+# sibling cannot see the fan-out it is feeding.
+#
+#   1. The suite. A build with no test step is a one-command way to deploy a broken skill
+#      everywhere — which is how a gitcli day-summary bug reached every harness and sat.
+#   2. Provenance. A deployed binary must name the source it came from, because the numbers
+#      it produces get written into a journal as fact and into the timeline axis as history.
+#      lifetract paid for this: a binary deployed from an uncommitted tree has no commit to
+#      correspond to, so its numbers can never be traced back to code.
+#
+# Provenance is measured on the SOURCE DIRECTORY, not the whole repo. Go's own vcs.modified
+# stamp is repo-wide, and bibcli lives inside zotero-config, whose output/*.bib files are
+# dirty every time the bibliography is re-exported. Gating on that would refuse bibcli for a
+# reason that has nothing to do with its code — and a gate people learn to bypass is worse
+# than no gate. So the identity recorded is `git rev-parse HEAD:<src>`: the content hash of
+# the tree the binary was actually built from. It is exact, and it ignores dirt elsewhere.
+#
+# A failing gate leaves the previously installed binary in place, records the failure, and
+# setup_build exits non-zero at the end. The other CLIs still build and the links still run,
+# so one bad sibling repo cannot leave a fresh machine with no skills at all.
 GO_BUILD_FAILURES=()
+GO_BUILD_PROVENANCE=()
 
 go_build() {
   local src_dir=$1 output=$2 extra_ldflags=${3:-}
-  local name test_log
+  local name repo_dir src_rel test_log
   name=$(basename "$output")
-  test_log=$(mktemp)
+  repo_dir=$(git -C "$src_dir" rev-parse --show-toplevel 2>/dev/null || echo "")
+  src_rel=$(realpath --relative-to="$repo_dir" "$src_dir" 2>/dev/null || echo ".")
 
-  if ! (cd "$src_dir" && CGO_ENABLED=0 go test ./...) >"$test_log" 2>&1; then
-    fail "$name tests FAILED — not installed"
-    sed 's/^/      /' "$test_log" | tail -20
-    rm -f "$test_log"
+  _go_build_refuse() {
+    fail "$name: $1 — not installed"
+    shift
+    [ $# -gt 0 ] && printf '      %s\n' "$@"
     GO_BUILD_FAILURES+=("$name")
     if [ -x "$output" ]; then
       warn "$name: keeping the previously installed binary ($(du -h "$output" | cut -f1))"
     else
       warn "$name: no binary installed — the skill will not work on this machine"
     fi
-    return 0   # keep building the rest; setup_build fails at the end
+  }
+
+  # Gate 1 — the suite.
+  test_log=$(mktemp)
+  if ! (cd "$src_dir" && CGO_ENABLED=0 go test ./...) >"$test_log" 2>&1; then
+    _go_build_refuse "tests FAILED" "$(sed 's/^/  /' "$test_log" | tail -20)"
+    rm -f "$test_log"
+    return 0
   fi
   rm -f "$test_log"
 
+  # Gate 2 — the source tree must be committed.
+  if [ -n "$(git -C "$repo_dir" status --porcelain -- "$src_rel" 2>/dev/null)" ]; then
+    _go_build_refuse "source tree is uncommitted" \
+      "commit $repo_dir/$src_rel first — a deployed number needs a commit to point at" \
+      "$(git -C "$repo_dir" status --short -- "$src_rel" | head -5 | sed 's/^/  /')"
+    return 0
+  fi
+
   (cd "$src_dir" && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w $extra_ldflags" -o "$output" .)
-  ok "$name $(du -h "$output" | cut -f1)"
+
+  local head src_tree bin_sha
+  head=$(git -C "$repo_dir" rev-parse HEAD 2>/dev/null || echo "")
+  src_tree=$(git -C "$repo_dir" rev-parse "HEAD:$src_rel" 2>/dev/null || echo "")
+  bin_sha=$(sha256sum "$output" | cut -d' ' -f1)
+  GO_BUILD_PROVENANCE+=("$name|$(basename "$repo_dir")|$head|$src_tree|$bin_sha")
+
+  ok "$name $(du -h "$output" | cut -f1)  ${head:0:12} tree:${src_tree:0:12}"
 }
 
 # --- CLI Repo Definitions ---
@@ -366,6 +405,17 @@ setup_preflight() {
     return 1
   fi
   ok "node $node_v"
+
+  # Go — five skill binaries are built from source here, natively per machine (oracle is
+  # aarch64, the rest x86_64; nixos-config gives every host the same toolchain via
+  # users/junghan/home-manager.nix). Without it setup_build fails as "tests FAILED", which
+  # sends you hunting a bug in a sibling repo that is perfectly fine.
+  if command -v go &>/dev/null; then
+    ok "go $(go version | awk '{print $3}') ($(go env GOARCH))"
+  else
+    fail "go not found in PATH — the skill binaries cannot be built on this machine"
+    return 1
+  fi
 
   # pi binary on PATH
   if command -v pi &>/dev/null; then
@@ -530,14 +580,45 @@ setup_build() {
     warn "dictcli: repo not found at $REPOS/dictcli"
   fi
 
+  write_provenance
+
   if [ ${#GO_BUILD_FAILURES[@]} -gt 0 ]; then
     echo ""
-    fail "test suite failed, binary NOT installed: ${GO_BUILD_FAILURES[*]}"
+    fail "gate refused, binary NOT installed: ${GO_BUILD_FAILURES[*]}"
     log "fix it in the sibling repo (SSOT), then re-run: ./run.sh setup:build"
     return 1
   fi
 
   return 0
+}
+
+# Record what was actually installed, so a consumer can ask.
+#
+# The timeline axis (~/repos/gh/junghan0611) does not merely *link* to these skills — it
+# shells out to them and writes their numbers into events.jsonl as history. Its manifest
+# pins `code_sha256` for its own collector, but that says nothing about which lifetract or
+# gitcli produced the rows; two machines, or one machine across a rebuild, can hand it
+# different answers under the same collector hash. A snapshot whose tools cannot be named
+# is not reproducible, it only looks it.
+#
+# So the fan-out surface — the one place that knows what every harness is actually running —
+# writes the answer down. Lands at ~/.claude/skills/.provenance.json, which is the same path
+# the collector already resolves its binaries through.
+write_provenance() {
+  local out="$SKILLS_DIR/.provenance.json" entry sep=""
+  {
+    printf '{\n  "generated_at": %s,\n' "\"$(date -Iseconds)\""
+    printf '  "device": %s,\n  "arch": %s,\n  "tools": {\n' \
+      "\"$(cat "$HOME/.current-device" 2>/dev/null || echo unknown)\"" "\"$ARCH\""
+    for entry in "${GO_BUILD_PROVENANCE[@]}"; do
+      IFS='|' read -r n repo head tree sha <<<"$entry"
+      printf '%s    "%s": {"repo": "%s", "vcs_revision": "%s", "src_tree": "%s", "sha256": "%s"}' \
+        "$sep" "$n" "$repo" "$head" "$tree" "$sha"
+      sep=$',\n'
+    done
+    printf '\n  }\n}\n'
+  } > "$out"
+  ok "provenance → $(basename "$out") (${#GO_BUILD_PROVENANCE[@]} tools)"
 }
 
 # --- setup:links — Symlinks for pi, claude, codex, gemini, antigravity ---
@@ -1144,11 +1225,28 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Antigrav MCP:    entwurf-owned (install-agy-bridge / doctor-agy-bridge)"
 
     section "CLI Binaries"
+    # Arch AND provenance. "The binary is present and aarch64" was never the question a
+    # server check needed to answer — the question is whether the thing running on oracle is
+    # the code we think it is. `wrong arch` is loud; `right arch, three commits behind` is
+    # silent, and it is the one that quietly feeds stale numbers into the timeline axis.
+    _prov="$SKILLS_DIR/.provenance.json"
     for cli in denotecli bibcli gitcli lifetract dictcli; do
       _bin="$SKILLS_DIR/$cli/$cli"
       if [ -f "$_bin" ]; then
         _arch=$(file "$_bin" | grep -oP 'ARM aarch64|x86-64' | head -1)
-        echo "  ✅ $cli: $_arch $(du -h "$_bin" | cut -f1)"
+        _rev=""
+        if [ -f "$_prov" ]; then
+          _rev=$(python3 -c "
+import json,sys
+t=json.load(open('$_prov'))['tools'].get('$cli')
+if not t: print('(no provenance)'); sys.exit()
+sha=t['sha256']
+import hashlib
+live=hashlib.sha256(open('$_bin','rb').read()).hexdigest()
+print(t['vcs_revision'][:12] + ('' if live==sha else '  ⚠ binary does not match the recorded build'))
+" 2>/dev/null || echo "")
+        fi
+        echo "  ✅ $cli: $_arch $(du -h "$_bin" | cut -f1)  $_rev"
       else
         echo "  ❌ $cli: not built"
       fi
