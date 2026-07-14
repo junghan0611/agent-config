@@ -39,7 +39,15 @@
 
 * **`commit` 스킬 — 명시 요청된 push를 허용한다.** 커밋 요청만으로는 결코 push를 유추하지 않는다. GLG가 그 세션에서 명시할 때만 에이전트가 실행하고, 성공 후 어젠다에 도장을 찍는다.
 
+### Removed (닿지 않는 면을 지운다)
+
+* **OpenCode를 걷어냈다 — 배선이 없는 하네스를 지원한다고 적어두지 않는다.** README는 스킬이 `~/.config/opencode/skills/`로 팬아웃한다고 했고, `AGENTS.md`는 semantic-memory가 거기 뜬다고 표에 경로까지 적어뒀고, 담당자 스킬은 그 자리를 "디렉토리 통링크"로 그려뒀다. **`run.sh`에는 OpenCode 분기가 없다 — 문자열조차 없고, 그 링크를 만든 적이 없다.** 문서 셋이 서로를 뒷받침하며 존재한 적 없는 배선을 증언하고 있었다. 닿지 않는 하네스를 지원 목록에 얹어두면 그 목록 전체가 확인되지 않은 말이 된다. 실제 팬아웃은 여섯 곳(claude / pi / claude-plugin / codex / gemini / antigravity)뿐이다. OpenClaw(봇 4대)는 실재하므로 그대로 둔다.
+
+* **은퇴한 Gemini 임베딩 스위트를 걷어냈다** (andenken `60b3606`). 라이브에서 Gemini로 임베딩하는 것은 아무것도 없다 — `model-presets.ts`에 gemini 프리셋이 없고, 세션 축과 가든 md 축 모두 OpenRouter Qwen3-Embedding-8B 4096d로 돈다. 스위트는 768d를 못박고 있었는데("outputDimensionality: fixed 768d") Gemini가 그 기본값을 3072로 바꾸면서 assertion 셋이 빨개졌고 그대로 빨간 채였다. 라이브 소비자가 눈치 못 챈 게 아니라 **라이브 소비자가 없었다**. `./run.sh test`가 이제 143 통과 / 0 실패다. **늘 실패하는 검사는 사람에게 모든 검사를 무시하도록 가르친다** — 진짜 실패가 그 옆을 걸어 지나가는 길이 그렇게 난다. 오늘 lifetract에서 죽인 병("검사하지 않은 것이 합격으로 보인다")의 거울상이다.
+
 ### Docs
+
+* **README를 현재 정보로 끌어올렸다.** 다섯 자리가 사실과 어긋나 있었다: 스킬 목록이 31개(실제 41개), 스킬면 단독 소유와 빌드 게이트·provenance가 아예 없음, 임베딩 축(Qwen 4096d) 미기재, `pi-extensions` 표에 없는 `control.ts`가 있고 있는 `glg-footer.ts`가 빠짐, "Entwurf target policy: pinned/installed here"(이제 거짓 — consumer install을 놓았다). 확장면이 **왜 줄어드는지**도 처음 적었다: 확장은 pi 안에서만 살고 스킬은 어디서나 산다.
 
 * **가든 소유를 `junghan0611/garden`으로 정정.** `junghanacs` org는 은퇴했다 — 링크하지 않는다.
 
