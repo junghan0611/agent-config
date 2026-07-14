@@ -3,11 +3,51 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-> NOW: active ① **설치면 소유 경계 — entwurf 이관의 옛 소유자 cleanup** (issue #46),
-> ② bibcli 도구-내장 스킬 owning-repo 환원(구조),
-> ③ pi-chat Add-group blocker, ④ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
-> 대기: 어쏠로그 수선 때 7/13 근거 회수(아래 [2026-07-14]).
+> NOW: active ① **lifetract 별건 2건 회신 대기**(아래 [2026-07-14] 스킬면),
+> ② **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
+> ③ 설치면 소유 경계 — entwurf 이관 옛 소유자 cleanup (issue #46),
+> ④ pi-chat Add-group blocker, ⑤ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
+> 대기: 어쏠로그 수선 때 7/13 근거 회수(아래 [2026-07-14] 검수 보고 규범).
+> ⚠️ [2026-06-11] bibcli 항목은 **오늘 결정과 방향이 반대다** — 재판단 필요(아래).
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+
+## [2026-07-14] 스킬면 SSOT + 게이트 — 배포 닫힘, 회신 2건 대기
+
+**결정(GLG):** 바이너리 스킬의 **스킬면은 agent-config가 단독 소유**한다 — SKILL.md도, 배포
+바이너리도. 형제 repo는 **코드만** 갖는다. 소유가 둘이면 헷갈린다. lifetract가 자기
+`run.sh deploy`로 스킬 자리에 직접 쓰고 있었고, 그 SKILL.md도 자기 repo에 있었다 → 둘 다 뺐다.
+gitcli는 이미 그 형태(`6613a23`로 자기 SKILL.md 제거)라 이제 규약이 하나다.
+
+**닫힌 것 (전부 배포·검증 완료, provenance 기록됨):**
+- gitcli v0.4.0 — KST 시간 계약 채택(author ts, offset-aware, `\x1f`, `--all --no-merges`,
+  sha dedupe, 심링크 리포 추적). timeline과 29일 표집에서 **full sha 집합 완전 일치**.
+  가장 큰 발견: `~/repos/gh/org`가 심링크라 gitcli가 **태초부터 못 봤다**(257커밋).
+- lifetract — 빈 창 `null`→`[]`(7개 커맨드), `warnings` 키 상시, DB 부재 = 에러+exit 1.
+- `go_build` 게이트 둘: 스위트 + provenance(소스 트리 해시). `skills/.provenance.json`.
+  preflight가 `go` 확인(oracle=aarch64 네이티브 빌드).
+
+**다음 한 걸음 — lifetract 회신 받아 커밋:** 별건 2건을 넘겨놨다(`20260714T142412-f08904`).
+1. **`--days`가 조용히 무시된다** — `--from`/`--to` 중 하나라도 있으면 죽는다.
+   `time --days 3 --to 2026-07-01` → **1701일**(243만 분). 오늘 나온 것 중 제일 위험하다:
+   다른 버그는 틀린 숫자를 냈지만 이건 *그럴듯한* 틀린 숫자를 낸다. (a)로 가라고 지시했다 —
+   `--days`를 창 폭으로 쓰고, 세 플래그 동시 지정은 에러.
+2. **센티널 타임스탬프** — heart_rate에 1970-01-01·2000-01-01. import에서 거르되 **몇 행
+   버렸는지 보고**하라고 했다. 데이터 정책이라 GLG가 뒤집을 수 있으나 보고는 선택지가 아니다.
+
+회신 오면 `skills/lifetract/SKILL.md` 갱신분을 받아 커밋한다. **배포는 반드시
+`./run.sh setup:build`로** — 형제 repo의 deploy는 이제 스킬 자리를 안 건드린다.
+
+**검증 기준:** `./run.sh env`가 툴별 revision을 찍고 기록된 빌드와 다르면 경고한다.
+`skills/.provenance.json`에 5개 중 4개가 있어야 한다(dictcli는 아래 공백).
+
+**남은 공백 — dictcli:** GraalVM native-image라 `go_build`를 안 타고 provenance가 없다.
+oracle은 aarch64인데 GraalVM은 크로스컴파일이 안 된다 → **oracle에 GraalVM이 있는지 확인
+필요**. 없으면 dictcli는 그 기기에서 못 뜬다.
+
+**timeline 쪽(gitcli 밖, GLG가 junghan0611에 전달함):** `collect.py:46`
+`AUTHORS = ("junghan", "jhkim2")`에 `Jung Han`이 없어 **2026년 495커밋**을 덜 센다
+(`"Jung Han".lower()`가 `"junghan"` 부분일치에 안 걸림). gitcli와 timeline의 차이는 전부
+이 저자명 하나로 설명된다.
 
 ## [2026-07-14] 검수 보고 규범 — 원석으로 넘길 것만 남음
 
@@ -89,7 +129,24 @@ gog login <email> --client <personal|work> --force-consent --services <a,b,c,...
 gog auth list
 ```
 
-## [2026-06-11] 도구-내장 스킬을 owning repo로 환원 (구조 결함)
+## [2026-06-11] 도구-내장 스킬을 owning repo로 환원 (구조 결함) — ⚠️ 재판단 필요
+
+> **2026-07-14 결정과 방향이 반대다.** 아래는 "도구를 품은 repo가 스킬도 품는다"(voscli 패턴)를
+> 목표로 잡았는데, 오늘 GLG는 **바이너리 스킬의 스킬면을 agent-config로 모으라**고 결정했다
+> ("거기서 빼고 여기서 일단 관리하게하자. 헷갈려서"). lifetract가 정확히 아래 방향으로 가 있었고,
+> 그걸 되돌린 게 오늘 일이다.
+>
+> 모순이 아닐 수도 있다 — 어려운 게 서로 다르다. 바이너리 스킬은 *배포*가 어렵고(7개 하네스
+> fan-out + provenance), consumer 스킬(entwurf-peek)은 *검증*이 어렵다(owning repo 내부를 wrap).
+> 각자 어려운 쪽이 사는 집으로 가는 게 맞을 수 있다. 그렇다면 bibcli는 **바이너리 스킬이므로
+> agent-config에 남는다**. 아래 이주 계획은 폐기다.
+>
+> 아래 항목이 짚은 **진짜 문제(SKILL.md가 코드보다 늦게 흐른다)** 는 유효하다. 다만 답이
+> 이주가 아니라 **게이트**다 — `go_build`가 미커밋 소스를 거부하고 `.provenance.json`이 무엇이
+> 깔렸는지 적는다. 문서 드리프트는 담당자(매니저)가 검수로 잡는다. 오늘 gitcli SKILL.md에서
+> 죽은 예제 4개(`pi-mono`)를 그렇게 잡았다.
+>
+> **다음 한 걸음: GLG가 위 해석을 승인하면 이 항목을 지운다.** 아래는 근거로만 남긴다.
 
 **문제:** `bibcli` 스킬이 잘못된 곳에 산다. 소스(`zotero-config/bibcli/*.go`)와
 스킬 런타임(`agent-config/skills/bibcli/{SKILL.md,bibcli}`)이 갈라져 있고,

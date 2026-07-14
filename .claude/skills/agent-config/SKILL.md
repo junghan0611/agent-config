@@ -51,18 +51,43 @@ $EDITOR skills/<name>/SKILL.md          # frontmatter: name + description(트리
 ./run.sh env                            # 링크 검증 (아래 진단 참조)
 ```
 
-### B. 바이너리 스킬 (SSOT가 sibling repo) — denotecli, bibcli, gitcli, lifetract, gogcli, dictcli
-SKILL.md만 여기 살고, **바이너리는 형제 repo에서 빌드해 `skills/<name>/<bin>`에 떨어진다**
-(`.gitignore`에 박혀 있다 — 산출물이지 SSOT 아님). 소스 고치려면 형제 repo에서:
+### B. 바이너리 스킬 (코드 SSOT가 sibling repo) — denotecli, bibcli, gitcli, lifetract, gogcli, dictcli
+**경계는 하나다: 형제 repo는 코드를, agent-config는 스킬면(SKILL.md + 배포 바이너리)을 소유한다.**
+형제 repo는 자기 SKILL.md를 갖지 않고, `skills/<name>/`에 아무것도 쓰지 않는다. 바이너리는
+`.gitignore`에 박혀 있다 — 산출물이지 SSOT가 아니다. 소스는 형제 repo에서 고친다:
 ```bash
-# 예: gitcli — 소스는 ~/repos/gh/gitcli, SKILL.md만 여기
+# 예: gitcli — 소스는 ~/repos/gh/gitcli, SKILL.md는 여기
 $EDITOR ~/repos/gh/gitcli/...           # 로직은 거기서 고치고 거기서 테스트
+git -C ~/repos/gh/gitcli commit ...     # 커밋해야 게이트를 통과한다 (아래)
 ./run.sh setup:build                    # go_build → skills/gitcli/gitcli (gitignored)
 ```
-- denotecli/gitcli/lifetract = `go_build`. bibcli = `zotero-config/bibcli` 에서 빌드.
-  gog = `junghan0611/gogcli` fork(로컬 수정본, auto-sync 안 함). dictcli = GraalVM
-  native-image + Kiwi(`dictcli/run.sh build`).
-- 바이너리는 **머신별 네이티브 빌드**(aarch64/x86_64). 기기 옮기면 재빌드 필수.
+- denotecli/gitcli/lifetract/bibcli = `go_build`. gog = 글로벌 upstream(nixos-config).
+  dictcli = GraalVM native-image + Kiwi(`dictcli/run.sh build`) — **게이트 밖이다**.
+- 바이너리는 **머신별 네이티브 빌드**(oracle=aarch64, 나머지=x86_64). 기기 옮기면 재빌드 필수.
+
+> 2026-07-14: lifetract가 자기 `run.sh deploy`로 `skills/lifetract/`에 바이너리와 SKILL.md를
+> 직접 쓰고 있었다. 나쁜 의도가 아니라 옳은 직관이었다 — "바이너리와 문서는 한 세트다". 그런데
+> 소유가 둘이 되니 GLG가 헷갈렸고, `~/.claude/skills`가 `skills/`로 걸린 심링크라는 걸 모르면
+> 그쪽 "세 자리 SHA256 검사"가 실은 한 자리를 두 번 세는 것도 안 보였다. 그 세트 보장은
+> **없애지 않고 `go_build`로 올렸다**(아래). 형제 repo에서 두 번 하지 않는다.
+
+### 게이트 — `go_build`가 install을 막는다
+
+setup은 바이너리 하나를 **7개 하네스에 동시에** 펼친다. 그래서 보증은 여기 산다:
+
+1. **스위트.** `go test ./...` 실패 → 설치 안 함, 직전 바이너리 유지, 나머지 CLI는 계속 빌드,
+   끝에서 non-zero. (테스트 없는 빌드가 gitcli day-summary 버그를 전 하네스로 내보냈다.)
+2. **provenance.** 소스가 미커밋이면 거부한다. 배포된 숫자엔 가리킬 커밋이 있어야 한다.
+
+**provenance는 저장소 전체가 아니라 소스 디렉토리로 잰다** (`git rev-parse HEAD:<src>`).
+Go의 `vcs.modified`는 repo-wide인데 bibcli는 `zotero-config` 안에 살고 그 repo는 서지를
+export할 때마다 dirty다. 그걸로 막으면 코드와 무관한 이유로 bibcli를 거부하게 되고 —
+**우회를 배우게 만드는 게이트는 없는 게이트보다 나쁘다.**
+
+`skills/.provenance.json`(gitignored)에 툴별 repo/revision/src_tree/sha256을 적는다.
+timeline 축(`~/repos/gh/junghan0611`)은 이 스킬들을 링크만 하는 게 아니라 **shell out해서 그
+숫자를 `events.jsonl`에 역사로 쓴다** — 어느 바이너리가 그 행을 만들었는지 이제 읽을 수 있다.
+`./run.sh env`가 각 바이너리의 revision을 찍고, 기록된 빌드와 다르면 경고한다.
 
 ## repo-local 담당자 스킬 패턴 (← 이 파일이 바로 그 샘플)
 
@@ -127,15 +152,25 @@ cd ~/repos/gh/agent-config && ./run.sh setup
 
 ## ⚠️ 스킬 테스트 공백 (정직하게)
 
-**agent-config엔 스킬용 CI/테스트 러너가 없다.** `./run.sh test`는 andenken로 위임될 뿐
-(`$SM_DIR/run.sh`), 스킬을 검증하지 않는다. 현재 유일한 deterministic gate는
-`skills/entwurf-peek/scripts/test-discovery.py`(수동 실행, 15-check). 이게 구조적 약점이다.
+**바이너리 스킬은 이제 게이트가 있다** (2026-07-14, 위 「게이트」). 형제 repo의 스위트가
+깨지거나 소스가 미커밋이면 배포되지 않는다. 다섯 중 **dictcli만 밖에 있다** — GraalVM
+native-image라 `go_build`를 안 탄다.
 
-진행 중 방향(2026-06): **entwurf 같은 owning repo의 내부를 port/wrap하는 consumer
-스킬(예: entwurf-peek)은 그 owning repo로 이주**해서 거기 CI(`./run.sh check-*` 배터리)에
-parity gate로 편입한다. voscli 패턴(스킬이 코드와 한 집에 살고 그 repo CI가 테스트). 이주
-후 agent-config는 SSOT를 잃고 `setup:links`로 **링크만** 한다 — 바이너리-from-sibling-repo
-패턴의 "빌드 대신 링크" 버전. 새 consumer 스킬을 만들 땐 처음부터 owning repo에 둘지 따져라.
+**아직 공백인 것은 script 스킬이다.** `./run.sh test`는 andenken로 위임될 뿐
+(`$SM_DIR/run.sh`), `skills/<name>/scripts/`를 검증하지 않는다. 유일한 deterministic gate는
+`skills/entwurf-peek/scripts/test-discovery.py`(수동 실행, 15-check).
+
+**두 방향을 헷갈리지 마라 — 이게 오래 헷갈렸다:**
+
+| 스킬 종류 | 코드가 사는 곳 | 스킬면이 사는 곳 |
+|---|---|---|
+| **바이너리 스킬** (gitcli, lifetract, …) | 형제 repo | **agent-config** (SKILL.md + 배포 바이너리) |
+| **consumer 스킬** (entwurf-peek 등) | owning repo | owning repo (agent-config는 `setup:links`로 링크만) |
+
+바이너리 스킬은 **agent-config로 모은다**(2026-07-14 GLG 결정 — 소유가 둘이면 헷갈린다).
+consumer 스킬은 **owning repo로 보낸다**(그 repo CI가 parity gate로 테스트). 방향이 반대인
+게 모순이 아니다: 전자는 *배포*가 어려운 것(7개 하네스 fan-out)이고, 후자는 *검증*이 어려운
+것(owning repo 내부를 wrap)이다. 각자 어려운 쪽이 사는 집으로 간다.
 
 ## 🔒 git-hooks 안전벽 (커밋 삽질)
 
