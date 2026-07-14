@@ -188,8 +188,11 @@ the old `EXTERNAL_PACKAGES.md` and `~/update-claude.sh` are retired).
 Use the `commit` skill before making commits. Use the `tag-release` skill before releases.
 
 - Keep commit logs clean: no “Generated with Claude” and no `Co-Authored-By` trailer.
-- Agent may create commits only under the active commit workflow; GLG pushes.
-- After push, stamp the agenda as required by the commit/release skill.
+- Agent may create commits only under the active commit workflow. GLG decides whether and when to
+  push; an agent may execute the push only when GLG explicitly requests it in the current session.
+  A commit request alone never implies push, so several commits may be batched before one timeline
+  entry.
+- After a requested push succeeds, stamp the agenda as required by the commit/release skill.
 
 ## Global Commit/Push Safety Rail
 

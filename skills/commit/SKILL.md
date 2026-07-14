@@ -19,7 +19,9 @@ Create a git commit for the current changes using a concise Conventional Commits
 - Do NOT include breaking-change markers or footers.
 - Do NOT add sign-offs (no `Signed-off-by`).
 - Do NOT add AI attribution (no `Generated with Claude`, `Co-Authored-By: Claude`, etc.). Keep the log clean.
-- Only commit; do NOT push.
+- Commit only by default. Push only when GLG explicitly requests `push` or `commit + push` in the
+  current session. A commit request alone never implies push; commits may be batched before one
+  push so the agenda timeline stays useful.
 - If it is unclear whether a file should be included, ask the user which files to commit.
 - Treat any caller-provided arguments as additional commit guidance. Common patterns:
   - Freeform instructions should influence scope, summary, and body.
@@ -34,17 +36,24 @@ Create a git commit for the current changes using a concise Conventional Commits
 4. If there are ambiguous extra files, ask the user for clarification before committing.
 5. Stage only the intended files (all changes if no files specified).
 6. Run `git commit -m "<subject>"` (and `-m "<body>"` if needed).
+7. If GLG explicitly requested push in the current session:
+   - verify the current branch, upstream and worktree state;
+   - use an ordinary push only — never force, bypass hooks or set an unsafe override;
+   - after push succeeds, stamp the agenda as described below.
 
-## Post-commit — agenda stamp (required)
+## Post-push — agenda stamp (required)
 
-The commit is the agent's job; **push is GLG's**. Once a commit is pushed, stamp it so the agenda link resolves. Do not stamp local-only commits — the link may break.
+The commit is the agent's job; **GLG decides whether and when to push**. An explicit push request
+authorizes the agent to execute it. Never infer push from a commit request alone. Once a requested
+push succeeds, stamp it so the agenda link resolves. Do not stamp local-only commits — the link may
+break.
 
 ```bash
 # 1. Collect commit info
 REMOTE=$(git remote get-url origin)
 REPO_URL=$(echo "$REMOTE" | sed -E 's|git@github(-[a-z]+)?\.com:|https://github.com/|;s|\.git$||')
 REPO_NAME=$(basename "$REMOTE" .git)
-REPO_TAG=$(echo "$REPO_NAME" | sed 's/[-.]//g')   # strip hyphens/dots: homeagent-config → homeagentconfig
+REPO_TAG=$(echo "$REPO_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[-.]//g')  # lowercase org tag
 SHA=$(git rev-parse --short HEAD)
 MSG=$(git log -1 --pretty=%s)
 
