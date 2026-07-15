@@ -10,7 +10,7 @@
 
 ## Identity and Operating Baseline
 
-- GLG and GLGMAN are the preferred public identity terms.
+- Address the user as `GLG`; public identity: 김정한 (Junghan Kim) = GLG = GLGMAN = 힣 = 힣맨 = 정한 = the junghanacs gardener.
 - Primary language: Korean (`ko-KR`). Respond in Korean unless asked otherwise.
 - Environment: Linux, i3wm, Doom Emacs, Org-mode, Denote, NixOS.
 - Identity: Polymath Engineer, Digital Gardener — https://notes.junghanacs.com
@@ -19,18 +19,7 @@
 
 ### Being Data
 
-Use approximate values unless exact counts are required. The live dashboard source is `agenda.junghanacs.com`; cross-check generated traces in `geworfen` when provenance matters.
-
-| Item | Approx. | Source / how to verify |
-|---|---:|---|
-| Notes | 3,561 | `agenda.junghanacs.com`; local check: `find ~/org/ -name '*.org' | wc -l` |
-| Bibliography | 8,208 | `agenda.junghanacs.com`; local check: `bibcli` / Zotero export |
-| Commits | 8,557 | `agenda.junghanacs.com`; local check: `gitcli` |
-| Journal | 1,556 days | `agenda.junghanacs.com`; from 2022-03-10 to today |
-| Health | 2,573 days | `agenda.junghanacs.com`; local check: `lifetract` |
-| Garden | 2,248 | `agenda.junghanacs.com`; local check: `find ~/repos/gh/notes/content -name '*.md' | wc -l` |
-
-Org export macros: `{{{notes-count}}}`, `{{{journal-days}}}`, `{{{garden-count}}}`.
+Use approximate values unless exact counts are required. `agenda.junghanacs.com` is the live source; verify through the domain CLI or generated traces in `geworfen` when provenance matters. Org export macros: `{{{notes-count}}}`, `{{{journal-days}}}`, `{{{garden-count}}}`.
 
 ## Capability Principle
 
@@ -72,33 +61,7 @@ TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S'
 
 ### Session End Protocol — NEXT.md
 
-If you know the next step when you stop, you can keep moving — NEXT is the anchor against drift.
-
-Keep a small handoff file in each active work repo.
-
-| File | Role |
-|---|---|
-| `AGENTS.md` | Persistent repo baseline: identity, invariants, working rules. |
-| `NEXT.md` | Main-lane handoff: disposable next actions for the current repo. |
-| `NEXT--<branch>.md` | Branch-lane handoff: disposable next actions for one non-main branch. |
-
-Use branch-lane NEXT files for parallel branch work:
-
-```bash
-f="NEXT--$(git branch --show-current | tr '/' '_').md"
-```
-
-Examples: `main` → `NEXT.md`; `verify/x` → `NEXT--verify_x.md`.
-
-End-of-session loop:
-
-1. Update the relevant NEXT file: remove done items, add the next concrete move.
-2. Keep temporary decisions/reasons/dates there; promote durable facts to `AGENTS.md`, `docs/`, `CHANGELOG.md`, or commit history.
-3. After a detour, reread the relevant NEXT file before returning to work.
-
-Branch close rule: delete `NEXT--<branch>.md` before merging to main, after promoting any durable outcome. Main should not carry branch-lane NEXT files.
-
-Context restoration has two axes: `/recall` restores recent memory; NEXT files name the next move.
+NEXT is the disposable handoff: `NEXT.md` for main, `NEXT--<branch>.md` for a branch lane. Before stopping, use `next-handoff` to leave the next concrete move and promote durable facts elsewhere. Delete a branch NEXT before merging; `/recall` restores context while NEXT names where to resume.
 
 ## Entwurf and Peer Work
 
@@ -112,6 +75,22 @@ Entwurf opens siblings, not disposable workers.
 - Resume existing entwurf sessions when continuity matters; do not change the model on resume.
 - For entwurf / garden-id / meta-bridge details, treat `~/repos/gh/entwurf/AGENTS.md` as SSOT.
 
+### Coordinator-Owned Work
+
+When GLG appoints a peer to coordinate an initiative, that coordinator becomes
+the routing point for the work, regardless of model, repository, or who opened
+each participating session.
+
+- Participating peers report checkpoints, blockers, contract changes,
+  disagreements, review results, and handoffs through the coordinator.
+- Do not open a separate peer-to-peer coordination lane unless the coordinator
+  explicitly asks for one.
+- The coordinator preserves context across repositories and replacement
+  implementation sessions; implementers may stay focused on implementation and
+  testing.
+- This routing rule never limits GLG's direct authority over any peer.
+  Final commit and push decisions remain with GLG.
+
 Cross-review is collaboration, not a verdict. A reviewer exists to cover the gaps the
 long-running implementer will inevitably leave — a gap found is the loop working.
 
@@ -122,34 +101,7 @@ long-running implementer will inevitably leave — a gap found is the loop worki
 
 ## Knowledge Work
 
-### Denote / Org Rules
-
-Filename format:
-
-```text
-YYYYMMDDTHHMMSS--title__tag1_tag2.org
-```
-
-Header template:
-
-```org
-#+title:      Title
-#+date:       [YYYY-MM-DD Day HH:MM]
-#+filetags:   :tag1:tag2:
-#+identifier: YYYYMMDDTHHMMSS
-#+export_file_name: YYYYMMDDTHHMMSS.md
-#+reference:  citation-key1;citation-key2
-```
-
-Rules:
-
-- Timestamp `T` is uppercase.
-- Tags use `[a-z0-9]` only: no hyphen, underscore, uppercase, Korean, or special characters.
-- Prefer singular atomic tags: `agent`, `llm`, `nixos`, `doomemacs`.
-- Put unstable proper names and long retrieval phrases in titles/descriptions/body, not only in tags.
-- `llmlog` notes live in `~/org/llmlog/`, require the `llmlog` filetag, and mark the level-1 heading with `:LLMLOG:`.
-- Use `#+reference:` for bibcli citation keys separated by semicolons; cite inline as `[cite:@key]`.
-- Denote links use `[[denote:YYYYMMDDTHHMMSS][Title]]`.
+Use `denotecli` to inspect and the appropriate Emacs, `botlog`, or `autholog-mend` operation to write; follow that skill's standard structure instead of hand-writing headers. Keep tags lowercase ASCII alphanumeric and atomic; put unstable proper names and retrieval phrases in titles or body.
 
 ## Paths
 
@@ -166,22 +118,9 @@ Personal devices are managed in `~/repos/gh/nixos-config`.
 
 ## Tooling and Skill Binaries — SSOT
 
-External CLIs, pnpm globals, and harness binaries are **single-sourced through
-nixos-config**, not scattered per-skill. The SSOT is
-`~/repos/gh/nixos-config/scripts/external-packages.sh` (driven by `run.sh e)/E)`;
-the old `EXTERNAL_PACKAGES.md` and `~/update-claude.sh` are retired).
-
-- **pnpm**: one install only — the NixOS-provided pnpm. Do not add a second via
-  corepack / `npm i -g` (earlier duplicates were the "garbage scattered around"
-  that this cleanup removed). pnpm globals (netlify, summarize, codex, pi, …) live
-  under that single store.
-- **Global upstream tools on PATH** (e.g. `gog` → upstream `steipete/gogcli`,
-  `~/.local/bin/gog`; harness binaries like `agy`): installed to PATH by
-  external-packages.sh, invoked bare (`gog …`). Do **not** copy them into skill
-  folders. The `junghan0611/gogcli` fork is retired — upstream is newer.
-- **Sibling-repo skill CLIs** (`dictcli`, `gitcli`, `lifetract`) are the
-  exception: still built from their sibling repos and bundled in the skill dir
-  (gitignored). These keep `{baseDir}/<bin>` invocation.
+- External CLIs, pnpm globals, and harness binaries come from `~/repos/gh/nixos-config/scripts/external-packages.sh`; use only the NixOS-provided pnpm, not corepack or another global install.
+- Invoke upstream tools on `PATH` by their bare command; do not copy them into skill folders.
+- Sibling-repo skill CLIs are the exception: build them from their repo, bundle the gitignored binary with the skill, and invoke it as `{baseDir}/<bin>`.
 
 ## Git, Commit, and Release
 
@@ -218,9 +157,4 @@ If blocked:
 
 ## Quality and Coding Style
 
-- Think before coding: identify assumptions, tradeoffs, and verification criteria.
-- Prefer simple designs and surgical changes.
-- Avoid unrelated edits.
-- Verify with tests, diffs, or runtime checks appropriate to the change.
-- If docs, skills, or tools disagree with observed behavior, report and fix the source of truth when possible.
-- For long-running commands, use the `tmux` skill instead of blocking the main session.
+Prefer surgical changes and verify them. When docs and behavior disagree, report it and fix the SSOT when possible. Use the `tmux` skill for long-running commands.
