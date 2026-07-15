@@ -7,6 +7,10 @@
 
 ## Unreleased
 
+### Skills
+
+* **`glg-image` now carries its own Gemini image generator.** A zero-dependency Node CLI mirrors the pi `generate_image` REST path, loads `GEMINI_API_KEY` itself, accepts exact prompt files and explicit project output paths, and works from Claude Code/Codex/Antigravity without a native image tool. General document-image generation is the default; the GLGMAN world block is applied only when that universe is requested.
+
 ## v2026.7.14 — 스킬면 SSOT + 검증 게이트: 도구가 조용히 거짓말하지 못하게
 
 ### Decided (스킬면 소유)

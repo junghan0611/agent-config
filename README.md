@@ -165,7 +165,7 @@ For Antigravity direct mode, `run.sh setup` also wires `antigravity/settings.jso
 
 For Antigravity direct-mode MCP, `run.sh setup` also wires `antigravity/mcp_config*.json` into both `~/.gemini/antigravity-cli/mcp_config.json` (documented path) and `~/.gemini/config/mcp_config.json` (current live-runtime compatibility path).
 
-Because Antigravity and Codex do not expose the same repo-managed custom command-file surface as pi / Claude Code, selected high-value commands can also be translated into thin wrapper skills (current prototypes: `skills/command-recall/`, `skills/command-glgimage/`).
+Because Antigravity and Codex do not expose the same repo-managed custom command-file surface as pi / Claude Code, selected high-value commands can also be translated into thin wrapper skills (current prototypes: `skills/command-recall/`, `skills/command-glgimage/`). `command-glgimage` now bundles a zero-dependency Gemini REST CLI, so Claude Code and other harnesses can generate exact-prompt document figures to a requested path without pi's native `generate_image` tool; GLGMAN world anchoring is an explicit mode, not a restriction on general image generation.
 
 ### Themes ([`pi-themes/`](pi-themes/))
 
