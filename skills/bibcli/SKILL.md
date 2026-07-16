@@ -12,7 +12,7 @@ Agent default: use explicit `--dir ~/org/resources`.
 
 | Need | Command | Notes |
 |---|---|---|
-| Search existing entries | `{baseDir}/bibcli search "query words" --dir ~/org/resources --max 10` | AND search over citation key, title, author, keywords, date, abstract |
+| Search existing entries | `{baseDir}/bibcli search "query words" [--type Online] --dir ~/org/resources --max 10` | AND search over citation key, title, author, keywords, date, abstract, **url** |
 | Show one entry | `{baseDir}/bibcli show "citation-key" --dir ~/org/resources` | Full JSON incl. url / isbn / abstract / keywords |
 | List by type | `{baseDir}/bibcli list --type Book --dir ~/org/resources --max 20` | Types: `Book`, `Online`, `Software`, `Reference`, `Video`, `Article`, `Misc` |
 | Library stats | `{baseDir}/bibcli stats --dir ~/org/resources` | Sanity check local bib files |
@@ -39,8 +39,8 @@ verify: `{baseDir}/bibcli show "citation-key" --dir ~/org/resources`.
 | Step | Command |
 |---|---|
 | Save URL | `cd ~/repos/gh/zotero-config && ./run.sh save "https://example.com/article"` |
-| Sync BibTeX | `cd ~/repos/gh/zotero-config && ./run.sh bib sync` |
-| Recover key | `{baseDir}/bibcli search "distinctive title author words" --dir ~/org/resources --max 5` |
+| Sync BibTeX | `cd ~/repos/gh/zotero-config && ./run.sh bib sync` (read-only) |
+| Recover key | `{baseDir}/bibcli search "example.com/article" --dir ~/org/resources --max 5` — search the **URL** (exact); or distinctive title/author words |
 | Verify | `{baseDir}/bibcli show "citation-key" --dir ~/org/resources` |
 
 ## Decision rule
@@ -68,9 +68,13 @@ Then add:
 
 ## Important notes
 
-- `save` mutates Zotero Cloud. Use it only when the source belongs in the library.
-- Plain `save` returns Zotero item keys, not citation keys — prefer `save --sync --json`, which resolves the citation key for you.
-- `bibcli search` does **not** currently match raw `url`; search by title / author / keywords after sync.
+- **Mutation boundary:** `save` is the *only* step that writes to Zotero Cloud
+  (it creates the item). `bib sync` / `bib full` are **read-only** — they pull the
+  Cloud down and regenerate `output/*.bib`, never PATCH back. Pinning generated
+  keys onto Cloud items is a separate, explicit `./run.sh bib writeback`.
+- Plain `save` returns Zotero item keys, not citation keys — prefer `save --sync --json`, which resolves the citation key for you (from the generated `.bib` / `.sync/new-keys.json`; no Cloud write needed).
+- `bibcli search` **does** match raw `url` — recovering a key by a distinctive URL fragment is exact and beats guessing title words.
+- Never hand-edit `output/*.bib` or `~/org/resources/*.bib`: they are generated and clobbered on the next `bib full`. To add a source, create a Zotero item (`save` / browser Connector), then sync — one renderer keeps every entry consistent.
 - `lookup` helps book / ISBN workflows, but writes nothing to Zotero.
 - If `server start` fails, expected repo: `~/repos/3rd/translation-server`.
 
