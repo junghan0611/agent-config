@@ -96,8 +96,11 @@ ec '(mapcar #'\''buffer-name (buffer-list))'
 ### Daemon management
 - thinkpad: `cd ~/repos/gh/doomemacs-config && ./run.sh agent start|stop|restart`
 - oracle: `~/openclaw/emacs-agent.sh start|stop|restart`
-- agent-server.el 을 고치면 **데몬 재시작해야 반영**된다 (위 restart). 데몬이
-  hang 상태면 `(kill-emacs)` eval 도 막힐 수 있으니 그땐 `pkill -f 'daemon=.*agent'`.
+- agent-server.el 을 고치면 **데몬 재시작해야 반영**된다 (위 restart).
+- 데몬이 hang 상태여도 `./run.sh agent restart` 가 복구한다: graceful `(kill-emacs)`
+  를 5s timeout 으로 시도하고, 무응답이면 daemon PID 를 kill(→필요시 -9)한 뒤 stale
+  socket 을 정리하고 start 한다 (bounded force-stop, 2026-07 수정). oracle
+  `emacs-agent.sh` 는 별도 스크립트라 아직 수동 `pkill` 이 필요할 수 있다.
 
 ### Gotchas — stale buffer / rename (issue #9, fixed 2026-06-24)
 - **add-* / set-front-matter 는 매 호출 디스크에서 새로 읽는다** (stale 버퍼 폐기).
@@ -110,6 +113,12 @@ ec '(mapcar #'\''buffer-name (buffer-list))'
   가 데몬 cwd(예: `~/openclaw/`)에 따라 `../org/...` 상대경로 + `.git` 없는 cwd 로
   `git mv` 를 돌려 **"status 128"** 으로 죽던 버그를 `default-directory` 고정으로 수정.
 - 위 수정은 `bin/agent-server.el` 에 있다 → **데몬 재시작 후** 유효.
+- **add-history 는 자동으로 `[YYYY-MM-DD Day HH:MM]` timestamp 를 앞에 붙인다.**
+  CONTENT 에 또 timestamp 를 넣으면 `[now] [caller-time]` 이 중복된다 — CONTENT 엔
+  timestamp 없이 메시지 본문만 넘겨라 (예: `"@pi — 작업 완료"` ✓, 앞에 `[2026-…]` ✗).
+- **add-link 는 표준 `* 관련노트` 섹션에만 넣는다** (없으면 만든다). 형제 섹션
+  `* 관련메타`(자석) · `* 관련링크` · `* 관련 레퍼런스` 는 건드리지 않는다 — 붙여쓴
+  `관련노트`(표준) 를 못 잡고 `관련 <다른말>` 을 오매칭하던 2026-07 회귀는 수정됨.
 
 ### Agenda
 DATE format: nil=today, "-1"=yesterday, "+3"=3days, "2026-03-01"=specific date.
