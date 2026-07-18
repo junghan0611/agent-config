@@ -46,3 +46,6 @@ skills/incidentcli
 skills/voscli
 .tmp-confluence-md/
 skills/.provenance.json
+
+# timeline skill: private repo-registry override (symlink to ~/org/private), machine-local
+skills/timeline/scripts/domains.local.json

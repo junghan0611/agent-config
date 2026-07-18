@@ -1,0 +1,142 @@
+{
+  "_note": "forge id -> domain/layer, for the repos this axis reads COMMITS from. This file lists PUBLIC repos only: what may be named here is decided by the repo's own visibility on the forge, not by anyone's judgement about the name. Anything not confirmed public — private, archived away, no longer on the forge — is registered in the gitignored overlay instead, and a run that read the overlay says so in its manifest under `registries`. A clone whose forge id is in neither file collects as 'unmapped' and is named in the audit; the axis loses no commit either way. domain/layer 'unmapped' means registered but not yet classified.",
+  "repos": {
+    "github.com/jhkim2goqual/lineageos-beyondx": {
+      "domain": "unmapped",
+      "layer": "unmapped",
+      "external_owner": true
+    },
+    "github.com/junghan0611/GLG-Mono": {
+      "domain": "garden",
+      "layer": "product"
+    },
+    "github.com/junghan0611/abductcli": {
+      "domain": "agent",
+      "layer": "product"
+    },
+    "github.com/junghan0611/agent-config": {
+      "domain": "agent",
+      "layer": "forge"
+    },
+    "github.com/junghan0611/andenken": {
+      "domain": "memory",
+      "layer": "product"
+    },
+    "github.com/junghan0611/denotecli": {
+      "domain": "agent",
+      "layer": "product"
+    },
+    "github.com/junghan0611/dictcli": {
+      "domain": "agent",
+      "layer": "product"
+    },
+    "github.com/junghan0611/doomemacs-config": {
+      "domain": "infra",
+      "layer": "forge"
+    },
+    "github.com/junghan0611/durable-iot-migrate": {
+      "domain": "embedded",
+      "layer": "product"
+    },
+    "github.com/junghan0611/edgeagent-config": {
+      "domain": "agent",
+      "layer": "forge"
+    },
+    "github.com/junghan0611/elfeed-offline": {
+      "domain": "infra",
+      "layer": "forge"
+    },
+    "github.com/junghan0611/entwurf": {
+      "domain": "agent",
+      "layer": "product"
+    },
+    "github.com/junghan0611/forge-config": {
+      "domain": "agent",
+      "layer": "product"
+    },
+    "github.com/junghan0611/garden": {
+      "domain": "garden",
+      "layer": "product"
+    },
+    "github.com/junghan0611/geworfen": {
+      "domain": "research",
+      "layer": "product"
+    },
+    "github.com/junghan0611/ghostel": {
+      "domain": "infra",
+      "layer": "product"
+    },
+    "github.com/junghan0611/gitcli": {
+      "domain": "agent",
+      "layer": "product"
+    },
+    "github.com/junghan0611/gogcli": {
+      "domain": "agent",
+      "layer": "product"
+    },
+    "github.com/junghan0611/homeagent-config": {
+      "domain": "embedded",
+      "layer": "product"
+    },
+    "github.com/junghan0611/homepage": {
+      "domain": "garden",
+      "layer": "product"
+    },
+    "github.com/junghan0611/jacobian-lens": {
+      "domain": "research",
+      "layer": "product"
+    },
+    "github.com/junghan0611/junghan0611": {
+      "domain": "garden",
+      "layer": "product"
+    },
+    "github.com/junghan0611/legoagent-config": {
+      "domain": "embedded",
+      "layer": "forge"
+    },
+    "github.com/junghan0611/lifetract": {
+      "domain": "agent",
+      "layer": "product"
+    },
+    "github.com/junghan0611/logickocli": {
+      "domain": "agent",
+      "layer": "product"
+    },
+    "github.com/junghan0611/memacs-config": {
+      "domain": "infra",
+      "layer": "forge"
+    },
+    "github.com/junghan0611/memex-kb": {
+      "domain": "memory",
+      "layer": "product"
+    },
+    "github.com/junghan0611/nixos-config": {
+      "domain": "infra",
+      "layer": "forge"
+    },
+    "github.com/junghan0611/nvim-astro5": {
+      "domain": "infra",
+      "layer": "forge"
+    },
+    "github.com/junghan0611/openglg-config": {
+      "domain": "agent",
+      "layer": "forge"
+    },
+    "github.com/junghan0611/pi-telegram": {
+      "domain": "agent",
+      "layer": "product"
+    },
+    "github.com/junghan0611/proxycli": {
+      "domain": "agent",
+      "layer": "product"
+    },
+    "github.com/junghan0611/sicm-study": {
+      "domain": "unmapped",
+      "layer": "unmapped"
+    },
+    "github.com/junghan0611/zotero-config": {
+      "domain": "infra",
+      "layer": "forge"
+    }
+  }
+}
