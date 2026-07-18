@@ -15,7 +15,7 @@ All output is JSON.
 
 1. **Semantic search** — "NixOS GPU 설정" finds "RTX 5080 cluster configuration" even without keyword overlap
 2. **Cross-lingual** — Korean "보편" finds English-tagged "universalism" notes via dictcli expand
-3. **Korean morphology** — "설계했다" → stem "설계" via Kiwi (dictcli stem). 동사 활용형, 존경어, 복합명사 해체. 인덱싱 시 자동 적용
+3. **Korean morphology** — "설계했다" → stem "설계" via Kiwi (dictcli stem). Verb conjugations, honorifics, compound-noun splitting; applied automatically at indexing time
 4. **Session memory** — Search past pi + Claude Code conversations, decisions, context across all projects. Filter by `--source pi` or `--source claude`
 5. **Garden memory** — Search the exported public garden (`~/repos/gh/notes/content`) through andenken `md.lance`. This is the agent-facing knowledge axis; org embedding is disabled in production.
 6. **Hybrid retrieval** — Vector similarity (0.7) + BM25 full-text (0.3), with score normalization and MMR diversity. Cross-signal agreement bonus for results found by both methods. md search has no recency decay.
@@ -190,10 +190,10 @@ Boundary rules:
 - `--force`: drop and rebuild entire index
 - Progress logged to stderr, final result to stdout as JSON
 
-> 일상 세션 증분은 이 저수준 alias 대신 스킬로 한다: **라이브 증분**은
-> `memory-sync`(호출 즉시 새 세션 임베딩), **풀 유지보수**(sessions+md+compact+
-> oracle)는 andenken 리포의 `andenken-embed`. `reindex --force`는 파괴적
-> 전체 재구축이라 사람 게이트다.
+> Prefer the skills over this low-level alias for everyday session increments:
+> **live increment** = `memory-sync` (embeds new sessions on call), **full
+> maintenance** (sessions+md+compact+oracle) = `andenken-embed` in the andenken
+> repo. `reindex --force` is a destructive whole rebuild — a human gate.
 
 ```json
 {
@@ -248,8 +248,8 @@ Index locations:
 
 ## Relationship to Other Skills
 
-- **memory-sync**: 세션 인덱스 라이브 증분(호출 즉시). 이 검색 스킬로 직전 대화까지 잡고 싶으면 검색 전에 먼저 부른다.
-- **andenken-embed** (andenken 리포 로컬 스킬): sessions+md 풀 유지보수 — 재임베딩·verify·조각 정리(compact, 코어 4개 pin)·oracle 복제. 인덱스가 낡거나 frag가 늘었을 때.
+- **memory-sync**: Live session-index increment (immediate on call). Call it before searching with this skill to catch the latest turns.
+- **andenken-embed** (andenken repo-local skill): sessions+md full maintenance — re-embed · verify · defrag (compact, pinned to 4 cores) · oracle replication. When the index is stale or fragments grew.
 - **denotecli**: Exact title/tag/content matching. Use denotecli for precise lookups, semantic-memory for conceptual/meaning-based search.
 - **dictcli**: Auto-invoked internally for Korean→English query expansion (expand). Kiwi stemming belongs to older org-indexing paths; md production search uses CJK-aware chunking + expand/FTS fallback.
 - **session-recap**: Extracts text from single session JSONL. semantic-memory searches across ALL sessions semantically.
