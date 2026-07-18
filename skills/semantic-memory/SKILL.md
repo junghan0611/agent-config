@@ -190,6 +190,11 @@ Boundary rules:
 - `--force`: drop and rebuild entire index
 - Progress logged to stderr, final result to stdout as JSON
 
+> 일상 세션 증분은 이 저수준 alias 대신 스킬로 한다: **라이브 증분**은
+> `memory-sync`(호출 즉시 새 세션 임베딩), **풀 유지보수**(sessions+md+compact+
+> oracle)는 andenken 리포의 `andenken-embed`. `reindex --force`는 파괴적
+> 전체 재구축이라 사람 게이트다.
+
 ```json
 {
   "indexed_sessions": 10,
@@ -217,7 +222,7 @@ Boundary rules:
 
 ```
 CLI (cli.ts)
-  ├── embedding-provider.ts — Provider abstraction (ollama/vLLM/Gemini) + CachingProvider
+  ├── embedding-provider.ts — Provider abstraction (OpenRouter Qwen3-8B 4096d = production; vLLM/ollama/Gemini = legacy) + CachingProvider
   ├── store.ts              — LanceDB vector store (search + FTS)
   ├── retriever.ts          — Hybrid retrieval (weighted/RRF + optional decay + MMR + score normalization)
   ├── session-indexer.ts    — Session JSONL parser
@@ -243,6 +248,8 @@ Index locations:
 
 ## Relationship to Other Skills
 
+- **memory-sync**: 세션 인덱스 라이브 증분(호출 즉시). 이 검색 스킬로 직전 대화까지 잡고 싶으면 검색 전에 먼저 부른다.
+- **andenken-embed** (andenken 리포 로컬 스킬): sessions+md 풀 유지보수 — 재임베딩·verify·조각 정리(compact, 코어 4개 pin)·oracle 복제. 인덱스가 낡거나 frag가 늘었을 때.
 - **denotecli**: Exact title/tag/content matching. Use denotecli for precise lookups, semantic-memory for conceptual/meaning-based search.
 - **dictcli**: Auto-invoked internally for Korean→English query expansion (expand). Kiwi stemming belongs to older org-indexing paths; md production search uses CJK-aware chunking + expand/FTS fallback.
 - **session-recap**: Extracts text from single session JSONL. semantic-memory searches across ALL sessions semantically.
