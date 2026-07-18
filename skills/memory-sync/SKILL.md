@@ -38,19 +38,22 @@ The sessions track is OpenRouter `qwen/qwen3-embedding-8b` / 4096d. The old
 (`$0.01/M tokens`). The wrapper sources `~/.env.local` for `OPENROUTER_API_KEY`;
 provider/dim safety lives in the andenken SSOT script.
 
-## One synchronous call — no races
+## One synchronous call
 
-This script has **no concurrency lock.** Two instances at once → index race.
+The script takes a **non-blocking flock** (`data/.sync-sessions.lock`): if another
+sync already holds it, the second run exits cleanly ("already running") instead of
+racing the LanceDB writer. So an impatient re-call is safe — it just no-ops while
+the first finishes. Still prefer one synchronous call and wait, so you don't fire
+redundant runs.
 
-| Pattern | OK |
-|---------|-----|
+| Pattern | Result |
+|---------|--------|
 | Synchronous call, wait to completion | ✅ correct |
-| Background call, then other work | ⚠️ don't re-call the same sync |
-| Background + sleep polling + follow-up sync | ❌ self-inflicted race |
-| Concurrent call from two sessions | ❌ one session only |
+| Background call, then other work | ⚠️ fine — but don't re-fire; the lock no-ops it |
+| Concurrent call from two sessions / cron | ✅ safe — the second backs off cleanly |
 
-Re-calling out of impatience = race. Wait for completion. Check first:
-`pgrep -af 'sync-sessions|indexer.ts'` — if it returns, wait for it to finish.
+To check by hand, use a self-match-safe pattern (a plain `pgrep -af sync-sessions`
+also matches pgrep's own command line): `pgrep -af '[s]ync-sessions'`.
 
 ## Role split vs andenken-embed
 
