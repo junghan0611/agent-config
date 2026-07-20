@@ -259,9 +259,18 @@ manifest *records* a claimed derivation — this collector, this lifetract build
 statuses, this `as_of` — and the hashes let a reader check that the bytes and the content in
 front of them are the ones that manifest names, and catch a substitution. They say nothing
 about whether the sources told the truth, or whether they were complete. So a citation needs
-the context, not the hash alone: `as_of` + `content_sha256` + `code_sha256` + the source
-statuses + the depth-0 tool revision. The same content collected through a different window,
-or with a source `stale`, is not the same claim.
+the context, not the hash alone: `device` + `as_of` + `content_sha256` + `code_sha256` + the
+source statuses + the depth-0 tool revision. The same content collected through a different
+window, or with a source `stale`, is not the same claim.
+
+`device` leads that list rather than trailing it, and this section is the reason: two
+machines running the same code against the same `--as-of` legitimately disagree, so a
+reading that does not name the machine cannot be lined up against another one at all. It was
+left out of this recipe while the paragraph above already explained why it mattered — the
+document contradicted itself, and downstream the projections shipped without it, so when two
+readings of this axis came out ~1,400 commits apart there was no printed field that could
+say why. `project.py` now prints it. `events_sha256` stays out of the recipe on purpose: it
+is the local pair witness (events ↔ snapshot on one disk), never the citation anchor.
 
 What an outside reader can independently verify depends on how far an event actually reached
 in public. Commits pushed to a public remote, and the records exported to the public garden —

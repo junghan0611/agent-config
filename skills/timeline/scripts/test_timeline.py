@@ -1269,6 +1269,7 @@ def _projection_pair(evs: list[dict]) -> tuple[bytes, dict]:
                            "vcs_revision": "c" * 40, "sha256": "d" * 64}
     return raw, {"manifest": {
         "schema_version": "1", "as_of": "2026-07-14T00:00:00+09:00",
+        "device": "testbox",
         "collector_version": collect.COLLECTOR_VERSION,
         "events_sha256": collect.sha256(raw),
         "content_sha256": collect.sha256(collect.content_bytes(evs)),
@@ -1344,6 +1345,48 @@ def test_no_title_ref_or_locator_reaches_the_projection():
     ok("no ref and no locator leave either",
        ".org" not in text and ":42" not in text)
     ok("the depth-0 category does leave — it is what the axis argues with", "수면" in text)
+
+
+def test_the_projection_says_which_machine_read_the_axis():
+    """`--as-of` fixes the upper bound in time; it does not freeze the local refs. So two
+    machines running this code over the same window legitimately produce different counts,
+    and both are telling the truth about the disk they read. A reading that does not name
+    its machine cannot be lined up against another one at all — which is not hypothetical:
+    two readings of this axis came out ~1,400 commits apart and nothing on either page could
+    say why, because `device` was in the manifest and never reached the projection.
+
+    The same page has to say which hash a citation rests on. `events_sha256` covers the exact
+    bytes and is a local pair witness only: the agenda is a reverse datetree, so one new stamp
+    renumbers older lines and the byte hash moves while the observation does not. A citation
+    pinned to it dies at the next stamp. `content_sha256` drops provenance and is the anchor.
+    """
+    import tempfile
+    sys.path.insert(0, str(Path(__file__).parent))
+    import project
+
+    with tempfile.TemporaryDirectory() as d:
+        tmp = Path(d)
+        evs = [_fake_event(s) for s in ("git", "note", "agenda", "journal", "timelog")]
+        ev_file, snap_file = _write_pair(tmp, evs)
+        events, snapshot = project.read(ev_file, snap_file)
+        m = snapshot["manifest"]
+        agg = project.aggregate(events, date(2026, 1, 1), date(2026, 7, 14))
+        md = "\n".join(project.body(agg, m, "md"))
+        org = "\n".join(project.body(agg, m, "org"))
+
+    for kind, text in (("md", md), ("org", org)):
+        ok(f"{kind}: the projection names the machine that read the axis",
+           "testbox" in text)
+        ok(f"{kind}: all three fingerprints reach the page",
+           m["content_sha256"][:16] in text.replace(" ", "")
+           and m["code_sha256"][:16] in text.replace(" ", "")
+           and m["events_sha256"][:16] in text.replace(" ", ""))
+        ok(f"{kind}: the page says the citation rests on the content fingerprint",
+           "인용은 이것으로 한다" in text)
+        ok(f"{kind}: and that the byte fingerprint is only a local pair witness",
+           "짝 검증" in text)
+        ok(f"{kind}: it warns that the same window can still read differently elsewhere",
+           "다른 판독이 나올 수 있습니다" in text)
 
 
 def test_the_quiet_day_is_found_in_the_data_not_written_into_the_code():
@@ -1455,6 +1498,7 @@ def main() -> int:
               test_a_title_cannot_close_the_script_tag,
               test_the_projection_refuses_a_pair_it_cannot_verify,
               test_no_title_ref_or_locator_reaches_the_projection,
+              test_the_projection_says_which_machine_read_the_axis,
               test_the_quiet_day_is_found_in_the_data_not_written_into_the_code,
               test_the_projection_does_not_move_when_the_shell_does,
               test_the_viewer_and_the_projection_judge_a_day_the_same_way):

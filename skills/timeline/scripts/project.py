@@ -184,8 +184,16 @@ def body(agg: dict, m: dict, kind: str) -> list[str]:
     tool = src["timelog"].get("tool") or {}
     out += [f"{b}이 판독의 출처.{b} 인용은 내용 지문 하나로 하지 않습니다 — 같은 내용이라도 창이",
             "다르면 다른 판독이고, 소스가 부분적이면 다른 품질이며, 깊이 0을 만든 도구가 다르면",
-            "다른 손이 적은 것입니다.", ""]
+            "다른 손이 적은 것이고, 읽은 기기가 다르면 애초에 닿은 저장소가 다릅니다.", ""]
+    # `device` belongs on the page, not only in the manifest. Two readings taken from two
+    # machines legitimately differ — the collector reads the clones that are on *that* disk,
+    # and `--as-of` cuts by date without pinning which refs exist locally. Without the device
+    # named, two projections that disagree look like one of them is wrong, and there is no
+    # field on either page to tell them apart. That is not hypothetical: two readings of this
+    # axis differed by ~1,400 commits and nothing printed could say why. It is a manifest
+    # field, not payload — it names a machine, never what was read on it.
     out += [dl(f"창 ({code('as_of')})", f"{m['as_of']} — 배타적 상한"),
+            dl(f"읽은 기기 ({code('device')})", code(m.get("device", "unknown"))),
             dl("소스 상태", " · ".join(
                 f"{s['name']} {s['status']}({s['accepted']:,})" for s in m["sources"])),
             dl(f"깊이 0 도구 ({code('src_tree')})",
@@ -198,23 +206,40 @@ def body(agg: dict, m: dict, kind: str) -> list[str]:
     # the line — and TeX would rather overrun the margin by 9pt than break between them. So
     # in Org (the rendering that becomes a PDF) the label ends its line and the hash starts a
     # fresh one. The Markdown page has no such constraint and keeps them in the list.
+    # Three hashes, and they do not answer the same question. The page has to say which one a
+    # citation rests on, or a reader picks whichever is nearest: `events_sha256` covers the
+    # exact bytes of the LOCAL FULL and is a *local* witness — it proves the events file and
+    # the snapshot on this disk are one pair. It is unusable as a citation anchor, because a
+    # reverse datetree agenda reshuffles line numbers whenever a stamp lands and the byte hash
+    # moves while the observation does not. `content_sha256` drops provenance and covers the
+    # observation, so that is what an outside citation names.
     if kind == "org":
         out += ["",
-                f"관측 지문 {code('content_sha256')} \\\\",
+                f"관측 지문 {code('content_sha256')} — 인용은 이것으로 한다 \\\\",
                 f"{code(m['content_sha256'])} \\\\",
                 f"수집기 {code('code_sha256')} — collector {m['collector_version']} \\\\",
-                code(m["code_sha256"]), ""]
+                f"{code(m['code_sha256'])} \\\\",
+                f"짝 검증 {code('events_sha256')} — 이 기기의 원본과 스냅샷이 한 짝인지 \\\\",
+                f"{code(m['events_sha256'])}", ""]
     else:
-        out += [dl(f"관측 지문 ({code('content_sha256')})", code(m["content_sha256"])),
+        out += [dl(f"관측 지문 ({code('content_sha256')})",
+                   f"{code(m['content_sha256'])} — 인용은 이것으로 한다"),
                 dl(f"수집기 ({code('code_sha256')})",
-                   f"{code(m['code_sha256'])} — collector {m['collector_version']}"), ""]
+                   f"{code(m['code_sha256'])} — collector {m['collector_version']}"),
+                dl(f"짝 검증 ({code('events_sha256')})",
+                   f"{code(m['events_sha256'])} — 이 기기의 원본과 스냅샷이 한 짝인지"), ""]
 
     out += [f"{b}이 지문이 증명하지 않는 것.{b} 해시는 바이트와 내용이 같은지, 바꿔치기가 없었는지를",
             "확인할 뿐입니다. 이 코드가 실제로 돌았음도, 소스가 진실하고 완전함도 증명하지 않습니다.",
             "깊이 0은 폰에서 손으로 export한 1인칭 기록이라 외부에서 원본을 재구성할 길이 없고,",
             "확인할 수 있는 것은 파생의 일관성입니다. 원본(FULL)은 제목과 참조를 품으므로 공개하지",
             "않습니다 — 이 문서에는 집계만 나옵니다. 시간 블록은 시작 날짜에 귀속되며, 하루를 24시간",
-            "파티션으로 나눈 것이 아닙니다.", ""]
+            "파티션으로 나눈 것이 아닙니다.", "",
+            f"{b}같은 창이라도 다른 판독이 나올 수 있습니다.{b} 창은 날짜만 자를 뿐, 어떤 저장소와",
+            "어떤 ref가 그 순간 그 디스크에 있었는지는 고정하지 않습니다. 그래서 다른 기기에서, 또는",
+            "같은 기기라도 다른 시점의 ref 상태에서 만든 스냅샷은 수치가 다를 수 있고 그것이 오류는",
+            "아닙니다. 두 판독을 나란히 놓으려면 창만이 아니라 위의 기기와 소스 상태를 먼저",
+            "맞추십시오.", ""]
     return out
 
 
