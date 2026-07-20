@@ -373,6 +373,38 @@ gog login <email> --client <name>
 # --services default is "user" (all user services including searchconsole)
 ```
 
+## Blogger (no native subcommand — use `gog api`)
+
+⚠️ **There is no `gog blogger` command.** `gog blogger …` fails with
+`unexpected argument blogger`. Blogger is reachable only through the generic
+Discovery caller, `gog api call`.
+
+OAuth scope: `https://www.googleapis.com/auth/blogger` — not a named gog
+service, so it must be requested via `--extra-scopes` (see ENV-SETUP.md).
+
+```bash
+# My blogs
+gog api call blogger v3 blogs.listByUser --params '{"userId":"self"}' -a junghanacs@gmail.com
+
+# Blog by URL
+gog api call blogger v3 blogs.getByUrl --params '{"url":"https://junghanacs.blogspot.com/"}' -a junghanacs@gmail.com
+
+# Posts
+gog api call blogger v3 posts.list --params '{"blogId":"5636690999249333744"}' -a junghanacs@gmail.com
+
+# Discover available methods
+gog api describe blogger v3
+```
+
+**`--params` takes a JSON object**, not `key=value`. `--params userId=self`
+fails with `invalid --params JSON: invalid character 'u'`.
+
+Method names work with or without the API prefix — `blogs.getByUrl` and
+`blogger.blogs.getByUrl` both resolve.
+
+Known blog: `힣(GLG) Digital Garden Core` — `https://junghanacs.blogspot.com/`,
+blogId `5636690999249333744`.
+
 ## Common Flags
 
 | Flag | Short | Description |
