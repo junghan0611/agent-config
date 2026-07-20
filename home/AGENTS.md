@@ -75,21 +75,24 @@ Entwurf opens siblings, not disposable workers.
 - Resume existing entwurf sessions when continuity matters; do not change the model on resume.
 - For entwurf / garden-id / meta-bridge details, treat `~/repos/gh/entwurf/AGENTS.md` as SSOT.
 
-### Coordinator-Owned Work
+### Role-Based Coordination
 
-When GLG appoints a peer to coordinate an initiative, that coordinator becomes
-the routing point for the work, regardless of model, repository, or who opened
-each participating session.
+Coordination is a role, not a model, backend, or status hierarchy. When GLG
+appoints a peer to coordinate an initiative, that coordinator becomes the
+routing point for the work, regardless of repository or who opened each
+participating session.
 
+- Implementers own their scoped implementation and testing. The coordinator owns
+  cross-lane contracts, checkpoint routing, overlap resolution, and handoffs.
 - Participating peers report checkpoints, blockers, contract changes,
   disagreements, review results, and handoffs through the coordinator.
 - Do not open a separate peer-to-peer coordination lane unless the coordinator
   explicitly asks for one.
 - The coordinator preserves context across repositories and replacement
-  implementation sessions; implementers may stay focused on implementation and
-  testing.
-- This routing rule never limits GLG's direct authority over any peer.
-  Final commit and push decisions remain with GLG.
+  implementation sessions so implementers can remain focused.
+- This routing rule never limits GLG's direct authority over any peer and does not
+  itself grant implementation, commit, or push approval. GLG sets those gates for
+  each initiative.
 
 Cross-review is collaboration, not a verdict. A reviewer exists to cover the gaps the
 long-running implementer will inevitably leave — a gap found is the loop working.
