@@ -10,9 +10,15 @@ List tmux sessions on a socket (default tmux socket if none provided).
 Options:
   -L, --socket       tmux socket name (passed to tmux -L)
   -S, --socket-path  tmux socket path (passed to tmux -S)
-  -A, --all          scan all sockets under CLAUDE_TMUX_SOCKET_DIR
+  -A, --all          scan every tmux socket, not just the default one
   -q, --query        case-insensitive substring to filter session names
   -h, --help         show this help
+
+--all scans the standard tmux socket directory (${TMUX_TMPDIR:-/tmp}/tmux-$UID),
+which is where sockets actually live regardless of which agent or harness
+created them. If CLAUDE_TMUX_SOCKET_DIR is set, that directory is scanned in
+addition. Use this to find sessions that an agent hid on a private socket --
+those never show up in a plain `tmux ls`.
 USAGE
 }
 
@@ -20,7 +26,10 @@ socket_name=""
 socket_path=""
 query=""
 scan_all=false
-socket_dir="${CLAUDE_TMUX_SOCKET_DIR:-${TMPDIR:-/tmp}/claude-tmux-sockets}"
+socket_dirs=("${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)")
+if [[ -n "${CLAUDE_TMUX_SOCKET_DIR:-}" ]]; then
+  socket_dirs+=("$CLAUDE_TMUX_SOCKET_DIR")
+fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -52,7 +61,12 @@ list_sessions() {
   local label="$1"; shift
   local tmux_cmd=(tmux "$@")
 
-  if ! sessions="$("${tmux_cmd[@]}" list-sessions -F '#{session_name}\t#{session_attached}\t#{session_created_string}' 2>/dev/null)"; then
+  # tmux -F takes the format string literally, so the separator must be a real
+  # tab, not the two characters \t. And session_created_string is empty on
+  # tmux 3.x -- #{t:session_created} is the portable way to format the time.
+  local fmt=$'#{session_name}\t#{session_attached}\t#{t:session_created}'
+
+  if ! sessions="$("${tmux_cmd[@]}" list-sessions -F "$fmt" 2>/dev/null)"; then
     echo "No tmux server found on $label" >&2
     return 1
   fi
@@ -74,28 +88,37 @@ list_sessions() {
 }
 
 if [[ "$scan_all" == true ]]; then
-  if [[ ! -d "$socket_dir" ]]; then
-    echo "Socket directory not found: $socket_dir" >&2
-    exit 1
-  fi
-
-  shopt -s nullglob
-  sockets=("$socket_dir"/*)
-  shopt -u nullglob
+  sockets=()
+  for dir in "${socket_dirs[@]}"; do
+    [[ -d "$dir" ]] || continue
+    shopt -s nullglob
+    for sock in "$dir"/*; do
+      [[ -S "$sock" ]] && sockets+=("$sock")
+    done
+    shopt -u nullglob
+  done
 
   if [[ "${#sockets[@]}" -eq 0 ]]; then
-    echo "No sockets found under $socket_dir" >&2
+    echo "No tmux sockets found under: ${socket_dirs[*]}" >&2
     exit 1
   fi
 
-  exit_code=0
+  # A socket file outlives its server, so dead sockets are normal here and are
+  # skipped quietly. Only report failure when no socket had a live server.
+  found=false
   for sock in "${sockets[@]}"; do
-    if [[ ! -S "$sock" ]]; then
-      continue
+    label="socket path '$sock'"
+    [[ "$sock" == */default ]] && label="default socket"
+    if list_sessions "$label" -S "$sock" 2>/dev/null; then
+      found=true
     fi
-    list_sessions "socket path '$sock'" -S "$sock" || exit_code=$?
   done
-  exit "$exit_code"
+
+  if [[ "$found" != true ]]; then
+    echo "No live tmux server on any of ${#sockets[@]} socket(s)" >&2
+    exit 1
+  fi
+  exit 0
 fi
 
 tmux_cmd=(tmux)
