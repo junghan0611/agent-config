@@ -4,6 +4,9 @@ import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 import TurndownService from "turndown";
 import { gfm } from "turndown-plugin-gfm";
+import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const args = process.argv.slice(2);
 
@@ -60,6 +63,108 @@ if (!apiKey) {
 	process.exit(1);
 }
 
+// The free Brave plan allows 1 request/second. Agents routinely fire several
+// search.js processes in parallel, which used to make every call after the
+// first fail with 429. Serialize the launch slot across processes with an
+// atomic mkdir lock, then release it immediately — only the send time is
+// paced, responses still overlap.
+const MIN_INTERVAL_MS = 1100;
+const PACE_DIR = join(tmpdir(), `brave-search-pace-${process.getuid?.() ?? "user"}`);
+const LOCK_DIR = join(PACE_DIR, "lock");
+const STAMP_FILE = join(PACE_DIR, "last-request-ms");
+const LOCK_STALE_MS = 15000;
+const LOCK_WAIT_MS = 30000;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function reserveRequestSlot() {
+	try {
+		mkdirSync(PACE_DIR, { recursive: true });
+	} catch {
+		return; // pacing is best-effort; never block the search on it
+	}
+
+	const deadline = Date.now() + LOCK_WAIT_MS;
+	let held = false;
+	while (Date.now() < deadline) {
+		try {
+			mkdirSync(LOCK_DIR);
+			held = true;
+			break;
+		} catch (e) {
+			if (e.code !== "EEXIST") return;
+			try {
+				if (Date.now() - statSync(LOCK_DIR).mtimeMs > LOCK_STALE_MS) {
+					rmSync(LOCK_DIR, { recursive: true, force: true });
+				}
+			} catch {}
+			await sleep(40 + Math.floor(Math.random() * 90));
+		}
+	}
+
+	try {
+		let last = 0;
+		try {
+			last = Number(readFileSync(STAMP_FILE, "utf8")) || 0;
+		} catch {}
+		const wait = last + MIN_INTERVAL_MS - Date.now();
+		if (wait > 0) await sleep(wait);
+		try {
+			writeFileSync(STAMP_FILE, String(Date.now()));
+		} catch {}
+	} finally {
+		if (held) {
+			try {
+				rmSync(LOCK_DIR, { recursive: true, force: true });
+			} catch {}
+		}
+	}
+}
+
+function reportQuota(response) {
+	// "x-ratelimit-remaining: 0, 1968" => per-second, per-month
+	const remaining = response.headers.get("x-ratelimit-remaining");
+	const limit = response.headers.get("x-ratelimit-limit");
+	if (!remaining) return;
+	const month = remaining.split(",").pop()?.trim();
+	const monthLimit = limit?.split(",").pop()?.trim();
+	if (month && monthLimit) {
+		console.error(`[brave] monthly quota remaining: ${month}/${monthLimit}`);
+	}
+}
+
+async function braveRequest(url, maxAttempts = 4) {
+	for (let attempt = 1; ; attempt++) {
+		await reserveRequestSlot();
+		const response = await fetch(url, {
+			headers: {
+				"Accept": "application/json",
+				"Accept-Encoding": "gzip",
+				"X-Subscription-Token": apiKey,
+			}
+		});
+
+		if (response.status !== 429) return response;
+
+		if (attempt >= maxAttempts) {
+			const errorText = await response.text();
+			reportQuota(response);
+			throw new Error(
+				`HTTP 429: rate limited after ${maxAttempts} attempts.\n` +
+				`The free Brave plan allows 1 request/second — do not run search.js calls in parallel, ` +
+				`or use the exa-search skill instead.\n${errorText}`
+			);
+		}
+
+		const retryAfter = Number(response.headers.get("retry-after"));
+		const backoff = Number.isFinite(retryAfter) && retryAfter > 0
+			? retryAfter * 1000
+			: MIN_INTERVAL_MS * attempt;
+		console.error(`[brave] 429 rate limited, retrying in ${backoff}ms (attempt ${attempt}/${maxAttempts})`);
+		await sleep(backoff);
+	}
+}
+
 async function fetchBraveResults(query, numResults, country, freshness) {
 	const params = new URLSearchParams({
 		q: query,
@@ -73,18 +178,14 @@ async function fetchBraveResults(query, numResults, country, freshness) {
 
 	const url = `https://api.search.brave.com/res/v1/web/search?${params.toString()}`;
 
-	const response = await fetch(url, {
-		headers: {
-			"Accept": "application/json",
-			"Accept-Encoding": "gzip",
-			"X-Subscription-Token": apiKey,
-		}
-	});
+	const response = await braveRequest(url);
 
 	if (!response.ok) {
 		const errorText = await response.text();
 		throw new Error(`HTTP ${response.status}: ${response.statusText}\n${errorText}`);
 	}
+
+	reportQuota(response);
 
 	const data = await response.json();
 

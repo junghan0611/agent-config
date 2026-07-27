@@ -181,10 +181,13 @@ From the [Exa coding-agents guide](https://docs.exa.ai/reference/search-api-guid
 
 ## When to prefer this over `brave-search`
 
+- **Several queries at once.** Brave's free plan is 1 request/second, so parallel research belongs here.
 - Intent-based query that doesn't translate cleanly to keywords
 - Need code examples for an unfamiliar library or API (`code.js`)
 - Need structured / grounded output with citations (`search.js --output-schema`)
 - Want neural ranking over GitHub / arxiv / docs
+- Domain-scoped research — `--include-domains` beats a narrow `site:` keyword query on Brave
+- A URL that `brave-search/content.js` cannot fetch — `contents.js` uses Exa's crawler
 
 Brave is still right for: cheap broad-keyword lookups, country-scoped results, freshness windows (`pd`/`pw`/`pm`).
 

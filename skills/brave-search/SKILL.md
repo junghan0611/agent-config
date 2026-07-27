@@ -1,6 +1,6 @@
 ---
 name: brave-search
-description: Web search and content extraction via Brave Search API. Use for searching documentation, facts, or any web content. Lightweight, no browser required.
+description: Keyword web search and page-content extraction via the Brave Search API. Use for broad keyword lookups, country-scoped results, and freshness windows. Free plan allows only 1 request/second, so never run calls in parallel; for parallel or intent-based search use exa-search.
 ---
 
 # Brave Search
@@ -23,6 +23,18 @@ Requires a Brave Search API account with a free subscription. A credit card is r
    cd {baseDir}
    npm install
    ```
+
+## Rate limits — read before issuing calls
+
+The free plan is **1 request/second** and **2000 requests/month**.
+
+- **Never launch `search.js` calls in parallel.** One query at a time; refine from the result.
+- `search.js` paces its own requests through a cross-process lock and retries 429 with backoff, so
+  three concurrent invocations now succeed — they just take ~1.1s apiece. Do not defeat this by
+  assuming a failure means the quota is gone.
+- Every run prints the remaining monthly quota to stderr:
+  `[brave] monthly quota remaining: 1965/2000`. Read that line before concluding the key is exhausted.
+- If 429 still survives the retries, switch to the `exa-search` skill rather than retrying by hand.
 
 ## Search
 
@@ -54,7 +66,9 @@ Requires a Brave Search API account with a free subscription. A credit card is r
 {baseDir}/content.js https://example.com/article
 ```
 
-Fetches a URL and extracts readable content as markdown.
+Fetches a URL and extracts readable content as markdown. Transient network failures are retried
+up to 3 times. If it still fails, or the site blocks direct fetches, use the `exa-search` skill's
+`contents.js` — it goes through Exa's crawler instead of a direct request.
 
 ## Output Format
 
@@ -73,7 +87,15 @@ Content: (if --content flag used)
 
 ## When to Use
 
-- Searching for documentation or API references
-- Looking up facts or current information
-- Fetching content from specific URLs
-- Any task requiring web search without interactive browsing
+- Broad keyword lookups where the exact words matter
+- Country-scoped results (`--country`) or freshness windows (`--freshness pd|pw|pm|py`)
+- Fetching content from a specific URL that answers to a plain request
+
+## When to use `exa-search` instead
+
+- More than one query at once — Brave's 1 req/s makes parallel search a dead end
+- Intent-based questions that do not translate into keywords
+- Code examples for an unfamiliar library (`exa-search/code.js`)
+- A URL that Brave's `content.js` cannot fetch
+- Narrow `site:` queries with long keyword lists — these frequently return nothing on Brave;
+  Exa's `--include-domains` is the better tool for domain-scoped research

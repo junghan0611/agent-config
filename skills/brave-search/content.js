@@ -33,21 +33,42 @@ function htmlToMarkdown(html) {
 		.trim();
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// A single transient `fetch failed` used to end the call, so agents concluded
+// the page was unreachable when a retry would have returned it.
+async function fetchWithRetry(target, maxAttempts = 3) {
+	let lastError;
+	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+		try {
+			return await fetch(target, {
+				headers: {
+					"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+					"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+					"Accept-Language": "en-US,en;q=0.9",
+				},
+				signal: AbortSignal.timeout(15000),
+			});
+		} catch (e) {
+			lastError = e;
+			if (attempt < maxAttempts) {
+				console.error(`[brave] fetch failed (${e.message}), retrying ${attempt}/${maxAttempts - 1}`);
+				await sleep(700 * attempt);
+			}
+		}
+	}
+	throw new Error(`${lastError?.message ?? "fetch failed"} after ${maxAttempts} attempts — try the exa-search skill's contents.js for this URL`);
+}
+
 try {
-	const response = await fetch(url, {
-		headers: {
-			"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-			"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-			"Accept-Language": "en-US,en;q=0.9",
-		},
-		signal: AbortSignal.timeout(15000),
-	});
-	
+	const response = await fetchWithRetry(url);
+
 	if (!response.ok) {
 		console.error(`HTTP ${response.status}: ${response.statusText}`);
+		console.error("If the site blocks direct fetches, use the exa-search skill's contents.js instead.");
 		process.exit(1);
 	}
-	
+
 	const html = await response.text();
 	const dom = new JSDOM(html, { url });
 	const reader = new Readability(dom.window.document);
