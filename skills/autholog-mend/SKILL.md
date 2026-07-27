@@ -5,7 +5,7 @@ description: "ROSSE/autholog 원석 수선 — 날것을 ~/org/notes의 기존 �
 
 # autholog-mend — raw writing intake
 
-Recover GLG's public raw writing as a `notes/` autholog. This is the raw → room → meta → world-image lane of `/mend`.
+Recover GLG's public raw writing as a `notes/` autholog. This is the raw → room → meta → world-image lane of `/mend`. For one-document core-garden restoration and its playful image/prompt round, enter `/authologplay`; this skill remains the ROSSE intake and room-choice contract.
 
 ## Contract
 
