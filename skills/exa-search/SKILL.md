@@ -1,15 +1,26 @@
 ---
 name: exa-search
-description: Semantic web search, content extraction, and code-context retrieval via Exa AI. Use for intent-based search ("Python async job queue libraries"), fetching clean page content from URLs, or pulling GitHub / Stack Overflow / docs as a single LLM-ready code block. Stronger than keyword search for agent workflows.
+description: Default web search for agents — search the web, look something up, check current information, find documentation, read a page, or get code examples. Semantic and keyword search, page-content extraction, and code-context retrieval via Exa AI. Safe to run several calls in parallel. Prefer this over brave-search for any general web search; Brave is only the fallback for high-volume keyword lookups on its free quota, country-scoped results, or freshness windows.
 ---
 
 # Exa Search
+
+**This is the default web-search surface.** Reach for it first for any web search — keyword or
+intent-based. It is parallel-safe, it ranks docs/GitHub/arxiv well, and its crawler reads pages that
+a direct `fetch` gets blocked on.
 
 Three subcommands wrapping the [Exa AI](https://exa.ai) API:
 
 - `search.js` — neural web search (`/search`, via official `exa-js` SDK)
 - `contents.js` — extract clean text from known URLs (`/contents`, via `exa-js`)
 - `code.js` — token-efficient code context aggregated from GitHub + Stack Overflow + docs (`/context`, direct `fetch` — not yet in SDK)
+
+## Cost
+
+Measured **$0.0070 per `search.js` call**, flat — `-n 1`, `-n 10`, and `--text` all cost the same, so
+ask for the results you actually want rather than trimming to save money. Each run prints its cost to
+stderr (`# cost: $0.0070`). This is paid API usage, not a free tier: for repeated high-volume keyword
+lookups where ranking quality does not matter, `brave-search` has 2000 free requests/month.
 
 ## Setup
 

@@ -48,6 +48,17 @@ Abstract queries often miss concrete session text. Use two passes:
 
 If semantic search underperforms direct evidence, record the query/results and report it. Tool underperformance is a tool issue, not user failure.
 
+### Web Search
+
+`exa-search` is the default web-search surface — keyword or intent-based, parallel-safe, and its
+crawler reads pages a direct `fetch` gets blocked on. It is paid API usage at about $0.007 per search.
+
+`brave-search` is the fallback, earned only by what Exa does not give cheaply: high-volume lookups on
+its 2000 free requests/month, country-scoped results, or a freshness window. Its free plan caps at
+**1 request/second**, so never issue Brave calls in parallel — that ceiling, not an exhausted quota,
+is what a 429 usually means. Each run prints the remaining monthly quota to stderr; read it before
+concluding the key is spent.
+
 ## Work Protocol
 
 ### Session Start

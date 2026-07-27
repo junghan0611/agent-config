@@ -1,11 +1,21 @@
 ---
 name: brave-search
-description: Keyword web search and page-content extraction via the Brave Search API. Use for broad keyword lookups, country-scoped results, and freshness windows. Free plan allows only 1 request/second, so never run calls in parallel; for parallel or intent-based search use exa-search.
+description: Fallback keyword web search via the Brave Search API. Use exa-search for general web search instead; reach for Brave only when you specifically need its 2000 free requests/month for high-volume lookups, country-scoped results (--country), or a freshness window (--freshness pd/pw/pm/py). The free plan caps at 1 request/second, so never run calls in parallel.
 ---
 
 # Brave Search
 
-Web search and content extraction using the official Brave Search API. No browser required.
+Keyword web search and content extraction using the official Brave Search API. No browser required.
+
+**`exa-search` is the default search surface — this skill is the fallback.** Brave earns the call
+only for what Exa does not give you cheaply:
+
+- high-volume keyword lookups you want on a free quota (2000 requests/month)
+- country-scoped results (`--country`)
+- a freshness window (`--freshness pd|pw|pm|py`)
+
+For anything else — one general question, several queries at once, intent-based phrasing, domain-scoped
+research, or a URL whose text you need — use `exa-search`.
 
 ## Setup
 
