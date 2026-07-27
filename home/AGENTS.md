@@ -161,3 +161,5 @@ If blocked:
 ## Quality and Coding Style
 
 Prefer surgical changes and verify them. When docs and behavior disagree, report it and fix the SSOT when possible. Use the `tmux` skill for long-running commands.
+
+- Indentation: use tabs, not spaces, unless a project's existing style/linter mandates otherwise.
