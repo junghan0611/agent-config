@@ -46,18 +46,24 @@ detect_mode() {
     return
   fi
 
-  # Known private personal repos that legitimately store identity-bearing
-  # memory/config data. Keep secret scanning on, but skip public identity-term
-  # blocking even though the GitHub owner matches the strict namespace.
-  case "$(basename "$repo_root")" in
-    openclaw-config)
+  local remote remote_bare
+  remote=$(git remote get-url origin 2>/dev/null || true)
+  remote_bare=${remote%.git}
+
+  # Known PRIVATE personal repos that legitimately carry identity-bearing
+  # content (memory/config data, job-application documents). Keep secret
+  # scanning on, but skip public identity-term blocking even though the GitHub
+  # owner matches the strict namespace.
+  #   openclaw-config — private memory/config data
+  #   apply           — private job-application workspace; resumes must name
+  #                     real employers/clients (AGENTS.md in that repo)
+  case "$remote_bare" in
+    *github.com[:/]junghan0611/openclaw-config|*github.com[:/]junghan0611/apply)
       echo "loose"
       return
       ;;
   esac
 
-  local remote
-  remote=$(git remote get-url origin 2>/dev/null || true)
   case "$remote" in
     *github.com[:/]junghan0611/*|*github.com[:/]junghanacs/*)
       echo "strict" ;;
