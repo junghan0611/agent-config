@@ -27,6 +27,7 @@ The text is the center. The image is not a generic illustration or an afterthoug
 - **Truth before polish.** Describe rendered pixels as delivered; gesture reversal, missing objects, and prompt drift are provenance, not material to hide.
 - **Subject integrity before acceptance.** GLGMAN and companion agents must remain whole embodied subjects. A fox agent is an anthropomorphic, clothed, bipedal collaborator — never a naked quadruped animal, pet, or decorative wildlife. GLGMAN must not be sliced, disconnected, or spatially impossible. If the image violates this, regenerate before treating it as the autholog image.
 - **No bulk factory.** One round is one document. Legacy image backfill proceeds slowly. Stop if the room or raw-source boundary is uncertain.
+- **Name the author in 히스토리.** Every history line carries who wrote it: `@junghan` for GLG's own edit (room cleanup, quote-block wrapping, tag additions), `@mitsein/<model>` (or `@pi@<device>`) for the agent's pass. A human edit and an agent edit are never merged into one untagged line — authorship matters as much for the agent's side of the room as for GLG's.
 
 ## One round
 

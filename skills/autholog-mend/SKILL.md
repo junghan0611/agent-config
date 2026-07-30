@@ -18,6 +18,7 @@ Recover GLG's public raw writing as a `notes/` autholog. This is the raw → roo
 - **Prompt headings are the visual index.** Put the complete prompt below a heading tagged `:PROMPT:` such as `** 프롬프트 전문 :PROMPT:`. This is a heading tag, never a filetag.
 - **Text comes first.** Keep an adequate image despite minor prompt drift and describe the delivered pixels honestly. If GLG defers image work, finish the text; backfill legacy authologs gradually, never as a bulk image job.
 - **Preserve room history.** A moved seed goes to its proper meta/hub and remains named under `옛 방의 씨앗`.
+- **Name the author in 히스토리.** Every history line carries who wrote it: `@junghan` for GLG's own edit, `@mitsein/<model>` (or `@pi@<device>`) for the agent's pass. Never merge a human edit and an agent edit into one untagged line — authorship is exactly what this format exists to keep legible.
 
 ## Image contract
 
