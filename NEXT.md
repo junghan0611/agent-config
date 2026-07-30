@@ -14,6 +14,9 @@
 
 ## [2026-07-30] Upstage provider — 1차 지원 완료, Solar Open 2 승인 대기
 
+> 트래킹: **issue #17** — 미검증 값 둘(컨텍스트·reasoning 척도), open2 승인 시 할 일
+> 체크리스트, pro3 실측 baseline이 거기 다 있다.
+
 **된 것:** `pi-extensions/upstage-provider.ts` — `api.upstage.ai/v1`을 OpenAI 호환 provider로
 등록한다(Upstage 자신의 `hermes-upstage-setup.sh`와 같은 방식). `solar-pro3/pro2/mini` 3개가
 `pi --list-models`에 뜨고, 툴 호출·reasoning(high 287토큰 / off 0토큰)·스트리밍 usage·자동
