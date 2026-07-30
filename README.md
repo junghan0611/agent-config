@@ -85,6 +85,7 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 | Extension | Purpose |
 |-----------|---------|
 | `env-loader.ts` | Load `~/.env.local` at session start |
+| `upstage-provider.ts` | Register Upstage Solar as an OpenAI-compatible provider |
 | `context.ts` | `/context` — show loaded extensions, skills, context usage |
 | `glg-footer.ts` | Footer signature |
 | `go-to-bed.ts` | Late-night reminder |

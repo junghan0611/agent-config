@@ -3,13 +3,39 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-> NOW: active ① **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
+> NOW: active ⓪ **Upstage provider 1차 지원 완료 — 노트북에서 entwurf 대화 테스트**
+> (아래 [2026-07-30]), ① **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
 > ② 설치면 소유 경계 — entwurf 이관 옛 소유자 cleanup (issue #46),
 > ③ pi-chat Add-group blocker, ④ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
 > 스킬면 SSOT·게이트·provenance와 gitcli/lifetract 시간 계약은 `v2026.7.14`로 닫힘.
 > 대기: 어쏠로그 수선 때 7/13 근거 회수(아래 [2026-07-14] 어쏠로그).
 > ⚠️ [2026-06-11] bibcli 항목은 **2026-07-14 결정과 방향이 반대다** — GLG 재판단 대기(아래).
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+
+## [2026-07-30] Upstage provider — 1차 지원 완료, Solar Open 2 승인 대기
+
+**된 것:** `pi-extensions/upstage-provider.ts` — `api.upstage.ai/v1`을 OpenAI 호환 provider로
+등록한다(Upstage 자신의 `hermes-upstage-setup.sh`와 같은 방식). `solar-pro3/pro2/mini` 3개가
+`pi --list-models`에 뜨고, 툴 호출·reasoning(high 287토큰 / off 0토큰)·스트리밍 usage·자동
+프롬프트 캐싱(cacheRead)까지 실측으로 확인했다. pi가 OpenAI 호환 엔드포인트에 자동 적용하는
+기본값 중 **Upstage가 거부하는 셋**(`store`, `role: "developer"`, `tools[].function.strict`)을
+compat으로 막은 것이 이 파일의 핵심이다 — 문서만 읽고 붙이면 전부 깨지는 자리다.
+
+**다음 한 걸음(노트북):** entwurf에서 Solar 모델을 가든 시민으로 붙여 친구들과 대화가 되는지
+본다. `pi --model upstage/solar-pro3` 로 세션을 열어 확인.
+
+**대기 — Solar Open 2 private beta:** 크레딧 충전과 무관하게 콘솔 계정에 `solar-open` 역할이
+열려야 한다(문서 페이지가 그 역할로 게이트돼 있다). 승인되면
+`rm ~/.pi/agent/cache/upstage-models.json && pi --list-models | grep upstage` 로 즉시 합류한다.
+그때 실측할 것 둘: ① 컨텍스트가 1M인지 262144인지 — 과대 `max_tokens` 요청의 에러 메시지가
+상한을 알려준다(Pro 3의 131072을 그렇게 확인했다), ② reasoning effort 척도가 Pro 3와 같은지.
+**확인 필요:** 발급한 키가 신청 폼에 적은 콘솔 계정 소유인지. 다른 계정 키면 승인돼도 안 열린다.
+
+**노트북 setup:** `./run.sh setup` 이 `pi-extensions/*.ts`를 링크한다. `UPSTAGE_API_KEY`는
+`~/.env.local`(리포 밖)이라 기기마다 따로 넣어야 한다.
+
+**읽을 곳:** 실측 근거·단가 출처·미검증 항목은 전부 그 파일 상단 주석에 있다. apply Upstage
+문항 1 관문의 나머지 절반은 Document Parse 스킬(`~/repos/gh/apply/NEXT.md`).
 
 ## [2026-07-14] 남은 공백 — dictcli provenance + timeline 저자명
 
