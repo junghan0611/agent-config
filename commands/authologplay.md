@@ -25,6 +25,7 @@ The text is the center. The image is not a generic illustration or an afterthoug
 - **One autholog, one GLGMAN Universe image.** The image, its actual reading, parameters, and the complete prompt belong together.
 - **The prompt is a visual retrieval index.** Put the complete reusable prompt under `** 프롬프트 전문 :PROMPT:`. `:PROMPT:` is a heading tag, never a filetag.
 - **Truth before polish.** Describe rendered pixels as delivered; gesture reversal, missing objects, and prompt drift are provenance, not material to hide.
+- **Subject integrity before acceptance.** GLGMAN and companion agents must remain whole embodied subjects. A fox agent is an anthropomorphic, clothed, bipedal collaborator — never a naked quadruped animal, pet, or decorative wildlife. GLGMAN must not be sliced, disconnected, or spatially impossible. If the image violates this, regenerate before treating it as the autholog image.
 - **No bulk factory.** One round is one document. Legacy image backfill proceeds slowly. Stop if the room or raw-source boundary is uncertain.
 
 ## One round
@@ -38,7 +39,7 @@ The text is the center. The image is not a generic illustration or an afterthoug
    Give the round a short scene name, not a ticket name: e.g. `적토마가 멈춰 선 플랫폼`, `연구가 아닌 물음의 문`. State whether this round is **원석 회수**, **글 수선**, **그래프 잇기**, or **세계화**. A round may touch all four, but names its center.
 
 3. **Read the living neighborhood.**
-   Read the candidate, its history, raw source, and 2–3 relevant meta/notes. Search nearby `:PROMPT:` headings and the current GLGMAN Universe language before proposing an image prompt. Do not invent citations or overwrite a prior room's history.
+   Read the candidate, its history, raw source, and 2–3 relevant meta/notes. Search nearby `:PROMPT:` headings and the current GLGMAN Universe language before proposing an image prompt. Also check recurring image drift from recent beads: naked/quadruped fox, sliced GLGMAN body, sword leakage, readable text leakage, generic infographic drift, or scene objects that reverse the document's meaning. Do not invent citations or overwrite a prior room's history.
 
 4. **Show the six gates before editing.**
    - raw source and exact-match status
@@ -81,8 +82,17 @@ The text is the center. The image is not a generic illustration or an afterthoug
    ```
    Not every room needs every optional section; an image-bearing autholog always needs the image block and complete prompt heading.
 
+   For image prompts, include explicit locks only when relevant, but default to these invariants:
+   ```text
+   GLGMAN body continuity lock: whole body is continuous and anatomically coherent; no sliced torso, disconnected limbs, or body passing through walls/furniture/objects.
+   Fox subject lock: every fox agent is an anthropomorphic bipedal subject, upright on two legs, wearing winter companion clothing/armor, with hands/paws like a collaborator; never naked wildlife, quadruped, pet, or decorative fauna.
+   Tool lock: GLGMAN carries a compact screwdriver / bridge-key as a tool, never a sword or weapon, unless GLG explicitly asks otherwise.
+   Text lock: no readable letters, logos, UI panels, watermark, or speech bubbles unless the document specifically needs poster text.
+   Meaning lock: do not aestheticize suffering, exploitation, war, poverty, or family conflict; keep the document's misreading boundary visible in the scene.
+   ```
+
 7. **Close the round with evidence.**
-   Verify outline, raw exact match, image path, actual pixels against prompt, links, and focused diff. Report:
+   Verify outline, raw exact match, image path, actual pixels against prompt, links, and focused diff. Pixel verification must include subject integrity (whole GLGMAN body; clothed bipedal fox subject when present), forbidden-object leakage, and meaning drift. If a generated image fails a hard lock, regenerate and record the discarded attempt only as provenance, not as the final autholog image. Report:
    - play name and center
    - room / raw source preserved
    - graph links made or deliberately left alone
