@@ -12,6 +12,14 @@
  * not appear until Upstage actually grants it — and appears on its own once
  * they do. To pick up a grant immediately, delete that cache file.
  *
+ * UPSTAGE_FORCE_MODELS=solar-open2[,...] registers those catalog ids whatever the
+ * intersection says, for a private-beta grant Upstage's model list does not have
+ * to reflect. Measured 2026-07-30 on an ungranted account: solar-open2 is absent
+ * from /v1/models *and* a direct call is refused ("The requested model is invalid
+ * or no longer supported"), so forcing it turns a hidden model into a visible
+ * error — which is what you want while waiting on access. Read from the
+ * environment or ~/.env.local, same as the API key below.
+ *
  * Everything in the compat block below was measured against the live API, not
  * inferred; the four `false` flags are all cases where pi's autodetected
  * default for an OpenAI-compatible endpoint makes Upstage reject the request.
@@ -185,14 +193,18 @@ const CATALOG: CatalogEntry[] = [
 const GA_FALLBACK = ["solar-pro3", "solar-pro2", "solar-mini"];
 
 /**
- * The API key. env-loader.ts injects ~/.env.local on session_start, which runs
- * after extension factories, so read the file directly rather than depend on
- * that ordering. The provider itself still resolves $UPSTAGE_API_KEY per
- * request — this only decides whether to register at all, and seeds the env
- * var for pi when the shell did not export it.
+ * An env var, falling back to ~/.env.local. env-loader.ts injects that file on
+ * session_start, which runs after extension factories, so read it directly here
+ * rather than depend on that ordering. A value found in the file is seeded into
+ * the environment, which is also how the provider's "$UPSTAGE_API_KEY" resolves
+ * per request when the shell never exported it.
+ *
+ * A stale export wins over the file, by design — but note the failure it makes
+ * possible: a session that inherited a rotated key keeps using it, and Upstage
+ * answers 401 on every call. Compare fingerprints when that happens.
  */
-function resolveApiKey(): string | undefined {
-	const fromEnv = process.env.UPSTAGE_API_KEY;
+function envValue(name: string): string | undefined {
+	const fromEnv = process.env[name];
 	if (fromEnv) return fromEnv;
 
 	const envFile = path.join(os.homedir(), ".env.local");
@@ -204,13 +216,13 @@ function resolveApiKey(): string | undefined {
 			const stripped = line.startsWith("export ") ? line.slice(7) : line;
 			const eq = stripped.indexOf("=");
 			if (eq < 1) continue;
-			if (stripped.slice(0, eq).trim() !== "UPSTAGE_API_KEY") continue;
+			if (stripped.slice(0, eq).trim() !== name) continue;
 			let value = stripped.slice(eq + 1).trim();
 			if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
 				value = value.slice(1, -1);
 			}
 			if (value) {
-				process.env.UPSTAGE_API_KEY = value;
+				process.env[name] = value;
 				return value;
 			}
 		}
@@ -218,6 +230,18 @@ function resolveApiKey(): string | undefined {
 		// unreadable ~/.env.local is not worth failing startup over
 	}
 	return undefined;
+}
+
+/**
+ * Catalog ids to register even when GET /v1/models omits them. Ids outside the
+ * catalog are ignored: the entry carries the context window, price and thinking
+ * map, so there is nothing to register without one.
+ */
+function forcedModelIds(): string[] {
+	return (envValue("UPSTAGE_FORCE_MODELS") ?? "")
+		.split(",")
+		.map((id) => id.trim())
+		.filter(Boolean);
 }
 
 function readCache(): string[] | undefined {
@@ -271,10 +295,11 @@ async function resolveAvailableIds(apiKey: string): Promise<string[]> {
 }
 
 export default async function (pi: ExtensionAPI) {
-	const apiKey = resolveApiKey();
+	const apiKey = envValue("UPSTAGE_API_KEY");
 	if (!apiKey) return;
 
 	const available = new Set(await resolveAvailableIds(apiKey));
+	for (const id of forcedModelIds()) available.add(id);
 	// Upstage also lists version-pinned ids (solar-pro3-260323); the catalog
 	// carries aliases only, which their docs recommend for forward compatibility.
 	const models = CATALOG.filter((model) => available.has(model.id));

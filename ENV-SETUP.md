@@ -16,6 +16,7 @@ pi-skills CLI들이 정상 동작하려면 아래 환경변수가 필요합니�
 | `GROQ_API_KEY` | (API key) | transcribe 음성인식 |
 | `BRAVE_SEARCH_API_KEY` | (API key) | brave-search 웹 검색 |
 | `UPSTAGE_API_KEY` | (API key) | `upstage-provider.ts` — pi에서 Solar 모델 사용 |
+| `UPSTAGE_FORCE_MODELS` | `solar-open2` | `/v1/models`에 안 뜨는 private beta 모델을 강제 등록 (쉼표 구분) |
 
 ## Telegram (분신 에이전트)
 

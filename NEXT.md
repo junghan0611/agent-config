@@ -3,8 +3,8 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-> NOW: active ⓪ **Upstage provider 1차 지원 완료 — 노트북에서 entwurf 대화 테스트**
-> (아래 [2026-07-30]), ① **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
+> NOW: active ⓪ **Upstage provider 설치·검증 완료 — Solar Open 2 승인 대기(콘솔 계정 확인)**
+> (아래 [2026-07-30], issue #17), ① **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
 > ② 설치면 소유 경계 — entwurf 이관 옛 소유자 cleanup (issue #46),
 > ③ pi-chat Add-group blocker, ④ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
 > 스킬면 SSOT·게이트·provenance와 gitcli/lifetract 시간 계약은 `v2026.7.14`로 닫힘.
@@ -12,7 +12,7 @@
 > ⚠️ [2026-06-11] bibcli 항목은 **2026-07-14 결정과 방향이 반대다** — GLG 재판단 대기(아래).
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
 
-## [2026-07-30] Upstage provider — 1차 지원 완료, Solar Open 2 승인 대기
+## [2026-07-30] Upstage provider — 설치·검증 완료, Solar Open 2 승인 대기
 
 > 트래킹: **issue #17** — 미검증 값 둘(컨텍스트·reasoning 척도), open2 승인 시 할 일
 > 체크리스트, pro3 실측 baseline이 거기 다 있다.
@@ -24,17 +24,29 @@
 기본값 중 **Upstage가 거부하는 셋**(`store`, `role: "developer"`, `tools[].function.strict`)을
 compat으로 막은 것이 이 파일의 핵심이다 — 문서만 읽고 붙이면 전부 깨지는 자리다.
 
-**다음 한 걸음(노트북):** entwurf에서 Solar 모델을 가든 시민으로 붙여 친구들과 대화가 되는지
-본다. `pi --model upstage/solar-pro3` 로 세션을 열어 확인.
+thinkpad 설치도 끝났다(`./run.sh setup:links`) — 라이브 교집합이 실제로 도는 것까지 확인했다
+(캐시에 GA 8개, `solar-open2` 부재). `UPSTAGE_FORCE_MODELS`로 교집합 우회 손잡이를 달았고,
+확장 디렉토리에 매달려 있던 `control.ts` 심링크와 `.bak` 사본도 `setup_links`가 걷어낸다.
+오늘 실측 전부는 **issue #17 코멘트**에 정리돼 있다.
 
-**대기 — Solar Open 2 private beta:** 크레딧 충전과 무관하게 콘솔 계정에 `solar-open` 역할이
-열려야 한다(문서 페이지가 그 역할로 게이트돼 있다). 승인되면
-`rm ~/.pi/agent/cache/upstage-models.json && pi --list-models | grep upstage` 로 즉시 합류한다.
-그때 실측할 것 둘: ① 컨텍스트가 1M인지 262144인지 — 과대 `max_tokens` 요청의 에러 메시지가
-상한을 알려준다(Pro 3의 131072을 그렇게 확인했다), ② reasoning effort 척도가 Pro 3와 같은지.
-**확인 필요:** 발급한 키가 신청 폼에 적은 콘솔 계정 소유인지. 다른 계정 키면 승인돼도 안 열린다.
+**다음 한 걸음:** ① **콘솔 계정 확인** — 신청 폼에 적은 계정으로 로그인해 `solar-open2`가 보이는지,
+아니면 그 계정에서 새 키를 발급해 `~/.env.local`을 교체한다. API로는 계정을 알 수 없다
+(`/v1/me`·`/v1/usage`·`/v1/account` 전부 404). ② 승인 여부는 한 줄로 찍힌다 —
+`UPSTAGE_FORCE_MODELS=solar-open2 pi --model upstage/solar-open2`, 미승인이면 400이 그대로 보이고
+승인되면 캐시를 지울 필요도 없이 바로 대화가 된다. ③ pro3로 entwurf 대화 테스트는 지금 가능하다.
 
-**노트북 setup:** `./run.sh setup` 이 `pi-extensions/*.ts`를 링크한다. `UPSTAGE_API_KEY`는
+**함정(키 교체마다 재발):** 옛 `UPSTAGE_API_KEY`가 env에 남은 프로세스는 새 키를 읽지 않는다
+(env-loader가 기존 env를 덮지 않는다) → 전 호출 401인데 GA 폴백이라 정상처럼 보인다. 유일한
+표식은 캐시 파일 부재다. 키를 바꾸면 장수 세션(tmux·pi)을 재시작할 것.
+
+**막힌 것 — Solar Open 2:** 목록에 없고 직접 호출도 400(`invalid or no longer supported`),
+`claude-upstage.sh`가 쓰는 `/v1/messages`는 404 `invalid_path`. 두 기기·두 키에서 같은 거부라
+키가 아니라 계정 게이트다 — 업스테이지 승인 대기. 공식 `for-agents` 문서에도 anthropic /
+messages / open2 언급이 0회다. 승인되면 실측할 것 둘: ① 컨텍스트가 1M인지 262144인지 — 과대
+`max_tokens` 요청의 에러 메시지가 상한을 알려준다(Pro 3의 131072을 그렇게 확인했다),
+② reasoning effort 척도가 Pro 3와 같은지.
+
+**기기별 setup:** `./run.sh setup` 이 `pi-extensions/*.ts`를 링크한다. `UPSTAGE_API_KEY`는
 `~/.env.local`(리포 밖)이라 기기마다 따로 넣어야 한다.
 
 **읽을 곳:** 실측 근거·단가 출처·미검증 항목은 전부 그 파일 상단 주석에 있다. apply Upstage
