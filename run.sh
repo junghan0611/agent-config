@@ -640,8 +640,16 @@ setup_links() {
     ensure_link "$ext_file" "$HOME/.pi/agent/extensions/$(basename "$ext_file")"
   done
 
-  # control.ts: formerly from 3rd-party agent-stuff, now managed in agent-config/pi-extensions/
-  # (2026-04-13: forked with targetSessionId fallback + gcStaleSockets)
+  # Stale entries in the extension dir. control.ts was the forked session-control
+  # extension, deleted in 016005b — its symlink outlived the source and dangled on
+  # every machine setup had ever touched. The *.bak.* copies are ensure_link's own
+  # backups; pi loads only *.ts so they are inert, but they keep dead extension
+  # code on disk and mask what the dir actually loads.
+  for stale in "$HOME/.pi/agent/extensions/control.ts" "$HOME/.pi/agent/extensions"/*.bak.*; do
+    [ -e "$stale" ] || [ -L "$stale" ] || continue
+    rm -rf "$stale"
+    log "extensions/$(basename "$stale"): removed stale entry"
+  done
 
   # Phase 4 migration cleanup — entwurf surface moved to entwurf.
   # Old machines (Oracle etc.) may still have these from pre-migration setups.
