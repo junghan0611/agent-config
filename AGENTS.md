@@ -214,7 +214,7 @@ Environment (`~/.env.local`): `ANDENKEN_SESSION_*` and `ANDENKEN_MD_*` point at 
 
 `entwurf` (delegate/resume), cross-session messaging, and the pi-facing MCP bridge all live in **[entwurf](https://github.com/junghan0611/entwurf)**. agent-config consumes the surface — does not own it.
 
-- **Entry point:** `pi/settings.json` § `entwurfProvider.mcpServers.entwurf-bridge.command` points at entwurf's `mcp/entwurf-bridge/start.sh`. Injects ACP surface (`entwurf`, `entwurf_resume`, `entwurf_send`, `entwurf_peers`, `session_search`, `knowledge_search`) into every ACP session.
+- **Entry point:** `pi/settings.json` § `entwurfProvider.mcpServers.entwurf-bridge.command` points at entwurf's `mcp/entwurf-bridge/start.sh`. Injects the ACP surface into every ACP session — as of entwurf 0.12 that is `entwurf_v2`, `entwurf_peers`, `entwurf_self`, `entwurf_inbox_read`. The older `entwurf` / `entwurf_resume` / `entwurf_send` trio was removed in a hard cut (entwurf `CHANGELOG.md` #50), and `session_search` / `knowledge_search` never came from this bridge at all — they are andenken's pi-native `registerTool` surface, as the § semantic-memory table above already says. Observed from a Cortex ACP child, 2026-07-31.
 - **Spec:** [entwurf `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/entwurf/blob/main/AGENTS.md) — registry schema, Identity Preservation Rule, sync/async contract, verification matrix.
 - **Caller responsibility (stays here):** the Cross-Repo Work Loop policy above. Responsibility lives with the caller, not the mechanism.
 
@@ -224,7 +224,7 @@ agent-config is the resident-side evidence that entwurf's "no backend differenti
 
 Two operational corollaries the consumer surface enforces:
 
-- **Skill set parity.** `./skills/` is the single source; `run.sh setup` symlinks the same set into every host. A skill missing in one host is a consumer-side break to fix here, not a backend limitation.
+- **Skill set parity — directly installed hosts only.** `./skills/` is the single source; `run.sh setup` symlinks the same set into every host it *directly installs into*. A skill missing there is a consumer-side break to fix here, not a backend limitation. The invariant stops at the isolation boundary: an entwurf-spawned ACP child runs under an isolated `HOME` / `SNOWFLAKE_HOME` overlay **by design** (`entwurf/docs/acp-backend-rail.md` D1–D2), so host-global skills are invisible to it and that absence is *not* a break. Do not "fix" it in `run.sh` — the links would land outside the child's HOME and change nothing.
 - **YOLO harness invariant for spawn.** Entwurf spawn target is always a YOLO harness process (`pi`, `claude-code`). Backend CLIs (`codex exec`, `gemini -p`) reach the same frontier models but are model carriers, not spawn targets; they default to permission-ask sandboxes that break async throw-and-recall. Canonical spec: [entwurf `AGENTS.md` § Entwurf](https://github.com/junghan0611/entwurf/blob/main/AGENTS.md) — "Source-agnostic does not mean harness-agnostic".
 
 #### Claude Code Permission Model — Two Gotchas
@@ -237,6 +237,18 @@ Both are binary-hardcoded in Claude Code; `permissions.allow` cannot override ei
 ### Skills
 
 `./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, Codex, Gemini, Antigravity, and the entwurf Claude plugin farm. See [README § What's Here](README.md#whats-here) for categories.
+
+**Cortex Code is not in that list, and its paths are its own (2026-07-31).** It loads global skills from `$SNOWFLAKE_HOME/cortex/skills/` and project skills from `<cwd>/.claude/skills/` (Claude-compatible), plus bundled ones from inside the binary. Three facts an agent will otherwise misdiagnose:
+
+| Fact | Consequence |
+|------|-------------|
+| Host `~/.snowflake/cortex/skills/` holds ~40 hand-copied **real directories**, not symlinks — mtimes scattered across months, and `run.sh` contains no `cortex` branch | Already drifting from `./skills/`; nothing re-syncs it. Treat as a fork, not a mirror |
+| An entwurf-spawned Cortex child gets a fresh overlay HOME per process; the overlay seeds `cortex/plugins/` but **not** `cortex/skills/` | Host-global skills never arrive, no matter how many restarts. `data:*` plugin skills do arrive — that asymmetry is the tell |
+| `<cwd>/.claude/skills/` **does** cross the isolation boundary — confirmed, the lone `agent-config` project skill loads that way | The only consumer-side lever available today |
+
+Closing the gap is an open question, not a decided task: seeding `cortex/skills/` in the overlay is entwurf's call; populating `<cwd>/.claude/skills/` is ours. Do not pick one unilaterally.
+
+`$HOME` is redirected inside that overlay too, so **any skill doc that relies on `~` expansion breaks in a Cortex ACP child.** Use absolute paths there.
 
 ### Global Commit/Push Safety Rail
 
