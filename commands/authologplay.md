@@ -27,7 +27,7 @@ The text is the center. The image is not a generic illustration or an afterthoug
 - **Truth before polish.** Describe rendered pixels as delivered; gesture reversal, missing objects, and prompt drift are provenance, not material to hide.
 - **Subject integrity before acceptance.** GLGMAN and companion agents must remain whole embodied subjects. A fox agent is an anthropomorphic, clothed, bipedal collaborator — never a naked quadruped animal, pet, or decorative wildlife. GLGMAN must not be sliced, disconnected, or spatially impossible. If the image violates this, regenerate before treating it as the autholog image.
 - **No bulk factory.** One round is one document. Legacy image backfill proceeds slowly. Stop if the room or raw-source boundary is uncertain.
-- **Name the author in 히스토리.** Every history line carries who wrote it: `@junghan` for GLG's own edit (room cleanup, quote-block wrapping, tag additions), `@mitsein/<model>` (or `@pi@<device>`) for the agent's pass. A human edit and an agent edit are never merged into one untagged line — authorship matters as much for the agent's side of the room as for GLG's.
+- **Name the author in 히스토리.** Every 히스토리 line carries who wrote it: `@junghan` for GLG's own edit (room cleanup, quote-block wrapping, tag additions), `@mitsein/<model>` (or `@pi@<device>`) for the agent's pass. A human edit and an agent edit are never merged into one untagged line — authorship matters as much for the agent's side of the room as for GLG's.
 
 ## One round
 
@@ -40,7 +40,7 @@ The text is the center. The image is not a generic illustration or an afterthoug
    Give the round a short scene name, not a ticket name: e.g. `적토마가 멈춰 선 플랫폼`, `연구가 아닌 물음의 문`. State whether this round is **원석 회수**, **글 수선**, **그래프 잇기**, or **세계화**. A round may touch all four, but names its center.
 
 3. **Read the living neighborhood.**
-   Read the candidate, its history, raw source, and 2–3 relevant meta/notes. Search nearby `:PROMPT:` headings and the current GLGMAN Universe language before proposing an image prompt. Also check recurring image drift from recent beads: naked/quadruped fox, sliced GLGMAN body, sword leakage, readable text leakage, generic infographic drift, or scene objects that reverse the document's meaning. Do not invent citations or overwrite a prior room's history.
+   Read the candidate, its 히스토리, raw source, and 2–3 relevant meta/notes. Search nearby `:PROMPT:` headings and the current GLGMAN Universe language before proposing an image prompt. Also check recurring image drift from recent beads: naked/quadruped fox, sliced GLGMAN body, sword leakage, readable text leakage, generic infographic drift, or scene objects that reverse the document's meaning. Do not invent citations or overwrite a prior room's 히스토리.
 
 4. **Show the six gates before editing.**
    - raw source and exact-match status

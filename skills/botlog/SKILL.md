@@ -26,7 +26,7 @@ Default = botlog. Use llmlog when: "지침 남겨", "전달해", "llmlog", deleg
 
 | Found | Action |
 |-------|--------|
-| Related note exists | Add history + new heading to existing note (emacs skill) |
+| Related note exists | Add 히스토리 + new heading to existing note (emacs skill) |
 | Similar but different | Create new note + link to existing |
 | Nothing found | Create new note |
 
