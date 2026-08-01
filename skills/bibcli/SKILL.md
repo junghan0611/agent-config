@@ -1,89 +1,112 @@
 ---
 name: bibcli
-description: Search/view local BibTeX entries. If only a source URL exists, use zotero-config (`server start` → `save` → `bib sync` → `bibcli search/show`) to recover a citation key before leaving orphan `#+print_bibliography:`.
+description: "로컬 BibTeX(메타 서지 SSOT) 검색/조회. Zotero Cloud는 캡처 금고일 뿐 — 폰·브라우저로 담근 직후면 bib sync를 먼저 한다. URL만 있으면 zotero-config save --sync --json. 책 KDC는 신중, 웹·영상은 pull. orphan #+print_bibliography: 금지."
 ---
 
-# bibcli — local search + Zotero companion workflow
+# bibcli — local meta-bib SSOT + Zotero companion
 
 Binary: `{baseDir}/bibcli`  
-Agent default: use explicit `--dir ~/org/resources`.
+Agent default: explicit `--dir ~/org/resources`.  
+Repo doctrine (boundaries, book vs web, mutation):  
+`~/repos/gh/zotero-config/.claude/skills/zotero-config/SKILL.md`
+
+## 0) Doctrine (read before searching)
+
+```text
+Zotero Cloud  = capture vault (phone / browser / save)
+~/org/resources/*.bib  = meta bibliography SSOT  ← bibcli reads only this
+```
+
+- bibcli never talks to Zotero. If the item is only in Cloud, **it does not exist
+  for bibcli** until pull.
+- **External-capture reflex:** GLG says they just saved on phone/browser, or
+  asks for a “just added” YouTube/blog/web item → run sync **without being asked**:
+
+```bash
+cd ~/repos/gh/zotero-config && ./run.sh bib sync
+```
+
+  then `bibcli search` / `show`. `bib sync` is **read-only** on Cloud.
+- **Books** = carefully curated KDC/author keys. Do not bulk-automate; `lookup`
+  is assistive. **Online/Video/web** = capture freely, pull with sync.
+- Out of scope: YouTube starred lists, random scrapers, MCP, PDF pipelines.
+  Only what entered Zotero may become SSOT.
+- Never hand-edit `*.bib`. Never leave orphan `#+print_bibliography:`.
 
 ## 1) Core bibcli (read-only, local BibTeX)
 
 | Need | Command | Notes |
 |---|---|---|
-| Search existing entries | `{baseDir}/bibcli search "query words" [--type Online] --dir ~/org/resources --max 10` | AND search over citation key, title, author, keywords, date, abstract, **url** |
+| Search existing entries | `{baseDir}/bibcli search "query words" [--type Online] --dir ~/org/resources --max 10` | AND over key, title, author, keywords, date, abstract, **url** |
 | Show one entry | `{baseDir}/bibcli show "citation-key" --dir ~/org/resources` | Full JSON incl. url / isbn / abstract / keywords |
-| List by type | `{baseDir}/bibcli list --type Book --dir ~/org/resources --max 20` | Types: `Book`, `Online`, `Software`, `Reference`, `Video`, `Article`, `Misc` |
+| List by type | `{baseDir}/bibcli list --type Book --dir ~/org/resources --max 20` | `Book`, `Online`, `Software`, `Reference`, `Video`, `Article`, `Misc` |
 | Library stats | `{baseDir}/bibcli stats --dir ~/org/resources` | Sanity check local bib files |
-| Lookup book metadata | `{baseDir}/bibcli lookup 9791192300283` | data4library only; needs `DATA4LIBRARY_API_KEY` |
+| Lookup book metadata | `{baseDir}/bibcli lookup 9791192300283` | data4library assist only; needs `DATA4LIBRARY_API_KEY`; writes nothing |
 
-## 2) zotero-config companion workflow (writes to Zotero)
+## 2) Companion — pull vault or save URL
 
-Use this path when the note has a source URL but no citation key yet.
-**Preferred: one shot with `save --sync --json`** — it saves, runs `bib sync`,
-and returns the resolved `citationKey` deterministically. No title-grepping.
+### 2a) Phone/browser already saved → pull SSOT
+
+```bash
+cd ~/repos/gh/zotero-config && ./run.sh bib sync
+bibcli search "distinctive words or url fragment" --dir ~/org/resources --max 10
+```
+
+### 2b) New URL, need citation key now (one shot)
 
 ```bash
 cd ~/repos/gh/zotero-config
 ./run.sh server status || ./run.sh server start
 ./run.sh save --sync --json "https://example.com/article"
-# => { saved:[...], resolved:[{zoteroKey, citationKey, title, url, ...}] }
+# => { saved:[...], resolved:[{zoteroKey, citationKey, title, ...}] }
 ```
 
-Take `resolved[].citationKey` and drop it straight into the note. Optionally
-verify: `{baseDir}/bibcli show "citation-key" --dir ~/org/resources`.
+Use `resolved[].citationKey` in the note. Optional verify:
+`{baseDir}/bibcli show "citation-key" --dir ~/org/resources`.
 
-### Fallback (when `--sync --json` is unavailable)
+### Fallback (no `--sync --json`)
 
 | Step | Command |
 |---|---|
-| Save URL | `cd ~/repos/gh/zotero-config && ./run.sh save "https://example.com/article"` |
-| Sync BibTeX | `cd ~/repos/gh/zotero-config && ./run.sh bib sync` (read-only) |
-| Recover key | `{baseDir}/bibcli search "example.com/article" --dir ~/org/resources --max 5` — search the **URL** (exact); or distinctive title/author words |
-| Verify | `{baseDir}/bibcli show "citation-key" --dir ~/org/resources` |
+| Save URL | `cd ~/repos/gh/zotero-config && ./run.sh save "URL"` |
+| Sync | `./run.sh bib sync` |
+| Recover key | `bibcli search` by **URL** fragment or title words |
+| Verify | `bibcli show "key"` |
 
 ## Decision rule
 
 - Have citation key → `show`
-- Need an existing local source → `search`
-- Only have URL and the source should enter Zotero → `save --sync --json`, then use `resolved[].citationKey`
-- Do not leave `#+print_bibliography:` orphaned when one `save --sync --json` can fix it
+- Need existing local source → `search` (if just captured outside → **sync first**)
+- Only have URL and it should enter the vault → `save --sync --json`
+- Do not leave `#+print_bibliography:` orphaned when one save/sync can fix it
 
 ## Practical bib-note pattern
-
-```bash
-cd ~/repos/gh/zotero-config
-./run.sh server status || ./run.sh server start
-./run.sh save --sync --json "https://example.com/article"
-# read resolved[].citationKey from the JSON output
-```
-
-Then add:
 
 ```org
 #+reference: citation-key
 #+print_bibliography:
 ```
 
-## Important notes
+## Mutation boundary
 
-- **Mutation boundary:** `save` is the *only* step that writes to Zotero Cloud
-  (it creates the item). `bib sync` / `bib full` are **read-only** — they pull the
-  Cloud down and regenerate `output/*.bib`, never PATCH back. Pinning generated
-  keys onto Cloud items is a separate, explicit `./run.sh bib writeback`.
-- Plain `save` returns Zotero item keys, not citation keys — prefer `save --sync --json`, which resolves the citation key for you (from the generated `.bib` / `.sync/new-keys.json`; no Cloud write needed).
-- `bibcli search` **does** match raw `url` — recovering a key by a distinctive URL fragment is exact and beats guessing title words.
-- Never hand-edit `output/*.bib` or `~/org/resources/*.bib`: they are generated and clobbered on the next `bib full`. To add a source, create a Zotero item (`save` / browser Connector), then sync — one renderer keeps every entry consistent.
-- `lookup` helps book / ISBN workflows, but writes nothing to Zotero.
-- If `server start` fails, expected repo: `~/repos/3rd/translation-server`.
+| Action | Cloud | Notes |
+|--------|-------|-------|
+| `bib sync` / `bib full` | read-only pull | Everyday reflex after external capture |
+| `save` / browser Connector | creates item | Only routine write path |
+| `bib writeback` | PATCH keys | Explicit only (e.g. curated book KDC). Never side-effect of sync |
+| hand-edit `*.bib` | — | Forbidden — clobbered on next full |
+
+Plain `save` returns Zotero item keys, not citation keys — prefer
+`save --sync --json`. `bibcli search` matches raw `url`.
+
+If `server start` fails, expected repo: `~/repos/3rd/translation-server`.
 
 ## Environment
 
 | Variable | Used by | Purpose |
 |---|---|---|
 | `BIBCLI_DIR` | bibcli | Default BibTeX directory |
-| `DATA4LIBRARY_API_KEY` | `lookup` | Book metadata / KDC lookup |
+| `DATA4LIBRARY_API_KEY` | `lookup` | Book metadata / KDC **assist** (not full autopilot) |
 | `ZOTERO_API_KEY` | `./run.sh save`, `./run.sh bib *` | Zotero Web API |
 | `ZOTERO_USER_ID` | `./run.sh save`, `./run.sh bib *` | Zotero user/library |
 | `ZOTERO_TRANSLATION_SERVER` | `./run.sh save` | Default: `http://localhost:1969` |
