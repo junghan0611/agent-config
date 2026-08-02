@@ -1,86 +1,134 @@
 ---
 name: bibcli
-description: "로컬 BibTeX(메타 서지 SSOT) 검색/조회. Zotero Cloud는 캡처 금고일 뿐 — 폰·브라우저로 담근 직후면 bib sync를 먼저 한다. URL만 있으면 zotero-config save --sync --json. 책 KDC는 신중, 웹·영상은 pull. orphan #+print_bibliography: 금지."
+description: "로컬 BibTeX SSOT 검색/조회 + URL 원샷 캡처. 폰/브라우저 담근 직후 bib sync. URL만 있으면 zotero-config save→에이전트 스타일·KDC 키 판단→pin --sync 로 같은 세션에 인용 키 확정(시점 분리 금지). orphan #+print_bibliography: 금지."
 ---
 
 # bibcli — local meta-bib SSOT + Zotero companion
 
 Binary: `{baseDir}/bibcli`  
 Agent default: explicit `--dir ~/org/resources`.  
-Repo doctrine (boundaries, book vs web, mutation):  
+Repo doctrine (book ritual, pin contract, dateAdded):  
 `~/repos/gh/zotero-config/.claude/skills/zotero-config/SKILL.md`
 
-## 0) Doctrine (read before searching)
+**org 담당 에이전트 기본 스킬.** “서지 없다”로 멈추지 말고, URL이 있으면 아래 원샷으로 키를 만든다.
+
+## 0) Doctrine
 
 ```text
-Zotero Cloud  = capture vault (phone / browser / save)
+Zotero Cloud  = capture vault
 ~/org/resources/*.bib  = meta bibliography SSOT  ← bibcli reads only this
 ```
 
-- bibcli never talks to Zotero. If the item is only in Cloud, **it does not exist
-  for bibcli** until pull.
-- **External-capture reflex:** GLG says they just saved on phone/browser, or
-  asks for a “just added” YouTube/blog/web item → run sync **without being asked**:
-
-```bash
-cd ~/repos/gh/zotero-config && ./run.sh bib sync
-```
-
-  then `bibcli search` / `show`. `bib sync` is **read-only** on Cloud.
-- **Books** = human ritual (hand KDC-sense keys in Zotero). Do not bulk-automate.
-  `lookup` is candidate assist only — **never part of `bib sync`**. Full ritual:
-  `zotero-config` skill §1b. `dateAdded`/`dateModified` are sacred.
-  **Online/Video/web** = capture freely, pull with sync.
-- Out of scope: YouTube starred lists, random scrapers, MCP, PDF pipelines.
-  Only what entered Zotero may become SSOT.
+- bibcli never talks to Zotero. Cloud-only items do not exist until pull/pin-sync.
+- **External-capture reflex:** phone/browser just saved → `bib sync` without asking, then search.
+- **URL in hand (org note needs cite now):** do **not** split capture and keying across sessions.
+  Finish with a stable unique `citationKey` in SSOT before writing `#+reference:`.
+- **Books:** agent judges style + approximate KDC key (API optional). Not bulk autopilot.
+  `dateAdded` is sacred — only `pin` whitelist PATCH.
 - Never hand-edit `*.bib`. Never leave orphan `#+print_bibliography:`.
 
-## 1) Core bibcli (read-only, local BibTeX)
+## 1) Core bibcli (read-only, local)
 
-| Need | Command | Notes |
-|---|---|---|
-| Search existing entries | `{baseDir}/bibcli search "query words" [--type Online] --dir ~/org/resources --max 10` | AND over key, title, author, keywords, date, abstract, **url** |
-| Show one entry | `{baseDir}/bibcli show "citation-key" --dir ~/org/resources` | Full JSON incl. url / isbn / abstract / keywords |
-| List by type | `{baseDir}/bibcli list --type Book --dir ~/org/resources --max 20` | `Book`, `Online`, `Software`, `Reference`, `Video`, `Article`, `Misc` |
-| Library stats | `{baseDir}/bibcli stats --dir ~/org/resources` | Sanity check local bib files |
-| Lookup book metadata | `{baseDir}/bibcli lookup 9791192300283` | data4library **candidate** only; needs `DATA4LIBRARY_API_KEY`; writes nothing; human confirms key in Zotero |
+| Need | Command |
+|---|---|
+| Search | `{baseDir}/bibcli search "words" [--type Book] --dir ~/org/resources --max 10` |
+| Show | `{baseDir}/bibcli show "citation-key" --dir ~/org/resources` |
+| List | `{baseDir}/bibcli list --type Book --dir ~/org/resources --max 20` |
+| Stats | `{baseDir}/bibcli stats --dir ~/org/resources` |
+| Lookup assist | `{baseDir}/bibcli lookup ISBN\|제목` — optional candidates only; may timeout |
 
-## 2) Companion — pull vault or save URL
+## 2) URL → citeable key (one session)
 
-### 2a) Phone/browser already saved → pull SSOT
+Org agent path when the note has a URL and SSOT lacks the source.
 
-```bash
-cd ~/repos/gh/zotero-config && ./run.sh bib sync
-bibcli search "distinctive words or url fragment" --dir ~/org/resources --max 10
-```
-
-### 2b) New URL, need citation key now (one shot)
+### 2a) Web / video / blog (fallback key often enough)
 
 ```bash
 cd ~/repos/gh/zotero-config
 ./run.sh server status || ./run.sh server start
-./run.sh save --sync --json "https://example.com/article"
-# => { saved:[...], resolved:[{zoteroKey, citationKey, title, ...}] }
+./run.sh save --sync --json "URL"
+# use resolved[].citationKey immediately
 ```
 
-Use `resolved[].citationKey` in the note. Optional verify:
-`{baseDir}/bibcli show "citation-key" --dir ~/org/resources`.
+### 2b) Book / needs GLG-style fields + KDC key (default for yes24 etc.)
 
-### Fallback (no `--sync --json`)
+```bash
+cd ~/repos/gh/zotero-config
+./run.sh server status || ./run.sh server start
+./run.sh save --json "URL"
+# → saved[].zoteroKey , raw title/creators often dirty (yes24 pipes, 저/역)
+```
 
-| Step | Command |
+Agent then **in the same turn**:
+
+1. **Style** — clean title; fix creators (`name: 저자`, translator separate); date; ISBN; publisher; abstract; language; url.
+2. **Classify** — choose `citationKey` with KDC-sense + author code.  
+   Study neighbors: `{baseDir}/bibcli search "동저자|주제" --type Book --dir ~/org/resources`.  
+   Examples: `001.3-김74ㅁ`, `843.5-조68ㅍ2`. Perfect library OPAC match not required.  
+   **Uniqueness:** `{baseDir}/bibcli show "KEY"` must be *not found* (unless re-pinning same item).
+3. **Pin + pull**
+
+```bash
+./run.sh pin --sync --json '{
+  "zoteroKey": "FROM_SAVE",
+  "citationKey": "UNIQUE-KEY",
+  "title": "…",
+  "creators": [{"creatorType":"author","name":"…"}],
+  "date": "YYYY" ,
+  "publisher": "…",
+  "ISBN": "…",
+  "language": "ko",
+  "abstractNote": "…",
+  "url": "URL"
+}'
+# → { citationKey, synced:true, dateAdded preserved }
+```
+
+4. **Verify + cite**
+
+```bash
+{baseDir}/bibcli show "UNIQUE-KEY" --dir ~/org/resources
+# org:
+# #+reference: UNIQUE-KEY
+# #+print_bibliography:
+```
+
+### yes24 style cheatsheet
+
+| Raw | Styled |
 |---|---|
-| Save URL | `cd ~/repos/gh/zotero-config && ./run.sh save "URL"` |
-| Sync | `./run.sh bib sync` |
-| Recover key | `bibcli search` by **URL** fragment or title words |
-| Verify | `bibcli show "key"` |
+| `제목 \| 저자 \| 출판사 - 예스24` | `제목` |
+| creators `lastName=저, firstName=김정운` | `{"creatorType":"author","name":"김정운"}` |
+| empty date/ISBN | fill from page meta (`datePublished`, `books:isbn`) |
+| no citationKey | agent KDC-sense key, never leave final as `book-…` for books |
+
+### 2c) Already in vault, not in SSOT
+
+```bash
+cd ~/repos/gh/zotero-config && ./run.sh bib sync
+{baseDir}/bibcli search "…" --dir ~/org/resources --max 10
+```
 
 ## Decision rule
 
-- Have citation key → `show`
-- Need existing local source → `search` (if just captured outside → **sync first**)
-- Only have URL and it should enter the vault → `save --sync --json`
-- Do not leave `#+print_bibliography:` orphaned when one save/sync can fix it
+| Situation | Action |
+|---|---|
+| Have citation key | `show` |
+| Existing local source | `search` (external capture → sync first) |
+| URL, web/video | `save --sync --json` |
+| URL, book / styled key needed | `save --json` → style+KDC → `pin --sync` |
+| “서지 없어요” but URL in thread | **do 2a/2b now** — do not only report missing |
+
+## Mutation boundary
+
+| Action | Cloud | Notes |
+|--------|-------|-------|
+| `bib sync` / `bib full` | read-only | After external capture; network-free render |
+| `save` | create item | Raw capture |
+| `pin --sync` | whitelist PATCH | Style + citationKey; **never dateAdded**; uniqueness check |
+| `bib writeback` | key PATCH batch | Legacy; prefer `pin` for single items |
+| `enrich` | PATCH | Danger/legacy — not default |
+| hand-edit `*.bib` | — | Forbidden |
 
 ## Practical bib-note pattern
 
@@ -89,34 +137,17 @@ Use `resolved[].citationKey` in the note. Optional verify:
 #+print_bibliography:
 ```
 
-## Mutation boundary
-
-| Action | Cloud | Notes |
-|--------|-------|-------|
-| `bib sync` / `bib full` | read-only pull | Everyday reflex after external capture |
-| `save` / browser Connector | creates item | Only routine write path |
-| `bib writeback` | PATCH keys | Explicit only (e.g. curated book KDC). Never side-effect of sync |
-| hand-edit `*.bib` | — | Forbidden — clobbered on next full |
-
-Plain `save` returns Zotero item keys, not citation keys — prefer
-`save --sync --json`. `bibcli search` matches raw `url`.
-
-If `server start` fails, expected repo: `~/repos/3rd/translation-server`.
-
 ## Environment
 
-| Variable | Used by | Purpose |
-|---|---|---|
-| `BIBCLI_DIR` | bibcli | Default BibTeX directory |
-| `DATA4LIBRARY_API_KEY` | `lookup` | Book metadata / KDC **assist** (not full autopilot) |
-| `ZOTERO_API_KEY` | `./run.sh save`, `./run.sh bib *` | Zotero Web API |
-| `ZOTERO_USER_ID` | `./run.sh save`, `./run.sh bib *` | Zotero user/library |
-| `ZOTERO_TRANSLATION_SERVER` | `./run.sh save` | Default: `http://localhost:1969` |
+| Variable | Used by |
+|---|---|
+| `BIBCLI_DIR` | bibcli default dir (still pass `--dir ~/org/resources`) |
+| `ZOTERO_API_KEY` / `ZOTERO_USER_ID` | save, pin, bib |
+| `ZOTERO_TRANSLATION_SERVER` | save (default `http://localhost:1969`) |
+| `DATA4LIBRARY_API_KEY` | optional `lookup` only |
+
+Translation server repo if start fails: `~/repos/3rd/translation-server`.
 
 ## Output
 
-All bibcli output is JSON.
-- `search` / `list`: brief entries
-- `show`: full flattened entry
-- `stats`: counts per bib file
-- `lookup`: data4library candidates
+All bibcli output is JSON. `pin` / `save --json` also JSON on stdout.
