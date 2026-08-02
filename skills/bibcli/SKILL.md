@@ -7,7 +7,8 @@ description: "로컬 BibTeX SSOT 검색/조회 + URL 원샷 입수. 유튜브·�
 
 Binary: `{baseDir}/bibcli`  
 Agent default: `--dir ~/org/resources`  
-리포 오퍼레이터 상세: `~/repos/gh/zotero-config/.claude/skills/zotero-config/SKILL.md`
+리포 오퍼레이터 상세: `~/repos/gh/zotero-config/.claude/skills/zotero-config/SKILL.md`  
+공개 담당자 문서: `denote:20260304T105300` (§zotero-config) — 교리·경계가 바뀌면 그 방 갱신 (새 llmlog 금지)
 
 **역할:** GLG가 유튜브·책(yes24)·블로그·웹 URL만 넘기면, 이 스킬 하나로  
 Zotero 적소에 담고 → 로컬 SSOT에 키를 확정해 → org 글에 바로 쓴다.  
