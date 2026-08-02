@@ -27,8 +27,10 @@ cd ~/repos/gh/zotero-config && ./run.sh bib sync
 ```
 
   then `bibcli search` / `show`. `bib sync` is **read-only** on Cloud.
-- **Books** = carefully curated KDC/author keys. Do not bulk-automate; `lookup`
-  is assistive. **Online/Video/web** = capture freely, pull with sync.
+- **Books** = human ritual (hand KDC-sense keys in Zotero). Do not bulk-automate.
+  `lookup` is candidate assist only — **never part of `bib sync`**. Full ritual:
+  `zotero-config` skill §1b. `dateAdded`/`dateModified` are sacred.
+  **Online/Video/web** = capture freely, pull with sync.
 - Out of scope: YouTube starred lists, random scrapers, MCP, PDF pipelines.
   Only what entered Zotero may become SSOT.
 - Never hand-edit `*.bib`. Never leave orphan `#+print_bibliography:`.
@@ -41,7 +43,7 @@ cd ~/repos/gh/zotero-config && ./run.sh bib sync
 | Show one entry | `{baseDir}/bibcli show "citation-key" --dir ~/org/resources` | Full JSON incl. url / isbn / abstract / keywords |
 | List by type | `{baseDir}/bibcli list --type Book --dir ~/org/resources --max 20` | `Book`, `Online`, `Software`, `Reference`, `Video`, `Article`, `Misc` |
 | Library stats | `{baseDir}/bibcli stats --dir ~/org/resources` | Sanity check local bib files |
-| Lookup book metadata | `{baseDir}/bibcli lookup 9791192300283` | data4library assist only; needs `DATA4LIBRARY_API_KEY`; writes nothing |
+| Lookup book metadata | `{baseDir}/bibcli lookup 9791192300283` | data4library **candidate** only; needs `DATA4LIBRARY_API_KEY`; writes nothing; human confirms key in Zotero |
 
 ## 2) Companion — pull vault or save URL
 
