@@ -66,7 +66,7 @@ Agent then **in the same turn**:
    Study neighbors: `{baseDir}/bibcli search "동저자|주제" --type Book --dir ~/org/resources`.  
    Examples: `001.3-김74ㅁ`, `843.5-조68ㅍ2`. Perfect library OPAC match not required.  
    **Uniqueness:** `{baseDir}/bibcli show "KEY"` must be *not found* (unless re-pinning same item).
-3. **Pin + pull**
+3. **Pin + pull** (also files Zotero collection: Book → N00-… from KDC digit)
 
 ```bash
 ./run.sh pin --sync --json '{
@@ -81,7 +81,8 @@ Agent then **in the same turn**:
   "abstractNote": "…",
   "url": "URL"
 }'
-# → { citationKey, synced:true, dateAdded preserved }
+# → { citationKey, collections:[Book, 000-정보|…], synced:true, dateAdded preserved }
+# Leaves Unfiled Items. Optional: fileUnder, collections, noCollections.
 ```
 
 4. **Verify + cite**
