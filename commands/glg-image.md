@@ -15,8 +15,8 @@ Workflow:
    - blank line
    - scene prompt
 5. Never call `generate_image` with the scene prompt alone.
-6. Default model: `gemini-3.1-flash-image-preview`.
-7. Default save mode: `global`.
+6. Default path: skill `glg-image` / `gemini-image-gen.mjs` with **`--model lite`** (`gemini-3.1-flash-lite-image`) @ **1K**. Escalate to `--model flash` @ 1K if locks fail; optional grok. No auto-2K/Pro.
+7. Default save: `~/screenshot/YYYYMMDDTHHMMSS--slug__brand_<geminilite|geminiflash|grok>.jpg` (maker tag required).
 8. Use the aspect ratio requested by the user. If unspecified, infer the best ratio from the scene.
 9. After generation, return:
    - the saved image path
