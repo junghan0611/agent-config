@@ -1,6 +1,6 @@
 ---
 name: agenda
-description: "에이전트 어젠다 — reverse datetree에 타임스탬프 엔트리 추가. 에이전트 활동을 org-agenda에서 볼 수 있게 기록. Use when starting work, completing a task, or any notable activity to stamp. '도장', 'stamp', '기록', 'agenda에 찍어'."
+description: "에이전트 어젠다 — reverse datetree에 타임스탬프 엔트리 추가. 기본 도장은 사용자가 요청한 git push 성공 후 1회이며 commit/tag-release 스킬이 호출한다. GLG가 명시적으로 '도장', 'stamp', '기록', 'agenda에 찍어'라고 요청할 때만 그 밖의 도장을 남긴다."
 user_invocable: true
 ---
 
@@ -62,12 +62,15 @@ agenda-stamp.sh "title" "pi:commit" "oracle" --body "text"
 
 ## When to Stamp
 
-| Moment | Title pattern | Tags |
-|--------|--------------|------|
-| Session start | "session start" | `pi` |
-| Task complete | "what was done" | `pi:topic` |
-| After commit | "repo: commit msg [[URL][SHA]]" | `pi:commit:reponame` |
-| Session end | "session end" | `pi` |
+**Default: stamp exactly once after a user-authorized git push succeeds.** The `commit` skill
+owns this path; `tag-release` owns release stamps. A local commit is not a stamp event.
+
+| Moment | Action |
+|--------|--------|
+| User-authorized git push succeeds | Stamp once with the public commit link (`pi:commit:<repo>`). |
+| Release tag succeeds | Let `tag-release` stamp once (`pi:release:<repo>`). |
+| GLG explicitly requests a stamp | Stamp the requested meaningful event. |
+| Session start/end, task completion, local commit | **Do not stamp.** |
 
 ## Output Format
 
@@ -161,6 +164,6 @@ This is a temporary interface workaround until a dedicated task-hub API exists.
 
 - Files auto-created per device in `~/org/botlog/agenda/`
 - Agenda = shared bulletin board. Stamps = posts. Agents = residents.
-- Don't stamp too often — meaningful activity units only
+- Do not stamp routine activity. Outside the post-push / release path, an explicit GLG request is required.
 - For Entwurf operations, **start from `agent-org-agenda-day/week/todos` before any raw file read**.
 - If Emacs raw file read is blocked for `~/sync/org/...`, that is an interface limitation, not a cue to keep poking the same API.
