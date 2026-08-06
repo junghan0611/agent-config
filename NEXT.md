@@ -3,11 +3,14 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-> NOW: active ⓪ **entwurf-peek 수선 — PM 답 받음. 문서는 지금, 파서/fixture는 mux-placement 랜딩 후**
-> (아래 [2026-08-06]), ①ʹ **Upstage provider — Solar Pro 4 등록 완료(512K), Solar Open 2 승인 대기**
-> (아래 [2026-07-30], issue #17), ① **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
-> ② 설치면 소유 경계 — entwurf 이관 옛 소유자 cleanup (issue #46),
-> ③ pi-chat Add-group blocker, ④ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
+> NOW: active ⓪ **entwurf-peek 파서 수선 — 재료 대기.** 문서 정정은 끝났고, 파서/fixture는
+> entwurf `mux-placement` 랜딩 후 PM이 넘길 acceptance transcript로 한다. **임의 샘플 금지**
+> (아래 [2026-08-06]), ① **Solar Open 2 계정 승인 대기** (아래 [2026-07-30], issue #17),
+> ② **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
+> ③ 설치면 소유 경계 — entwurf 이관 옛 소유자 cleanup (issue #46),
+> ④ pi-chat Add-group blocker, ⑤ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
+> `v2026.8.6`으로 닫힘: Upstage provider + Solar Pro 4(512K), timeline 스킬, exa-search 기본화,
+> 죽은 면 정리(telegram·gemini legacy·autoresearch·scripts), pi 설정 레퍼런스 단일화·소유권 분리.
 > 스킬면 SSOT·게이트·provenance와 gitcli/lifetract 시간 계약은 `v2026.7.14`로 닫힘.
 > 대기: 어쏠로그 수선 때 7/13 근거 회수(아래 [2026-07-14] 어쏠로그).
 > ⚠️ [2026-06-11] bibcli 항목은 **2026-07-14 결정과 방향이 반대다** — GLG 재판단 대기(아래).
@@ -59,6 +62,18 @@ peek은 heuristic **진단 손**이다. **placement 사실의 출처로 인용 �
 > replace legacy Session ID trace matching with exact fresh-call nonce → callback sender-envelope
 > correlation; keep trace heuristic and placement-non-authoritative.
 
+**곁가지 — `entwurf-dev` 인테이크 (2026-08-06):** entwurf 쪽이 개발용 스킬을 만들어
+`entwurf/.claude/skills/entwurf-dev/SKILL.md`에 두었다(untracked, S0 staged candidate를 건드리지
+않으려는 의도). fresh_call → callback nonce → `<sender_info>.sessionId` → `entwurf_v2` 전달까지의
+v2 워크플로를 감싸고, runtime guard(폐기 verb 노출 시 중단, transcript grep/polling 금지, nonce
+없이 최신 peer 추측 금지)를 품고 있다. **`entwurf-peek` 수선과 같은 계약을 반대편에서 쓰는
+물건이라, 파서를 고칠 때 이 스킬이 살아있는 참조가 된다.**
+
+우리 `./skills/` SSOT로 담아올지는 **아직 결정 아님.** 판단할 것: 이건 entwurf를 *개발할 때*
+쓰는 도구라 project-scope가 자연스러운데, 우리 SSOT는 6면이 아니라 5면 전체로 퍼진다. 모든
+하네스에 전역으로 깔 이유가 있는지 먼저 답해야 한다. GLG 의사는 "일단 개발스킬로 두고 나중에
+담아온다"이다.
+
 **fixture 계약 (PM 확답 2026-08-06):** 지금은 **부모 transcript artifact 경로가 없다** — acceptance가
 visible-first 재설계로 아직 착지 전이다. 랜딩 시 PM이 **scrubbed parent-transcript fixture의 exact
 path + digest**를 branch handoff에 남기고 우리에게 한 줄로 전달한다. 그때까지 파서 구현을 미루는
@@ -71,45 +86,32 @@ fixture가 갖춰야 할 것 — **받을 때 이걸로 검수한다**:
 ⚠️ **임의 샘플이나 개인 live transcript로 파서를 맞추지 말 것.** 전자는 계약과 어긋나고 후자는
 개인정보다. 경로를 못 받았으면 아직 시작할 때가 아니다.
 
-## [2026-07-30] Upstage provider — 설치·검증 완료, Solar Open 2 승인 대기
+## [2026-07-30] Upstage — Solar Open 2 계정 승인 대기
 
-> 트래킹: **issue #17** — 미검증 값 둘(컨텍스트·reasoning 척도), open2 승인 시 할 일
-> 체크리스트, pro3 실측 baseline이 거기 다 있다.
+> provider 자체와 Solar Pro 4(512K)는 `v2026.8.6`으로 닫혔다. 여기 남은 것은 **계정 게이트**뿐이다.
+> 트래킹: **issue #17** (open2 승인 시 체크리스트, pro3 실측 baseline).
 
-**된 것:** `pi-extensions/upstage-provider.ts` — `api.upstage.ai/v1`을 OpenAI 호환 provider로
-등록한다(Upstage 자신의 `hermes-upstage-setup.sh`와 같은 방식). `solar-pro3/pro2/mini` 3개가
-`pi --list-models`에 뜨고, 툴 호출·reasoning(high 287토큰 / off 0토큰)·스트리밍 usage·자동
-프롬프트 캐싱(cacheRead)까지 실측으로 확인했다. pi가 OpenAI 호환 엔드포인트에 자동 적용하는
-기본값 중 **Upstage가 거부하는 셋**(`store`, `role: "developer"`, `tools[].function.strict`)을
-compat으로 막은 것이 이 파일의 핵심이다 — 문서만 읽고 붙이면 전부 깨지는 자리다.
+**막힌 지점:** `solar-open2`가 모델 목록에 없고 직접 호출도 400(`invalid or no longer supported`).
+두 기기·두 키에서 같은 거부라 **키가 아니라 계정 게이트**다.
 
-thinkpad 설치도 끝났다(`./run.sh setup:links`) — 라이브 교집합이 실제로 도는 것까지 확인했다
-(캐시에 GA 8개, `solar-open2` 부재). `UPSTAGE_FORCE_MODELS`로 교집합 우회 손잡이를 달았고,
-확장 디렉토리에 매달려 있던 `control.ts` 심링크와 `.bak` 사본도 `setup_links`가 걷어낸다.
-오늘 실측 전부는 **issue #17 코멘트**에 정리돼 있다.
-
-**다음 한 걸음:** ① **콘솔 계정 확인** — 신청 폼에 적은 계정으로 로그인해 `solar-open2`가 보이는지,
-아니면 그 계정에서 새 키를 발급해 `~/.env.local`을 교체한다. API로는 계정을 알 수 없다
+**다음 한 걸음:** ① **콘솔 계정 확인** — 신청 폼에 적은 계정으로 로그인해 `solar-open2`가 보이는지
+확인하고, 아니면 그 계정에서 새 키를 발급해 `~/.env.local`을 교체한다. API로는 계정을 알 수 없다
 (`/v1/me`·`/v1/usage`·`/v1/account` 전부 404). ② 승인 여부는 한 줄로 찍힌다 —
-`UPSTAGE_FORCE_MODELS=solar-open2 pi --model upstage/solar-open2`, 미승인이면 400이 그대로 보이고
-승인되면 캐시를 지울 필요도 없이 바로 대화가 된다. ③ pro3로 entwurf 대화 테스트는 지금 가능하다.
+`UPSTAGE_FORCE_MODELS=solar-open2 pi --model upstage/solar-open2`. 미승인이면 400이 그대로 보이고,
+승인되면 캐시를 지울 필요도 없이 바로 대화가 된다.
+
+**승인되면 실측할 것:** 카탈로그의 open2 값 둘은 오늘 **문서 근거로** 고쳤다(컨텍스트 262144 —
+Upstage 설치 스크립트의 `SOLAR_CONTEXT`; reasoning 척도 — 문서의 open2 전용 행). 라이브 호출로
+확인한 게 아니므로, 승인되면 과대 `max_tokens` 프로브로 상한을 직접 받아둘 것(Pro 3의 131072과
+Pro 4의 524288을 그 방법으로 확인했다).
 
 **함정(키 교체마다 재발):** 옛 `UPSTAGE_API_KEY`가 env에 남은 프로세스는 새 키를 읽지 않는다
 (env-loader가 기존 env를 덮지 않는다) → 전 호출 401인데 GA 폴백이라 정상처럼 보인다. 유일한
 표식은 캐시 파일 부재다. 키를 바꾸면 장수 세션(tmux·pi)을 재시작할 것.
 
-**막힌 것 — Solar Open 2:** 목록에 없고 직접 호출도 400(`invalid or no longer supported`),
-`claude-upstage.sh`가 쓰는 `/v1/messages`는 404 `invalid_path`. 두 기기·두 키에서 같은 거부라
-키가 아니라 계정 게이트다 — 업스테이지 승인 대기. 공식 `for-agents` 문서에도 anthropic /
-messages / open2 언급이 0회다. 승인되면 실측할 것 둘: ① 컨텍스트가 1M인지 262144인지 — 과대
-`max_tokens` 요청의 에러 메시지가 상한을 알려준다(Pro 3의 131072을 그렇게 확인했다),
-② reasoning effort 척도가 Pro 3와 같은지.
-
-**기기별 setup:** `./run.sh setup` 이 `pi-extensions/*.ts`를 링크한다. `UPSTAGE_API_KEY`는
-`~/.env.local`(리포 밖)이라 기기마다 따로 넣어야 한다.
-
-**읽을 곳:** 실측 근거·단가 출처·미검증 항목은 전부 그 파일 상단 주석에 있다. apply Upstage
-문항 1 관문의 나머지 절반은 Document Parse 스킬(`~/repos/gh/apply/NEXT.md`).
+**기기별 setup:** `./run.sh setup`이 `pi-extensions/*.ts`를 링크한다. `UPSTAGE_API_KEY`는
+`~/.env.local`(리포 밖)이라 기기마다 따로 넣어야 한다. apply Upstage 문항 1 관문의 나머지 절반은
+Document Parse 스킬(`~/repos/gh/apply/NEXT.md`).
 
 ## [2026-07-14] 남은 공백 — dictcli provenance + timeline 저자명
 

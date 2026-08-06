@@ -7,6 +7,58 @@
 
 ## Unreleased
 
+## v2026.8.6 — 없는 것을 지시하던 문서와, 남의 것을 소유하던 설정
+
+### Added (Upstage Solar provider)
+
+* **`pi-extensions/upstage-provider.ts` — Upstage Solar를 OpenAI 호환 provider로 등록.** `api.upstage.ai/v1`을 pi의 `/model` 목록에 올린다. 이 파일의 핵심은 모델 목록이 아니라 **compat**이다: pi가 OpenAI 호환 엔드포인트에 자동 적용하는 기본값 중 Upstage가 거부하는 셋(`store`, `role: "developer"`, `tools[].function.strict`)을 막는다 — 문서만 읽고 붙이면 전부 깨지는 자리다. 등록은 `CATALOG ∩ GET /v1/models` 교집합이라 계정이 못 부르는 모델은 안 뜨고, 권한이 생기면 저절로 뜬다. `UPSTAGE_FORCE_MODELS`로 교집합을 우회할 수 있다(미승인 private beta를 "숨은 모델"에서 "보이는 에러"로 바꾸는 용도).
+
+* **Solar Pro 4 등록 (512K) + Solar Open 2 두 값 교정.** Pro 4는 2026-08-06 GA. 컨텍스트 **524,288**은 Upstage 자신의 `SOLAR_CONTEXT` 표 값이고, pro3의 131,072를 찾았던 것과 같은 방식(과대 `max_tokens` → 에러 메시지)으로 API에 직접 물어 독립 확인했다. 같은 날 실측: 병렬·멀티스텝 tool calling, 160K 토큰 프롬프트에서 바늘 2개 회수, 근거 없을 때 조항을 지어내지 않는 거절.
+
+  **reasoning 척도가 Pro 3의 역이다** — 필드를 생략하면 추론이 **켜져** 있고 `low`는 끄는 값이 아니라 켜는 값이다. `PRO3_THINKING`을 재사용했다면 pi의 `/thinking off`가 `"low"`를 보내 **추론이 없다고 믿는 세션에 추론 토큰을 계속 청구**했을 것이다 — 에러가 안 나서 안 보이는 종류다. `FULL_EFFORT_THINKING`이 그 척도를 담는다.
+
+  같은 매핑이 `solar-open2`에도 이미 틀려 있었고, Upstage 문서가 이제 그 모델에 전용 행을 준다. open2의 컨텍스트도 출시 블로그의 1M에서 **262,144**로 고쳤다 — Upstage 설치 스크립트가 그 값을 쓰고 모델을 256K로 표기한다. 1M은 웨이트 스펙이지 엔드포인트가 받는 값이 아니다. 둘 다 파일 안에 "미검증 추측, 재확인 요망"으로 표시돼 있던 값이다.
+
+  가격은 프로모(무료 → 90% 할인)가 아니라 **2026-09-11부터의 정가**를 박았다. 카탈로그에 시간 가변 가격이 없고, 이 repo는 이미 낮게 읽힌 비용 추정의 대가를 치른 적이 있다.
+
+### Added (skills & commands)
+
+* **`timeline` — GLG의 시간축 관측소.** 어느 세션·리포에서든 하루를 깊이 0/1/2/3(시간블록·저널헤딩·에이전트스탬프·커밋/노트)으로 한 KST 축 위에 세운다. `collect.py`가 LOCAL FULL(`events.jsonl`, 로컬·gitignore)을 만들고 `query.py`가 꺼낸다. 스크립트는 HOME 앵커라 CWD와 무관하게 돈다. 계약(고정 KST, 반개방 `[from,to)`, 자정은 시작일 귀속, 0건은 ok가 아님, sqlite 직접 열기 금지)을 스킬 문서가 들고 있어 재도출하다 틀리는 일을 막는다. 이후 projection이 **자신을 읽은 기계 이름을 적도록** 고쳤고, `garden2wikidocs`를 garden/product로 등록했다.
+
+* **`/authologplay` 커맨드** — 어쏠로그 유희 한 판(원석 → 가든 코어 글·연결·GLGMAN Universe 이미지).
+
+* **`glg-image` now carries its own Gemini image generator.** A zero-dependency Node CLI mirrors the pi `generate_image` REST path, loads `GEMINI_API_KEY` itself, accepts exact prompt files and explicit project output paths, and works from Claude Code/Codex/Antigravity without a native image tool. General document-image generation is the default; the GLGMAN world block is applied only when that universe is requested.
+
+### Changed (search surface)
+
+* **`exa-search`가 기본 웹 검색면, `brave-search`는 폴백.** Exa는 키워드·의도 검색을 모두 하고 직접 `fetch`가 막히는 페이지를 크롤러가 읽어준다(검색당 약 $0.007). Brave는 Exa가 싸게 주지 못하는 것으로만 자격을 얻는다 — 월 2000건 무료 한도의 대량 조회, 국가 스코프, freshness 창.
+
+### Fixed
+
+* **`brave-search` 병렬 호출 429 — 요금제 한도지 소진이 아니다.** 무료 플랜이 **1 req/sec**이라 병렬 호출이 실패했다. 호출을 직렬로 늦추고, 매 실행이 남은 월 쿼터를 stderr에 찍게 해서 "키가 죽었다"는 오진을 막는다.
+
+* **agenda 도장을 성공한 push 뒤로 한정.** 로컬 커밋에 도장을 찍으면 어젠다의 커밋 링크가 해석되지 않는다. 도장은 원격에 올라간 뒤에만 찍힌다.
+
+* **`tmux` 스킬 — 에이전트가 만든 세션이 사용자에게 보이게.** private socket(`-L`/`-S`)에 만든 세션은 살아 있어도 사용자의 `tmux ls`에 **안 보인다**. 기본 소켓만 쓰도록 못 박고, `-f /dev/null`(사용자 tmux.conf를 버려 스크롤백이 잘림), 출력 리다이렉트(pane이 빈 화면이 됨) 함정도 문서화했다.
+
+* **`run.sh` — 죽은 pi 확장 심링크와 `ensure_link` 백업 청소.**
+
+* **git-hooks: `junghan0611/apply`를 loose로 강제.** 이력서는 실제 고용주 이름을 적어야 한다. origin URL로 판정하며 시크릿 스캔은 그대로 켜둔다.
+
+### Docs
+
+* **`bibcli` — URL 원샷 입수 핸드북.** 유튜브·책·블로그·웹 URL을 주면 `save` → 스타일·키 판단 → `pin --sync`로 **같은 세션에** Zotero 적소 분류와 인용 키를 확정한다(시점 분리 금지). 책 경계를 zotero-config 의례와 맞추고, 외부 캡처 동기화 반사와 SSOT 교리를 적었으며, 검색 필드를 정정하고 `sync`를 read-only로 표시했다.
+
+* **역할 기반 조율(role-based coordination) 정의.** 조율은 모델·백엔드·지위가 아니라 **역할**이다. GLG가 어떤 형제를 조율자로 지명하면 그가 그 일의 라우팅 지점이 된다 — 저장소가 어디든, 각 세션을 누가 열었든. 교차 리뷰는 판결이 아니라 협업이며, 발견된 공백은 루프가 작동한 증거다.
+
+* **들여쓰기 기본을 탭으로.** 프로젝트 스타일/린터가 달리 요구하지 않는 한.
+
+* **`memory-sync` / `semantic-memory` — flock 잠금 반영, 자기 매칭 `pgrep` 안내 수정, 영어 본문화.**
+
+* **`emacs` — 멈춘 데몬 복구 절차와 `add-history`/`add-link` 계약 명시.**
+
+* **`gogcli` — blogger 면과 최소 스코프 인증 규칙.**
+
 ### Removed (surfaces with no consumer left)
 
 * **Telegram bridge surface retired — `pi-entwurf`의 소비자 소멸.** 이 트랜스포트를 쓰던 Oracle 상주 세션(`pi-entwurf`, tmux, `@glg_entwurf_bot`)이 은퇴했고, 그 계보의 저장소 `junghan0611/pi-telegram`은 2026-04-24에 아카이브됐다. 그래서 `setup_links`의 `telegram.json` 생성 블록과 `setup_npm`의 `pi install git:github.com/badlogic/pi-telegram`을 걷어냈고, setup은 이제 남아 있던 `~/.pi/agent/telegram.json`을 **지운다**. README의 Persistent Agent 절·Harness 표 행·생태계 표 행과 `pihome` 별칭도 함께 내렸다.
