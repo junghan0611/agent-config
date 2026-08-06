@@ -1018,6 +1018,87 @@ setup_git_hooks() {
   return 0
 }
 
+# --- setup:hermes — Hermes Agent, pinned and deliberately small ---
+#
+# Hermes is an independent agent runtime (its own gateway, state, cron, skills,
+# memory), evaluated here as a *self-learning benchmark* — the comparison target
+# is our AGENTS.md + skills + semantic-memory + botlog/NEXT loop. It is a
+# candidate, not adopted infrastructure, so nothing about it is declared in
+# nixos-config yet.
+#
+# Two choices below are the whole point, and both are easy to undo by accident:
+#
+#   Pinned to a tag, never fast-forwarded. THIRD_PARTY_PACKAGE_REPOS is the
+#     obvious home for this clone, but every entry there gets pull_repo_if_clean
+#     on `setup` and `update` — which would silently move the benchmark's
+#     subject between runs. A benchmark you cannot re-run against the same
+#     version is not a benchmark, so hermes stays out of that map on purpose.
+#   .#minimal plus the anthropic group, never .#full. `full` adds 18 optional
+#     groups including messaging (Telegram/Discord/Slack), voice and the web
+#     search backends; with those in the closure, "integrations stay off" is a
+#     configuration promise. With minimal they are simply absent and cannot be
+#     switched on by mistake. The one group added back is `anthropic`, because
+#     without it `hermes auth add anthropic --type oauth` logs in successfully
+#     and then fails at inference with ModuleNotFoundError — the openai SDK is
+#     a base dependency, so GPT (openai-codex) and Solar already work.
+#
+# Not part of `setup_all`: one device is evaluating this, and a cold build is
+# ~1000 derivations / ~12 minutes.
+HERMES_REPO="https://github.com/NousResearch/hermes-agent.git"
+HERMES_TAG="v2026.8.3"                       # = upstream release v0.20.0
+HERMES_EXTRA_GROUPS='[ "anthropic" ]'        # on top of .#minimal
+
+setup_hermes() {
+  section "Hermes Agent ($HERMES_TAG, minimal + anthropic)"
+
+  if ! command -v nix > /dev/null 2>&1; then
+    warn "nix not found — hermes install skipped"
+    return 0
+  fi
+
+  ensure_repo_at "$THIRD_REPOS" hermes-agent "$HERMES_REPO" || return 1
+  local dir="$THIRD_REPOS/hermes-agent"
+
+  # A dirty clone is someone's work in progress; moving HEAD under it loses
+  # more than this install is worth.
+  if repo_dirty "$dir"; then
+    warn "hermes-agent: dirty — leaving HEAD alone, not installing"
+    return 0
+  fi
+
+  if ! (cd "$dir" && git fetch --tags --quiet && git checkout --quiet "$HERMES_TAG"); then
+    fail "hermes-agent: cannot check out $HERMES_TAG"
+    return 1
+  fi
+  ok "hermes-agent: $HERMES_TAG ($(cd "$dir" && git rev-parse --short HEAD))"
+
+  # getFlake needs an absolute store-ish URL, and --impure because the override
+  # is applied outside the flake's own outputs. Upstream exposes `minimal` and
+  # `full` but nothing in between, so the variant is built here rather than by
+  # patching their flake — a local diff in a third-party clone would fight the
+  # tag checkout above on every run.
+  local expr="(builtins.getFlake \"git+file://$dir\").packages.\${builtins.currentSystem}.minimal.override { extraDependencyGroups = $HERMES_EXTRA_GROUPS; }"
+
+  # nix profile has no upgrade-in-place for an --expr entry; remove-then-add is
+  # the idempotent form. A missing entry is the normal first-run case.
+  nix profile remove hermes-agent > /dev/null 2>&1 || true
+
+  if ! nix profile add --impure --expr "$expr"; then
+    fail "hermes-agent: nix profile add failed"
+    return 1
+  fi
+
+  ok "hermes: $(hermes --version 2>/dev/null | head -1)"
+  log ""
+  log "State lives in ~/.hermes (sessions, skills, memories, SOUL.md) and is"
+  log "created on first run — remove it to reset the benchmark baseline."
+  log "Auth: hermes auth add openai-codex --type oauth   # ChatGPT subscription"
+  log "      hermes auth add anthropic    --type oauth   # Claude subscription"
+  log "      hermes auth list                            # env keys are auto-discovered"
+  log "Note: 'hermes login' is deprecated and is Nous Portal only."
+  return 0
+}
+
 # --- setup — 원커맨드: clone + build + link + pnpm ---
 
 setup_all() {
@@ -1100,6 +1181,10 @@ Usage: ./run.sh <command> [args]
   setup:git-hooks             글로벌 git 안전망 설치 (core.hooksPath)
                               → 공개 repo에 민감 단어/시크릿 commit/push 차단
                               → 정식 경로는 nixos-config rebuild. 이건 즉시 활성화용
+  setup:hermes                Hermes Agent 설치 (setup에 포함 안 됨 — 명시 호출)
+                              → 태그 고정(HERMES_TAG), .#minimal + anthropic만
+                              → Claude/GPT/Solar 되고 messaging·voice는 클로저에 없음
+                              → 자기학습 루프 벤치마크 후보. nixos-config 미등록
   update                      추적 리포 일괄 pull (dirty면 skip) — setup은 pull 안 함
 
 === 테스트 ===
@@ -1150,6 +1235,8 @@ case "${1:-help}" in
     setup_npm ;;
   setup:git-hooks|setup:hooks)
     setup_git_hooks ;;
+  setup:hermes)
+    setup_hermes ;;
   update)
     update_repos ;;
 
