@@ -248,13 +248,13 @@ Bridges: [pi-telegram](https://github.com/badlogic/pi-telegram) (production — 
 alias claude-tg='claude --channels plugin:telegram@claude-plugins-official'
 alias claude-tgd='claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions'
 
-# pi garden launcher helper (entwurf 0.9.0): every --entwurf-control
-# resident session must be born with a garden-native session id.
-_pi_garden_pi() {
-  local sid
-  sid="$($HOME/repos/gh/entwurf/run.sh new-session-id)" || return
-  command pi --session-id "$sid" "$@"
-}
+# pi garden launcher helper — a --entwurf-control session needs NO id injection.
+# pi mints its own session id (a uuidv7 is normal), session_start attaches it to
+# its meta-record, and the RECORD mints the garden id and keys the control socket
+# on it. The old `--session-id "$(run.sh new-session-id)"` form was retired in
+# entwurf #50 C2; it gave a session two address-shaped strings, only one of which
+# was an address. The wrapper is kept only so the variants below stay one edit wide.
+_pi_garden_pi() { command pi "$@"; }
 
 # pi: presence agent variant (Telegram bridge)
 pihome() { _pi_garden_pi --entwurf-control --telegram "$@"; }
