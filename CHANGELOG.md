@@ -287,7 +287,7 @@
 
 * **Fix — `go-to-bed` quiet hours shortened to 5am.**
 
-## v2026.6.6
+## v2026.6.6 — 심볼릭 링크가 지우던 남의 설정, 가든 아이디로 모인 주소
 
 * **`~/.claude/settings.json` is no longer symlinked on workstations — it is merged.** The live file is co-owned with pi-shell-acp's meta-bridge installer (disjoint keysets), and a symlink is whole-file ownership: the next writer's atomic rename silently clobbers the other side, which is why a stale meta-bridge block kept resurfacing as a dirty working tree. `run.sh setup` now injects only the agent-config keyset via a new `merge_settings` helper (`jq` `existing * fragment` — recursive object merge, array replace, legacy symlink auto-dereferenced, atomic write, idempotent). The former `claude/settings.json` is renamed to `claude/settings.fragment.json` and carries agent-config keys only. Server devices have no meta-bridge, so they stay a single-owner symlink to `claude/settings.server.json`.
 
@@ -305,7 +305,7 @@
 
 * **Fix — `git-hooks` scans only new-to-remote commits on a new-ref push,** instead of treating an entire new branch's history as freshly "added" lines.
 
-## v2026.6.1
+## v2026.6.1 — Antigravity·Codex에도 같은 다리를 놓다
 
 * **Claude Code direct surface now carries pi-style emacs keybindings.** `claude/keybindings.json` mirrors the gaps `pi/keybindings.json` covers that Claude Code actually exposes as configurable actions: `shift+enter` → newline and `ctrl+/` → undo in the Chat context, plus `ctrl+n`/`ctrl+p` → autocomplete next/previous alongside the existing `alt+j`/`alt+k`. The remaining emacs motions (`ctrl+a/e/b/f/k/u/w/d`, word/line ops, yank) are already built into Claude Code's readline-style input and are not re-exposed as rebindable actions, so only the deltas are added here.
 
