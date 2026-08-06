@@ -9,7 +9,7 @@
 
   "_common": {
     "defaultProvider": "openai-codex",
-    "defaultModel": "gpt-5.5",
+    "defaultModel": "gpt-5.6-terra",
     "hideThinkingBlock": false,
     "defaultTheme": "glg-dark",
     "theme": "glg-dark",
