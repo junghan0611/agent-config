@@ -68,9 +68,11 @@ const SOLAR_COMPAT = {
  * pi thinking level → Upstage reasoning_effort. null hides a level pi offers
  * that Upstage has no distinct value for, so `/thinking` only shows real steps.
  *
- * Solar Pro 3 reasons by default and turns it off with "low"; Solar Pro 2 is
- * the inverse — off by default ("minimal"), on only at "high", with its own
- * "medium"/"low" documented as aliases of high/minimal, so neither is exposed.
+ * Which values switch reasoning is per-model, and Upstage publishes the matrix
+ * ("Reasoning Effort" in their agent docs). Solar Pro 3 and Pro 2 are both OFF
+ * when the field is omitted, turn off on "minimal"/"low" and on at
+ * "medium"/"high"; Pro 2 additionally never returns visible reasoning text.
+ * Only the distinct steps are exposed below.
  */
 const PRO3_THINKING = {
 	off: "low",
@@ -90,6 +92,30 @@ const PRO2_THINKING = {
 	high: "high",
 	xhigh: null,
 	max: null,
+} as const;
+
+/**
+ * The newer scale, and the inverse of the Pro 3 row above: reasoning is ON when
+ * reasoning_effort is omitted, "none"/"minimal" turn it off, and the whole
+ * low → max ladder is live. Upstage's docs publish this for solar-open2;
+ * solar-pro4 has no row yet (the docs still call Pro 3 the latest flagship) but
+ * measured identically on 2026-08-06 — omitted spent 252 reasoning tokens,
+ * "minimal" spent 0, and low/medium/high/xhigh/max were all accepted with
+ * reasoning on.
+ *
+ * Reusing PRO3_THINKING here would be a silent billing bug rather than an
+ * error: it maps pi's "off" to "low", which on these models turns reasoning ON.
+ * "minimal" is chosen over the equally valid "none" because every other row
+ * already uses it.
+ */
+const FULL_EFFORT_THINKING = {
+	off: "minimal",
+	minimal: null,
+	low: "low",
+	medium: "medium",
+	high: "high",
+	xhigh: "xhigh",
+	max: "max",
 } as const;
 
 type CatalogEntry = {
@@ -121,6 +147,31 @@ type CatalogEntry = {
  * calling, which makes it unusable as a coding-agent model.
  */
 const CATALOG: CatalogEntry[] = [
+	// Solar Pro 4 — GA 2026-08-06 07:00 KST, built for agent workflows. Its 512K
+	// window is Upstage's SOLAR_CONTEXT number and was independently confirmed by
+	// probing the API the same way Pro 3's was (oversized max_tokens →
+	// "maximum context length is 524288 tokens"). Verified the same day: parallel
+	// + multi-step tool calling, and two needles recovered from a 160K-token
+	// prompt.
+	//
+	// Cost is the standard rate that starts 2026-09-11 09:00 KST, deliberately
+	// not the promotional one — calls are free until 2026-08-11 09:00 KST and 90%
+	// off ($0.03/$0.12, $0.006 cached) for the month after. The catalog has no
+	// time-varying price, and this repo has already paid for a cost estimate that
+	// read low, so the row overstates spend during the promo rather than
+	// understating it after.
+	{
+		id: "solar-pro4",
+		name: "Solar Pro 4",
+		reasoning: true,
+		thinkingLevelMap: { ...FULL_EFFORT_THINKING },
+		contextWindow: 524288,
+		// A quarter of the window, the same fraction the other Pro rows use.
+		// Unlike Pro 3's 32768 this does not correspond to a published reasoning
+		// budget — Upstage has not documented one for Pro 4 yet.
+		maxTokens: 131072,
+		cost: { input: 0.3, output: 1.2, cacheRead: 0.06, cacheWrite: 0 },
+	},
 	{
 		id: "solar-pro3",
 		name: "Solar Pro 3",
@@ -153,25 +204,27 @@ const CATALOG: CatalogEntry[] = [
 	// beta runs (hence zero cost). 250B total / 15B active MoE, released
 	// 2026-07-08, Feb 2026 data cut-off, built for agentic tool use.
 	//
-	// Two values here are unverified because the account cannot call the model
-	// yet — recheck both the way the Solar Pro rows were checked, once granted:
+	// Both values the earlier revision flagged as unverified were wrong, and were
+	// corrected on 2026-08-06 from sources rather than from a grant:
 	//
-	//   contextWindow: 1M per the launch blog and the console dashboard. Note
-	//     the model page prints "Undisclosed context length" and Upstage's own
-	//     hermes-upstage-setup.sh hardcodes 262144 for the API, so if requests
-	//     start failing on long contexts, that 256K figure is the first thing to
-	//     try. Probe the real ceiling the way solar-pro3's 131072 was found:
-	//     send an oversized max_tokens and read the limit off the error.
-	//   thinkingLevelMap: the model page says "Reasoning mode available" but
-	//     documents no effort scale, so assume Solar Pro 3's (reasoning on by
-	//     default, "low" turns it off). Every value sent is a documented
-	//     reasoning_effort, so a wrong guess mismaps levels rather than erroring.
+	//   contextWindow was 1048576, taken from the launch blog. Upstage's own
+	//     hermes-upstage-setup.sh — the same SOLAR_CONTEXT table the Solar Pro
+	//     rows are lifted from, so the authoritative one for the API — says
+	//     262144, and its menu labels the model "(256K)". The 1M figure describes
+	//     the weights, not what this endpoint accepts. Still worth the oversized
+	//     max_tokens probe once the account is granted.
+	//   thinkingLevelMap was PRO3_THINKING, guessed because the model page
+	//     documents no effort scale. Upstage's agent docs now publish the matrix
+	//     and give solar-open2 its own row: reasoning ON when omitted, off on
+	//     "none"/"minimal", on across low → max. That is FULL_EFFORT_THINKING,
+	//     and the guess had pi's "off" sending "low" — a value that turns
+	//     reasoning on here.
 	{
 		id: "solar-open2",
 		name: "Solar Open 2",
 		reasoning: true,
-		thinkingLevelMap: { ...PRO3_THINKING },
-		contextWindow: 1048576,
+		thinkingLevelMap: { ...FULL_EFFORT_THINKING },
+		contextWindow: 262144,
 		maxTokens: 32768,
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 	},
@@ -182,15 +235,15 @@ const CATALOG: CatalogEntry[] = [
 		id: "solar-open2-preview",
 		name: "Solar Open 2 Preview",
 		reasoning: true,
-		thinkingLevelMap: { ...PRO3_THINKING },
-		contextWindow: 1048576,
+		thinkingLevelMap: { ...FULL_EFFORT_THINKING },
+		contextWindow: 262144,
 		maxTokens: 32768,
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 	},
 ];
 
 /** Models to register when /v1/models cannot be reached and no cache exists. */
-const GA_FALLBACK = ["solar-pro3", "solar-pro2", "solar-mini"];
+const GA_FALLBACK = ["solar-pro4", "solar-pro3", "solar-pro2", "solar-mini"];
 
 /**
  * An env var, falling back to ~/.env.local. env-loader.ts injects that file on
