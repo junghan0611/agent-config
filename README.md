@@ -89,6 +89,10 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 
 | Extension | Purpose |
 |-----------|---------|
+| `background-bash.ts` | `bash_background` — run a slow command without blocking; the agent is re-invoked with its exit code and output when it finishes |
+| `review.ts` | `/review` — review a PR, base branch, commit, uncommitted changes, or a folder |
+| `goal.ts` | `/goal` — long-running objective mode; keeps continuing itself until the objective is met or a budget is hit |
+| `continue.ts` | `shift+alt+enter` — send "continue" when the agent has stopped |
 | `env-loader.ts` | Load `~/.env.local` at session start |
 | `upstage-provider.ts` | Register Upstage Solar as an OpenAI-compatible provider |
 | `context.ts` | `/context` — show loaded extensions, skills, context usage |
@@ -100,6 +104,16 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 | `whimsical.ts` | Personality touches |
 
 **Direction: this surface shrinks.** A pi extension only exists inside pi — Claude Code, Codex, and Antigravity cannot see it. A skill runs everywhere. So capability that agents actually call is migrating extension → skill (semantic memory is the finished case: `skills/semantic-memory/` is a CLI wrapper every harness can invoke, while the pi-side `session_search` / `knowledge_search` registerTool remains a convenience, not the only door). What stays here is pi-local ergonomics — env loading, sound, footer, cost breakdown.
+
+The four extensions added on 2026-08-07 do not contradict that. None of them could be a skill: they hook pi's turn loop, which no CLI can reach from outside. Three (`review`, `goal`, `continue`) are adopted from [earendil-works/agent-stuff](https://github.com/earendil-works/agent-stuff) with local tuning; `background-bash` was written here.
+
+#### `background-bash` — why it exists
+
+pi's built-in bash tool is synchronous only. A slow `pnpm check` therefore either blocks the whole turn or gets parked in tmux, and parked work needs a human to come back and look at it. The observed failure mode is the agent announcing "I'll run pnpm check" and then ending the turn, waiting on a keystroke. Claude Code does not have this problem: `run_in_background` plus a completion notification re-invokes the model.
+
+pi has no completion hook — but it does not need one. `pi.sendMessage(..., { triggerTurn: true })` may be called from **any** async callback, and `agent-session.ts` explicitly runs a continuation for messages queued after a turn ends ("queued by agent_end extension handlers"). So the child process's `exit` handler queues the result and triggers a turn; if a turn is already running it is delivered as a follow-up. `goal.ts` uses the same mechanism from `agent_end`. The footer shows `⏳ n tasks` while anything is pending.
+
+Two things learned the hard way, recorded so they are not re-derived: spawn through pi's own `getShellConfig()` (it returns `bash -c`, and a login shell sources a profile that injects OSC escape bytes into model context), and `detached: true` + `process.kill(-pgid, …)` (signalling only the bash pid leaves a pipeline's descendants running).
 
 The one external pi package that remains is semantic-memory ([andenken](https://github.com/junghan0611/andenken)) — see [§ -config Ecosystem](#the--config-ecosystem).
 
@@ -190,6 +204,7 @@ Because Antigravity and Codex do not expose the same repo-managed custom command
 | Command | Purpose |
 |---------|---------|
 | `/recall` | Multi-axis context hydration without compact — daily memory-axis ritual |
+| `/discuss` | Planning interviewer — turns a rough idea into a plan by asking at most three questions a round, each with a recommended default. Does not implement |
 | `/boom` | Capture a crashed entwurf session into `.agent-reports/` for later triage |
 | `/pandoc-html` | Markdown/Org → Google Docs HTML/DOCX |
 | `/glg-image` | Image generation entry |
