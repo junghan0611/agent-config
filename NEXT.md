@@ -6,6 +6,8 @@
 > NOW: active ⓪ **entwurf-peek 파서 수선 — 재료 대기.** 문서 정정은 끝났고, 파서/fixture는
 > entwurf `mux-placement` 랜딩 후 PM이 넘길 acceptance transcript로 한다. **임의 샘플 금지**
 > (아래 [2026-08-06]), ① **Solar Open 2 계정 승인 대기** (아래 [2026-07-30], issue #17),
+> ①ʹ **Hermes 벤치마크 — 설치만 끝나고 한 줄도 재지 않았다.** 검수 매트릭스는
+> `HERMES.md`(아래 [2026-08-06] Hermes). 본체는 D축(자기학습 루프) 비교,
 > ② **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
 > ③ 설치면 소유 경계 — entwurf 이관 옛 소유자 cleanup (issue #46),
 > ④ pi-chat Add-group blocker, ⑤ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
@@ -15,6 +17,35 @@
 > 대기: 어쏠로그 수선 때 7/13 근거 회수(아래 [2026-07-14] 어쏠로그).
 > ⚠️ [2026-06-11] bibcli 항목은 **2026-07-14 결정과 방향이 반대다** — GLG 재판단 대기(아래).
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+
+## [2026-08-06] Hermes — 설치는 끝, 측정은 시작도 안 했다
+
+> `v2026.8.6`에 `setup:hermes`가 들어갔지만(`9953f04`) 그건 **설치면**이다.
+> 이 리포가 시험소인 이유는 재는 것이므로, 재지 않으면 후보로도 남지 못한다.
+>
+> 검수 매트릭스: **`HERMES.md`** — A(설치·격리) / B(추론 레일) / C(통신면 3종) /
+> D(자기학습 루프) / E(entwurf 축, 우리 것 아님).
+>
+> - **기억축은 이미 다 있다.** `session_search`(SQLite FTS5, LLM 호출 0)와
+>   `memory`(MEMORY.md/USER.md, always active) 둘 다 core 툴셋. extra 불필요.
+>   검색 extra(`exa`)를 넣어봤다가 되돌렸다 — 웹 검색은 측정 대상이 아니고,
+>   이 빌드에선 동작하지도 않는다(↓).
+> - **헤르메스의 기억 검색은 키워드(FTS5)다.** 우리가 벡터 하이브리드를 쓰는
+>   자리다. 그러므로 "자기개선"의 근거는 검색 품질이 아니라 스킬 생성·개선
+>   루프에 있고, **D1/D2가 진짜 관측 지점**이다. D7(비교 판정)이 목적.
+> - ⚠️ **이 빌드는 plugin.yaml을 하나도 설치하지 않는다** (소스 96개 → store 0개).
+>   번들 플러그인 전체가 등록 불가 — 웹 프로바이더, 외부 memory provider,
+>   **a2a 플랫폼**, copilot-acp. C축이 막혔고, D축이 살아 있는 이유도 이것이다
+>   (core 모듈이지 플러그인이 아니라서). **A5**가 이걸 가른다.
+> - 인증: `anthropic` OAuth는 **구독 쿼터 소진**(헤르메스 축 아님).
+>   `openrouter`/`copilot`/`upstage`가 자동 발견돼 있으니 그 레일로 돌린다(B1).
+> - 경계: 우리 스킬 SSOT를 `~/.hermes/skills`에 연결하지 않는다 — 주입하면 측정
+>   대상이 사라진다. `nixos-config` 선언 없음(후보이지 채택 아님).
+> - E축(A2A ↔ `entwurf_v2`)은 **entwurf 소유, PM은 GPT**. 지금 전달 안 함
+>   (entwurf가 mux-placement로 바쁨). 조사 결과는 `HERMES.md § E`에 보관.
+>
+> 다음 한 걸음: **D1(스킬 자동 생성 관측)** — 본체이고 아무것도 막지 않는다.
+> 곁가지로 A5(plugin.yaml 범위), B1(대안 레일 한 턴).
 
 ## [2026-08-06] entwurf-peek 수선 — 존재 이유 문장이 먼저 틀렸다
 

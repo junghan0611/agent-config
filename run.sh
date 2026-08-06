@@ -1039,13 +1039,26 @@ setup_git_hooks() {
 #     subject between runs. A benchmark you cannot re-run against the same
 #     version is not a benchmark, so hermes stays out of that map on purpose.
 #   .#minimal plus the anthropic group, never .#full. `full` adds 18 optional
-#     groups including messaging (Telegram/Discord/Slack), voice and the web
-#     search backends; with those in the closure, "integrations stay off" is a
+#     groups including messaging (Telegram/Discord/Slack), voice and every web
+#     backend; with those in the closure, "integrations stay off" is a
 #     configuration promise. With minimal they are simply absent and cannot be
 #     switched on by mistake. The one group added back is `anthropic`, because
 #     without it `hermes auth add anthropic --type oauth` logs in successfully
 #     and then fails at inference with ModuleNotFoundError — the openai SDK is
-#     a base dependency, so GPT (openai-codex) and Solar already work.
+#     a base dependency, so GPT (openai-codex), Solar and OpenRouter already
+#     work without it.
+#
+#     No search extra, deliberately. What this benchmark measures is Hermes's
+#     own claim — a self-improving loop over its own memory — and that axis
+#     needs no extra at all: `session_search` (SQLite FTS5 over the session
+#     DB, zero LLM calls) and `memory` (MEMORY.md/USER.md, "always active")
+#     are core toolsets, present and working in minimal. Web search is a
+#     different axis and not the subject. Adding `exa` was tried on
+#     2026-08-06 and reverted: it also does not work here, because this
+#     build drops every plugin manifest (see HERMES.md § 플러그인 매니페스트)
+#     and web providers are plugins. External memory providers (honcho,
+#     mem0, hindsight, ...) are plugins too and are dead for the same reason;
+#     that is a finding about the build, not a gap to paper over with extras.
 #
 # Not part of `setup_all`: one device is evaluating this, and a cold build is
 # ~1000 derivations / ~12 minutes.
