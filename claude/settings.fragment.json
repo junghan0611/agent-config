@@ -140,6 +140,9 @@
     "claude-code-setup@claude-plugins-official": false,
     "telegram@claude-plugins-official": false
   },
+  "skillOverrides": {
+    "claude-api": "off"
+  },
   "language": "Korean",
   "effortLevel": "high",
   "editorMode": "normal",

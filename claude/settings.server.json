@@ -91,6 +91,9 @@
       }
     }
   },
+  "skillOverrides": {
+    "claude-api": "off"
+  },
   "language": "Korean",
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
