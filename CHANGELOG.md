@@ -7,6 +7,38 @@
 
 ## Unreleased
 
+## v2026.8.7 — 걸어놓고 기다리던 턴이, 스스로 깨어난다
+
+### Added (pi가 못 하던 것 하나)
+
+* **`pi-extensions/background-bash.ts` — 느린 명령을 걸고 턴을 끝내면, 끝나는 순간 에이전트가 스스로 깨어난다.** pi의 내장 bash는 동기 전용이라 `pnpm check` 같은 것은 턴 전체를 막거나 tmux에 세워둘 수밖에 없었고, 세워둔 일은 사람이 다시 와서 봐야 했다. 실제로 관측된 실패 양상은 **"pnpm check 하겠습니다" 하고 턴이 끝나 키 입력을 기다리는 것**이었다. Claude Code에는 이 문제가 없다 — `run_in_background` + 완료 알림이 모델을 다시 부른다.
+
+  pi 코어에 완료 후크는 없다. **그런데 필요가 없다.** `pi.sendMessage(..., {triggerTurn:true})`는 아무 비동기 콜백에서나 부를 수 있고, `agent-session.ts`가 턴 종료 후 큐에 들어온 메시지에 대해 continuation을 돌린다고 주석으로 명시하고 있다("queued by agent_end extension handlers"). 그래서 자식 프로세스의 `exit` 핸들러가 결과를 큐에 넣고 턴을 켠다. 턴이 이미 돌고 있으면 follow-up으로 붙는다. `goal.ts`가 `agent_end`에서 쓰는 것과 같은 기전이다. 도구는 `bash_background` / `bash_background_check` 둘, 커맨드는 `/bg`, 상태표시줄은 `⏳ n tasks`.
+
+  **삽질로 배운 것 둘을 코드와 문서에 박아뒀다.** ① pi 자신의 `getShellConfig()`로 셸을 띄운다 — 그게 `bash -c`를 준다. `-lc`로 하드코딩했더니 로그인 프로파일이 실행되며 **OSC 이스케이프 바이트가 모델 컨텍스트에 주입**됐다. ② `detached:true` + `process.kill(-pgid, …)` — bash pid만 죽이면 `… | xargs sha256sum`이 계속 돈다. 5초 뒤 SIGKILL 승격은 **저장한 pgid**로 하며 리더 생사나 `task.child`에 걸지 않는다. 그 조건에 걸면 승격이 필요한 바로 그 경우(SIGTERM을 무시하고 리더보다 오래 사는 자식)에만 승격이 안 된다.
+
+  타임아웃은 실패와 다른 상태(`timedOut`)다 — 호출자가 요청한 종료를 "고쳐서 다시 돌려라"로 보고하면 에이전트가 없는 버그를 쫓는다. 모델에 가는 tail은 OSC/CSI/DCS/CR을 걷어내되(디스크 원본은 그대로), CSI 종료 바이트는 `A-Za-z`가 아니라 **`@-~`**다 — 아니면 `ESC[200~`가 새고, 반대로 `ESC(0`의 다음 인쇄 문자를 삼킨다.
+
+  잔여 위험은 감춘 게 아니라 적었다: 리더가 죽은 뒤 맨 pgid로는 소유권을 증명할 수 없어 5초 창 안에 재활용된 pgid는 맞을 수 있다. 없애려면 supervisor나 cgroup이 필요하다.
+
+### Added (agent-stuff에서 들여온 것)
+
+* **`review.ts` — pi에 없던 `/review`.** PR·기준 브랜치·커밋·미커밋 변경·폴더 스냅샷. Claude Code의 `/code-review`에 대응하는 자리가 pi에도 생겼다.
+
+* **`goal.ts` — 목표 모드.** 목표가 active인 동안 `agent_end`마다 continuation을 주입한다. 토큰·시간 예산, error/abort 정지, 세션 tree 재구성까지 들어 있다. 수선 1건: continuation 큐잉 실패 경로가 `hasUI` 확인 없이 `ctx.ui.notify()`를 불러서, **headless entwurf 세션에서 터지며 진짜 원인을 삼켰다** — continuation 유실이 가장 안 보이는 자리다.
+
+* **`continue.ts`** — `shift+alt+enter`로 멈춘 에이전트에 "continue" 한 번. `goal.ts`의 수동 짝.
+
+* **`commands/discuss.md` — `/discuss` 계획 인터뷰어.** 라운드당 질문 3개 이하, 각 질문에 권장 답안과 이유. 구현 금지.
+
+### Changed
+
+* **`env-loader` 상태표시줄 압축 — `env: 4 vars loaded` → `🔑4`.** footer 상태줄은 모든 확장이 나눠 쓰고 **잘린다**. 시작 시 한 번 정해지고 다시는 안 바뀌는 사실에 18칸을 쓸 자리가 아니다. `glg-footer.ts`는 손대지 않았다 — 업스트림 `footer.ts` 미러라 우리 로직을 넣으면 다음 동기화마다 충돌한다. 확장이 `setStatus`만 부르면 저절로 얹힌다.
+
+### Rejected
+
+* **`trust-github-repos.ts` — 들여왔다가 뺐다.** origin owner가 `junghan0611`이면 프로젝트 신뢰 프롬프트에 자동으로 "yes, 기억"을 답하는 확장이다. pi 소스만 보고 "싸고 확실한 이득"이라 판단했는데, `~/.pi/agent/trust.json`을 열어보니 **`/home/junghan/repos/gh`가 이미 통째로 True**였다. 하위 리포는 상속받으므로 대신 답할 프롬프트가 애초에 없다. 남는 효과는 `~/repos/gh` 밖 클론의 자동 신뢰뿐이고, 그건 이득이 아니라 owner 이름을 곧 실행 승인으로 바꾸는 일이다.
+
 ## v2026.8.6 — 없는 것을 지시하던 문서와, 남의 것을 소유하던 설정
 
 ### Added (Upstage Solar provider)

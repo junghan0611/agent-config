@@ -11,6 +11,8 @@
 > ② **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
 > ③ 설치면 소유 경계 — entwurf 이관 옛 소유자 cleanup (issue #46),
 > ④ pi-chat Add-group blocker, ⑤ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
+> `v2026.8.7`로 닫힘: `background-bash`(느린 명령 걸고 턴 종료 → 끝나면 자동 재호출),
+> agent-stuff에서 `review`·`goal`·`continue`·`/discuss` 이식, env 상태표시줄 압축.
 > `v2026.8.6`으로 닫힘: Upstage provider + Solar Pro 4(512K), timeline 스킬, exa-search 기본화,
 > 죽은 면 정리(telegram·gemini legacy·autoresearch·scripts), pi 설정 레퍼런스 단일화·소유권 분리.
 > 스킬면 SSOT·게이트·provenance와 gitcli/lifetract 시간 계약은 `v2026.7.14`로 닫힘.
