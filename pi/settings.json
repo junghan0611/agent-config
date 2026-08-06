@@ -1,28 +1,35 @@
 {
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.5",
-  "defaultThinkingLevel": "high",
-  "hideThinkingBlock": false,
-  "defaultTheme": "glg-dark",
-  "theme": "glg-dark",
-  "packages": [
-    "../../repos/gh/andenken",
-    "../../repos/gh/entwurf",
-    "git:github.com/badlogic/pi-telegram"
-  ],
-  "entwurfProvider": {
-    "appendSystemPrompt": false,
-    "showToolNotifications": true,
-    "skillPlugins": [
-      "/home/junghan/.pi/agent/claude-plugin"
-    ],
-    "mcpServers": {
-      "entwurf-bridge": {
-        "command": "/home/junghan/repos/gh/entwurf/mcp/entwurf-bridge/start.sh"
-      }
+  "_reference": "REFERENCE, not a live config. agent-config exists so a setting can be looked up rather than remembered. ~/.pi/agent/settings.json is a real, co-owned file: `run.sh setup:links` keyset-MERGES the resolved block below into it and NEVER symlinks it, because the pi runtime writes its own keys there and a symlink would let the runtime dirty this repo. The merge is EXISTING-WINS — a key already present live keeps its live value and setup only warns. So editing this file changes a fresh machine, not a running one; to change a running one, edit ~/.pi/agent/settings.json.",
+
+  "_layout": "_common applies everywhere. _workstation and _server are the device-class overlays; setup picks one via is_server_device() and merges it over _common. Keys starting with _ are documentation and are stripped before merging. This replaced a separate settings.server.json (2026-08-06) whose only real divergence had become defaultThinkingLevel — a whole second copy for one scalar. A new divergence belongs in an overlay, not in another file.",
+
+  "_not_ours": "Deliberately absent; do not add back. (1) `packages[]` in any form — see _no_packages. (2) `entwurfProvider.mcpServers` — entwurf's `./run.sh install` writes that surface for real, recording the bare stable bin `entwurf-bridge` (a ~/.local/bin symlink it owns). Pinning an absolute start.sh path here made a second owner that EXISTING-WINS could never reconcile, and it hard-coded a path entwurf is free to move. What stays under entwurfProvider is genuinely ours: `skillPlugins` points at the consumer plugin farm this repo builds. (3) `lastChangelogVersion`: the pi runtime's own changelog ack.",
+
+  "_no_packages": "This file declares NO pi packages, on purpose. entwurf registers itself (`./run.sh install` adds a user-scope citizen; `remove-user-scope` is the inverse), and andenken reaches agents as the `semantic-memory` skill, which every harness can invoke — so neither needs a settings entry from us. Keeping one was actively harmful: merge_settings compares arrays as a single leaf (jq object merge replaces arrays wholesale), so a live `packages` that legitimately grows when entwurf adds itself could never equal ours, and setup warned on every run. With the key absent there is nothing to compare and nothing to warn about. Consequence to know: on a machine where andenken was never registered as a pi package, pi's `session_search` / `knowledge_search` registerTool will not exist and the `semantic-memory` skill is the door. That is the intended shape — one surface every harness shares, not a pi-only convenience.",
+
+  "_common": {
+    "defaultProvider": "openai-codex",
+    "defaultModel": "gpt-5.5",
+    "hideThinkingBlock": false,
+    "defaultTheme": "glg-dark",
+    "theme": "glg-dark",
+    "entwurfProvider": {
+      "appendSystemPrompt": false,
+      "showToolNotifications": true,
+      "skillPlugins": [
+        "/home/junghan/.pi/agent/claude-plugin"
+      ]
+    },
+    "compaction": {
+      "enabled": false
     }
   },
-  "compaction": {
-    "enabled": false
+
+  "_workstation": {
+    "defaultThinkingLevel": "high"
+  },
+
+  "_server": {
+    "defaultThinkingLevel": "medium"
   }
 }

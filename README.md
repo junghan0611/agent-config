@@ -13,6 +13,12 @@ The two are not co-equal halves — entwurf is the destination, agent-config is 
 
 > The natural end state is a thin skills SSOT plus a test bench: **agent-config quiet means the pipeline is healthy.** See [ROADMAP § purpose shift](ROADMAP.md).
 
+### The bench is self-sufficient
+
+A proving ground that can only install what it already believes in is not a proving ground. This repo's `run.sh` stands up, pins, and tears down the things it evaluates **on its own** — including whole agent runtimes that compete with the stack it currently runs. Nothing about that path routes through entwurf, pi, or any harness under test.
+
+That self-sufficiency is what lets the subject matter widen. The bench started at "does this skill load in five harnesses" and now reaches questions like *does a runtime that writes its own skills beat a human-authored skill set* — see [§ Agent Runtime Bench](#agent-runtime-bench). The rule that makes those answers worth anything is boring and strict: **the subject is version-pinned and installed small**, so a re-run means the same thing twice.
+
 > **What this is NOT:** not a prompt collection, not a LangChain-style automation layer, not a generic multi-agent framework. It is the infrastructure that lets one human's memory, knowledge, and working surface survive across sessions, harnesses, and models.
 
 ## Official Reference Surface for entwurf
@@ -21,8 +27,8 @@ If `entwurf` asks “what does a real consumer look like?”, this repo is the a
 
 | Surface | Owned by | Reference in this repo |
 |---------|----------|------------------------|
-| ACP backend bridge | `entwurf` | consumed through `pi/settings.json` / `pi/settings.server.json` |
-| MCP servers (`entwurf-bridge`) | `entwurf` | wired in `entwurfProvider.mcpServers` |
+| ACP backend bridge | `entwurf` | consumed through `pi/settings.json` (`_common` + device overlay) |
+| MCP servers (`entwurf-bridge`) | `entwurf` | **not wired here** — entwurf's own install writes `entwurfProvider.mcpServers` and records its stable bin |
 | Entwurf install / auth / setup | `entwurf` | **not consumer-installed here** — this repo clones the source for dogfooding and hands install to entwurf's own `./run.sh setup`; a consumer install here would weaken entwurf's release gate |
 | Claude skill plugin farm | pair boundary | this repo builds one consumer layout at `~/.pi/agent/claude-plugin/`, then points `entwurf` at it |
 | Skills / prompts / themes / profile | `agent-config` | SSOT in `skills/`, `commands/`, `pi-themes/`, `home/AGENTS.md` |
@@ -55,10 +61,9 @@ The result: context survives across sessions, across harnesses, across models. O
 |---------|--------|--------|-------|
 | **pi + entwurf** (default Claude path) | andenken extension on pi side; Claude side gets full skill set via this repo's plugin farm | full skill set on both sides — `semantic-memory` mounted as a SKILL.md skill, plus `session_search` / `knowledge_search` registerTool on pi for direct calls | SDK isolation (`settingSources: []`); skills injected via `entwurfProvider.skillPlugins` |
 | **pi + anthropic** (`claude-opus-4-8` / `claude-sonnet-5`) | andenken extension (in-process LanceDB) | full skill set including `semantic-memory` skill; `session_search` / `knowledge_search` registerTool also available | Direct provider — available, not the current default |
-| **pi-entwurf** (Oracle, tmux) | andenken extension + pi-telegram | full skill set + Telegram bridge | Persistent Opus session via `@glg_entwurf_bot` |
 | **Claude Code** | andenken skill (CLI wrapper) | full skill set | CLAUDE.md + hooks; `entwurf-bridge` MCP available; settings tuned to mirror entwurf overlay (`defaultMode: default`, `autoMemoryEnabled: false`, binary/external tools deny-listed) |
-| **Codex CLI** | skill surface + repo-managed MCP registration | full skill set | `~/.codex/skills/` from SSOT + `codex/config.toml` carries `entwurf-bridge`; direct `entwurf` / `entwurf_resume` verified |
-| **Antigravity CLI (`agy`)** | repo-managed settings + skills + MCP | full skill set | `~/.gemini/antigravity-cli/{settings,skills,mcp_config}.json` from SSOT; direct `entwurf` / sync `entwurf_resume` verified |
+| **Codex CLI** | skill surface + repo-managed MCP registration | full skill set | `~/.codex/skills/` from SSOT + `codex/config.toml` carries `entwurf-bridge`; verified as a garden citizen from a direct session |
+| **Antigravity CLI (`agy`)** | repo-managed settings + skills | full skill set | `~/.gemini/antigravity-cli/{settings.json,skills}` from SSOT; `mcp_config.json` is entwurf-owned. Native-push citizen (`entwurf_register_native`) — no mailbox, replies inject into the live conversation |
 | **OpenClaw** (4 bots) | andenken skill (same SSOT via symlink) | full skill set | settings / Nix store mount |
 
 **OpenCode is not used.** It once appeared in this table and in the fan-out list, but `run.sh` never wires it — there is no `~/.config/opencode/skills` link and no OpenCode branch anywhere in setup. The rows have been removed rather than left as an aspiration; a harness this repo does not actually reach should not be advertised as supported.
@@ -96,7 +101,7 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 
 **Direction: this surface shrinks.** A pi extension only exists inside pi — Claude Code, Codex, and Antigravity cannot see it. A skill runs everywhere. So capability that agents actually call is migrating extension → skill (semantic memory is the finished case: `skills/semantic-memory/` is a CLI wrapper every harness can invoke, while the pi-side `session_search` / `knowledge_search` registerTool remains a convenience, not the only door). What stays here is pi-local ergonomics — env loading, sound, footer, cost breakdown.
 
-External pi packages — semantic-memory ([andenken](https://github.com/junghan0611/andenken)) and Telegram bridges ([entwurf](https://github.com/junghan0611/entwurf), [pi-telegram](https://github.com/badlogic/pi-telegram)) — see [§ -config Ecosystem](#the--config-ecosystem).
+The one external pi package that remains is semantic-memory ([andenken](https://github.com/junghan0611/andenken)) — see [§ -config Ecosystem](#the--config-ecosystem).
 
 ### entwurf Surface Reference
 
@@ -104,13 +109,17 @@ This repo is the **official consumer reference** for the `entwurf` surface.
 
 | entwurf surface | Where this repo consumes it |
 |---|---|
-| backend provider (`entwurfProvider`) | `pi/settings.json`, `pi/settings.server.json` |
+| backend provider (`entwurfProvider`) | `pi/settings.json` (`_common` + device overlay) |
 | MCP bridge (`entwurf-bridge`) | same settings files |
-| `entwurf` / `entwurf_resume` / `entwurf_send` / `entwurf_peers` | `home/AGENTS.md`, operational use, skills like `entwurf-peek` |
+| `entwurf_v2` / `entwurf_peers` / `entwurf_self` / `entwurf_inbox_read` / `entwurf_fresh_call` / `entwurf_register_native` | `home/AGENTS.md`, operational use, skills like `entwurf-peek` |
 | skill plugin injection | `run.sh setup` builds this repo's local plugin root and points settings at it |
-| release pin | `package.json` + `pi/settings.server.json` + `run.sh` + `CHANGELOG.md` |
+| install / version pin | **entwurf's own `./run.sh`** — this repo pins nothing on its behalf |
 
 So when `entwurf` changes, this is the first consumer that should stay green.
+
+The bridge surface above is the **v2** one. The v1 trio (`entwurf` / `entwurf_resume` / `entwurf_send`) was removed in a hard cut (entwurf `CHANGELOG.md` #50) and no longer exists anywhere — a doc row naming those tools is stale, not a fallback. Note also that `session_search` / `knowledge_search` never came from this bridge: they are andenken's pi-native `registerTool` surface.
+
+There is deliberately **no release-pin row** here. This repo does not carry an entwurf version constant, an install spec, or a tracking ref — `setup_repos` clones the source for dogfooding and stops there. It does not even declare entwurf as a pi package any more: entwurf's own `./run.sh install` registers it as a user-scope citizen in `~/.pi/agent/settings.json`, and `remove-user-scope` is the inverse. Install, auth, and version selection belong to that side, because a consumer that pins its own copy weakens the release gate it is supposed to exercise.
 
 Spec, verification harnesses, and the sync/async contract remain in [entwurf `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/entwurf/blob/main/AGENTS.md).
 
@@ -134,7 +143,7 @@ Aside from the hook channel, the two surfaces are interchangeable. This is the r
 
 ### Skills ([`skills/`](skills/))
 
-41 skills. Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (slack-latest, jiracli, telegram), code surface (forge — v1.5, multi-profile), work workbench (voscli, incidentcli, plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli), entwurf (entwurf-peek), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), tools (emacs, tmux, diskspace).
+42 skills. Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (slack-latest, jiracli, telegram), code surface (forge — v1.5, multi-profile), work workbench (voscli, incidentcli, plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli), entwurf (entwurf-peek), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), tools (emacs, tmux, diskspace).
 
 **Binary skills: agent-config owns the skill surface, alone.** For skills backed by a sibling-repo CLI (denotecli, bibcli, gitcli, lifetract), this repo owns **both** the `SKILL.md` and the deployed binary; the sibling repo holds **code only** and its own `deploy` never writes into the skill directory. Two owners means nobody knows which one is true. `run.sh setup:build` gates each install behind the sibling repo's test suite and refuses uncommitted sources, then writes [`skills/.provenance.json`](skills/.provenance.json) — per tool: `vcs_revision`, `src_tree`, and the installed binary's `sha256`. A snapshot whose tools cannot be named is not reproducible, it only looks it. (`dictcli` is the open gap: GraalVM native-image doesn't ride the Go gate, so it carries no provenance yet.)
 
@@ -148,9 +157,11 @@ Aside from the hook channel, the two surfaces are interchangeable. This is the r
 
 | File | Purpose |
 |------|---------|
-| `settings.json` | Default model, theme, thinking level, `entwurfProvider` |
+| `settings.json` | The single pi settings **reference**: `_common` plus `_workstation` / `_server` overlays, with `_`-prefixed keys carrying the prose. `setup` resolves one overlay and **merges** the result — never symlinks, because the pi runtime co-owns the live file |
 | `keybindings.json` | Custom keybindings |
 | `claude-plugin.json` | Manifest used by this repo's local entwurf Claude plugin root |
+
+This repo is a place to **look a setting up**, not a live config store. The merge is EXISTING-WINS, so editing `pi/settings.json` provisions a fresh machine and only *warns* on a running one — to change a running one, edit `~/.pi/agent/settings.json`. `pi/settings.server.json` was folded in on 2026-08-06: with entwurf's `packages[]` entry and the runtime's `lastChangelogVersion` both removed as not-ours, its only remaining divergence was `defaultThinkingLevel`, and a whole second copy of a file for one scalar is a file that drifts.
 
 ### entwurf Skill Plugin (agent-config local layout)
 
@@ -158,13 +169,15 @@ entwurf runs Claude with `settingSources: []` (SDK isolation), so `~/.claude/ski
 
 What this repo does is narrower: `run.sh setup` builds **one local consumer layout** under `~/.pi/agent/claude-plugin/` (manifest + per-skill symlinks back to `agent-config/skills/`) and points this repo's pi settings at that path. That path is an agent-config convention, not a entwurf contract.
 
-Adding a new skill here still works the same way: drop it into `agent-config/skills/<name>/SKILL.md` and re-run `./run.sh setup`. The same SSOT fans out to six surfaces: `~/.claude/skills/`, `~/.pi/agent/skills/pi-skills/`, `~/.pi/agent/claude-plugin/skills/`, `~/.codex/skills/`, `~/.gemini/skills/` (Gemini legacy), and `~/.gemini/antigravity-cli/skills/` (Antigravity direct).
+Adding a new skill here still works the same way: drop it into `agent-config/skills/<name>/SKILL.md` and re-run `./run.sh setup`. The same SSOT fans out to five surfaces: `~/.claude/skills/`, `~/.pi/agent/skills/pi-skills/`, `~/.pi/agent/claude-plugin/skills/`, `~/.codex/skills/`, and `~/.gemini/antigravity-cli/skills/` (Antigravity direct).
+
+> `~/.gemini/` is Antigravity's home, not Gemini CLI's. The standalone `gemini` binary is gone from this machine and its legacy surface (`~/.gemini/settings.json`, `~/.gemini/skills/`) was retired 2026-08-06 — but `~/.gemini/antigravity-cli/` and `~/.gemini/config/` are live and must survive any cleanup of that directory.
 
 Codex direct mode also uses this repo-managed surface for MCP now: `codex/config.toml` carries a `entwurf-bridge` stdio registration, so direct Codex sessions can see the same bridge family instead of remaining the one MCP-empty harness.
 
 For Antigravity direct mode, `run.sh setup` also wires `antigravity/settings.json` into `~/.gemini/antigravity-cli/settings.json` so statusline / permission / model choices live in-repo instead of only inside agy's self-written local state.
 
-For Antigravity direct-mode MCP, `run.sh setup` also wires `antigravity/mcp_config*.json` into both `~/.gemini/antigravity-cli/mcp_config.json` (documented path) and `~/.gemini/config/mcp_config.json` (current live-runtime compatibility path).
+Antigravity's MCP config is **not** wired from here. `entwurf`'s `install-agy-bridge` adapter owns `mcp_config.json`: it adopts or creates a regular file and records the bare `entwurf-bridge` stable bin as the command. A symlink from this repo makes that adapter REFUSE, so agent-config deliberately stopped linking it — skills and settings stay ours, MCP does not.
 
 Because Antigravity and Codex do not expose the same repo-managed custom command-file surface as pi / Claude Code, selected high-value commands can also be translated into thin wrapper skills (current prototypes: `skills/command-recall/`, `skills/command-glgimage/`). `command-glgimage` now bundles a zero-dependency Gemini REST CLI, so Claude Code and other harnesses can generate exact-prompt document figures to a requested path without pi's native `generate_image` tool; GLGMAN world anchoring is an explicit mode, not a restriction on general image generation.
 
@@ -182,6 +195,8 @@ Because Antigravity and Codex do not expose the same repo-managed custom command
 | `/glg-image` | Image generation entry |
 | `/metaplay` | Meta agent play |
 | `/docplay` | Random document polish play (front matter/title/tags/links/rename) |
+| `/authologplay` | Mend one raw autholog piece into garden core text + links + a GLGMAN Universe image |
+| `/scaleplay` | Take a scene whose scale won't sit still: commit the first intuition, measure it, accumulate in `studies/` |
 
 ## One-Command Setup
 
@@ -197,11 +212,33 @@ cd agent-config
 - Clone missing tracked repos (`setup` does **not** pull existing repos; use `./run.sh update` for pulls)
 - Build native CLI binaries (Go + GraalVM) — **gated**: each Go CLI must pass its sibling repo's test suite and be built from committed sources, or it is not installed. `skills/.provenance.json` records what actually landed; `./run.sh env` warns when a live binary drifts from its recorded build
 - Symlink pi extensions, full skill set (including `semantic-memory`), themes, settings, keybindings, prompts
-- Install andenken as a pi package (compiled extension — exposes `session_search` / `knowledge_search` registerTool alongside the SKILL.md skill)
-- Symlink Codex / Gemini legacy / Antigravity surfaces (`~/.codex/config.toml`, `~/.gemini/settings.json`, `~/.gemini/antigravity-cli/settings.json`, `~/.gemini/antigravity-cli/skills`, `~/.gemini/antigravity-cli/mcp_config.json`) plus skills and Claude Code commands. `~/.claude/settings.json` is **merged** (keyset, never symlinked) — co-owned with entwurf meta-bridge; both workstation (`settings.fragment.json`) and server (`settings.server.json`) merge the same way, and `pi/settings.json` merges too (co-owned with the pi runtime)
+- Run andenken's own `run.sh setup` (build + deps). It is **no longer declared as a pi package here** — agents reach it through the `semantic-memory` skill, which every harness can invoke. Where it is already registered as a pi package, pi additionally gets the `session_search` / `knowledge_search` registerTool; that is a pi-local convenience, not the shared door
+- Symlink Codex / Antigravity surfaces (`~/.codex/config.toml`, `~/.gemini/antigravity-cli/settings.json`, `~/.gemini/antigravity-cli/skills`) plus skills and Claude Code commands. `~/.claude/settings.json` is **merged** (keyset, never symlinked) — co-owned with entwurf meta-bridge; both workstation (`settings.fragment.json`) and server (`settings.server.json`) merge the same way, and `pi/settings.json` merges too (co-owned with the pi runtime)
 - Symlink `~/.local/bin` PATH binaries
 - pnpm install for extensions and skills
 - Hand off entwurf validation (typecheck, MCP, dual-backend smoke, persisted-bootstrap continuity, cancel-cleanup) to entwurf's own `run.sh`
+
+What `setup` deliberately does **not** do: install entwurf (that is entwurf's own `./run.sh setup` — see [§ entwurf Surface Reference](#entwurf-surface-reference)) and install the runtime under evaluation (`./run.sh setup:hermes`, [§ Agent Runtime Bench](#agent-runtime-bench)). Both are omissions with a reason, not gaps to fill.
+
+## Agent Runtime Bench
+
+Some questions cannot be answered by reading a project's README. *Does a runtime that generates its own skills from experience beat a human-authored skill set?* You only find out by standing both up on the same machine, giving them the same repeated task, and looking at what each wrote down afterwards.
+
+So this repo installs the competition. The current subject is [Hermes Agent](https://github.com/NousResearch/hermes-agent) — an independent runtime with its own gateway, state tree, cron, memory and skill generation. It is a **candidate under evaluation, not adopted infrastructure**: nothing about it is declared in `nixos-config`, and `setup:hermes` is not part of `setup`.
+
+```bash
+./run.sh setup:hermes    # pinned tag, minimal closure, explicit call only
+```
+
+Two constraints carry the whole thing, and both are one careless edit from being lost:
+
+**Pinned, never fast-forwarded.** `THIRD_PARTY_PACKAGE_REPOS` is the obvious home for the clone, but every entry there is pulled to latest on `setup` and `update`. A subject that moves between runs cannot be re-measured, so hermes is kept out of that map on purpose and `HERMES_TAG` selects the version.
+
+**Installed small, not merely configured small.** Upstream's default build adds 18 optional groups — messaging (Telegram/Discord/Slack), voice, web-search backends. Built that way, "integrations stay off" is a promise about configuration. Built from `.#minimal` they are absent from the closure and cannot be switched on by mistake. The single group added back is `anthropic`, without which `hermes auth add anthropic --type oauth` logs in successfully and only fails later at inference — the auth layer and the SDK are separate, so a successful login proves nothing about reachability.
+
+What that leaves is a runtime that reaches Claude, GPT (`openai-codex` OAuth) and Solar (auto-discovered `UPSTAGE_API_KEY`) while being structurally unable to talk to a messaging platform. State lives in `~/.hermes`; deleting it resets the baseline, and the first run after that is t=0 for anything the runtime claims to have learned.
+
+The comparison target is not another product. It is this repo's own loop — `AGENTS.md` + `skills/` + semantic memory + `botlog`/`NEXT` — and the honest question is whether a machine-written skill trail is more transparent and reproducible than the hand-written one.
 
 ## Session Management — No Compact
 
@@ -235,12 +272,6 @@ This repo also owns the **resident-side policy** for publishing session artifact
 - Minimum publication gates: secret redaction, deny patterns, secret scanning (e.g. TruffleHog), semantic privacy review, small-batch dry-run.
 - `pi-share-hf` is a strong reference shape for this pipeline.
 
-## Persistent Agent — pi-entwurf
-
-A persistent pi session on Oracle VM, accessible via Telegram `@glg_entwurf_bot`. The always-on presence agent — a 분신(Entwurf) that carries context across days. tmux session `pi-entwurf`, model `claude-opus-4-8`, full skill set.
-
-Bridges: [pi-telegram](https://github.com/badlogic/pi-telegram) (production — queue · file I/O · stop · streaming preview) + [entwurf](https://github.com/junghan0611/entwurf) (minimal presence — `--telegram` flag). See [§ -config Ecosystem](#the--config-ecosystem) for both rows.
-
 ## Shell Aliases (`~/.bashrc.local`)
 
 ```bash
@@ -256,8 +287,8 @@ alias claude-tgd='claude --channels plugin:telegram@claude-plugins-official --da
 # was an address. The wrapper is kept only so the variants below stay one edit wide.
 _pi_garden_pi() { command pi "$@"; }
 
-# pi: presence agent variant (Telegram bridge)
-pihome() { _pi_garden_pi --entwurf-control --telegram "$@"; }
+# pi: garden citizen with the agent Emacs socket
+# (`pihome`, the --telegram presence variant, was dropped 2026-08-06 with the bridge)
 pia() { _pi_garden_pi --entwurf-control --emacs-agent-socket server "$@"; }
 ```
 
@@ -271,8 +302,6 @@ pia() { _pi_garden_pi --entwurf-control --emacs-agent-socket server "$@"; }
 | **[agent-config](https://github.com/junghan0611/agent-config)** | **Agent infra** | **Extensions, skills, themes, settings — this repo** |
 | **[entwurf](https://github.com/junghan0611/entwurf)** | **Provider (ACP bridge)** | **Default Claude path in pi. ACP bridge to Claude Code + Codex** |
 | **[andenken](https://github.com/junghan0611/andenken)** | **Memory** | **Semantic memory — sessions + md public garden knowledge** |
-| **[entwurf](https://github.com/junghan0611/entwurf)** | **Presence** | **Telegram bridge — minimal presence bridge** |
-| **[pi-telegram](https://github.com/badlogic/pi-telegram)** | **Transport** | **Production Telegram DM bridge — queue/file/streaming** |
 | [memex-kb](https://github.com/junghan0611/memex-kb) | Knowledge | Legacy document conversion pipeline |
 | [GLG-Mono](https://github.com/junghan0611/GLG-Mono) | Font | Custom monospace programming font |
 | [geworfen](https://github.com/junghan0611/geworfen) | Being | Existence data viewer — WebTUI agenda |

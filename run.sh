@@ -667,12 +667,25 @@ setup_links() {
   # Settings — keyset-merge, never symlink: the pi runtime co-owns settings.json
   # (writes lastChangelogVersion), so a symlink lets it dirty the repo. Merge keeps
   # a co-ownable real file; agent-config keys apply, runtime keys are preserved.
-  local PI_SETTINGS_FILE="$SCRIPT_DIR/pi/settings.json"
+  # pi/settings.json is one REFERENCE file, not a ready-made fragment: `_common`
+  # plus a `_workstation` / `_server` overlay, with `_`-prefixed keys as prose.
+  # Resolve the device's view here, then hand a plain fragment to merge_settings.
+  # (Replaced pi/settings.server.json on 2026-08-06 — see that file's `_layout`.)
+  local PI_OVERLAY="_workstation"
   if is_server_device; then
-    PI_SETTINGS_FILE="$SCRIPT_DIR/pi/settings.server.json"
-    log "device=$(cat "$HOME/.current-device") → server pi settings (keyset-merge)"
+    PI_OVERLAY="_server"
+    log "device=$(cat "$HOME/.current-device" 2>/dev/null || echo server) → server overlay (keyset-merge)"
+  fi
+  local PI_SETTINGS_FILE
+  PI_SETTINGS_FILE=$(mktemp) || { fail "settings: mktemp failed"; return 1; }
+  if ! jq --arg ov "$PI_OVERLAY" '(._common // {}) * (.[$ov] // {})' \
+      "$SCRIPT_DIR/pi/settings.json" > "$PI_SETTINGS_FILE"; then
+    fail "pi/settings.json: cannot resolve $PI_OVERLAY overlay"
+    rm -f "$PI_SETTINGS_FILE"
+    return 1
   fi
   merge_settings "$PI_SETTINGS_FILE" "$HOME/.pi/agent/settings.json"
+  rm -f "$PI_SETTINGS_FILE"
   ensure_link "$SCRIPT_DIR/pi/keybindings.json" "$HOME/.pi/agent/keybindings.json"
 
   # Skills (pi) — 개별 링크.
@@ -762,24 +775,15 @@ setup_links() {
     ensure_link "$cmd_file" "$HOME/.pi/agent/prompts/$(basename "$cmd_file")"
   done
 
-  section "Pi Telegram (pi-telegram bridge config)"
-  # PI_ENTWURF_BOT_TOKEN이 있으면 telegram.json 자동 생성
-  load_env
-  if [ -n "${PI_ENTWURF_BOT_TOKEN:-}" ]; then
-    local tg_json="$HOME/.pi/agent/telegram.json"
-    local bot_id
-    bot_id=$(echo "$PI_ENTWURF_BOT_TOKEN" | cut -d: -f1)
-    local chat_id="${PI_TELEGRAM_CHAT_ID:-0}"
-    cat > "$tg_json" << TGJSON
-{
-	"botToken": "$PI_ENTWURF_BOT_TOKEN",
-	"botId": $bot_id,
-	"allowedUserId": $chat_id
-}
-TGJSON
-    ok "telegram.json (@glg_entwurf_bot, chatId=$chat_id)"
-  else
-    log "PI_ENTWURF_BOT_TOKEN not set — skipping telegram.json"
+  # Telegram bridge config removed 2026-08-06 — the presence session that consumed
+  # it (pi-entwurf on Oracle) is retired. Setup no longer writes ~/.pi/agent/telegram.json,
+  # and the stale file is cleared so the extension stops reporting "disconnected"
+  # in every session's status bar. PI_ENTWURF_BOT_TOKEN in ~/.env.local is left
+  # alone — the bot still answers on Telegram, and whether to delete it there is
+  # not this script's call.
+  if [ -f "$HOME/.pi/agent/telegram.json" ]; then
+    rm -f "$HOME/.pi/agent/telegram.json"
+    log "telegram.json (removed — pi-telegram bridge retired)"
   fi
 
   section "Home AGENTS.md / CLAUDE.md"
@@ -848,14 +852,16 @@ TGJSON
   done
   ensure_link "$SCRIPT_DIR/codex/config.toml" "$HOME/.codex/config.toml"
 
-  section "Gemini CLI (legacy) Config"
-  ensure_link "$SCRIPT_DIR/gemini/settings.json" "$HOME/.gemini/settings.json"
-
-  section "Gemini CLI (legacy) Skills"
-  # ~/.gemini/skills → skills/ (단일 디렉토리 링크, Agent Skills open standard)
-  # Gemini CLI v0.40+ discovers SKILL.md from ~/.gemini/skills/<sname>/ — same SSOT
-  mkdir -p "$HOME/.gemini"
-  ensure_link "$SKILLS_DIR" "$HOME/.gemini/skills"
+  # Gemini CLI (legacy) surface removed 2026-08-06 — the `gemini` binary is gone
+  # from this machine. ~/.gemini/ itself STAYS: Antigravity lives there
+  # (antigravity-cli/ and config/), so only the two legacy links are cleared.
+  # Never rm -rf ~/.gemini as part of this cleanup.
+  for legacy_gemini in "$HOME/.gemini/settings.json" "$HOME/.gemini/skills"; do
+    if [ -L "$legacy_gemini" ]; then
+      rm -f "$legacy_gemini"
+      log "$(basename "$legacy_gemini"): removed (Gemini CLI legacy surface retired)"
+    fi
+  done
 
   section "Antigravity CLI Settings"
   # agy direct harness persistent settings (status line, permissions, model, etc.)
@@ -889,10 +895,13 @@ setup_npm() {
     warn "andenken: repo not found at $SM_DIR"
   fi
 
-  # entwurf (self-built telegram bridge) — deprecated 2026-05-03 in favor of
-  # pi-telegram (badlogic). The "entwurf" name now belongs to entwurf's
-  # sibling-spawn surface only. Repo at ~/repos/gh/entwurf/ is preserved for
-  # history; not loaded as a pi package and not built here.
+  # NAME WARNING: "entwurf" means exactly one thing now — the sibling-spawn / ACP
+  # bridge at ~/repos/gh/entwurf, which IS an active pi package (see
+  # pi/settings.server.json `packages[]`) and installs itself via its own run.sh.
+  # A self-built Telegram bridge once carried the same name; it was deprecated
+  # 2026-05-03 and its lineage repo (junghan0611/pi-telegram, despite the name an
+  # orchestration experiment, not a bridge) was archived 2026-04-24. Do not read
+  # any Telegram meaning into the word here.
 
   # pi-packages (ben-vargas) intentionally disabled for now.
   log "pi-packages: disabled (skipping pi-claude-code-use install)"
@@ -918,18 +927,14 @@ setup_npm() {
   # own run.sh after the Entwurf Orchestration migration — their code now lives
   # there, and owning validation belongs with owning code.
 
-  # pi-telegram (production Telegram bridge by pi author)
-  # Installed as pi package — no local clone needed
-  if command -v pi &>/dev/null; then
-    if pi list 2>/dev/null | grep -q "pi-telegram"; then
-      ok "pi-telegram (already installed)"
-    else
-      log "pi-telegram: installing..."
-      pi install git:github.com/badlogic/pi-telegram 2>/dev/null && ok "pi-telegram" || warn "pi-telegram: install failed"
-    fi
-  else
-    warn "pi-telegram: pi not found in PATH"
-  fi
+  # pi-telegram install removed 2026-08-06. badlogic/pi-telegram is upstream and
+  # still open, but it has had no commit since 2026-04-04 and the only consumer
+  # here — the pi-entwurf presence session — is retired. Left installed it did one
+  # visible thing: report "telegram disconnected" in the status bar of every pi
+  # session, because the extension loaded a token it was never asked to poll with.
+  # Uninstall is deliberately NOT automated; `pi uninstall git:github.com/badlogic/pi-telegram`
+  # is the operator's call, and a setup script that removes packages it did not
+  # install this run is a script that surprises people.
 
   # pi-extensions (grammy 등) — pnpm
   local ext_dir="$SCRIPT_DIR/pi-extensions"
@@ -1149,7 +1154,6 @@ setup_all() {
   echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged (keyset, not linked)' || echo 'absent'; })"
   echo "  Codex:    $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo 'config not linked') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
-  echo "  Gemini:   legacy $(readlink "$HOME/.gemini/settings.json" 2>/dev/null || echo 'config not linked') + $(readlink "$HOME/.gemini/skills" 2>/dev/null || echo 'skills not linked')"
   echo "  Antigrav: $(readlink "$HOME/.gemini/antigravity-cli/settings.json" 2>/dev/null || echo 'settings not linked') + $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo 'skills not linked') (mcp: entwurf-owned)"
 
   # Sentinel (delegate matrix) moved to entwurf with the rest of the
@@ -1313,8 +1317,6 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Claude skills:$(readlink "$HOME/.claude/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Codex conf:   $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo '❌ not linked')"
     echo "  Codex skills: $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) linked"
-    echo "  Gemini conf:  $(readlink "$HOME/.gemini/settings.json" 2>/dev/null || echo '❌ not linked')"
-    echo "  Gemini skills:$(readlink "$HOME/.gemini/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Antigrav conf:   $(readlink "$HOME/.gemini/antigravity-cli/settings.json" 2>/dev/null || echo '❌ not linked')"
     echo "  Antigrav skills: $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Antigrav MCP:    entwurf-owned (install-agy-bridge / doctor-agy-bridge)"

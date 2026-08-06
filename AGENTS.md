@@ -156,7 +156,7 @@ When work touches another repo's domain (e.g., andenken for embedding logic), ag
 **Work loop (not blind delegation):**
 
 1. GLG opens the delegate's session (wakes them up directly)
-2. agent-config sends structured instructions via `entwurf_send`
+2. agent-config sends structured instructions via `entwurf_v2` (fire-and-forget, `wants_reply`)
 3. Delegate analyzes, verifies, returns review — **no commits without verification**
 4. agent-config reviews the response and decides whether to proceed
 5. Execution (embedding, deploy, etc.) happens on agent-config's side
@@ -195,7 +195,7 @@ Production memory axes are **sessions + md**. `sessions.lance` holds pi/Claude s
 
 | Surface | How it shows up |
 |---------|----------------|
-| pi (native) | `semantic-memory` SKILL.md skill **and** andenken extension's `session_search` / `knowledge_search` registerTool — both available, both call the same CLI |
+| pi (native) | `semantic-memory` SKILL.md skill — the door on every device. Where andenken is *already* registered as a pi package, `session_search` / `knowledge_search` registerTool also appear and call the same CLI; agent-config stopped declaring that package on 2026-08-06, so on a fresh machine expect the skill only |
 | entwurf Claude / Codex / Gemini (ACP) | `semantic-memory` SKILL.md skill (plugin namespace: `agent-config-skills:semantic-memory`) |
 | Claude Code (direct) | `semantic-memory` SKILL.md skill (`~/.claude/skills/semantic-memory/`) |
 | OpenClaw (4 bots) | same `skills/` directory via symlink mount; host binaries via Nix store mount inside Docker |
@@ -214,13 +214,13 @@ Environment (`~/.env.local`): `ANDENKEN_SESSION_*` and `ANDENKEN_MD_*` point at 
 
 `entwurf` (delegate/resume), cross-session messaging, and the pi-facing MCP bridge all live in **[entwurf](https://github.com/junghan0611/entwurf)**. agent-config consumes the surface — does not own it.
 
-- **Entry point:** `pi/settings.json` § `entwurfProvider.mcpServers.entwurf-bridge.command` points at entwurf's `mcp/entwurf-bridge/start.sh`. Injects the ACP surface into every ACP session — as of entwurf 0.12 that is `entwurf_v2`, `entwurf_peers`, `entwurf_self`, `entwurf_inbox_read`. The older `entwurf` / `entwurf_resume` / `entwurf_send` trio was removed in a hard cut (entwurf `CHANGELOG.md` #50), and `session_search` / `knowledge_search` never came from this bridge at all — they are andenken's pi-native `registerTool` surface, as the § semantic-memory table above already says. Observed from a Cortex ACP child, 2026-07-31.
+- **Entry point:** `~/.pi/agent/settings.json` § `entwurfProvider.mcpServers.entwurf-bridge.command`, written by **entwurf's own `./run.sh install`** as the bare stable bin `entwurf-bridge` (a `~/.local/bin` symlink entwurf owns). agent-config stopped declaring this key on 2026-08-06 — it is not ours to pin. Injects the ACP surface into every ACP session — as of entwurf 0.13.1 that is `entwurf_v2`, `entwurf_peers`, `entwurf_self`, `entwurf_inbox_read`, plus `entwurf_fresh_call` (open a new visible sibling) and `entwurf_register_native` (bind a running native conversation to a garden id). The older `entwurf` / `entwurf_resume` / `entwurf_send` trio was removed in a hard cut (entwurf `CHANGELOG.md` #50), and `session_search` / `knowledge_search` never came from this bridge at all — they are andenken's pi-native `registerTool` surface, as the § semantic-memory table above already says. Observed from a Cortex ACP child, 2026-07-31.
 - **Spec:** [entwurf `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/entwurf/blob/main/AGENTS.md) — registry schema, Identity Preservation Rule, sync/async contract, verification matrix.
 - **Caller responsibility (stays here):** the Cross-Repo Work Loop policy above. Responsibility lives with the caller, not the mechanism.
 
 #### Host Surface Alignment — Mitsein (garden-id)
 
-agent-config is the resident-side evidence that entwurf's "no backend differentiation" invariant holds at the consumer surface too — and the meta-bridge gives it a concrete substrate: every host surface becomes a **garden citizen** addressable by a **garden id**, the universal handle (surfaced live in the statusline, `🪛 <garden-id>`). The `claude/`, `codex/`, `gemini/`, and `antigravity/` surfaces carry the same skill set, the same YOLO custom config, and an aligned `entwurf-bridge` MCP registration where the host supports MCP. Entwurf throwing works the same from any of these hosts (Claude Code / Codex CLI / Antigravity CLI), and cross-session messaging runs citizen-to-citizen by garden id — send and receive through the garden-id mailbox (doorbell → `entwurf_inbox_read`), with no pi or ACP required on either side. The garden id is the single address layer above every backend. Live confirmation is no longer Claude-only: direct Codex and Antigravity have both been verified for `entwurf` spawn and sync `entwurf_resume`. The fact that ongoing dialogue mostly references Claude Code is an operator time-budget artifact, not a capability gap.
+agent-config is the resident-side evidence that entwurf's "no backend differentiation" invariant holds at the consumer surface too — and the meta-bridge gives it a concrete substrate: every host surface becomes a **garden citizen** addressable by a **garden id**, the universal handle (surfaced live in the statusline, `🪛 <garden-id>`). The `claude/`, `codex/`, and `antigravity/` surfaces carry the same skill set, the same YOLO custom config, and an aligned `entwurf-bridge` MCP registration where the host supports MCP (`gemini/` was removed 2026-08-06 with the CLI itself). Entwurf throwing works the same from any of these hosts (Claude Code / Codex CLI / Antigravity CLI), and cross-session messaging runs citizen-to-citizen by garden id — send and receive through the garden-id mailbox (doorbell → `entwurf_inbox_read`), with no pi or ACP required on either side. The garden id is the single address layer above every backend. Live confirmation is no longer Claude-only: direct Codex and Antigravity have both been verified as addressable citizens on the v2 surface. Antigravity is the native-push case — registered with `entwurf_register_native`, it has no mailbox at all and a reply is injected straight into its live conversation, so "no mailbox" there is a rail difference, not a missing capability. The fact that ongoing dialogue mostly references Claude Code is an operator time-budget artifact, not a capability gap.
 
 Two operational corollaries the consumer surface enforces:
 
@@ -236,7 +236,7 @@ Both are binary-hardcoded in Claude Code; `permissions.allow` cannot override ei
 
 ### Skills
 
-`./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, Codex, Gemini, Antigravity, and the entwurf Claude plugin farm. See [README § What's Here](README.md#whats-here) for categories.
+`./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, Codex, Antigravity, and the entwurf Claude plugin farm. (The Gemini CLI legacy surface was retired 2026-08-06 — the binary is gone. `~/.gemini/` still belongs to Antigravity.) See [README § What's Here](README.md#whats-here) for categories.
 
 **Cortex Code is not in that list, and its paths are its own (2026-07-31).** It loads global skills from `$SNOWFLAKE_HOME/cortex/skills/` and project skills from `<cwd>/.claude/skills/` (Claude-compatible), plus bundled ones from inside the binary. Three facts an agent will otherwise misdiagnose:
 
@@ -272,19 +272,13 @@ Bypass (`AGENT_ALLOW_UNSAFE_COMMIT=1`) is a **GLG-only** override for genuine fa
 
 > The hook scans **added lines only**, gitleaks-style. Pre-existing tracked content is grandfathered until those lines are next modified — the rail is for what we write **from here forward**, not a cleanup tool. No flag-day, no chase down of historical mentions.
 
-### Release — entwurf Install Mode
+### Version Pinning — who pins what
 
-**Current Oracle/OpenClaw prerelease mode (2026-05-15):** server devices track entwurf latest `main`, not the `v0.5.0` tag. Reason: the OpenClaw plugin scaffold and Docker boundary docs live after the 0.5.0 release while `package.json#version` still says `0.5.0`; commit is the authority during this window.
+**agent-config does not pin entwurf, and no longer declares it at all.** There is no version constant, install spec, or tracking ref here. `setup_repos` clones the source for dogfooding and stops. `pi/settings.json` also dropped entwurf from `packages[]` on 2026-08-06: entwurf's own `./run.sh install` registers it as a user-scope citizen (`remove-user-scope` is the inverse), so declaring it here made two owners — and because entwurf writes an absolute path while our fragment held a relative one, the EXISTING-WINS merge could never reconcile them and `setup` warned on every run, forever. Install, auth, and version selection are entwurf's side. A consumer that pins its own copy weakens the release gate it exists to exercise.
 
-| File | Current setting |
-|------|-----------------|
-| `pi/settings.server.json` | `packages[]` entry — `git:github.com/junghan0611/entwurf` (no tag) |
-| `run.sh` | `ENTWURF_INSTALL_SPEC` + `ENTWURF_TRACKING_REF="main"` |
-| `CHANGELOG.md` | `Unreleased` explains why server devices track latest main |
+A previous revision of this section described the opposite — `ENTWURF_INSTALL_SPEC` / `ENTWURF_TRACKING_REF="main"` in `run.sh`, a `git:github.com/...` package entry, a `setup_npm()` that ran `git checkout -B main origin/main`, and a v0.5.0 prerelease window. **None of that exists**, and by 2026-08-06 entwurf was at 0.13.1. It was removed rather than corrected: an install mode this repo does not own has no settings for this repo to document.
 
-`setup_npm()` refreshes the pi-managed checkout directly with `git fetch origin main && git checkout -B main origin/main && pnpm install`, because `pi install git:...` may treat an existing checkout as already installed. Do not use `package.json#version` as the drift signal in prerelease mode.
-
-When the next stable entwurf release ships, restore tagged mode as a normal release bump. That change should again move together: `package.json` version, `pi/settings.server.json` `@vX.Y.Z`, `run.sh` version constant / tag checkout logic, and `CHANGELOG.md`.
+**What this repo does pin is the runtime under evaluation.** `HERMES_TAG` in `run.sh` selects the Hermes version and `setup_hermes` checks it out on every run. The asymmetry is the point — entwurf is a sibling whose own gate must stay meaningful, while a benchmark subject that drifts between runs cannot be measured at all. Which is also why hermes is kept out of `THIRD_PARTY_PACKAGE_REPOS`, whose entries are fast-forwarded by `setup` and `update`.
 
 `pi/settings.json`'s `lastChangelogVersion` is pi-runtime's own changelog ack — unrelated to agent-config releases.
 

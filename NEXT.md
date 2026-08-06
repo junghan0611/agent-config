@@ -3,7 +3,8 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-> NOW: active ⓪ **Upstage provider 설치·검증 완료 — Solar Open 2 승인 대기(콘솔 계정 확인)**
+> NOW: active ⓪ **entwurf-peek 수선 — PM 답 받음. 문서는 지금, 파서/fixture는 mux-placement 랜딩 후**
+> (아래 [2026-08-06]), ①ʹ **Upstage provider — Solar Pro 4 등록 완료(512K), Solar Open 2 승인 대기**
 > (아래 [2026-07-30], issue #17), ① **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
 > ② 설치면 소유 경계 — entwurf 이관 옛 소유자 cleanup (issue #46),
 > ③ pi-chat Add-group blocker, ④ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
@@ -11,6 +12,64 @@
 > 대기: 어쏠로그 수선 때 7/13 근거 회수(아래 [2026-07-14] 어쏠로그).
 > ⚠️ [2026-06-11] bibcli 항목은 **2026-07-14 결정과 방향이 반대다** — GLG 재판단 대기(아래).
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+
+## [2026-08-06] entwurf-peek 수선 — 존재 이유 문장이 먼저 틀렸다
+
+> entwurf가 v2로 넘어오면서(0.13.1, #50 하드컷) 이 스킬이 기대던 세계가 사라졌다.
+> 코드가 죽은 게 아니라 **전제가 죽었다** — `scripts/entwurf-peek.py`(38KB, 6/23)는 그대로 있다.
+
+**깨진 전제 3개** (`skills/entwurf-peek/SKILL.md`):
+
+1. **존재 이유 문장이 틀렸다.** description이 "entwurf_peers는 control socket 있는 세션만
+   보여주는데 이 스킬은 그걸 메운다"고 말하는데, 지금 `entwurf_peers`는 meta-record 기반
+   garden citizen을 **전부** 준다(`liveness=unsupported` 포함, 8/6 관측 351+행). 메우려던
+   구멍이 없어졌으니 스킬의 자기소개부터 다시 써야 한다.
+2. **"sync entwurf 자식" / "Mattering...에 묶여있을 때"** — v2는 fire-and-forget만 남았다.
+   이 대상 자체가 존재하는지 확인 필요.
+3. **`trace`의 자식 매칭**이 부모 JSONL의 `Session ID: <YYYYMMDDTHHMMSS-xxxxxx>` 문자열에
+   의존한다. v1 `entwurf`/`entwurf_resume`/`entwurf_send`가 하드컷으로 사라졌으니 그 문자열이
+   더는 안 찍힐 가능성이 높다. `entwurf_fresh_call`은 tmux 좌표+nonce 영수증이고, 상관은
+   callback sender envelope이다.
+
+**지켜야 할 경계 (entwurf 쪽이 이미 못 박음, `docs/mux-launch-rail.md` §4 경계 2):**
+peek은 heuristic **진단 손**이다. **placement 사실의 출처로 인용 금지**, 지도를 넓히려고
+확장 금지. 수선은 전제를 진실로 되돌리는 것이지 기능을 키우는 게 아니다.
+
+**entwurf PM 답 (2026-08-06, `20260806T101528-cae60f`, gpt-5.6-sol):**
+
+- **`trace`는 폐기하지 않는다.** ← 우리 가설이 틀렸던 지점. `Session ID:` 매처가 죽은 건 맞지만,
+  `fresh_call`이 **더 강한 exact 관계**를 남긴다: launch receipt의 nonce → 들어온 callback 본문이
+  그 nonce와 일치 → 그 `<sender_info>.sessionId`가 **자식의 canonical garden id**다.
+  즉 `nonce exact match → callback sender envelope`가 새 상관 근거다. 추정이 아니라 정확 매칭이다.
+- **그것은 placement 근거가 아니다.** 거기서 tmux server/window/pane 사실을 유도하거나 주장하면
+  안 된다. placement는 launch receipt / placement leaf의 영역이다.
+- **resume은 새 자식이 아니다.** 나중의 resume은 같은 citizen이고 nonce가 필요 없다.
+- **`peek`/`map`은 계속 유용하다.** 단 *이유*가 바뀐다 — peers가 이제 record citizen을 전부
+  보고하므로, peek이 메우는 것은 **citizen 존재 여부가 아니라 heuristic transcript 상태**다.
+- **sync/Mattering 프레이밍은 은퇴.** fresh_call은 launch receipt + async callback이고,
+  v2는 fire-and-forget 전달만 있다.
+
+**시점 (PM):** 구현 수선은 **`mux-placement` 랜딩 이후**로 미룬다. callback 계약 자체는 이미
+안정적이지만 S0/S1 lifecycle 작업이 최종 transcript/operator 표면을 확정하므로, 지금 코드를
+고치면 두 번 고치게 된다. **문서만 고치는 것은 먼저 해도 된다.** 단 trace 파서와 fixture는
+랜딩을 기다렸다가 acceptance에서 나온 **실제 부모 transcript 기록물**을 fixture로 쓸 것.
+
+**다음 한 걸음 (PM이 준 문장):**
+> After mux-placement lands, repair entwurf-peek for v2: remove sync/control-socket-only claims;
+> replace legacy Session ID trace matching with exact fresh-call nonce → callback sender-envelope
+> correlation; keep trace heuristic and placement-non-authoritative.
+
+**fixture 계약 (PM 확답 2026-08-06):** 지금은 **부모 transcript artifact 경로가 없다** — acceptance가
+visible-first 재설계로 아직 착지 전이다. 랜딩 시 PM이 **scrubbed parent-transcript fixture의 exact
+path + digest**를 branch handoff에 남기고 우리에게 한 줄로 전달한다. 그때까지 파서 구현을 미루는
+판단이 맞다고 확인받았다.
+
+fixture가 갖춰야 할 것 — **받을 때 이걸로 검수한다**:
+- callback **nonce**와 **`sender_info` envelope**가 **함께** 보존될 것 (둘 중 하나만 있으면 상관 불가)
+- **tmux placement 사실로 오독될 필드는 fixture oracle에서 제외**되어 있을 것
+
+⚠️ **임의 샘플이나 개인 live transcript로 파서를 맞추지 말 것.** 전자는 계약과 어긋나고 후자는
+개인정보다. 경로를 못 받았으면 아직 시작할 때가 아니다.
 
 ## [2026-07-30] Upstage provider — 설치·검증 완료, Solar Open 2 승인 대기
 

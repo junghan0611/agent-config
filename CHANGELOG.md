@@ -7,7 +7,61 @@
 
 ## Unreleased
 
+### Removed (surfaces with no consumer left)
+
+* **Telegram bridge surface retired — `pi-entwurf`의 소비자 소멸.** 이 트랜스포트를 쓰던 Oracle 상주 세션(`pi-entwurf`, tmux, `@glg_entwurf_bot`)이 은퇴했고, 그 계보의 저장소 `junghan0611/pi-telegram`은 2026-04-24에 아카이브됐다. 그래서 `setup_links`의 `telegram.json` 생성 블록과 `setup_npm`의 `pi install git:github.com/badlogic/pi-telegram`을 걷어냈고, setup은 이제 남아 있던 `~/.pi/agent/telegram.json`을 **지운다**. README의 Persistent Agent 절·Harness 표 행·생태계 표 행과 `pihome` 별칭도 함께 내렸다.
+
+  **지운 실효는 하나였다:** 남겨두면 확장이 매 세션 토큰을 읽고 폴링은 걸지 않아 **모든 pi 세션 상태바에 `telegram disconnected`를 영구 표시**했다. 에러가 아니라 "토큰은 있는데 아무도 안 쓴다"는 표시였다.
+
+  **되살릴 때 필요한 좌표** — 역할이 언제 어떤 형태로 돌아올지 모르므로 남긴다. 업스트림 [`badlogic/pi-telegram`](https://github.com/badlogic/pi-telegram)(마리오 체크너, pi 저자)은 **아카이브가 아니다**. 다만 2026-04-04 이후 커밋이 없다(우리 설치본도 같은 `cb34008`). 봇 `@glg_entwurf_bot`은 **토큰이 여전히 유효**하고 `~/.env.local`의 `PI_ENTWURF_BOT_TOKEN`도 손대지 않았다 — 봇을 텔레그램에서 지울지는 이 스크립트의 판단이 아니다. 복구는 `pi install git:github.com/badlogic/pi-telegram` + `telegram.json`(`botToken`/`botId`/`allowedUserId`) 재생성이면 된다.
+
+  **이름 함정(반드시 기억할 것):** `junghan0611/pi-telegram`(아카이브)과 `badlogic/pi-telegram`(업스트림)은 **이름만 같고 다른 물건**이다. 전자는 설명이 *"Hierarchical agent orchestration system with JSON-RPC 2.0"* — 텔레그램 브리지가 아니라 **entwurf의 조상**이다. "pi-telegram 정리"라고만 읽으면 살아 있는 쪽을 지운다.
+
+  패키지 언인스톨은 **자동화하지 않았다**. `pi uninstall git:github.com/badlogic/pi-telegram`은 운영자 몫이다 — 이번 실행에서 설치하지도 않은 패키지를 걷어내는 setup 스크립트는 사람을 놀라게 한다.
+
+* **Gemini CLI (legacy) 면 제거 — 바이너리가 사라졌다.** `gemini`는 이 머신 PATH에 없다(`agy`는 살아 있다). 저장소의 `gemini/` 디렉토리와 `setup_links`의 두 섹션(`~/.gemini/settings.json`, `~/.gemini/skills`)을 걷어냈고, setup은 남아 있던 그 두 **심링크만** 지운다. 스킬 팬아웃은 6면 → **5면**.
+
+  ⚠️ **`~/.gemini/`를 통째로 지우면 안 된다.** 이름과 달리 그 디렉토리는 Gemini CLI의 집이 아니라 **Antigravity의 집**이다 — `antigravity-cli/`(settings·skills)와 `config/`(live-runtime MCP 경로)가 거기 산다. 정리는 legacy 심링크 둘로 한정했고, 그 이유를 `run.sh` 주석과 README에 박아뒀다. 실행 후 Antigravity 3경로 생존을 확인했다.
+
+  함께 정정: README가 `antigravity/mcp_config*.json`을 링크한다고 적고 있었는데 **그 파일은 존재하지 않고**, agy MCP config는 entwurf의 `install-agy-bridge` adapter 소유다(심링크를 걸면 adapter가 REFUSE한다). `run.sh` 주석은 이미 맞게 적혀 있었고 README만 뒤처져 있었다.
+
+* **`autoresearch.*` 실험 발판 제거.** 2026-05-07 `session-recap` 지연 최적화 세션이 남긴 저장소 루트의 추적 파일 4개(`autoresearch.sh`, `.checks.sh`, `.jsonl`, `.md`). 실험은 **결론이 났고 반영됐다** — `3af11d9`(bounded deque로 마지막 N 메시지만 유지). 성과는 코드에 남았고 발판만 루트에 남아 있었다. `autoresearch.md`가 참조하던 `autoresearch.ideas.md`는 애초에 존재하지 않았다.
+
+### Changed (pi 설정 — 파일 둘을 레퍼런스 하나로)
+
+* **`pi/settings.server.json`을 `pi/settings.json`에 접었다.** 새 구조는 `_common` + `_workstation`/`_server` 오버레이이고, `_` 접두 키가 산문을 나른다(JSON엔 주석이 없다). `setup_links`가 `is_server_device()`로 오버레이를 골라 `jq '(._common) * (.[$ov])'`로 평평한 fragment를 만든 뒤 `merge_settings`에 넘긴다. **이 repo는 설정을 참고하는 곳이지 라이브 저장소가 아니다** — 그 문장을 파일 맨 위 `_reference`에 박았다.
+
+  두 파일을 유지할 이유가 없었다: entwurf `packages[]` 항목과 `lastChangelogVersion`(둘 다 우리 것이 아님)을 빼고 나니 **진짜 차이가 `defaultThinkingLevel` 하나**였다. 스칼라 하나 때문에 파일 전체를 복제해두면 그 복제본은 반드시 어긋난다.
+
+* **`packages[]`에서 entwurf 제거 — 소유자가 둘이었다.** entwurf는 자기 `./run.sh install`로 `~/.pi/agent/settings.json`의 `packages[]`에 스스로를 user-scope citizen으로 등록하고 `remove-user-scope`가 그 역이다. 우리도 선언하고 있었으니 소유자가 둘이었고, entwurf는 절대경로를 쓰는데 우리 fragment는 상대경로여서 EXISTING-WINS 병합이 **영원히 화해시킬 수 없었다.** `run.sh`의 주석은 이미 "설치면은 entwurf에 맡긴다"고 적고 있었는데 **데이터만 그 말을 안 따르고 있었다.**
+
+* **`packages[]`를 통째로 없앴다 — 이 파일은 이제 pi 패키지를 하나도 선언하지 않는다.** entwurf만 빼는 것으로는 부족했다: `merge_settings`가 배열을 **단일 leaf로 비교**하는데(jq 병합이 배열을 통째로 대체하므로) live의 `packages`는 entwurf가 자기를 추가해 자라므로, 우리가 그 키를 선언하는 한 두 배열은 **항상** 달라 경고가 계속 떴다. 키를 없애니 비교할 것이 없어 **경고가 사라졌다**(실행 확인).
+
+  andenken도 함께 뺐다. 에이전트는 **`semantic-memory` 스킬**로 닿고 그건 모든 하네스가 부를 수 있으니, 설정 항목이 필요 없다. **알아둘 결과:** andenken이 pi 패키지로 등록된 적 없는 기기에서는 pi의 `session_search`/`knowledge_search` registerTool이 **없고** 스킬이 유일한 문이다. 이미 등록된 기기(이 워크스테이션 포함)는 그대로 동작한다 — EXISTING-WINS라 live에서 지워지지 않는다. 이게 의도한 모양이다: 모든 하네스가 공유하는 한 면이지, pi 전용 편의가 기준면이 아니다.
+
+* **`entwurfProvider.mcpServers`도 뺐다 — 같은 이중 소유였다.** entwurf의 `./run.sh install`이 그 면을 실제로 쓴다(`scripts/smoke-acp-mcp-live.ts`가 명시). live에는 bare stable bin `entwurf-bridge`가 기록되고 그건 entwurf가 소유한 `~/.local/bin` 심링크로 해석된다(실물 확인). 우리는 절대 `start.sh` 경로를 박아두고 있었으니 두 번째 소유자였고, 값이 다른 형태라 화해가 불가능했으며, **entwurf가 자유롭게 옮길 수 있는 경로를 우리가 고정**하고 있었다. `entwurfProvider`에 남긴 `skillPlugins`는 이 repo가 만드는 소비자 플러그인 팜을 가리키므로 진짜 우리 것이다.
+
+  결과: 남은 divergence 경고는 `defaultProvider`/`defaultModel`/`defaultThinkingLevel`/`compaction`뿐이고, 이것들은 **GLG의 실제 live 선택**이다. 소유권 충돌이 아니라 레퍼런스가 제 역할을 하는 것 — "이 기기는 참고값과 이만큼 다르다".
+
+* **`scripts/` 제거.** 안 쓰는 `pi-entwurf.sh` 하나뿐이었다(은퇴한 상주 세션의 런처). 저장소·홈 어디에도 참조가 없음을 확인했다.
+
+### Docs (drift sweep — 문서가 없는 것을 지시하고 있었다)
+
+* **폐기된 entwurf 도구를 실사용으로 지시하던 자리 정정.** `AGENTS.md`가 "`entwurf_send`로 지시를 보낸다"고 적고 있었는데 그 도구는 entwurf #50 하드컷으로 사라졌다 — 읽고 그대로 호출하면 실패한다. Codex/Antigravity 검증 문장의 `entwurf_resume`, README의 `entwurf`/`_resume`/`_send`/`_peers` 행도 v2 표면(`entwurf_v2`/`peers`/`self`/`inbox_read`/`fresh_call`/`register_native`, 0.13.1)으로 교체했다.
+
+* **`AGENTS.md § Release — entwurf Install Mode` 삭제.** `run.sh`의 `ENTWURF_INSTALL_SPEC`/`ENTWURF_TRACKING_REF`, `git:` 패키지 항목, `setup_npm()`의 `git checkout -B main origin/main`, v0.5.0 prerelease 창 — **어느 것도 존재하지 않는다**(entwurf는 0.13.1). 고치지 않고 지웠다: 이 repo가 소유하지 않는 설치 모드에는 이 repo가 문서화할 설정이 없다. 대신 `§ Version Pinning — who pins what`으로 대체해 **entwurf는 스스로 핀하고, 우리가 핀하는 것은 평가 대상 런타임(`HERMES_TAG`)** 이라는 비대칭을 적었다.
+
+* **생태계 표에서 entwurf의 Telegram 행 삭제.** entwurf `src/`에도 README에도 telegram 코드가 한 줄도 없는데 전송 계층으로 등재돼 있었다.
+
+* **수치 정합:** 스킬 41→42, commands 표 6→8(`/authologplay`, `/scaleplay` 누락), `pi/` 표 3→4(`settings.server.json` 누락).
+
+### Added (bench)
+
+* **`./run.sh setup:hermes` — 평가 대상 런타임을 이 repo가 직접 세운다.** `HERMES_TAG`로 버전을 고정하고 `.#minimal + anthropic`으로 작게 설치한다. `setup`에 포함하지 않는다(콜드 빌드 ~1000 파생). 자세한 근거는 README `§ Agent Runtime Bench`.
+
 ### Skills
+
+* **`entwurf-peek` 문서 정정 (코드 수선은 랜딩 후).** description이 "`entwurf_peers`는 control socket 있는 세션만 보여주므로 내가 메운다"고 **존재 이유부터 거짓**을 말하고 있었다 — peers는 이제 meta-record citizen을 전부 보고한다. 자리를 다시 그었다: **peers = citizen 존재/liveness, peek = transcript heuristic 상태**. sync/`Mattering...` 프레이밍은 은퇴(v2는 fire-and-forget 전달만). placement 비권위를 두 곳에 박았다. `trace`의 `Session ID:` 매칭이 죽어 있다는 경고와 대체 방향(fresh-call nonce → callback sender envelope)을 달았고, 파서 교체는 entwurf `mux-placement` 랜딩 후 acceptance fixture로 한다(entwurf PM 합의, `NEXT.md [2026-08-06]`).
 
 * **`glg-image` now carries its own Gemini image generator.** A zero-dependency Node CLI mirrors the pi `generate_image` REST path, loads `GEMINI_API_KEY` itself, accepts exact prompt files and explicit project output paths, and works from Claude Code/Codex/Antigravity without a native image tool. General document-image generation is the default; the GLGMAN world block is applied only when that universe is requested.
 
