@@ -77,7 +77,10 @@ export default function (pi: ExtensionAPI) {
 
 		const total = homeCount + projectCount;
 		if (total > 0) {
-			ctx.ui.setStatus("env", `env: ${total} vars loaded`);
+			// Terse on purpose: every extension shares one truncated footer line, so
+			// a startup fact that never changes gets an emoji and a number, not a
+			// sentence. "env: 4 vars loaded" cost 18 columns to say "🔑4".
+			ctx.ui.setStatus("env", `🔑${total}`);
 		}
 	});
 }
