@@ -10,14 +10,18 @@ map**을 실제로 세우는 손이다. 그 문서의 판정은 분명하다: �
 surface가 아니라 **호출자가 이미 가진 사실들을 한 문장 안에서 읽는 방식**이다. 그래서
 entwurf repo가 아니라 여기(범용 스킬)에 산다.
 
-> ⚠️ **미해결 경계 (2026-08-07, 리뷰에서 지적됨).** rail §4 경계 2는 "`entwurf-peek`을
-> 지도의 SSOT로 삼지 않는다 / 지도를 넓히려고 peek을 확장하지 않는다"고 적혀 있다.
-> `situation`은 MCP verb를 만들지 않으므로 경계 1(새 public surface 금지)은 지키지만,
-> 경계 2와는 정면으로 부딪힌다. 이 스킬은 GLG의 명시적 지시로 섰고, 부딪히는 전제도
-> 하나 바뀌었다 — 경계 2가 쓰일 때 peek은 순수 heuristic 추측이었지만, 지금 identity
-> 축은 meta-record 조인이라 **추정이 아니라 정확 매칭**이다. 그래도 SSOT 문서를 조용히
-> 거스르지는 않는다. rail §4를 고칠지는 entwurf lane(PM)의 결정이고, 그 결정 전까지 이
-> 충돌은 여기 적힌 채로 둔다.
+> ✅ **경계 판정 (2026-08-07, entwurf [#64 comment](https://github.com/junghan0611/entwurf/issues/64#issuecomment-5210382307)).**
+> 이전에 여기 적혀 있던 rail §4 경계 2 충돌은 entwurf lane이 판정했다. `situation`은
+> **caller-side research projection으로 유지 가능**하고, per-session 진단으로 되돌릴 필요가
+> 없다. 실제 경계는 "이 스킬은 자라지 못한다"가 아니라 **"각 행의 authority를 보존하는
+> caller-side 합성은 가능하되, dispatch·placement·role·liveness의 SSOT가 되지 못한다"**이다.
+> 따라서 `entwurf_situation` MCP verb는 **비승인**이고, 아래 「무엇이 아닌가」의 non-goal은
+> 장식이 아니라 계약이다. rail §4 문구 개정 자체는 research 이후 entwurf 쪽 후속이다.
+>
+> ⚠️ **store 계약 복제는 임시 mirror다.** `parseMetaRecordV3` 계열 certification을 여기로
+> 복제한 것은 사실면이 갈라지지 않게 하려는 **테스트된 임시 조치**이지 durable owner API가
+> 아니다. 장기 소유권은 entwurf **#65**가 정한다(owner-normalized read-only join을 낼지,
+> 직접 store read를 명시적으로 버전·승인할지). 그 결정 전까지 drift는 이쪽 책임이다.
 
 핵심 질문 두 개를 같은 표에 올린다.
 

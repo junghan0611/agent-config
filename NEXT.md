@@ -3,9 +3,11 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-> NOW: active ⓪ **entwurf-peek 파서 수선 — 재료 대기.** 문서 정정은 끝났고, 파서/fixture는
-> entwurf `mux-placement` 랜딩 후 PM이 넘길 acceptance transcript로 한다. **임의 샘플 금지**
-> (아래 [2026-08-06]), ① **Solar Open 2 계정 승인 대기** (아래 [2026-07-30], issue #17),
+> NOW: active ⓪ **entwurf-peek — `situation`은 착지(`0259f19`), `trace` 파서만 재료 대기.**
+> record 기반 판단면은 열렸고 entwurf #64가 caller-side projection으로 승인했다. 남은 것은
+> `trace`의 nonce→sender-envelope 수선이고 fixture는 `mux-placement` acceptance 산출물로만
+> 한다 — **임의 샘플 금지** (아래 [2026-08-07] · [2026-08-06]),
+> ① **Solar Open 2 계정 승인 대기** (아래 [2026-07-30], issue #17),
 > ①ʹ **Hermes 벤치마크 — 설치만 끝나고 한 줄도 재지 않았다.** 검수 매트릭스는
 > `HERMES.md`(아래 [2026-08-06] Hermes). 본체는 D축(자기학습 루프) 비교,
 > ② **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
@@ -19,6 +21,33 @@
 > 대기: 어쏠로그 수선 때 7/13 근거 회수(아래 [2026-07-14] 어쏠로그).
 > ⚠️ [2026-06-11] bibcli 항목은 **2026-07-14 결정과 방향이 반대다** — GLG 재판단 대기(아래).
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+
+## [2026-08-07] entwurf-peek `situation` 착지 — 다시 뜯어고치지 말 것
+
+> `0259f19` (원격 작업, push 완료). garden id ↔ native session id를 **v3 meta-record로 exact
+> join**하는 판단면 `situation`이 들어왔다. `test-discovery.py` 70/70 통과.
+>
+> 사실면이 세 층으로 갈라져 있고 그 분리가 **load-bearing**이다:
+> **record(사실)** / **liveness socket mirror** / **transcript heuristic**.
+> transcript owner는 backend-aware `match | mismatch | unknown | unsupported`이고,
+> `unknown`을 `mismatch`나 소유 주장으로 승격하지 않는다. relative/missing/foreign/unsupported
+> transcript는 **본문을 읽지 않는다**(cwd의 남의 파일을 citizen transcript로 채택하던 결함이
+> 리뷰에서 잡혔다).
+>
+> **정책 (entwurf #64 [comment 5210382307](https://github.com/junghan0611/entwurf/issues/64#issuecomment-5210382307)):**
+> caller-side research projection으로 **유지 가능**. rail §4 경계 2 때문에 per-session 진단으로
+> 되돌릴 필요 없다. 단 public `entwurf_*` 표면이 아니고(`entwurf_situation` 툴 비승인),
+> liveness SSOT·placement authority·dispatch·role grant·자동 선택이 아니다. 쓰이는 자리는 둘뿐:
+> Phase A 전 기존 citizen 확인, exact callback 후 roster 확인. **역할은 사람이 Phase B에서 준다.**
+>
+> **하지 말 것:** 현재 구현을 다시 뜯어고치지 말 것. 이 코멘트는 구현 재개 지시가 아니다.
+>
+> **남은 실:**
+> - `trace` 파서 수선 — 아래 [2026-08-06]. fixture 계약 그대로 유효.
+> - store 계약 복제(`parseMetaRecordV3` 등)는 **테스트된 임시 mirror**이지 durable owner API가
+>   아니다. 장기 소유권은 **entwurf #65**. #65가 owner-normalized read-only join을 내놓으면
+>   그때 consumer-side 복제 제거 여부를 검토한다 — 지금 먼저 손대지 않는다.
+> - rail §4 경계 2 **문구 개정은 entwurf 쪽 후속**이고 research 이후다. #62 amendment에 섞지 않는다.
 
 ## [2026-08-06] Hermes — 설치는 끝, 측정은 시작도 안 했다
 
@@ -49,27 +78,26 @@
 > 다음 한 걸음: **D1(스킬 자동 생성 관측)** — 본체이고 아무것도 막지 않는다.
 > 곁가지로 A5(plugin.yaml 범위), B1(대안 레일 한 턴).
 
-## [2026-08-06] entwurf-peek 수선 — 존재 이유 문장이 먼저 틀렸다
+## [2026-08-06] entwurf-peek 수선 — 이제 `trace` 하나만 남았다
 
 > entwurf가 v2로 넘어오면서(0.13.1, #50 하드컷) 이 스킬이 기대던 세계가 사라졌다.
-> 코드가 죽은 게 아니라 **전제가 죽었다** — `scripts/entwurf-peek.py`(38KB, 6/23)는 그대로 있다.
+> 코드가 죽은 게 아니라 **전제가 죽었다** — `scripts/entwurf-peek.py`는 그대로 있었다.
+>
+> ✅ **닫힘 (`0259f19`, 위 [2026-08-07]):** 깨진 전제 1(존재 이유 문장)·2(sync/Mattering 프레이밍)는
+> SKILL.md 재작성과 `situation` 착지로 해소됐다. 아래는 **전제 3 = `trace`**에만 해당한다.
 
-**깨진 전제 3개** (`skills/entwurf-peek/SKILL.md`):
+**남은 깨진 전제** (`skills/entwurf-peek/SKILL.md § trace`):
 
-1. **존재 이유 문장이 틀렸다.** description이 "entwurf_peers는 control socket 있는 세션만
-   보여주는데 이 스킬은 그걸 메운다"고 말하는데, 지금 `entwurf_peers`는 meta-record 기반
-   garden citizen을 **전부** 준다(`liveness=unsupported` 포함, 8/6 관측 351+행). 메우려던
-   구멍이 없어졌으니 스킬의 자기소개부터 다시 써야 한다.
-2. **"sync entwurf 자식" / "Mattering...에 묶여있을 때"** — v2는 fire-and-forget만 남았다.
-   이 대상 자체가 존재하는지 확인 필요.
 3. **`trace`의 자식 매칭**이 부모 JSONL의 `Session ID: <YYYYMMDDTHHMMSS-xxxxxx>` 문자열에
    의존한다. v1 `entwurf`/`entwurf_resume`/`entwurf_send`가 하드컷으로 사라졌으니 그 문자열이
    더는 안 찍힐 가능성이 높다. `entwurf_fresh_call`은 tmux 좌표+nonce 영수증이고, 상관은
    callback sender envelope이다.
 
-**지켜야 할 경계 (entwurf 쪽이 이미 못 박음, `docs/mux-launch-rail.md` §4 경계 2):**
-peek은 heuristic **진단 손**이다. **placement 사실의 출처로 인용 금지**, 지도를 넓히려고
-확장 금지. 수선은 전제를 진실로 되돌리는 것이지 기능을 키우는 게 아니다.
+**지켜야 할 경계 (`docs/mux-launch-rail.md` §4 경계 2 — #64로 재조정됨):**
+"이 스킬은 절대 자라지 못한다"가 아니라 **"각 행의 authority를 보존하는 caller-side 합성은
+가능하되, dispatch·placement·role·liveness의 SSOT가 되지 못한다"**가 실제 경계다(위 [2026-08-07]).
+`trace`에 대해서는 여전히 **placement 사실의 출처로 인용 금지**이고, 수선은 전제를 진실로
+되돌리는 것이지 기능을 키우는 게 아니다.
 
 **entwurf PM 답 (2026-08-06, `20260806T101528-cae60f`, gpt-5.6-sol):**
 

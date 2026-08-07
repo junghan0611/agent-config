@@ -160,7 +160,7 @@ native-image라 `go_build`를 안 탄다.
 
 **아직 공백인 것은 script 스킬이다.** `./run.sh test`는 andenken로 위임될 뿐
 (`$SM_DIR/run.sh`), `skills/<name>/scripts/`를 검증하지 않는다. 유일한 deterministic gate는
-`skills/entwurf-peek/scripts/test-discovery.py`(수동 실행, 15-check).
+`skills/entwurf-peek/scripts/test-discovery.py`(수동 실행, 2026-08-07 기준 70-check).
 
 **두 방향을 헷갈리지 마라 — 이게 오래 헷갈렸다:**
 
