@@ -84,6 +84,7 @@ Entwurf opens siblings, not disposable workers.
 - Entwurfs prepare work; GLG decides final commit/push.
 - When spawning with project context, pass `cwd` exactly. Do not use `workingDirectory`.
 - Resume existing entwurf sessions when continuity matters; do not change the model on resume.
+- **Model name:** Fable is Claude Code alias `fable` (full id `claude-fable-5`). It is never Pebble/`pebble`; when GLG says `페블` as shorthand, canonicalize it to Fable and pass `fable` to the CLI.
 - For entwurf / garden-id / meta-bridge details, treat `~/repos/gh/entwurf/AGENTS.md` as SSOT.
 
 ### Role-Based Coordination
