@@ -42,6 +42,8 @@ __pycache__/
 *.pyc
 /.agent-shell/
 
+# sibling-repo skill symlinks (tool-bearing repo owns the SKILL.md)
+skills/butlercli
 skills/incidentcli
 skills/voscli
 .tmp-confluence-md/
