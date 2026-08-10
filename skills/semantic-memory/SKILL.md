@@ -216,6 +216,8 @@ Boundary rules:
 | `--session-file PATH` | search-sessions | Exact session JSONL path | none |
 | `--session-file-contains S` | search-sessions | Session path substring filter | none |
 | `--mode M` | search-sessions | `semantic`, `hybrid`, or `recent`; `recent` is timestamp DESC stored-signal mode | hybrid |
+| `--with-excerpt` | search-sessions | Attach the surrounding JSONL turns to the top hits — read around a match without opening the file | off |
+| `--excerpt-limit N` | search-sessions | How many top hits get an excerpt | 3 |
 | `--force` | reindex | Drop and rebuild entire index | false |
 
 ## Architecture
@@ -252,4 +254,21 @@ Index locations:
 - **andenken-embed** (andenken repo-local skill): sessions+md full maintenance — re-embed · verify · defrag (compact, pinned to 4 cores) · oracle replication. When the index is stale or fragments grew.
 - **denotecli**: Exact title/tag/content matching. Use denotecli for precise lookups, semantic-memory for conceptual/meaning-based search.
 - **dictcli**: Auto-invoked internally for Korean→English query expansion (expand). Kiwi stemming belongs to older org-indexing paths; md production search uses CJK-aware chunking + expand/FTS fallback.
-- **session-recap**: Extracts text from single session JSONL. semantic-memory searches across ALL sessions semantically.
+- **session-recap**: Extracts text from a single session JSONL. semantic-memory searches across ALL sessions semantically.
+
+### Handing a hit to session-recap — the seam
+
+Search results carry `file` (the session JSONL path) and `line` (the raw JSONL line
+number). They join to two *different* tools, and mixing them up is the common error:
+
+| You want | Use | Signal |
+|---|---|---|
+| The turns **around this hit** | stay here — `--with-excerpt` | `line` |
+| The **whole session** this hit came from | `session-recap --session-file <file>` | `file` |
+
+`session-recap` consumes the **path only**. It counts filtered messages, not raw JSONL
+lines, so `line` is meaningless to it and it takes no line anchor. Reading the hit
+neighborhood is this skill's own job — that is what `--with-excerpt` exists for.
+
+Without the handoff, recap falls back to guessing "the recent session of this project"
+even though search already identified the exact one.

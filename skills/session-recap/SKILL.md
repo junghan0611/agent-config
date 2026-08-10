@@ -71,6 +71,55 @@ python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
 | `--source` | current harness | `pi`, `claude`, `all`. Unset → Claude Code=claude, else pi |
 | `--harness` | all | pi-internal filter: `gpt`, `acp`, `all`. Use with `--source pi` or `all` |
 | `--min-kb N` | 300 | Size floor, `size > N*KB`. `0` disables; use it when a real recent GPT/ACP session is below the default floor |
+| `--session-file PATH` | — | **Exact selection.** One absolute `.jsonl` path. Bypasses every discovery filter; cannot be combined with any of them |
+
+## Exact selection — `--session-file`
+
+The flags above *search* for a session. `--session-file` **names** one. Use it when
+another tool already found the exact session — today that means `semantic-memory`, whose
+results carry the session `file`. Without this flag search hands you a precise answer and
+recap goes back to guessing "the recent session of this project".
+
+```bash
+# semantic-memory found it → restore it exactly
+python3 {baseDir}/scripts/session-recap.py --session-file /abs/path/session.jsonl -m 20
+```
+
+**What it bypasses — all of it, deliberately.** tmp exclusion, pi garden-native
+filename, `--min-kb`, and **`--skip 1`**. Dropping skip means exact selection *can
+target the live current session* — sometimes what you want, but never by accident.
+Reading your own live transcript may show an inverted `기간` line because the file is
+still being appended and is not strictly time-ordered; the extracted text is unaffected.
+
+**It refuses rather than guesses.** Combining it with `-s/-p/-a/--skip/--source/
+--harness/--min-kb` is an error (exit 2), not a silent override — those flags describe a
+search that is no longer happening. Named errors, each a different fact: not absolute ·
+not `.jsonl` · a symlink · unreadable · outside `~/.pi/agent/sessions` and
+`~/.claude/projects` · **parsed 0 messages** (exit 1 — the path is a real session file
+but holds no readable turns; nothing is printed to stdout, so you can never write a
+header for a session you did not actually read).
+
+The header contract is unchanged, plus one `파일:` line carrying the full path, so the
+answer rules below apply identically.
+
+### Seam contract — what this flag does and does not join
+
+| Signal | Owner | Consumed here? |
+|---|---|---|
+| `file` / `sessionFile` (path) | semantic-memory | **Yes** — `--session-file` |
+| `line` / `lineNumber` | semantic-memory | **No.** Different address space |
+
+**`entwurf-peek` → recap is still an open seam.** peek resolves a citizen's transcript
+path internally but never emits it: `peek` prints only `<parent>/<name>` and has no
+`--json`, and `situation --json` rows carry no transcript path. So a garden id cannot be
+turned into a `--session-file` argument yet. Do not describe that path as available.
+
+`semantic-memory` reports `sessionFile:lineNumber` where `lineNumber` is the **raw JSONL
+line** (blank and non-message records included). recap counts **filtered messages**. The
+two never line up, so recap does not take a line anchor and will not grow one. To read
+around a semantic hit, that is semantic-memory's own job:
+`semantic-memory search-sessions ... --with-excerpt`. Division of labor: **the hit
+neighborhood belongs to semantic-memory, the exact session's spine belongs to recap.**
 
 ## Examples
 

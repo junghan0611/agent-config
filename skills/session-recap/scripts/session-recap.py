@@ -18,6 +18,7 @@ Usage:
   session-recap.py --source pi         # pi 세션만
   session-recap.py --source claude     # Claude Code 세션만
   session-recap.py --source pi --harness gpt  # pi native GPT/Codex 세션만
+  session-recap.py --session-file /abs/path/session.jsonl  # 정확한 세션 1개
 """
 
 import argparse
@@ -154,6 +155,10 @@ def detect_pi_harness(filepath: Path, max_lines: int = 200) -> str:
                     d = json.loads(line.strip())
                 except (json.JSONDecodeError, ValueError):
                     continue
+                # 문법은 맞지만 object 가 아닌 줄(`[]`, `42`)은 레코드가 아니다.
+                # exact 선택은 구조 필터를 우회하므로 이런 파일이 여기까지 온다.
+                if not isinstance(d, dict):
+                    continue
 
                 msg = d.get("message", {})
                 if not isinstance(msg, dict):
@@ -177,6 +182,50 @@ def detect_pi_harness(filepath: Path, max_lines: int = 200) -> str:
         return "unknown"
 
     return "unknown"
+
+
+def resolve_session_file(session_file: str) -> tuple[float, Path, str, str]:
+    """Resolve one explicitly selected pi/Claude transcript.
+
+    Exact selection deliberately bypasses recency, size, tmp, and garden-native
+    corpus filters. The absolute path itself is the caller's explicit intent, but
+    it must still name a regular ``.jsonl`` file under a known session root.
+    """
+    candidate = Path(session_file).expanduser()
+    if not candidate.is_absolute():
+        raise ValueError("--session-file must be an absolute path")
+    if candidate.suffix != ".jsonl":
+        raise ValueError("--session-file must name a .jsonl file")
+    if candidate.is_symlink():
+        raise ValueError("--session-file must name a regular file, not a symlink")
+    try:
+        path = candidate.resolve(strict=True)
+        stat = path.stat()
+        # stat 만으로는 읽기 권한을 알 수 없다 (chmod 000 도 stat 은 통과한다).
+        # 여기서 실제로 열어봐야 docs 가 약속한 `unreadable` named fact 가 성립한다.
+        with open(path):
+            pass
+    except OSError as error:
+        raise ValueError(f"--session-file is not readable: {error}") from error
+    if not path.is_file():
+        raise ValueError("--session-file must name a regular file")
+
+    roots = [
+        (Path.home() / ".pi" / "agent" / "sessions", "pi"),
+        (Path.home() / ".claude" / "projects", "claude"),
+    ]
+    for root, source in roots:
+        try:
+            relative = path.relative_to(root.resolve())
+        except (OSError, ValueError):
+            continue
+        if len(relative.parts) < 2:
+            raise ValueError("--session-file must be inside a project session directory")
+        dirname = relative.parts[0].strip("-")
+        project = _extract_project(dirname)
+        return stat.st_mtime, path, project, source
+
+    raise ValueError("--session-file must be under ~/.pi/agent/sessions or ~/.claude/projects")
 
 
 def find_session_files(
@@ -259,6 +308,8 @@ def extract_messages(
                 d = json.loads(line.strip())
             except (json.JSONDecodeError, ValueError):
                 continue
+            if not isinstance(d, dict):
+                continue
 
             msg_type = d.get("type", "")
 
@@ -279,6 +330,11 @@ def extract_messages(
             else:
                 continue
 
+            # `message` 가 object 가 아니면 이 레코드는 메시지가 아니다. 버리고
+            # 계속 간다 — 전부 버려지면 exact 경로의 parsed-0 named error 가 받는다.
+            if not isinstance(msg, dict):
+                continue
+
             role = msg.get("role", "")
             ts = d.get("timestamp", "")
 
@@ -289,9 +345,15 @@ def extract_messages(
             # 비용 집계
             # pi:         usage.input / usage.output / usage.cost.total
             # Claude Code: usage.input_tokens / usage.output_tokens (cost 없음)
+            # usage 는 부가 정보다. 모양이 깨졌다고 읽을 수 있는 turn 을 버리지
+            # 않는다 — 집계만 건너뛴다.
             usage = msg.get("usage", {})
+            if not isinstance(usage, dict):
+                usage = {}
             if usage:
                 cost_info = usage.get("cost", {})
+                if not isinstance(cost_info, dict):
+                    cost_info = {}
                 total_cost += cost_info.get("total", 0)
                 total_input += usage.get("input", 0) or usage.get("input_tokens", 0)
                 total_output += usage.get("output", 0) or usage.get("output_tokens", 0)
@@ -374,6 +436,8 @@ def format_output(sessions_data: list[dict], output_format: str) -> str:
         else:
             source_label = f" [{source}]" if source else ""
         lines.append(f"═══ {meta['project']}{source_label} ({meta['file'][:40]}...) ═══")
+        if meta.get("exact"):
+            lines.append(f"  파일: {meta['path']}")
         lines.append(f"  기간: {_fmt_ts(stats.get('start', ''))} → {_fmt_ts(stats.get('end', ''))}")
         if "cost" in stats:
             lines.append(f"  비용: {stats['cost']} (in:{stats['input_tokens']:,} out:{stats['output_tokens']:,})")
@@ -404,7 +468,7 @@ def main():
         description="세션 JSONL에서 핵심 텍스트 추출 (에이전트 컨텍스트 최적화)"
     )
     parser.add_argument(
-        "--sessions", "-s", type=int, default=1, help="직전 N개 세션 (기본: 1)"
+        "--sessions", "-s", type=int, default=None, help="직전 N개 세션 (기본: 1)"
     )
     parser.add_argument(
         "--messages", "-m", type=int, default=20, help="세션당 마지막 N개 메시지 (기본: 20)"
@@ -428,7 +492,7 @@ def main():
         "--format", "-f", choices=["text", "json"], default="text", help="출력 형식"
     )
     parser.add_argument(
-        "--skip", type=int, default=1, help="최신 N개 세션 건너뛰기 (기본: 1, 현재 세션)"
+        "--skip", type=int, default=None, help="최신 N개 세션 건너뛰기 (기본: 1, 현재 세션)"
     )
     parser.add_argument(
         "--source", choices=["pi", "claude", "all"], default=None,
@@ -436,57 +500,93 @@ def main():
              "pi=pi 세션만, claude=Claude Code 세션만, all=양쪽"
     )
     parser.add_argument(
-        "--harness", choices=["gpt", "acp", "all"], default="all",
+        "--harness", choices=["gpt", "acp", "all"], default=None,
         help="pi 내부 하네스 필터. gpt=pi native OpenAI/Codex, "
              "acp=entwurf Claude (historical: pi-shell-acp), all=필터 없음. Claude Code source 의미는 바꾸지 않음"
     )
     parser.add_argument(
-        "--min-kb", type=int, default=DEFAULT_MIN_KB,
+        "--min-kb", type=int, default=None,
         help=f"세션 크기 하한 KB, `size > min` (기본: {DEFAULT_MIN_KB}). "
              "0이면 크기 필터 끔 (직전 작은 세션도 회수)"
+    )
+    parser.add_argument(
+        "--session-file", type=str, default=None, metavar="ABS_PATH",
+        help="정확한 pi/Claude 세션 JSONL 1개. recency/size/corpus 필터를 명시적으로 우회"
     )
 
     args = parser.parse_args()
 
-    source = args.source if args.source else _default_source()
+    exact = args.session_file is not None
+    if exact:
+        incompatible = []
+        if args.sessions is not None:
+            incompatible.append("--sessions")
+        if args.project is not None:
+            incompatible.append("--project")
+        if args.all_projects:
+            incompatible.append("--all-projects")
+        if args.skip is not None:
+            incompatible.append("--skip")
+        if args.source is not None:
+            incompatible.append("--source")
+        if args.harness is not None:
+            incompatible.append("--harness")
+        if args.min_kb is not None:
+            incompatible.append("--min-kb")
+        if incompatible:
+            parser.error(f"--session-file cannot be combined with {', '.join(incompatible)}")
+        # `-m 0` 은 deque(maxlen=0) 로 전부 버린다. 그러면 아래 0건 guard 가 읽을 수
+        # 있는 세션을 "읽을 게 없다"고 거짓 판정한다. 요청을 거절하는 편이 정직하다.
+        if args.messages < 1:
+            parser.error("--session-file requires --messages >= 1")
+        try:
+            files = [resolve_session_file(args.session_file)]
+        except ValueError as error:
+            parser.error(str(error))
+    else:
+        source = args.source if args.source else _default_source()
+        harness = args.harness if args.harness else "all"
+        skip = args.skip if args.skip is not None else 1
+        min_kb = args.min_kb if args.min_kb is not None else DEFAULT_MIN_KB
+        sessions = args.sessions if args.sessions is not None else 1
 
-    files = find_session_files(
-        source=source,
-        project=args.project if not args.all_projects else None,
-    )
+        files = find_session_files(
+            source=source,
+            project=args.project if not args.all_projects else None,
+        )
 
-    if not files:
-        print("세션 파일 없음", file=sys.stderr)
-        sys.exit(1)
+        if not files:
+            print("세션 파일 없음", file=sys.stderr)
+            sys.exit(1)
 
-    # 1) 현재 세션 건너뛰기 — 크기 무관 완전 최신순 목록 위에서 (현재 세션은 세션
-    #    초반엔 작아 크기 필터에 걸릴 수 있으므로 skip 을 크기 필터보다 먼저 한다)
-    files = files[args.skip:]
+        # 1) 현재 세션 건너뛰기 — 크기 무관 완전 최신순 목록 위에서 (현재 세션은 세션
+        #    초반엔 작아 크기 필터에 걸릴 수 있으므로 skip 을 크기 필터보다 먼저 한다)
+        files = files[skip:]
 
-    # 2) pi 내부 하네스 필터 — 현재 세션 skip 이후 적용해야 최신 GPT/ACP가
-    #    --skip 1 로 잘못 빠지지 않는다. Claude Code source 의미는 변경하지 않는다.
-    if args.harness != "all":
-        files = [t for t in files if t[3] == "pi" and detect_pi_harness(t[1]) == args.harness]
+        # 2) pi 내부 하네스 필터 — 현재 세션 skip 이후 적용해야 최신 GPT/ACP가
+        #    --skip 1 로 잘못 빠지지 않는다. Claude Code source 의미는 변경하지 않는다.
+        if harness != "all":
+            files = [t for t in files if t[3] == "pi" and detect_pi_harness(t[1]) == harness]
 
-    # 3) 표시 후보에만 크기 필터 적용 — probe/test 단편 제거 (andenken 코퍼스 규율)
-    pre_size_count = len(files)
-    min_bytes = args.min_kb * 1024
-    if min_bytes > 0:
-        files = [t for t in files if t[1].stat().st_size > min_bytes]
+        # 3) 표시 후보에만 크기 필터 적용 — probe/test 단편 제거 (andenken 코퍼스 규율)
+        pre_size_count = len(files)
+        min_bytes = min_kb * 1024
+        if min_bytes > 0:
+            files = [t for t in files if t[1].stat().st_size > min_bytes]
 
-    # 4) 최근 N개 세션
-    files = files[: args.sessions]
+        # 4) 최근 N개 세션
+        files = files[:sessions]
 
-    if not files:
-        if pre_size_count > 0 and args.min_kb > 0:
-            print(
-                f"No matching sessions after --min-kb {args.min_kb}; "
-                "retry the same project/source/harness with --min-kb 0.",
-                file=sys.stderr,
-            )
-        else:
-            print("해당하는 세션 없음", file=sys.stderr)
-        sys.exit(1)
+        if not files:
+            if pre_size_count > 0 and min_kb > 0:
+                print(
+                    f"No matching sessions after --min-kb {min_kb}; "
+                    "retry the same project/source/harness with --min-kb 0.",
+                    file=sys.stderr,
+                )
+            else:
+                print("해당하는 세션 없음", file=sys.stderr)
+            sys.exit(1)
 
     sessions_data = []
     for mtime, fpath, proj, src in files:
@@ -494,11 +594,24 @@ def main():
         data = extract_messages(
             fpath, args.messages, args.chars, args.commits, args.cost
         )
+        # exact 선택은 구조/크기 필터를 우회하므로 "메시지 0건"이 여기까지 온다.
+        # discovery 경로는 필터가 이미 걸러 도달하지 않는다. 헤더만 찍고 rc=0으로
+        # 끝나면 호출자가 "무엇을 보고 있는지"를 적어놓고 본문 없이 요약하게 된다.
+        if exact and not data.get("messages"):
+            print(
+                f"--session-file parsed 0 messages: {fpath}\n"
+                "The file is under a session root but holds no readable "
+                "user/assistant turns (empty, truncated, or not a session transcript).",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         sessions_data.append(
             {
                 "meta": {
                     "project": proj,
                     "file": fpath.name,
+                    "path": str(fpath),
+                    "exact": exact,
                     "source": src,
                     "harness": harness,
                     "size_kb": fpath.stat().st_size // 1024,

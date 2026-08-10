@@ -22,6 +22,29 @@
 > ⚠️ [2026-06-11] bibcli 항목은 **2026-07-14 결정과 방향이 반대다** — GLG 재판단 대기(아래).
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
 
+## [2026-08-10] 세션 이음새 — `--session-file` 착지, 남은 두 실
+
+> `semantic-memory → session-recap` 이음새가 닫혔다. `--session-file <abs path>`로 검색이
+> 찾아낸 정확한 세션을 그대로 복원한다(exact selection은 tmp/garden-native/`--min-kb`/**`--skip 1`**
+> 전부 우회하고, discovery 플래그와 섞이면 fail-fast). 14 tests. 소유 경계는 양쪽 SKILL에
+> 박았다 — **hit 주변 = semantic-memory `--with-excerpt`, exact 세션의 spine = recap.**
+> recap은 `line`을 소비하지 않고 앵커를 만들지도 않는다(raw JSONL 줄 ≠ 필터된 메시지).
+>
+> **남은 실 1 — `entwurf-peek → recap`은 아직 열려 있다.** peek은 transcript 경로를 내부에서
+> resolve하지만 내보내지 않는다: `peek`은 `<parent>/<name>`만 찍고 `--json`이 없으며
+> (`--json`은 `situation`에만), `situation --json` row에도 transcript path가 없다. garden id를
+> `--session-file` 인자로 바꿀 길이 없다. **peek을 지금 고치지 말 것** — 위 [2026-08-07]의
+> "다시 뜯어고치지 말 것"이 우선이고, 이건 별도 승인 사안이다.
+>
+> **남은 실 2 — `기간` 의미 (non-blocking).** exact live transcript의 `기간`은 wall-clock
+> min/max가 아니라 **session header start → file-order상 마지막 추출 메시지 timestamp**다.
+> 외부 메시지 주입·append 중 out-of-order event로 역전돼 보일 수 있다(추출 텍스트는 정확).
+> 공용 formatter를 바꾸기 전 **out-of-order fixture로 의미를 먼저 고정**한다. selector diff에서
+> min/max로 고치는 것은 금지 — discovery 표시 로직 공용면이다.
+>
+> **B(`/recall` 4레인 라우터)는 GLG 판단 대기.** 셋을 다 부르는 건 handoff 레인 하나뿐이고,
+> 인간 축(timeline/day-query/lifetract)도 그 레인에서만 부른다.
+
 ## [2026-08-07] entwurf-peek `situation` 착지 — 다시 뜯어고치지 말 것
 
 > `0259f19` (원격 작업, push 완료). garden id ↔ native session id를 **v3 meta-record로 exact
