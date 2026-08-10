@@ -13,6 +13,8 @@
 > ② **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
 > ③ 설치면 소유 경계 — entwurf 이관 옛 소유자 cleanup (issue #46),
 > ④ pi-chat Add-group blocker, ⑤ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
+> `v2026.8.10`으로 닫힘: exact session selector, UUIDv7 discovery, record-backed situation,
+> 양 하네스+semantic 두 축을 함께 보는 `/recall` 복귀 편집실, fresh steward 호출 경계.
 > `v2026.8.7`로 닫힘: `background-bash`(느린 명령 걸고 턴 종료 → 끝나면 자동 재호출),
 > agent-stuff에서 `review`·`goal`·`continue`·`/discuss` 이식, env 상태표시줄 압축.
 > `v2026.8.6`으로 닫힘: Upstage provider + Solar Pro 4(512K), timeline 스킬, exa-search 기본화,
@@ -22,13 +24,12 @@
 > ⚠️ [2026-06-11] bibcli 항목은 **2026-07-14 결정과 방향이 반대다** — GLG 재판단 대기(아래).
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
 
-## [2026-08-10] 세션 이음새 — `--session-file` 착지, 남은 두 실
+## [2026-08-10] 세션 이음새 — 남은 두 실
 
-> `semantic-memory → session-recap` 이음새가 닫혔다. `--session-file <abs path>`로 검색이
-> 찾아낸 정확한 세션을 그대로 복원한다(exact selection은 tmp/garden-native/`--min-kb`/**`--skip 1`**
-> 전부 우회하고, discovery 플래그와 섞이면 fail-fast). 14 tests. 소유 경계는 양쪽 SKILL에
-> 박았다 — **hit 주변 = semantic-memory `--with-excerpt`, exact 세션의 spine = recap.**
-> recap은 `line`을 소비하지 않고 앵커를 만들지도 않는다(raw JSONL 줄 ≠ 필터된 메시지).
+> `v2026.8.10`으로 exact `--session-file`, UUIDv7 discovery, `/recall` 복귀 편집실을 닫았다.
+> **발견(`situation`/semantic) → 주소(meta-record/path) → 회수(exact recap)**는 서로 대신하지
+> 않는다. Exact selector의 filter 우회는 known-address access이지 잊힌 시민의 discovery가
+> 아니다. Andenken production corpus 회복은 그 repo의 paid gate 앞에 남아 있다.
 >
 > **남은 실 1 — `entwurf-peek → recap`은 아직 열려 있다.** peek은 transcript 경로를 내부에서
 > resolve하지만 내보내지 않는다: `peek`은 `<parent>/<name>`만 찍고 `--json`이 없으며
@@ -41,9 +42,6 @@
 > 외부 메시지 주입·append 중 out-of-order event로 역전돼 보일 수 있다(추출 텍스트는 정확).
 > 공용 formatter를 바꾸기 전 **out-of-order fixture로 의미를 먼저 고정**한다. selector diff에서
 > min/max로 고치는 것은 금지 — discovery 표시 로직 공용면이다.
->
-> **B(`/recall` 4레인 라우터)는 GLG 판단 대기.** 셋을 다 부르는 건 handoff 레인 하나뿐이고,
-> 인간 축(timeline/day-query/lifetract)도 그 레인에서만 부른다.
 
 ## [2026-08-07] entwurf-peek `situation` 착지 — 다시 뜯어고치지 말 것
 

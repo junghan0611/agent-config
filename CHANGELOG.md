@@ -7,6 +7,29 @@
 
 ## Unreleased
 
+## v2026.8.10 — 세미 젠킨스의 복귀면: 폴라로이드에서 편집실로
+
+### Added
+
+* **`session-recap --session-file` exact selector.** Semantic session search가 돌려준 absolute `file`을 discovery 추측 없이 한 transcript의 spine으로 복원한다. Exact intent는 tmp·size·filename·skip 필터를 우회하고 discovery flags와 섞이면 fail-fast한다. Hit 주변의 `line`은 semantic-memory `--with-excerpt`, 전체 세션은 recap이 소유한다.
+
+* **`entwurf-peek situation` record-backed board.** Garden id와 native session id를 meta-record로 exact join하고, record 사실·socket mirror·transcript 추정을 분리한 read-only projection을 세웠다. Entwurf #64 판정대로 caller-side research surface로 유지하되 dispatch·role·placement·liveness authority는 갖지 않는다.
+
+### Changed
+
+* **`/recall`을 한 세션 요약에서 복귀 편집실 입구로 재정렬.** Unfiltered situation, pi와 Claude 각각의 recap, NEXT·ROADMAP·git, session semantic과 garden semantic을 provenance를 보존한 채 함께 본다. `session-recap`은 폴라로이드, `situation`은 현재 형제들의 스토리보드다. 출력만 zero/mid-flight 상태에 비례하며 day-axis는 요청할 때만 연다.
+
+* **멀티하네스 skip을 caller 기준 3상으로 명시.** pi는 pi만, Claude Code는 Claude만 자기 live transcript로 skip한다. Codex·Antigravity는 두 indexed corpus 중 어느 것도 쓰지 않으므로 양쪽 모두 `--skip 0`이다.
+
+* **pi discovery를 현행 native UUIDv7 suffix 단일 규격으로 교정.** 폐기된 garden-id·UUIDv4·`entwurf-`·`delegate-`를 하위호환 OR로 되살리지 않는다. Filename은 흔적의 위치일 뿐이고 canonical `garden id ↔ nativeSessionId ↔ transcriptPath` 계보는 entwurf meta-record만 소유한다. Andenken의 paid corpus 회복은 별도 estimate/reindex gate 앞에 남아 있다.
+
+* **형제 호출 운영 경계를 강화.** “repo 담당자를 새로 불러”는 dormant continuity resume이 아니라 fresh target-project steward다. 현재 surface가 cross-repo fresh cwd를 만들지 못하면 resume으로 대체하지 않고 product gap을 보고한다. Sibling provider는 승인된 direct/subscription rail만 쓰고 OpenRouter를 launch rail로 쓰지 않는다(entwurf #73).
+
+### Fixed / aligned
+
+* Native Claude Code permission mode를 `bypassPermissions`로 고정하고, entwurf가 소유하는 `defaultMode`와 agent-config fragment의 경계를 정리했다.
+* Fable 모델 별칭을 `fable` / `claude-fable-5`로 canonicalize했고, 과거 제목 없던 CalVer CHANGELOG 두 절에 이름을 붙였다.
+
 ## v2026.8.7 — 걸어놓고 기다리던 턴이, 스스로 깨어난다
 
 ### Added (pi가 못 하던 것 하나)
