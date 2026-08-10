@@ -85,6 +85,8 @@ Entwurf opens siblings, not disposable workers.
 - When spawning with project context, pass `cwd` exactly. Do not use `workingDirectory`.
 - Resume existing entwurf sessions when continuity matters; do not change the model on resume.
 - **Model name:** Fable is Claude Code alias `fable` (full id `claude-fable-5`). It is never Pebble/`pebble`; when GLG says `페블` as shorthand, canonicalize it to Fable and pass `fable` to the CLI.
+- **Sibling provider budget:** never launch a sibling through OpenRouter; it is GLG's personal, limited-use rail for embedding/image work. Approved sibling rails are the existing Claude Code subscription, Pi's authorized GPT/Codex and xAI subscriptions, and a company-owned provider API explicitly configured as its direct endpoint. A model label alone does not prove its actual billing rail: if it currently resolves to OpenRouter, fail closed and report that fact—do not run login checks, probe scripts, or spend a test turn. A requested, already-authorized sibling launch proceeds directly; do not ask for login status or rediscover credentials.
+- **Cross-repo freshness:** “`<repo>` 담당자를 새로 불러 물어봐” means a new, target-project citizen—not a dormant transcript whose recorded cwd happens to match. Resume only when GLG explicitly asks for that conversation's continuity/reopen. Do not use raw tmux or a generic cwd carrier to evade the boundary. If the active launch surface cannot create a fresh sibling in the target repo, report that product gap rather than substituting resume; an already-live exact target citizen may be addressed only when GLG asks for that existing context.
 - For entwurf / garden-id / meta-bridge details, treat `~/repos/gh/entwurf/AGENTS.md` as SSOT.
 
 ### Role-Based Coordination
