@@ -90,7 +90,7 @@ Boundary rules:
 
 - Do **not** pass natural-language time (`어제`, `지난주`) and expect andenken to parse it. Convert to ISO in the caller (recall/day-query/harness).
 - Do **not** use semantic-memory to replace day-query aggregation. day-query owns multi-axis summaries (git/journal/lifetract/calendar). semantic-memory only exposes session chunks with stored metadata.
-- Missing metadata must not be inferred. If a signal is absent (e.g. `cwd`, explicit caller/child linkage metadata), label it as missing. Entwurf identity lives in the JSONL header/name, not in the session filename. For live/filesystem child tracing, use `entwurf-peek`.
+- Missing metadata must not be inferred. If a signal is absent (e.g. `cwd`, explicit caller/child linkage metadata), label it as missing. A transcript may carry backend/name hints, but canonical garden identity and the `garden id ↔ nativeSessionId ↔ transcriptPath` join live only in the entwurf meta-record. For live/filesystem child tracing, use `entwurf-peek`.
 
 ```json
 {

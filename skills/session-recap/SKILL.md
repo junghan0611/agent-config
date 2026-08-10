@@ -8,22 +8,30 @@ description: "Extract a compact recap from previous pi or Claude Code session JS
 Extract **only** user/assistant text from a session JSONL.
 **Never** `read` a raw JSONL directly — it dumps ~50KB of JSON noise into context.
 
-**Multi-harness**: handles both pi and Claude Code sessions. **Default source is the
-current harness** (running under Claude Code → `claude`, otherwise → `pi`). To continue
-prior work cleanly you want the *same* harness's sessions. Override with `--source`.
-Inside `--source pi`, use `--harness gpt|acp|all` to distinguish pi native GPT/Codex
-from entwurf Claude/Opus. `--source claude` still means Claude Code only.
+**Multi-harness corpus**: handles pi and Claude Code sessions. The unset-source runtime
+fallback is Claude Code → `claude`, every other surface → `pi`; only those first two
+callers are truly harness-matched. Codex, Antigravity, and other third surfaces write
+neither indexed corpus, so they must choose `--source` explicitly and normally use
+`--skip 0`. Inside `--source pi`, use `--harness gpt|acp|all` to distinguish pi native
+GPT/Codex from entwurf Claude/Opus. `--source claude` still means Claude Code only.
 
 **Corpus filters** (aligned with andenken `session-indexer.ts` — 0d4432b "tighten
-corpus to garden-native >300KB, drop tmp + legacy"). Same discipline as session
+corpus … >300KB, drop tmp + legacy"; the pi filename spec was re-pinned to the current
+native form on 2026-08-10). Same discipline as session
 embeddings, so recap usually sees substantive sessions instead of probes. Three filters
 exist, and their order is part of the contract:
 
 - **Structural filters** (applied *before* skip):
   - **tmp dirs excluded** (both runtimes) — pi `--tmp…--` / claude `-tmp…` scratch.
-  - **pi garden-native filename only** — `_YYYYMMDDTHHMMSS-<6hex>.jsonl` (0.9.0+). Legacy
-    forms (`_<uuid>`/`_delegate-`/`_entwurf-`) excluded. claude is always UUID, so no
-    filename filter.
+  - **pi current native filename only** — `<created-at>_<UUIDv7>.jsonl`, pi's present-day
+    session id. **No backward compatibility** (GLG ruling 2026-08-10): the older garden-id
+    form (`_YYYYMMDDTHHMMSS-<6hex>`), UUIDv4, `_delegate-`, and `_entwurf-` are *not*
+    OR'd back in — corpus admission is one current spec. pi stopped emitting garden-id
+    suffixes on 2026-08-06; a filter still demanding them made every pi session after that
+    date invisible to both recap and the andenken session index. Filenames do not carry
+    identity: the `garden id ↔ nativeSessionId ↔ transcriptPath` join belongs to the
+    entwurf meta-record, and neither recap nor andenken reimplements it. claude is always
+    UUID, so no filename filter.
 - **Pi harness filter** `--harness gpt|acp|all` (applied *after* skip, before size):
   `gpt` = pi native OpenAI/Codex (`openai-codex` / `gpt-*`), `acp` = entwurf
   Claude (`entwurf` / `claude-*`). Unknown pi sessions pass only with `all`.
@@ -68,7 +76,7 @@ python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
 | `--cost` | off | Session cost summary |
 | `--skip N` | 1 | Skip newest N sessions (the current one) |
 | `-f, --format` | text | `text` or `json` |
-| `--source` | current harness | `pi`, `claude`, `all`. Unset → Claude Code=claude, else pi |
+| `--source` | runtime fallback | `pi`, `claude`, `all`. Unset → Claude Code=claude, every other surface=pi; third surfaces should set explicitly |
 | `--harness` | all | pi-internal filter: `gpt`, `acp`, `all`. Use with `--source pi` or `all` |
 | `--min-kb N` | 300 | Size floor, `size > N*KB`. `0` disables; use it when a real recent GPT/ACP session is below the default floor |
 | `--session-file PATH` | — | **Exact selection.** One absolute `.jsonl` path. Bypasses every discovery filter; cannot be combined with any of them |
@@ -85,8 +93,8 @@ recap goes back to guessing "the recent session of this project".
 python3 {baseDir}/scripts/session-recap.py --session-file /abs/path/session.jsonl -m 20
 ```
 
-**What it bypasses — all of it, deliberately.** tmp exclusion, pi garden-native
-filename, `--min-kb`, and **`--skip 1`**. Dropping skip means exact selection *can
+**What it bypasses — all of it, deliberately.** tmp exclusion, the pi native
+filename spec, `--min-kb`, and **`--skip 1`**. Dropping skip means exact selection *can
 target the live current session* — sometimes what you want, but never by accident.
 Reading your own live transcript may show an inverted `기간` line because the file is
 still being appended and is not strictly time-ordered; the extracted text is unaffected.
@@ -195,7 +203,7 @@ different repo's.
 ```
 Step 0: First decide if the user means home / Entwurf / COS / a specific repo steward.
 Step 1: python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
-        (source unset → current harness auto: claude under Claude Code, else pi)
+        (pi/Claude Code: unset source follows that runtime; third surfaces: set it explicitly)
 Step 2: Verify the target via the header (`═══ project [source] (file...) ═══` or
         `═══ project [pi:gpt|pi:acp] (...) ═══`) and the first 1–3 messages.
 Step 3: If empty, stale, or too short → rerun the SAME axis with --min-kb 0 first
@@ -217,12 +225,15 @@ Escalation order: `session-recap` → extract proper nouns from the output →
 two-pass `session_search` → if needed `day-query` (`gitcli --summary`, `denotecli day`,
 `lifetract`, calendar) → report both the axis you saw and the one you didn't.
 
-**Why harness-matched default?** To continue prior work you must read the *same*
-harness's sessions (claude under Claude Code, pi under pi — auto). Historically Claude
-Code produced many 1–2 message stubs, which argued for preferring `pi`; the **>300KB
-size filter** now removes those stubs, so claude sessions also retain only real work.
-Use `--source all` to see across harnesses. Use `--source pi --harness gpt` when the
-operator says "GPT session" and means pi native GPT/Codex, not a project named `gpt`.
+**Why the runtime fallback?** To continue prior work under pi or Claude Code, read that
+same runtime's sessions (pi under pi, claude under Claude Code — automatic). Codex,
+Antigravity, and other third surfaces have no matching indexed source, so the fallback to
+pi is only a compatibility default, not a claim that pi is their current transcript.
+Historically Claude Code produced many 1–2 message stubs, which argued for preferring
+`pi`; the **>300KB size filter** now removes those stubs, so claude sessions also retain
+only real work. Use `--source all` to see across harnesses. Use `--source pi --harness
+gpt` when the operator says "GPT session" and means pi native GPT/Codex, not a project
+named `gpt`.
 
 ## Answer rules (important)
 

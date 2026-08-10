@@ -48,7 +48,8 @@ def _fmt_ts(ts: str) -> str:
 
 
 # --- Corpus filters (andenken session-indexer.ts와 정합) ---
-# andenken 0d4432b "tighten corpus to garden-native >300KB, drop tmp + legacy".
+# andenken 0d4432b "tighten corpus … >300KB, drop tmp + legacy"; pi admission 은
+# 2026-08-10 GLG 판정으로 현행 native UUIDv7 파일명 단일 규격이다.
 # 세션 임베딩 코퍼스와 동일 규율로 session-recap도 핵심 세션만 본다.
 
 # 세션 파일 크기 하한 (KB). 진짜 작업 세션은 수십~수백 KB (pi non-tmp median ≈300KB);
@@ -67,15 +68,27 @@ def _is_excluded_project_dir(dirname: str) -> bool:
     return dirname.strip("-").startswith("tmp")
 
 
-def _is_garden_native_pi_file(filename: str) -> bool:
-    """0.9.0 이후 garden-native pi 세션 파일명.
+def _is_native_pi_session_file(filename: str) -> bool:
+    """현행 pi 세션 파일명 — `<created-at>_<native session id>.jsonl`.
 
-    `<created-at>_<sessionId>.jsonl` 에서 sessionId 는 entwurf SSOT
-    SESSION_ID_RE = /^\\d{8}T\\d{6}-[0-9a-f]{6}$/. 구형 종(`_<uuid>`, `_entwurf-…`,
-    `_delegate-…`)은 폐기·미인덱싱. claude 는 항상 UUID라 미적용. andenken
-    isGardenNativePiFile 과 동일 (full sessionId anchored → future drift fail-fast).
+    native session id 는 **UUIDv7** 이다 (version nibble `7`, variant `[89ab]`).
+    2026-08-06 을 마지막으로 pi 는 garden-id suffix 를 더는 쓰지 않는다.
+
+    **호환성을 유지하지 않는다** (GLG 판정 2026-08-10): 구형 종 — garden-id
+    (`_YYYYMMDDTHHMMSS-<6hex>`), UUIDv4, `_entwurf-…`, `_delegate-…` — 은 OR 로
+    되살리지 않는다. 코퍼스 admission 은 현행 규격 하나다.
+
+    garden id ↔ nativeSessionId ↔ transcriptPath 조인은 **entwurf meta-record 소유**다.
+    파일명은 identity 를 말하지 않는다. 여기서는 코퍼스 발견에만 쓴다.
+
+    claude 는 항상 UUID 라 미적용. andenken `isNativePiSessionFile` 과 동일.
     """
-    return bool(re.search(r"_\d{8}T\d{6}-[0-9a-f]{6}\.jsonl$", filename))
+    return bool(
+        re.search(
+            r"_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.jsonl$",
+            filename,
+        )
+    )
 
 
 def _default_source() -> str:
@@ -187,7 +200,7 @@ def detect_pi_harness(filepath: Path, max_lines: int = 200) -> str:
 def resolve_session_file(session_file: str) -> tuple[float, Path, str, str]:
     """Resolve one explicitly selected pi/Claude transcript.
 
-    Exact selection deliberately bypasses recency, size, tmp, and garden-native
+    Exact selection deliberately bypasses recency, size, tmp, and native-filename
     corpus filters. The absolute path itself is the caller's explicit intent, but
     it must still name a regular ``.jsonl`` file under a known session root.
     """
@@ -236,7 +249,8 @@ def find_session_files(
     **구조 필터만** 적용 (크기 필터는 호출자가 skip 후 적용 — 아래 설명).
     - tmp/probe 프로젝트 디렉토리 제외 (양 런타임)
     - 비어있지 않은 파일 전부 (size > 0)
-    - pi 는 garden-native 파일명만 (구형 _uuid/_delegate/_entwurf 제외); claude 미적용
+    - pi 는 현행 native UUIDv7 파일명만 (구형 garden-id/UUIDv4/_delegate/_entwurf 제외);
+      claude 미적용
     - claude 는 top-level + UUID 하위폴더(session-id 폴더)까지 스캔, `subagents` 폴더 제외
       (andenken scanClaudeDir 와 정합). pi 는 flat 구조라 top-level 만.
 
@@ -276,7 +290,7 @@ def find_session_files(
                         continue
 
             for f in candidates:
-                if src == "pi" and not _is_garden_native_pi_file(f.name):
+                if src == "pi" and not _is_native_pi_session_file(f.name):
                     continue
                 try:
                     st = f.stat()

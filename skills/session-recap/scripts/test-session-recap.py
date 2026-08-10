@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Deterministic CLI checks for session-recap exact-session selection."""
 
+import importlib.util
 import json
 import os
 import subprocess
@@ -10,6 +11,11 @@ from pathlib import Path
 
 
 SCRIPT = Path(__file__).with_name("session-recap.py")
+
+# 하이픈 때문에 평범한 import 가 안 된다 — 경로로 직접 로드한다.
+_spec = importlib.util.spec_from_file_location("session_recap", SCRIPT)
+recap = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(recap)
 
 
 class ExactSessionFileTest(unittest.TestCase):
@@ -227,6 +233,43 @@ class ExactSessionFileTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("requires --messages >= 1", result.stderr)
         self.assertNotIn("parsed 0 messages", result.stderr)
+
+
+class PiCorpusAdmissionTest(unittest.TestCase):
+    """pi 코퍼스 admission — andenken `isNativePiSessionFile` 과 같은 규격.
+
+    2026-08-06 에 pi 가 garden-id suffix 를 그만 쓰기 시작했는데 필터가 그대로여서,
+    그 뒤 만들어진 pi 세션이 **한 건도** 코퍼스에 안 들어왔다. 에러 없이 인덱스만
+    얇아졌다. 같은 종류의 drift 가 다음엔 소리내며 깨지도록 규격을 못박는다.
+    """
+
+    def test_current_uuidv7_is_admitted(self):
+        for name in (
+            "2026-08-10T06-20-36-243Z_019fea54-8813-7905-9a89-f777aba5c3ef.jsonl",
+            "2026-08-10T06-31-22-503Z_019fea5e-6487-7241-82c4-e74838738ab4.jsonl",
+        ):
+            with self.subTest(name=name):
+                self.assertTrue(recap._is_native_pi_session_file(name))
+
+    def test_retired_species_are_not_or_ed_back_in(self):
+        # GLG 판정 2026-08-10 — 호환성 유지하지 않는다.
+        for name, why in (
+            ("2026-08-06T01-15-27-810Z_20260806T101526-6b7de3.jsonl", "garden-id"),
+            ("2026-07-01T00-00-00-000Z_8db61ee4-a535-4aa7-a504-e4a28fdeea73.jsonl", "UUIDv4"),
+            ("2026-06-03T18-59-00-000Z_entwurf-abc123.jsonl", "entwurf-"),
+            ("2026-06-03T18-59-00-000Z_delegate-abc123.jsonl", "delegate-"),
+            ("20260603T1859-test056529.jsonl", "test artifact"),
+            ("2026-08-10T06-20-36-243Z_019fea54-8813-c905-9a89-f777aba5c3ef.jsonl", "version c"),
+            ("2026-08-10T06-20-36-243Z_019fea54-8813-7905-0a89-f777aba5c3ef.jsonl", "variant 0"),
+            ("2026-08-10T06-20-36-243Z_019fea54-8813-7905-9a89-f777aba5c3ef.jsonl.bak", "not .jsonl"),
+        ):
+            with self.subTest(why=why):
+                self.assertFalse(recap._is_native_pi_session_file(name))
+
+    def test_tmp_exclusion_is_independent_of_the_filename_spec(self):
+        self.assertTrue(recap._is_excluded_project_dir("--tmp-claude-1000--home-junghan--"))
+        self.assertTrue(recap._is_excluded_project_dir("-tmp-scratch"))
+        self.assertFalse(recap._is_excluded_project_dir("--home-junghan-repos-gh-agent-config--"))
 
 
 if __name__ == "__main__":
