@@ -144,11 +144,11 @@ Personal devices are managed in `~/repos/gh/nixos-config`.
 Use the `commit` skill before making commits. Use the `tag-release` skill before releases.
 
 - Keep commit logs clean: no “Generated with Claude” and no `Co-Authored-By` trailer.
-- Agent may create commits only under the active commit workflow. GLG decides whether and when to
-  push; an agent may execute the push only when GLG explicitly requests it in the current session.
-  A commit request alone never implies push, so several commits may be batched before one timeline
-  entry.
+- Agent may create commits only under the active commit workflow. GLG decides whether and when to push; an agent may execute the push only when GLG explicitly requests it in the current session. A commit request alone never implies push, so several commits may be batched before one timeline entry.
 - After a requested push succeeds, stamp the agenda as required by the commit/release skill.
+- When writing GitHub issues or comments, label authorship at the top so reviewers know the perspective (agent draft ≠ GLG’s own voice). Short form:
+  `Author: <model> (<harness/session>, YYYY-MM-DD) — not GLG direct; review as a separate viewpoint.`
+  Optional footer: `Requested by GLG · drafted by <model> (YYYY-MM-DD) · awaiting review.`
 
 ## Global Commit/Push Safety Rail
 
