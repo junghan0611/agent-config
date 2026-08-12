@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * YouTube transcript → denote md under ~/org/transcript
+ * YouTube transcript → denote md under ~/org/md/transcript
  *
  * Contract:
  * - code-level only (no LLM rewrite)
@@ -16,7 +16,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { YoutubeTranscript } from 'youtube-transcript-plus';
 
-const DEFAULT_OUTDIR = join(homedir(), 'org', 'transcript');
+const DEFAULT_OUTDIR = join(homedir(), 'org', 'md', 'transcript');
 const DEFAULT_TAGS = ['transcript', 'youtube'];
 
 const args = process.argv.slice(2);
@@ -43,7 +43,7 @@ for (let i = 0; i < args.length; i++) {
 if (!videoInput) {
 	console.error('Usage: transcript.js <video-id-or-url> [--lang en] [--list] [--no-save] [--outdir DIR]');
 	console.error('');
-	console.error('Default: merge cues on ">>", write denote md to ~/org/transcript, print full doc on stdout.');
+	console.error('Default: merge cues on ">>", write denote md to ~/org/md/transcript, print full doc on stdout.');
 	console.error('  --list      List available subtitle languages');
 	console.error('  --no-save   Print only (do not write file)');
 	console.error('  --outdir    Override save directory');

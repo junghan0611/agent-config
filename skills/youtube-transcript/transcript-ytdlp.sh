@@ -11,7 +11,7 @@ Usage: transcript-ytdlp.sh <video-url-or-id> [--lang en] [--list] [--cookies FIL
 Same contract as transcript.js:
   - merge cues on ">>" only (no LLM)
   - turn start as <!-- [m:ss] -->
-  - denote md under ~/org/transcript (unless --no-save)
+  - denote md under ~/org/md/transcript (unless --no-save)
 EOF
   exit 1
 }
@@ -21,7 +21,7 @@ LANG_CODE="en"
 LIST_ONLY=false
 COOKIES=""
 NO_SAVE=false
-OUTDIR="${HOME}/org/transcript"
+OUTDIR="${HOME}/org/md/transcript"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

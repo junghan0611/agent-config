@@ -1,6 +1,6 @@
 ---
 name: youtube-transcript
-description: "YouTube 발화 정본 추출. 시간 조각 자막을 YouTube 원본 >> 경계로만 조립해 ~/org/transcript에 denote md로 저장. turn 시작은 <!-- [m:ss] -->. LLM 재작성 없음. transcript.js 기본 + ytdlp 폴백."
+description: "YouTube 발화 정본 추출. 시간 조각 자막을 YouTube 원본 >> 경계로만 조립해 ~/org/md/transcript에 denote md로 저장. turn 시작은 <!-- [m:ss] -->. LLM 재작성 없음. transcript.js 기본 + ytdlp 폴백."
 ---
 
 # YouTube Transcript
@@ -16,7 +16,7 @@ YouTube 자동/수동 자막을 **발화 정본 md**로 가져온다.
 | YouTube가 넣은 `>>` 경계로만 turn 분리 | 발화자 이름 추정·라벨 |
 | YAML front matter에 영상 메타 | 본문에 보이는 `[0:00]` 접두 |
 | turn 시작 `<!-- [m:ss] -->` (HTML 주석) | SRT/VTT 포맷 출력 |
-| `~/org/transcript/` denote md 저장 | |
+| `~/org/md/transcript/` denote md 저장 | |
 
 `>>`가 없으면 긴 덩어리로 남긴다. 없는 경계를 만들지 않는다.
 
@@ -30,7 +30,7 @@ npm install
 ## 방법 1: transcript.js (기본)
 
 ```bash
-# 추출 + ~/org/transcript 저장 + stdout 전체 문서
+# 추출 + ~/org/md/transcript 저장 + stdout 전체 문서
 {baseDir}/transcript.js <video-id-or-url>
 
 # 언어 지정 (default: en)
@@ -40,7 +40,7 @@ npm install
 {baseDir}/transcript.js <video-id-or-url> --no-save
 
 # 저장 경로 오버라이드
-{baseDir}/transcript.js <video-id-or-url> --outdir ~/org/transcript
+{baseDir}/transcript.js <video-id-or-url> --outdir ~/org/md/transcript
 
 # 사용 가능 자막 언어
 {baseDir}/transcript.js <video-id-or-url> --list
@@ -89,7 +89,7 @@ when we align with what that mission
 ```
 
 - `<!-- [m:ss] -->` — 에디터/미리보기에서 주석(흐리게). 발화 텍스트와 시각적으로 분리
-- 저장 루트: `~/org/transcript` (= `~/sync/org/transcript`). Denote id로 가든 축 편입
+- 저장 루트: `~/org/md/transcript` (실체: `~/sync/org/md/transcript`). md 가든 정책에 맞춘 Denote id 축 편입
 
 ## 판단 기준
 
@@ -106,5 +106,5 @@ when we align with what that mission
 ## Notes
 
 - `youtube-transcript-plus`의 `offset`/`duration` 단위는 **초**
-- oracle 등 다른 기기: `~/org/transcript` 경로와 npm install 전제
+- oracle 등 다른 기기: `~/org/md/transcript` 경로와 npm install 전제
 - `--lang en` 기본. 자동생성 영어 포함
