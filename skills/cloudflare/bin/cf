@@ -1,0 +1,478 @@
+#!/usr/bin/env bash
+# cf — GLG 개인 Cloudflare 계정 조작면
+#
+# 회사 계정용 CLI 는 회사 리포에 따로 있다 (사내 zone 전용).
+# 이것은 그 fork 가 아니다. 계정 ID·zone 을 하드코딩하지 않고 토큰에서 발견한다 —
+# 회사 것의 가장 큰 사고 표면이 하드코딩된 기본값이었다.
+#
+# 전제: 터널은 locally-managed 다. ingress SSOT 는 config.yml 이므로
+#       이 CLI 에 `route add` 가 없다. 라우팅을 바꾸려면 config.yml 을 고친다.
+
+set -euo pipefail
+
+API="https://api.cloudflare.com/client/v4"
+TOKEN_FILE="${CF_TOKEN_FILE:-$HOME/.cf-token-glg}"
+TOKEN=""
+TOKEN_SRC=""
+ACCOUNT_ID="${CF_ACCOUNT_ID:-}"
+ZONE_NAME="${CF_ZONE_NAME:-}"
+ASSUME_YES=0
+
+die()  { echo "❌ $*" >&2; exit 1; }
+warn() { echo "⚠️  $*" >&2; }
+note() { echo "   $*" >&2; }
+
+usage() {
+	cat <<'EOF'
+cf — GLG 개인 Cloudflare 계정 조작면
+
+  cf doctor                       토큰·권한 진단 (막히면 여기부터)
+  cf whoami                       계정 / zone 목록
+
+  cf dns ls [zone]                DNS 레코드
+  cf dns add <name> <type> <content> [--proxied]
+  cf dns rm  <name>
+
+  cf tunnel ls                    터널 목록 (생성은 cloudflared 가 한다)
+
+  cf redirect ls                  Single Redirect 규칙
+  cf redirect www <apex>          www.<apex> → <apex> 301 을 만든다
+
+  cf email status                 Email Routing 상태
+  cf email dns                    필요한 MX/TXT 레코드
+  cf email enable
+  cf email dest <addr>            수신함 등록 (검증 메일이 간다)
+  cf email add <from> <to>        b@example.org → glg@gmail.com
+
+  cf access apps                  Access 앱 목록 — 공개 사이트엔 없어야 정상
+  cf check <host>                 공개면 검증: 200 기대, 302 면 Access 의심
+
+  cf api <METHOD> <PATH> [BODY]   나머지 전부
+
+환경변수
+  CF_TOKEN_FILE   기본 ~/.cf-token-glg
+  CF_ACCOUNT_ID   생략하면 토큰에서 발견
+  CF_ZONE_NAME    생략하면 zone 이 하나일 때 자동, 여럿이면 지정 요구
+
+플래그
+  --yes           쓰기 확인 생략 (사람이 보고 있을 때만. 자율 루프 금지)
+EOF
+}
+
+# ── 토큰 ──────────────────────────────────────────────────────────────────
+load_token_soft() {
+	if [ ! -r "$TOKEN_FILE" ]; then TOKEN_SRC="(없음: $TOKEN_FILE)"; return; fi
+	TOKEN=$(grep -oE '[A-Za-z0-9_-]{35,}' "$TOKEN_FILE" | head -1 || true)
+	if [ -z "$TOKEN" ]; then TOKEN_SRC="(토큰 모양 없음: $TOKEN_FILE)"; return; fi
+	TOKEN_SRC="$TOKEN_FILE"
+	local mode; mode=$(stat -c '%a' "$TOKEN_FILE")
+	[ "$mode" = "600" ] || warn "$TOKEN_FILE 권한이 $mode 다 — chmod 600 권장"
+}
+
+load_token() {
+	load_token_soft
+	[ -n "$TOKEN" ] || die "토큰이 없다 ($TOKEN_SRC). 'cf doctor' 가 발급 절차를 안내한다."
+}
+
+req() {
+	local method="$1" path="$2" body="${3:-}"
+	local args=(-sS -X "$method" "$API$path"
+		-H "Authorization: Bearer $TOKEN"
+		-H "Content-Type: application/json")
+	[ -n "$body" ] && args+=(--data "$body")
+	local resp; resp=$(curl "${args[@]}")
+	if [ "$(jq -r '.success' <<<"$resp")" != "true" ]; then
+		local codes; codes=$(jq -r '[.errors[]?.code] | join(" ")' <<<"$resp")
+		case " $codes " in
+			*" 9109 "*) die "9109 — 토큰에 Client IP Filtering 이 걸려 이 호스트에서 막힌다. 제한을 비우거나 이 IP 를 넣어라." ;;
+			*" 10429 "*) die "10429 — rate limit. 인증 실패가 반복되면 몇 분간 모든 응답을 덮는다. 재시도로 뚫지 말고 기다려라." ;;
+		esac
+		echo "$resp" | jq . >&2
+		die "API 실패: $method $path"
+	fi
+	echo "$resp"
+}
+
+confirm() {
+	[ "$ASSUME_YES" = "1" ] && return 0
+	echo "  → $*" >&2
+	read -r -p "  진행할까? [y/N] " a
+	case "$a" in y|Y|yes) return 0 ;; *) echo "  취소." >&2; exit 1 ;; esac
+}
+
+# ── 계정 / zone 발견 ──────────────────────────────────────────────────────
+discover_account() {
+	[ -n "$ACCOUNT_ID" ] && return 0
+	local js n
+	# 1차: /accounts 열거. Account Settings:Read 가 없으면 성공하되 빈 배열이 온다.
+	js=$(req GET "/accounts")
+	n=$(jq '.result | length' <<<"$js")
+	if [ "$n" = "1" ]; then
+		ACCOUNT_ID=$(jq -r '.result[0].id' <<<"$js"); return 0
+	elif [ "$n" -gt 1 ] 2>/dev/null; then
+		jq -r '.result[] | "  \(.id)  \(.name)"' <<<"$js" >&2
+		die "계정이 여럿이다. CF_ACCOUNT_ID 를 지정하라."
+	fi
+	# 2차: zone 이 자기 account 를 들고 있다 — 추가 권한 없이 얻는 길
+	js=$(req GET "/zones")
+	ACCOUNT_ID=$(jq -r '[.result[].account.id] | unique | .[0] // empty' <<<"$js")
+	[ -n "$ACCOUNT_ID" ] || die "계정을 못 잡았다. CF_ACCOUNT_ID 를 지정하거나 토큰에 Account Settings:Read 를 추가하라."
+}
+
+zone_id() {
+	local name="${1:-$ZONE_NAME}" js n
+	if [ -z "$name" ]; then
+		js=$(req GET "/zones")
+		n=$(jq '.result | length' <<<"$js")
+		case "$n" in
+			0) die "zone 이 없다." ;;
+			1) jq -r '.result[0].id' <<<"$js"; return ;;
+			*) jq -r '.result[] | "  \(.name)"' <<<"$js" >&2
+			   die "zone 이 여럿이다. CF_ZONE_NAME 을 지정하라." ;;
+		esac
+	fi
+	js=$(req GET "/zones?name=$name")
+	jq -re '.result[0].id' <<<"$js" 2>/dev/null \
+		|| die "zone 을 못 찾았다: $name (토큰에 Zone:Read 가 있는지 확인)"
+}
+
+zone_apex() {
+	local id="$1"
+	req GET "/zones/$id" | jq -r '.result.name'
+}
+
+# ── doctor ────────────────────────────────────────────────────────────────
+# $3 = "nonempty" 면 .result 가 비어 있는 것도 실패로 본다.
+# /accounts 는 권한이 없어도 success:true + result:[] 를 주므로, 성공만 보면 거짓 양성이 된다.
+probe() {
+	local label="$1" path="$2" want="${3:-}" resp ok
+	resp=$(curl -sS "$API$path" -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo '{}')
+	ok=$(jq -r '.success // false' <<<"$resp")
+	if [ "$ok" != "true" ]; then
+		local codes; codes=$(jq -r '[.errors[]?.code] | join(",")' <<<"$resp")
+		printf '  ❌ %s  (%s)\n' "$label" "${codes:-no-response}"
+		return
+	fi
+	if [ "$want" = "nonempty" ] && [ "$(jq -r '(.result | if type=="array" then length else 1 end)' <<<"$resp")" = "0" ]; then
+		printf '  ⚠️  %s  (API 도달, 결과 0 — 열거 권한 없음)\n' "$label"
+		return
+	fi
+	printf '  ✅ %s\n' "$label"
+}
+
+cmd_doctor() {
+	echo "토큰 출처  $TOKEN_SRC"
+	if [ -z "$TOKEN" ]; then
+		cat <<'EOF'
+
+토큰이 없다. 발급 절차:
+
+  1. dash.cloudflare.com → 프로필 → API Tokens → Create Token → Custom token
+  2. 권한 (Add more 로 한 줄씩):
+       Account · Cloudflare Tunnel      · Read
+       Zone    · Zone                   · Read
+       Zone    · DNS                    · Edit
+       Zone    · Dynamic Redirect       · Edit     (www → apex 301 용)
+       Zone    · Email Routing Rules    · Edit     (b@ 주소용)
+  3. Zone Resources = 개인 계정의 해당 zone
+  4. ⚠️ Client IP Filtering 을 비워둘 것 — 넣으면 9109 로 전부 막힌다
+  5. 저장:  umask 077; echo '<TOKEN>' > ~/.cf-token-glg
+
+  ⚠️ R2 화면에서 만든 토큰은 안 된다 (S3 자격증명이라 zone 권한이 안 붙는다).
+  ⚠️ 회사 토큰을 여기 넣지 말 것. 계정이 섞이면 되돌리기 어렵다.
+EOF
+		exit 1
+	fi
+
+	local v; v=$(curl -sS "$API/user/tokens/verify" -H "Authorization: Bearer $TOKEN")
+	if [ "$(jq -r '.success' <<<"$v")" != "true" ]; then
+		local codes; codes=$(jq -r '[.errors[]?.code] | join(",")' <<<"$v")
+		case ",$codes," in
+			*",9109,"*) die "9109 — 토큰에 Client IP Filtering 이 걸려 있다." ;;
+			*",10429,"*) die "10429 — rate limit. 기다렸다 다시 보라." ;;
+		esac
+		echo "$v" | jq . >&2; die "토큰 검증 실패"
+	fi
+	echo "상태       $(jq -r '.result.status' <<<"$v")"
+
+	echo
+	echo "권한 probe:"
+	probe "Account 열거                " "/accounts" nonempty
+	probe "Zone: Read                  " "/zones" nonempty
+	local zid=""
+	zid=$(zone_id 2>/dev/null || true)
+	if [ -n "$zid" ]; then
+		echo "zone       $(zone_apex "$zid")  ($zid)"
+		probe "DNS: Read                   " "/zones/$zid/dns_records?per_page=1"
+		probe "Dynamic Redirect            " "/zones/$zid/rulesets/phases/http_request_dynamic_redirect/entrypoint"
+		probe "Email Routing               " "/zones/$zid/email/routing"
+	else
+		warn "zone 을 못 잡았다 — CF_ZONE_NAME 을 주고 다시 보라."
+	fi
+	# discover_account 는 전역을 세팅한다 — 서브셸로 부르면 값이 안 남는다
+	if discover_account 2>/dev/null; then
+		probe "Cloudflare Tunnel           " "/accounts/$ACCOUNT_ID/cfd_tunnel?is_deleted=false"
+	else
+		warn "계정을 못 잡았다 — CF_ACCOUNT_ID 를 지정하거나 토큰 스코프를 확인하라."
+	fi
+	echo
+	note "❌ 가 있으면 그 권한만 토큰에 추가하면 된다. 전부 다 있을 필요는 없다."
+	return 0
+}
+
+cmd_whoami() {
+	discover_account
+	echo "계정  $ACCOUNT_ID"
+	req GET "/zones" | jq -r '.result[] | "zone  \(.name)  \(.id)  [\(.status)]"'
+}
+
+# ── dns ───────────────────────────────────────────────────────────────────
+cmd_dns() {
+	local sub="${1:-ls}"; shift || true
+	local zid; zid=$(zone_id "${ZONE_NAME:-}")
+	case "$sub" in
+		ls)
+			req GET "/zones/$zid/dns_records?per_page=100" \
+				| jq -r '.result[] | "\(.type)\t\(.name)\t\(.content)\tproxied=\(.proxied)"' | column -t
+			;;
+		add)
+			local name="$1" type="$2" content="$3" proxied=false
+			shift 3
+			[ "${1:-}" = "--proxied" ] && proxied=true
+			confirm "DNS 추가: $type $name → $content (proxied=$proxied)"
+			req POST "/zones/$zid/dns_records" \
+				"$(jq -nc --arg t "$type" --arg n "$name" --arg c "$content" --argjson p "$proxied" \
+					'{type:$t,name:$n,content:$c,proxied:$p}')" \
+				| jq -r '"✅ \(.result.type) \(.result.name) → \(.result.content)"'
+			;;
+		rm)
+			local name="$1"
+			local id; id=$(req GET "/zones/$zid/dns_records?name=$name" | jq -r '.result[0].id // empty')
+			[ -n "$id" ] || die "레코드가 없다: $name"
+			confirm "DNS 삭제: $name"
+			req DELETE "/zones/$zid/dns_records/$id" >/dev/null && echo "✅ 삭제: $name"
+			;;
+		*) die "cf dns ls|add|rm" ;;
+	esac
+}
+
+# ── tunnel (조회 전용) ────────────────────────────────────────────────────
+cmd_tunnel() {
+	local sub="${1:-ls}"
+	case "$sub" in
+		ls)
+			discover_account
+			req GET "/accounts/$ACCOUNT_ID/cfd_tunnel?is_deleted=false" \
+				| jq -r '.result[] | "\(.id)\t\(.name)\t conns=\(.connections|length)"' | column -t
+			;;
+		*)
+			cat >&2 <<'EOF'
+터널 생성·삭제는 이 CLI 가 하지 않는다. locally-managed 라 cloudflared 가 한다:
+
+  cloudflared tunnel create <name>
+  cloudflared tunnel route dns <name> <hostname>
+  cloudflared tunnel list
+
+ingress 는 config.yml 이 SSOT 다 — 대시보드나 API 로 밀어 넣지 말 것.
+EOF
+			exit 1
+			;;
+	esac
+}
+
+# ── redirect (Single Redirect / Dynamic Redirect ruleset) ─────────────────
+# entrypoint 를 세 상태로 가른다: ok(본문) / absent(아직 없음) / 그 외는 die.
+# "조회 실패 = 규칙 없음" 으로 뭉개면, 이어지는 PUT 이 기존 규칙을 통째로 덮어쓴다.
+REDIRECT_STATE=""
+redirect_entrypoint() {
+	local zid="$1" resp http body
+	resp=$(curl -sS -w '\n%{http_code}' \
+		"$API/zones/$zid/rulesets/phases/http_request_dynamic_redirect/entrypoint" \
+		-H "Authorization: Bearer $TOKEN" 2>/dev/null) || die "entrypoint 조회 실패 (네트워크)"
+	http=$(tail -n1 <<<"$resp"); body=$(sed '$d' <<<"$resp")
+	if [ "$http" = "200" ] && [ "$(jq -r '.success' <<<"$body")" = "true" ]; then
+		REDIRECT_STATE="ok"; echo "$body"; return 0
+	fi
+	local codes; codes=$(jq -r '[.errors[]?.code] | join(",")' <<<"$body" 2>/dev/null || true)
+	case ",$codes," in
+		*",9109,"*) die "9109 — 토큰 IP 제한에 막혔다." ;;
+		*",10429,"*) die "10429 — rate limit. 기다렸다 다시 보라." ;;
+	esac
+	# 진짜 "아직 phase ruleset 이 없음" 만 빈 상태로 인정한다
+	if [ "$http" = "404" ]; then REDIRECT_STATE="absent"; return 0; fi
+	echo "$body" | jq . >&2 2>/dev/null || echo "$body" >&2
+	die "entrypoint 상태를 확정할 수 없다 (HTTP $http). 덮어쓰기 위험이 있어 중단한다."
+}
+
+cmd_redirect() {
+	local sub="${1:-ls}"; shift || true
+	local zid; zid=$(zone_id "${ZONE_NAME:-}")
+	case "$sub" in
+		ls)
+			local js; js=$(redirect_entrypoint "$zid")
+			[ "$REDIRECT_STATE" = "absent" ] && { echo "(규칙 없음)"; return 0; }
+			jq -r '.result.rules[]? | "\(.description // "-")\n  when  \(.expression)\n  then  \(.action_parameters.from_value.status_code) → \(.action_parameters.from_value.target_url.expression)"' <<<"$js"
+			;;
+		www)
+			local apex="${1:?cf redirect www <apex-domain>}"
+			local cur rules existing=0
+			cur=$(redirect_entrypoint "$zid")
+			if [ "$REDIRECT_STATE" = "absent" ]; then
+				rules='[]'
+			else
+				rules=$(jq -c '[.result.rules[]?]' <<<"$cur")
+				# 멱등: 같은 host 조건의 규칙이 이미 있으면 새로 만들지 않는다
+				if [ "$(jq --arg h "www.$apex" '[.[] | select(.expression | contains($h))] | length' <<<"$rules")" != "0" ]; then
+					echo "✅ www.$apex 규칙이 이미 있다 — 그대로 둔다."; return 0
+				fi
+				existing=$(jq 'length' <<<"$rules")
+			fi
+			local rule
+			rule=$(jq -nc --arg apex "$apex" '{
+				action: "redirect",
+				action_parameters: {
+					from_value: {
+						status_code: 301,
+						target_url: { expression: ("concat(\"https://" + $apex + "\", http.request.uri.path)") },
+						preserve_query_string: true
+					}
+				},
+				expression: ("(http.host eq \"www." + $apex + "\")"),
+				description: ("www." + $apex + " → " + $apex)
+			}')
+			rules=$(jq -c --argjson r "$rule" '. + [$r]' <<<"$rules")
+			confirm "www.$apex → $apex 301 규칙 추가 (기존 $existing 개 보존)"
+			req PUT "/zones/$zid/rulesets/phases/http_request_dynamic_redirect/entrypoint" \
+				"$(jq -nc --argjson rules "$rules" '{rules:$rules}')" \
+				| jq -r '"✅ 규칙 \(.result.rules|length) 개"'
+			note "DNS 에 프록시된 www 레코드가 있어야 엣지가 요청을 받는다 — 없으면 NXDOMAIN 이라 룰이 돌 기회조차 없다."
+			;;
+		*) die "cf redirect ls|www" ;;
+	esac
+}
+
+# ── email routing ─────────────────────────────────────────────────────────
+cmd_email() {
+	local sub="${1:-status}"; shift || true
+	local zid; zid=$(zone_id "${ZONE_NAME:-}")
+	case "$sub" in
+		status)
+			req GET "/zones/$zid/email/routing" \
+				| jq -r '.result | "enabled=\(.enabled)  status=\(.status)  name=\(.name)"'
+			;;
+		dns)
+			req GET "/zones/$zid/email/routing/dns" \
+				| jq -r '.result[] | "\(.type)\t\(.name)\t\(.content)\t\(.priority // "")"' | column -t
+			;;
+		enable)
+			confirm "Email Routing 을 켠다 (MX 레코드가 추가된다)"
+			req POST "/zones/$zid/email/routing/enable" '{}' | jq -r '"✅ enabled=\(.result.enabled)"'
+			;;
+		dest)
+			local addr="${1:?cf email dest <address>}"
+			discover_account
+			confirm "수신함 등록: $addr (검증 메일이 간다 — 눌러야 활성화)"
+			req POST "/accounts/$ACCOUNT_ID/email/routing/addresses" \
+				"$(jq -nc --arg e "$addr" '{email:$e}')" \
+				| jq -r '"✅ \(.result.email)  verified=\(.result.verified // "pending")"'
+			;;
+		add)
+			local from="${1:?cf email add <from> <to>}" to="${2:?}"
+			confirm "$from → $to 포워딩 규칙을 만든다"
+			req POST "/zones/$zid/email/routing/rules" \
+				"$(jq -nc --arg f "$from" --arg t "$to" '{
+					name: ($f + " → " + $t),
+					enabled: true,
+					matchers: [{type:"literal", field:"to", value:$f}],
+					actions:  [{type:"forward", value:[$t]}]
+				}')" | jq -r '"✅ \(.result.name)"'
+			;;
+		ls)
+			req GET "/zones/$zid/email/routing/rules" \
+				| jq -r '.result[] | "\(.matchers[0].value)\t→ \(.actions[0].value[0])\tenabled=\(.enabled)"' | column -t
+			;;
+		*) die "cf email status|dns|enable|dest|add|ls" ;;
+	esac
+}
+
+# ── access (있으면 안 된다는 걸 확인하는 용도) ────────────────────────────
+# 인자로 도메인을 주면 그 도메인에 걸린 앱만 본다 (다른 zone 의 앱까지 경고하지 않게).
+cmd_access() {
+	[ "${1:-}" = "apps" ] && shift          # `cf access apps [도메인]` 형태를 받아준다
+	local filter="${1:-}"
+	discover_account
+	# Access 를 한 번도 안 켠 계정은 9999 not_enabled 를 준다 — 공개 사이트엔 가장 안전한 상태다
+	local raw; raw=$(curl -sS "$API/accounts/$ACCOUNT_ID/access/apps" \
+		-H "Authorization: Bearer $TOKEN" 2>/dev/null || echo '{}')
+	if grep -q 'access.api.error.not_enabled' <<<"$raw"; then
+		echo "✅ 이 계정에는 Access 가 아예 켜져 있지 않다 — 공개 사이트에 가장 안전한 상태다."
+		return 0
+	fi
+	local js n; js=$(req GET "/accounts/$ACCOUNT_ID/access/apps")
+	if [ -n "$filter" ]; then
+		js=$(jq --arg d "$filter" '{result: [.result[] | select((.domain // "") | contains($d))]}' <<<"$js")
+	fi
+	n=$(jq '.result | length' <<<"$js")
+	if [ "$n" = "0" ]; then
+		echo "✅ Access 앱 없음${filter:+ ($filter)} — 공개 사이트에는 이게 정상이다."
+	else
+		jq -r '.result[] | "\(.name)\t\(.domain)"' <<<"$js" | column -t
+		warn "공개 사이트에 Access 가 붙으면 방문자가 로그인 화면을 만난다."
+	fi
+}
+
+# ── check ─────────────────────────────────────────────────────────────────
+cmd_check() {
+	local host="${1:?cf check <host>}"
+	# curl 은 실패해도 -w 로 000 을 찍는다 — || echo 를 겹치면 "000000" 이 된다
+	local code; code=$(curl -sS -o /dev/null -w '%{http_code}' -I --max-time 10 "https://$host" 2>/dev/null) || true
+	[ -n "$code" ] || code="000"
+	# exit code 를 신호로 쓴다 — 200 만 0, 나머지는 1 (CI·배포 스크립트에서 검증에 쓸 수 있게)
+	case "$code" in
+		200) echo "✅ $host → 200 (공개면 정상)"; return 0 ;;
+		301|302)
+			local loc; loc=$(curl -sSI --max-time 10 "https://$host" 2>/dev/null \
+				| awk -F': ' 'tolower($1)=="location"{print $2}' | tr -d '\r')
+			if grep -qi 'cloudflareaccess.com' <<<"$loc"; then
+				echo "❌ $host → $code  Access 가 잡았다. 공개 사이트라면 Access 앱을 떼야 한다."
+				echo "   → $loc"
+			else
+				echo "↪️  $host → $code → ${loc:-(Location 없음)}"
+			fi
+			;;
+		404) echo "❌ $host → 404  ingress 에 hostname 이 없거나 origin 이 404 를 낸다" ;;
+		530) echo "❌ $host → 530  터널이 안 붙었다 (cloudflared 로그 확인)" ;;
+		000) echo "❌ $host → 연결 실패 (DNS 없음 / TLS 실패 / 타임아웃)" ;;
+		*)   echo "?  $host → $code" ;;
+	esac
+	return 1
+}
+
+# ── main ──────────────────────────────────────────────────────────────────
+args=()
+for a in "$@"; do
+	case "$a" in
+		--yes) ASSUME_YES=1 ;;
+		*) args+=("$a") ;;
+	esac
+done
+set -- "${args[@]:-}"
+
+case "${1:-help}" in
+	help|-h|--help) usage; exit 0 ;;
+	doctor)   load_token_soft; cmd_doctor ;;
+	whoami)   load_token; cmd_whoami ;;
+	dns)      load_token; shift; cmd_dns "$@" ;;
+	tunnel)   load_token; shift; cmd_tunnel "$@" ;;
+	redirect) load_token; shift; cmd_redirect "$@" ;;
+	email)    load_token; shift; cmd_email "$@" ;;
+	access)   load_token; shift; cmd_access "$@" ;;
+	check)    shift; cmd_check "$@" ;;
+	api)
+		load_token; shift
+		m="${1:?cf api <METHOD> <PATH> [BODY]}"; p="${2:?}"; b="${3:-}"
+		[ "$m" = "GET" ] || confirm "$m $p"
+		req "$m" "$p" "$b" | jq .
+		;;
+	*) usage; exit 1 ;;
+esac
