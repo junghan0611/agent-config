@@ -145,11 +145,18 @@ zone_apex() {
 # $3 = "nonempty" 면 .result 가 비어 있는 것도 실패로 본다.
 # /accounts 는 권한이 없어도 success:true + result:[] 를 주므로, 성공만 보면 거짓 양성이 된다.
 probe() {
-	local label="$1" path="$2" want="${3:-}" resp ok
-	resp=$(curl -sS "$API$path" -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo '{}')
+	local label="$1" path="$2" want="${3:-}" raw resp http ok
+	raw=$(curl -sS -w '\n%{http_code}' "$API$path" -H "Authorization: Bearer $TOKEN" 2>/dev/null || printf '{}\n000')
+	http=$(tail -n1 <<<"$raw"); resp=$(sed '$d' <<<"$raw")
 	ok=$(jq -r '.success // false' <<<"$resp")
 	if [ "$ok" != "true" ]; then
 		local codes; codes=$(jq -r '[.errors[]?.code] | join(",")' <<<"$resp")
+		# 404 = 인증은 통과했고 리소스가 아직 없는 것이다. 권한 실패로 읽으면
+		# "Dynamic Redirect ❌" 같은 거짓 음성이 나와 토큰을 또 만지게 된다.
+		if [ "$http" = "404" ]; then
+			printf '  ✅ %s  (권한 통과 — 아직 규칙 없음)\n' "$label"
+			return
+		fi
 		printf '  ❌ %s  (%s)\n' "$label" "${codes:-no-response}"
 		return
 	fi
@@ -172,7 +179,9 @@ cmd_doctor() {
        Account · Cloudflare Tunnel      · Read
        Zone    · Zone                   · Read
        Zone    · DNS                    · Edit
-       Zone    · Dynamic Redirect       · Edit     (www → apex 301 용)
+       Zone    · Single Redirect       · Edit     (www → apex 301 용)
+                 ↑ 대시보드 이름. API phase 는 http_request_dynamic_redirect 라
+                   "Dynamic Redirect" 로 찾으면 목록에 안 나온다.
        Zone    · Email Routing Rules    · Edit     (b@ 주소용)
   3. Zone Resources = 개인 계정의 해당 zone
   4. ⚠️ Client IP Filtering 을 비워둘 것 — 넣으면 9109 로 전부 막힌다
@@ -283,15 +292,19 @@ EOF
 # ── redirect (Single Redirect / Dynamic Redirect ruleset) ─────────────────
 # entrypoint 를 세 상태로 가른다: ok(본문) / absent(아직 없음) / 그 외는 die.
 # "조회 실패 = 규칙 없음" 으로 뭉개면, 이어지는 PUT 이 기존 규칙을 통째로 덮어쓴다.
+# 본문은 stdout 이 아니라 REDIRECT_BODY 에 담는다. $(...) 로 받으면 서브셸이라
+# REDIRECT_STATE 도 die 도 부모에 안 남는다 — absent 를 못 읽어 오판한다.
 REDIRECT_STATE=""
+REDIRECT_BODY=""
 redirect_entrypoint() {
 	local zid="$1" resp http body
+	REDIRECT_STATE=""; REDIRECT_BODY=""
 	resp=$(curl -sS -w '\n%{http_code}' \
 		"$API/zones/$zid/rulesets/phases/http_request_dynamic_redirect/entrypoint" \
 		-H "Authorization: Bearer $TOKEN" 2>/dev/null) || die "entrypoint 조회 실패 (네트워크)"
 	http=$(tail -n1 <<<"$resp"); body=$(sed '$d' <<<"$resp")
 	if [ "$http" = "200" ] && [ "$(jq -r '.success' <<<"$body")" = "true" ]; then
-		REDIRECT_STATE="ok"; echo "$body"; return 0
+		REDIRECT_STATE="ok"; REDIRECT_BODY="$body"; return 0
 	fi
 	local codes; codes=$(jq -r '[.errors[]?.code] | join(",")' <<<"$body" 2>/dev/null || true)
 	case ",$codes," in
@@ -309,18 +322,18 @@ cmd_redirect() {
 	local zid; zid=$(zone_id "${ZONE_NAME:-}")
 	case "$sub" in
 		ls)
-			local js; js=$(redirect_entrypoint "$zid")
+			redirect_entrypoint "$zid"
 			[ "$REDIRECT_STATE" = "absent" ] && { echo "(규칙 없음)"; return 0; }
-			jq -r '.result.rules[]? | "\(.description // "-")\n  when  \(.expression)\n  then  \(.action_parameters.from_value.status_code) → \(.action_parameters.from_value.target_url.expression)"' <<<"$js"
+			jq -r '.result.rules[]? | "\(.description // "-")\n  when  \(.expression)\n  then  \(.action_parameters.from_value.status_code) → \(.action_parameters.from_value.target_url.expression)"' <<<"$REDIRECT_BODY"
 			;;
 		www)
 			local apex="${1:?cf redirect www <apex-domain>}"
-			local cur rules existing=0
-			cur=$(redirect_entrypoint "$zid")
+			local rules existing=0
+			redirect_entrypoint "$zid"
 			if [ "$REDIRECT_STATE" = "absent" ]; then
 				rules='[]'
 			else
-				rules=$(jq -c '[.result.rules[]?]' <<<"$cur")
+				rules=$(jq -c '[.result.rules[]?]' <<<"$REDIRECT_BODY")
 				# 멱등: 같은 host 조건의 규칙이 이미 있으면 새로 만들지 않는다
 				if [ "$(jq --arg h "www.$apex" '[.[] | select(.expression | contains($h))] | length' <<<"$rules")" != "0" ]; then
 					echo "✅ www.$apex 규칙이 이미 있다 — 그대로 둔다."; return 0

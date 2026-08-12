@@ -55,7 +55,7 @@ GLG 결정(2026-08-12): 오라클에서 조회가 막히면 작업이 안 되고
 |---|---|---|---|
 | Account | Cloudflare Tunnel · Read | `tunnel ls` | ✅ |
 | Zone | DNS · Edit | 레코드 | ✅ |
-| Zone | Dynamic Redirect · Edit | www 301 | ❌ |
+| Zone | **Single Redirect** · Edit | www 301 | ✅ |
 | Zone | Email Routing Rules · Edit | `b@` | ❌ |
 | Account | Account Settings · Read | `/accounts` 열거 | ❌ |
 
