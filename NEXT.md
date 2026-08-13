@@ -243,12 +243,11 @@ statusline, PreInvocation birth hook까지 모두 state-backed install/doctor/in
 **현재 남은 실제 파일:**
 - `pi/settings.json`, `pi/settings.server.json`: entwurf package + repo-path
   `entwurfProvider.mcpServers.entwurf-bridge` 잔존.
-- `antigravity/settings.json`, `antigravity/statusline.sh`: 이제 live에 도달하지 않는다
-  (setup이 링크하지 않음). 참조 0 확인 후 제거 대상.
 
 **agy lane은 2026-08-13에 닫혔다.** `run.sh setup`의 agy settings symlink를 제거하고
-소유권을 entwurf `install-agy-*`로 전량 이관했다. thinkpad·oracle 양쪽에서
-`doctor-agy-bridge` / `doctor-agy-statusline` / `doctor-agy-hooks` 모두 ok,
+소유권을 entwurf `install-agy-*`로 전량 이관했다. `antigravity/` 디렉토리는 통째로
+제거했다(참조 0 확인 후 — skills 링크만 agent-config 소유로 남는다). thinkpad·oracle
+양쪽에서 `doctor-agy-bridge` / `doctor-agy-statusline` / `doctor-agy-hooks` 모두 ok,
 `~/.gemini/antigravity-cli/settings.json`은 regular file 유지.
 (oracle은 심링크를 내용 보존한 채 실체 파일로 전환 후 두 installer 재실행.)
 
@@ -263,7 +262,7 @@ statusline, PreInvocation birth hook까지 모두 state-backed install/doctor/in
    로직을 setup에 넣는 대신 `ensure_link` 한 줄을 제거해 소유권을 전량 넘겼다. agy가
    저장 시 심링크를 replace 하므로 링크는 애초에 유지되지 않았고, 초기값은 agy 자신 또는
    `install-agy-bridge` / `install-agy-statusline`이 만든다(없으면 create, 있으면 adopt).
-4. `antigravity/settings.json` / `antigravity/statusline.sh` 참조 0 확인 후 제거한다.
+4. ~~`antigravity/` 제거~~ **완료(2026-08-13).** 디렉토리 통째로 삭제.
 5. agent-config setup을 두 번 재실행하고 다음을 확인한다:
    - `doctor-pi-provider` EFFECTIVE bare, provider load 유지
    - `doctor-agy-bridge` / `doctor-agy-statusline` / `doctor-agy-hooks` green
