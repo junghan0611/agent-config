@@ -17,14 +17,14 @@ python3 {baseDir}/scripts/quota.py
 ## 출력 형태
 
 ```
-quota check — 2026-08-20 15:38 KST
+quota check — YYYY-MM-DD HH:MM KST   (아래 숫자는 예시 — 실계정 상태가 아니다)
 
-copilot   18528/20000  premium reqs (92.6% left)  reset 2026-09-01
-zai      5h     1311/2000   credits (66% left)  reset 08-20 19:39 KST
-      weekly   9311/10000  credits (94% left)  reset 08-27 14:36 KST
-codex    plan plus     0.0% used of 7d window  resets in 6.9d
-claude   5h  10.0% used  reset 08-20 16:29 KST
-      7d  15.0% used  reset 08-24 06:59 KST
+copilot   9000/20000  premium reqs (45% left)  reset MM-DD
+zai      5h      500/2000   credits (25% left)  reset MM-DD HH:MM KST
+      weekly   5000/10000  credits (50% left)  reset MM-DD HH:MM KST
+codex    plan <tier>  40.0% used of 7d window  resets in 3.5d
+claude   5h  25.0% used  reset MM-DD HH:MM KST
+      7d  50.0% used  reset MM-DD HH:MM KST
 grok     480/480 req, 10000000/10000000 tok THIS MINUTE (rate ceiling, NOT a subscription balance — no balance endpoint exists)
 ```
 
