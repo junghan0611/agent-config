@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Print remaining quota for the five model rails GLG routes siblings onto.
 
-One GET (or, for grok, one minimal completion) per rail, best-effort:
-a dead/blocked endpoint prints as unavailable and does not stop the rest.
-Endpoints are undocumented except where noted — see
+One GET per rail, best-effort: a dead/blocked endpoint prints as
+unavailable and does not stop the rest. Endpoints are undocumented
+except where noted — see
 ~/repos/gh/agent-config/.agent-reports/quota-checks-20260820.md for how
 each one was found and verified live.
 
@@ -15,12 +15,15 @@ import datetime
 import json
 import os
 import sys
+import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
 
 HOME = os.path.expanduser("~")
 PI_AUTH = os.path.join(HOME, ".pi", "agent", "auth.json")
 CLAUDE_CREDS = os.path.join(HOME, ".claude", ".credentials.json")
+GROK_AUTH = os.path.join(HOME, ".grok", "auth.json")
 
 TIMEOUT = 15
 
@@ -42,7 +45,20 @@ def _kst(iso_or_epoch, is_epoch_seconds=False, is_epoch_ms=False):
     elif is_epoch_seconds:
         dt = datetime.datetime.fromtimestamp(iso_or_epoch, tz=datetime.timezone.utc)
     else:
-        dt = datetime.datetime.fromisoformat(iso_or_epoch)
+        s = iso_or_epoch
+        # grok auth.json uses nanosecond fractions; fromisoformat accepts ≤6 digits
+        if isinstance(s, str) and "." in s:
+            head, frac_tz = s.split(".", 1)
+            digits = ""
+            rest = ""
+            for i, ch in enumerate(frac_tz):
+                if ch.isdigit():
+                    digits += ch
+                else:
+                    rest = frac_tz[i:]
+                    break
+            s = f"{head}.{digits[:6]}{rest}"
+        dt = datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
     kst = dt.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
     return kst.strftime("%m-%d %H:%M KST")
 
@@ -134,26 +150,155 @@ def check_claude():
     )
 
 
-def check_grok():
-    """One minimal completion (max_tokens=1) — the only way to see the
-    x-ratelimit-* headers. This is a per-minute RPM/TPM ceiling, NOT a
-    depleting subscription balance; no endpoint for the latter was found."""
-    tok = _load_json(PI_AUTH)["xai"]["access"]
-    payload = json.dumps(
-        {"model": "grok-4.3", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1}
+def _grok_auth_entry():
+    """~/.grok/auth.json is keyed by OIDC scope URL; one entry on a solo box."""
+    data = _load_json(GROK_AUTH)
+    if not data:
+        raise KeyError("empty ~/.grok/auth.json")
+    scope = next(iter(data))
+    entry = data[scope]
+    if not isinstance(entry, dict) or "key" not in entry:
+        raise KeyError("grok auth entry missing key")
+    return data, scope, entry
+
+
+def _grok_token_expired(entry, skew_seconds=60):
+    exp = entry.get("expires_at")
+    if not exp:
+        return False
+    s = exp
+    if "." in s:
+        head, frac_tz = s.split(".", 1)
+        digits = ""
+        rest = ""
+        for i, ch in enumerate(frac_tz):
+            if ch.isdigit():
+                digits += ch
+            else:
+                rest = frac_tz[i:]
+                break
+        s = f"{head}.{digits[:6]}{rest}"
+    dt = datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    now = datetime.datetime.now(datetime.timezone.utc)
+    return dt <= now + datetime.timedelta(seconds=skew_seconds)
+
+
+def _grok_refresh_oidc(entry):
+    """Refresh via auth.x.ai OIDC (same path grok CLI logs as try_refresh_pure).
+
+    Returns updated fields only — caller decides whether to persist.
+    Does not print tokens.
+    """
+    rt = entry.get("refresh_token")
+    client_id = entry.get("oidc_client_id")
+    issuer = (entry.get("oidc_issuer") or "https://auth.x.ai").rstrip("/")
+    if not rt or not client_id:
+        raise KeyError("grok refresh_token or oidc_client_id missing")
+    body = urllib.parse.urlencode(
+        {
+            "grant_type": "refresh_token",
+            "refresh_token": rt,
+            "client_id": client_id,
+        }
     ).encode()
-    resp, _ = _get(
-        "https://api.x.ai/v1/chat/completions",
-        headers={"Authorization": f"Bearer {tok}", "Content-Type": "application/json"},
-        data=payload,
+    _, raw = _get(
+        f"{issuer}/oauth2/token",
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+        },
+        data=body,
         method="POST",
     )
-    h = resp.headers
-    return (
-        f"{h['x-ratelimit-remaining-requests']}/{h['x-ratelimit-limit-requests']} req, "
-        f"{h['x-ratelimit-remaining-tokens']}/{h['x-ratelimit-limit-tokens']} tok THIS MINUTE "
-        f"(rate ceiling, NOT a subscription balance — no balance endpoint exists)"
-    )
+    tok = json.loads(raw)
+    access = tok.get("access_token")
+    if not access:
+        raise KeyError("oidc refresh response missing access_token")
+    expires_in = int(tok.get("expires_in") or 21600)
+    new_exp = (
+        datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=expires_in)
+    ).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    updated = {
+        "key": access,
+        "expires_at": new_exp,
+    }
+    if tok.get("refresh_token"):
+        updated["refresh_token"] = tok["refresh_token"]
+    return updated
+
+
+def _grok_persist_auth(data, scope, updates):
+    """Best-effort atomic write back to ~/.grok/auth.json (grok CLI also owns this)."""
+    data[scope].update(updates)
+    directory = os.path.dirname(GROK_AUTH)
+    fd, tmp = tempfile.mkstemp(prefix=".auth.json.", dir=directory)
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+        os.replace(tmp, GROK_AUTH)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        # Non-fatal: in-memory token still works for this request.
+
+
+def _grok_access_token():
+    data, scope, entry = _grok_auth_entry()
+    if _grok_token_expired(entry):
+        updates = _grok_refresh_oidc(entry)
+        entry.update(updates)
+        _grok_persist_auth(data, scope, updates)
+    return entry["key"], data, scope, entry
+
+
+def check_grok():
+    """SuperGrok weekly credit usage via grok CLI billing proxy.
+
+    Primary metric: creditUsagePercent (matches grok.com/?_s=usage and
+    `grok` CLI). Auth is ~/.grok/auth.json OIDC access token (~6h), not
+    the api.x.ai key in pi auth.json.
+
+    Distinct from the api.x.ai per-minute RPM/TPM rate ceiling (see
+    report §4 / SKILL.md) — that still exists but does not answer
+    "how much SuperGrok is left this week" and is not queried here.
+    """
+    tok, data, scope, entry = _grok_access_token()
+    url = "https://cli-chat-proxy.grok.com/v1/billing?format=credits"
+    headers = {
+        "Authorization": f"Bearer {tok}",
+        "Accept": "application/json",
+        "User-Agent": "quota-skill/1.0",
+    }
+    try:
+        _, body = _get(url, headers=headers)
+    except urllib.error.HTTPError as e:
+        if e.code != 401:
+            raise
+        # Stale token that expires_at did not catch — refresh once and retry.
+        updates = _grok_refresh_oidc(entry)
+        entry.update(updates)
+        _grok_persist_auth(data, scope, updates)
+        headers["Authorization"] = f"Bearer {entry['key']}"
+        _, body = _get(url, headers=headers)
+
+    cfg = json.loads(body)["config"]
+    used = float(cfg["creditUsagePercent"])
+    left = 100.0 - used
+    period = cfg.get("currentPeriod") or {}
+    end = period.get("end") or cfg.get("billingPeriodEnd")
+    reset = _kst(end) if end else "?"
+    products = cfg.get("productUsage") or []
+    product = products[0]["product"] if products else "SuperGrok"
+    line = f"weekly {used:>5.1f}% used ({left:.1f}% left)  reset {reset}  [{product} credits]"
+    # Surface on-demand only when a cap is configured (val can be nested).
+    od_cap = (cfg.get("onDemandCap") or {}).get("val", 0) or 0
+    od_used = (cfg.get("onDemandUsed") or {}).get("val", 0) or 0
+    if od_cap:
+        line += f"\n      on-demand {od_used}/{od_cap}"
+    return line
 
 
 RAILS = [
