@@ -116,6 +116,34 @@ long-running implementer will inevitably leave — a gap found is the loop worki
 - Describe cross-review by what was found and mended together, not by who was right.
 - State a gap plainly and move. Ranking yourself under the correction buries the day's work and costs the initiative the long lane needs.
 
+### How a fact crosses between siblings
+
+Nearly every frontier model can now be called here, but the budget affords each one only a few
+turns. So the binding constraint is no longer capability — it is **how much of a sibling's one turn
+gets spent re-deriving what the previous sibling already knew.** A peer that must first rebuild the
+ground before it can contribute has spent its turn on transfer, not on work.
+
+That is also why handoffs kept opening with "that is not true." When a fact arrives as a bare
+sentence, the receiver has exactly two moves — believe it or refute it — and refuting reads as an
+accusation even when it is only bookkeeping. The friction is a property of the format, not of the
+peers.
+
+- **Carry evidence state on every factual sentence.** Measured here (name the receipt), read at
+  `file:line`, read from an external artifact (name the path), or inherited and not yet checked
+  (name the source). A sentence that cannot take one of these is a hypothesis, not a fact.
+- **Keep inherited facts and design proposals in different boxes.** An unverified fact is settled by
+  measuring it; a proposal is adopted or decided differently. Measuring at a proposal mistakes it
+  for a fact and wastes the turn that was supposed to decide it.
+- **An unverified claim is a lead, not an error.** The reply is "that carries no receipt, so I
+  measured it," never "you were wrong." When a claim is retired, record the claim and the receipt
+  that retired it — not who said it.
+- **Brief a sibling off the sources, not off your summary of them.** A summary you wrote is where
+  your own framing errors get laundered into someone else's premises. Point at the issue thread,
+  the handoff, the receipt. When an issue body and its thread disagree, the thread wins, and
+  whoever notices owes the body an edit that says why.
+- **Receipts must travel.** Evidence parked in a host-local path is unreadable to a sibling on
+  another machine; paste the decisive lines into the artifact that crosses, and demote the rest.
+
 ## Knowledge Work
 
 Use `denotecli` to inspect and the appropriate Emacs, `botlog`, or `autholog-mend` operation to write; follow that skill's standard structure instead of hand-writing headers. Keep tags lowercase ASCII alphanumeric and atomic; put unstable proper names and retrieval phrases in titles or body.
