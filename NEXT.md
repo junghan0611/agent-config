@@ -90,7 +90,8 @@
 >   **a2a 플랫폼**, copilot-acp. C축이 막혔고, D축이 살아 있는 이유도 이것이다
 >   (core 모듈이지 플러그인이 아니라서). **A5**가 이걸 가른다.
 > - 인증: `anthropic` OAuth는 **구독 쿼터 소진**(헤르메스 축 아님).
->   `openrouter`/`copilot`/`upstage`가 자동 발견돼 있으니 그 레일로 돌린다(B1).
+>   `copilot`/`upstage`가 자동 발견돼 있으니 그 레일로 돌린다(B1).
+>   `openrouter`도 발견되지만 **쓰지 않는다** — 임베딩/이미지 전용 레일이다.
 > - 경계: 우리 스킬 SSOT를 `~/.hermes/skills`에 연결하지 않는다 — 주입하면 측정
 >   대상이 사라진다. `nixos-config` 선언 없음(후보이지 채택 아님).
 > - E축(A2A ↔ `entwurf_v2`)은 **entwurf 소유, PM은 GPT**. 지금 전달 안 함

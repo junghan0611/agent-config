@@ -14,14 +14,22 @@ YouTube, 웹페이지, PDF, 팟캐스트, 오디오/비디오 등 거의 모든 
 pnpm add -g @steipete/summarize@latest
 ```
 
-설정 파일: `~/.summarize/config.json`
+설정 파일: `~/.summarize/config.json` — **반드시 둔다.**
 ```json
 {
-  "model": { "id": "openrouter/google/gemini-3-flash-preview" }
+  "model": { "id": "google/gemini-3-flash-preview" }
 }
 ```
 
-환경변수 `OPENROUTER_API_KEY`는 `~/.env.local`에서 로드됨.
+환경변수 `GEMINI_API_KEY`는 `~/.env.local`에서 로드됨.
+
+⚠️ **OpenRouter로 돌리지 않는다.** OpenRouter는 임베딩·이미지 전용 레일이고 추론
+레일이 아니다(AGENTS.md). 모델은 그대로고 경로만 Google 직결이다 —
+`openrouter/google/gemini-3-flash-preview` → `google/gemini-3-flash-preview`.
+
+**config 파일이 없으면 `--model auto`가 된다.** auto는 환경에 보이는 provider 중에서
+고르므로, `OPENROUTER_API_KEY`가 보이면 그 레일을 집을 수 있다. 그래서 모델 고정이
+곧 레일 고정이다. 확인: `summarize status` → `Model: google/gemini-3-flash-preview (config)`.
 
 ## 실행 방법
 
@@ -119,12 +127,16 @@ cat /path/to/file.txt | source ~/.env.local && summarize - --plain
 
 ## 모델 지정
 
-기본: `openrouter/google/gemini-3-flash-preview` (긴 컨텍스트, 빠름, 저렴)
+기본: `google/gemini-3-flash-preview` (긴 컨텍스트, 빠름, 저렴 — 짧은 페이지 실측 2.9s / $0.0005)
 
 ```bash
-# 다른 모델 사용 시
-source ~/.env.local && summarize "URL" --model openrouter/anthropic/claude-sonnet-5 --plain
+# 구독 CLI 레일 — 계량 과금 없음. 대신 형제들이 쓸 구독 쿼터를 같이 먹는다
+source ~/.env.local && summarize "URL" --cli codex  --plain
+source ~/.env.local && summarize "URL" --cli claude --plain
 ```
+
+`openrouter/*` 는 쓰지 않는다. 대량 요약에 구독 쿼터를 태우고 싶지 않을 때가 기본값이
+Google 직결인 이유다 — 건당 1원 미만이라 구독을 형제 쪽에 남겨둔다.
 
 ## 출력 길이 가이드
 

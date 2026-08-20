@@ -48,7 +48,7 @@ How the rails above map to pi providers.
 
 All seven are rails in active use. Priority follows contract shape — rolling quota → Copilot credits → metered.
 
-Defaults live in `~/.pi/agent/settings.json` as `defaultProvider` / `defaultModel` (currently `zai` / `glm-5.2`).
+Defaults live in `~/.pi/agent/settings.json` as `defaultProvider` / `defaultModel` (currently `zai` / `glm-5.3`).
 
 ## Deliberately Hidden Providers
 
@@ -56,7 +56,7 @@ pi auto-enables a provider when its key is visible in the environment. The four 
 
 | Provider | Hidden models | Key | Actual use |
 |---|---|---|---|
-| `openrouter` | 346 | `OPENROUTER_API_KEY` | andenken embeddings, `summarize` |
+| `openrouter` | 346 | `OPENROUTER_API_KEY` | andenken embeddings **only** — 임베딩·이미지 전용 레일이고 추론 레일이 아니다 |
 | `huggingface` | 66 | `HF_TOKEN` | `pi-share-hf` |
 | `google` | 22 | `GEMINI_API_KEY` | image generation only (`gemini-image-gen.ts`, `command-glgimage`) |
 | `groq` | 6 | `GROQ_API_KEY` | `transcribe` speech-to-text |

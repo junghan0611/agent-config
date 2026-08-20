@@ -21,6 +21,12 @@ Hermes Agent를 **자기학습 벤치마크 대상**으로 재는 작업면. 비
 `anthropic`은 **구독 쿼터 소진**(HTTP 400, 헤르메스 축 아님), `openai-codex` 미등록.
 → 벤치마크는 Claude 구독을 안 태우는 레일로 돌린다.
 
+⚠️ **`openrouter`는 자동 발견되지만 쓰지 않는다.** 발견됐다는 건 키가 환경에 있다는
+뜻이지 써도 된다는 뜻이 아니다. OpenRouter는 GLG 개인의 임베딩/이미지 전용 제한
+레일이고 추론 레일이 아니다(AGENTS.md). 헤르메스는 형제가 아니라 벤치마크 대상이지만
+태우는 지갑은 같다. 대안 레일이 필요하면 `copilot`(승인된 구독, MODELS.md 우선순위 2)
+또는 `upstage`를 쓴다.
+
 ---
 
 ## 기억축 — 헤르메스가 장점이라 말하는 그것
@@ -78,7 +84,7 @@ provider 7종, **a2a 플랫폼**, copilot-acp. 파일은 클로저에 있는데 
 
 | # | 항목 | 상태 | 판정 |
 |---|---|---|---|
-| B1 | 대안 provider 추론 | 미측정 | `hermes chat --provider openrouter` 한 턴 |
+| B1 | 대안 provider 추론 | 미측정 | `hermes chat --provider copilot` 한 턴 (openrouter 아님 — 위 인증 주석) |
 | B2 | `openai-codex` OAuth | 미측정 | `hermes auth add openai-codex --type oauth` |
 | B3 | `anthropic` | 막힘 | 구독 쿼터. 헤르메스 축 아님 |
 
@@ -134,7 +140,7 @@ provider 7종, **a2a 플랫폼**, copilot-acp. 파일은 클로저에 있는데 
 ```bash
 run.sh setup:hermes       # 태그 고정 설치 (setup_all에 없음)
 hermes auth list          # env/gh CLI 자동 발견 포함
-hermes chat --provider openrouter
+hermes chat --provider copilot   # openrouter 아님 — 승인된 레일만
 hermes-acp --check
 hermes mcp serve
 ```

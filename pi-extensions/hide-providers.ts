@@ -13,10 +13,12 @@
  * The keys themselves stay in ~/.env.local, which is their SSOT. Every consumer
  * reads that file rather than pi's process env:
  *
- *   OPENROUTER_API_KEY  memory-sync, summarize — both `source ~/.env.local`
+ *   OPENROUTER_API_KEY  memory-sync — embeddings only, never inference
  *   GROQ_API_KEY        transcribe — sources it too, since this landed
  *   GEMINI_API_KEY      gemini-image-gen.ts parses the file directly; the
- *                       command-glgimage script already had --env-file
+ *                       command-glgimage script already had --env-file.
+ *                       summarize also lands here — it used to summarize
+ *                       through openrouter/google/*, now Google direct
  *   HF_TOKEN            pi-share-hf, a separate repo that is not installed
  *                       here as a pi extension
  *
@@ -33,9 +35,9 @@
  * them by name. Both halves are needed: this one removes what the shell
  * exported, the skip list stops the re-injection.
  *
- * None of these is an agent rail. OpenRouter stays GLG's personal embedding and
- * image rail through those skills (see AGENTS.md); Groq is speech-to-text; HF is
- * session sharing. Only the model picker changes.
+ * None of these is an agent rail. OpenRouter is GLG's personal rail for embedding
+ * and image work only — never inference (see AGENTS.md); Groq is speech-to-text;
+ * HF is session sharing. Only the model picker changes.
  *
  * To bring one back: drop it from HIDDEN_PROVIDER_KEYS and from env-loader's
  * SKIP_KEYS, then re-run `./run.sh setup:links`.
