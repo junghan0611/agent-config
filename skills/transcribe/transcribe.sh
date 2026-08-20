@@ -2,7 +2,16 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Source config if available
+# GROQ_API_KEY lives in ~/.env.local (SSOT). Source it rather than trusting the
+# inherited environment: pi hides the Groq provider by deleting the key from its
+# own process (pi-extensions/hide-providers.ts), so a pi-spawned child may not
+# inherit it.
+if [ -f "$HOME/.env.local" ]; then
+  # shellcheck disable=SC1091
+  source "$HOME/.env.local"
+fi
+
+# Skill-local config still wins, for a key that differs from the SSOT one.
 if [ -f "$SCRIPT_DIR/config" ]; then
   source "$SCRIPT_DIR/config"
 fi

@@ -94,6 +94,7 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 | `goal.ts` | `/goal` — long-running objective mode; keeps continuing itself until the objective is met or a budget is hit |
 | `continue.ts` | `shift+alt+enter` — send "continue" when the agent has stopped |
 | `env-loader.ts` | Load `~/.env.local` at session start |
+| `hide-providers.ts` | Keep skill-only keys (OpenRouter, HF, Google, Groq) out of pi so their 440 models stay out of the picker — see [MODELS.md](MODELS.md) |
 | `upstage-provider.ts` | Register Upstage Solar as an OpenAI-compatible provider |
 | `context.ts` | `/context` — show loaded extensions, skills, context usage |
 | `glg-footer.ts` | Footer signature |
@@ -359,6 +360,7 @@ pia() { _pi_garden_pi --entwurf-control --emacs-agent-socket server "$@"; }
 - [NEXT.md](NEXT.md) — volatile next-step anchor for the next session
 - [ROADMAP.md](ROADMAP.md) — medium-horizon tracks and direction
 - [CHANGELOG.md](CHANGELOG.md) — closed history
+- [MODELS.md](MODELS.md) — which model rails exist and on what contract terms (rolling quota → Copilot credits → metered API), plus a regenerable `pi --list-models` snapshot (`./run.sh models`)
 
 ## Changelog
 

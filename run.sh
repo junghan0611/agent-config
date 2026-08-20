@@ -1228,9 +1228,61 @@ Usage: ./run.sh <command> [args]
   bench:dry                   드라이런
 
 === 유틸 ===
+  models                      MODELS.md 스냅샷 갱신 (pi --list-models)
   chunk:org [--sample]        청킹 통계
   env                         환경변수 상태
 EOF
+}
+
+# --- models — MODELS.md 스냅샷을 살아 있는 pi 모델 목록으로 갱신 ---
+# 표가 아니라 pi가 실제로 부를 수 있는 것 그대로를 박는다. 레일/계약 층은
+# MODELS.md 본문이 손으로 관리하고, 이 명령은 마커 사이만 다시 쓴다.
+models_snapshot() {
+  local doc="$SCRIPT_DIR/MODELS.md"
+  [ -f "$doc" ] || { fail "MODELS.md 없음"; return 1; }
+  command -v pi >/dev/null 2>&1 || { fail "pi가 PATH에 없음"; return 1; }
+
+  local list
+  list=$(pi --list-models 2>/dev/null) || { fail "pi --list-models 실패"; return 1; }
+  [ -n "$list" ] || { fail "pi --list-models 출력이 비어 있음"; return 1; }
+
+  MODELS_LIST="$list" MODELS_DOC="$doc" python3 - <<'MODELS_PY'
+import os, re, subprocess
+
+doc = os.environ["MODELS_DOC"]
+listing = os.environ["MODELS_LIST"].rstrip("\n")
+stamp = subprocess.run(
+    ["date", "+%Y-%m-%d %H:%M KST"],
+    env={**os.environ, "TZ": "Asia/Seoul"},
+    capture_output=True, text=True, check=True,
+).stdout.strip()
+
+# 첫 줄은 헤더(provider model context ...)라 세지 않는다.
+rows = [l for l in listing.split("\n")[1:] if l.strip()]
+counts = {}
+for line in rows:
+    counts[line.split()[0]] = counts.get(line.split()[0], 0) + 1
+summary = " · ".join(f"`{p}` {n}" for p, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
+
+block = (
+    "<!-- BEGIN SNAPSHOT -->\n"
+    # MODELS.md는 영문 문서다 — 생성되는 줄도 영문이어야 재생성이 문서를 오염시키지 않는다.
+    f"_{stamp} · {len(rows)} models · refresh with `./run.sh models`_\n\n"
+    f"{summary}\n\n"
+    "```text\n" + listing + "\n```\n"
+    "<!-- END SNAPSHOT -->"
+)
+
+src = open(doc, encoding="utf-8").read()
+new, n = re.subn(
+    r"<!-- BEGIN SNAPSHOT -->.*?<!-- END SNAPSHOT -->", lambda _m: block, src, flags=re.S
+)
+if n != 1:
+    raise SystemExit(f"MODELS.md의 SNAPSHOT 마커를 {n}번 찾음 (1이어야 함)")
+open(doc, "w", encoding="utf-8").write(new)
+print(f"  {len(rows)} models — {summary}")
+MODELS_PY
+  ok "MODELS.md 스냅샷 갱신"
 }
 
 # --- Dispatch ---
@@ -1272,6 +1324,8 @@ case "${1:-help}" in
     exec "$SM_DIR/run.sh" "$@" ;;
 
   # === Util ===
+  models|models:snapshot)
+    models_snapshot ;;
   chunk:org)
     shift; cd "$SM_DIR" && node --input-type=module -e "
 import { findOrgFiles, chunkOrgFile } from './org-chunker.ts';

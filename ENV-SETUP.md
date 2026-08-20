@@ -18,6 +18,15 @@ pi-skills CLI들이 정상 동작하려면 아래 환경변수가 필요합니�
 | `UPSTAGE_API_KEY` | (API key) | `upstage-provider.ts` — pi에서 Solar 모델 사용 |
 | `UPSTAGE_FORCE_MODELS` | `solar-open2` | `/v1/models`에 안 뜨는 private beta 모델을 강제 등록 (쉼표 구분) |
 
+### pi에서 숨기는 키
+
+`OPENROUTER_API_KEY` · `HF_TOKEN` · `GEMINI_API_KEY` · `GROQ_API_KEY`는 `~/.env.local`에
+그대로 두되, pi 프로세스에서는 지운다 — 키가 보이면 pi가 provider를 자동으로 켜서
+모델 목록에 440개가 들어온다. `pi-extensions/hide-providers.ts`가 지우고
+`env-loader.ts`의 `SKIP_KEYS`가 재주입을 막는다. 소비자(memory-sync, summarize,
+transcribe, gemini-image-gen)는 전부 `~/.env.local`을 직접 읽으므로 영향이 없다.
+자세한 내용은 [MODELS.md](MODELS.md).
+
 ## Telegram (분신 에이전트)
 
 | 변수 | 용도 |

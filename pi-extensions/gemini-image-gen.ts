@@ -2,8 +2,13 @@
  * Gemini Image Generation Extension
  *
  * GEMINI_API_KEY로 Gemini 이미지 생성 API를 호출, 결과를 터미널에 인라인 표시.
- * env-loader.ts가 session_start에서 ~/.env.local을 로드하므로,
- * execute 시점에 process.env.GEMINI_API_KEY를 읽는다.
+ *
+ * 키는 ~/.env.local에서 직접 읽는다. 예전에는 env-loader.ts가 주입한
+ * process.env.GEMINI_API_KEY를 execute 시점에 읽었지만, 지금은 그 키가 pi
+ * 프로세스에 없다 — 키가 있으면 pi가 google provider(22개 모델)를 자동으로
+ * 켜고, GLG는 구글을 이미지 생성에만 쓴다. hide-providers.ts가 provider 발견
+ * 전에 지우고 env-loader.ts는 다시 넣지 않으므로, 이 확장만 파일에서 읽는다.
+ * process.env를 먼저 보는 순서는 유지 — 셸에서 명시적으로 넘긴 키가 이긴다.
  *
  * Note: @google/genai SDK는 extension 모듈 해석 경로에서 접근 불가하므로
  * REST API를 직접 호출한다 (antigravity-image-gen.ts와 동일한 전략).
@@ -29,6 +34,7 @@
  */
 
 import { mkdir, writeFile } from "node:fs/promises";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import os from "node:os";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -183,6 +189,37 @@ interface GeminiResponse {
 // Extension Entry Point
 // ============================================================================
 
+/**
+ * 환경변수 → ~/.env.local 순으로 값을 찾는다. upstage-provider.ts의 같은 이름
+ * 함수와 같은 파서(export 접두사, 따옴표, 주석 처리)이며, 여기서는 pi 프로세스에
+ * 일부러 없는 키를 읽는 것이 목적이라 process.env가 비어 있는 쪽이 정상이다.
+ */
+function envValue(name: string): string | undefined {
+	const fromEnv = process.env[name];
+	if (fromEnv) return fromEnv;
+
+	const envFile = join(os.homedir(), ".env.local");
+	if (!existsSync(envFile)) return undefined;
+	try {
+		for (const raw of readFileSync(envFile, "utf-8").split("\n")) {
+			const line = raw.trim();
+			if (!line || line.startsWith("#")) continue;
+			const stripped = line.startsWith("export ") ? line.slice(7) : line;
+			const eq = stripped.indexOf("=");
+			if (eq < 1) continue;
+			if (stripped.slice(0, eq).trim() !== name) continue;
+			let value = stripped.slice(eq + 1).trim();
+			if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+				value = value.slice(1, -1);
+			}
+			if (value) return value;
+		}
+	} catch {
+		// 읽을 수 없는 ~/.env.local은 아래의 "키 없음" 오류로 이어진다
+	}
+	return undefined;
+}
+
 export default function geminiImageGen(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "generate_image",
@@ -194,8 +231,8 @@ export default function geminiImageGen(pi: ExtensionAPI) {
 		].join(" "),
 		parameters: TOOL_PARAMS,
 		async execute(_toolCallId, params: ToolParams, signal, onUpdate) {
-			// execute 시점에 읽기 — env-loader.ts가 session_start에서 로드 완료됨
-			const apiKey = process.env.GEMINI_API_KEY;
+			// execute 시점에 읽기 — pi 프로세스 env에는 없고 ~/.env.local에 있다
+			const apiKey = envValue("GEMINI_API_KEY");
 			if (!apiKey) {
 				throw new Error(
 					"GEMINI_API_KEY가 없습니다. ~/.env.local에 GEMINI_API_KEY=... 를 추가하세요.",

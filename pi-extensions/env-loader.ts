@@ -48,6 +48,19 @@ function parseDotenv(content: string): Record<string, string> {
 	return vars;
 }
 
+/**
+ * Keys deliberately not injected into pi's own process.
+ *
+ * These four make pi auto-discover providers nothing here routes through —
+ * OpenRouter (346 models), Hugging Face (66), Google (22), Groq (6).
+ * hide-providers.ts deletes them before provider discovery; re-injecting them
+ * here would undo that. Nothing loses the keys: the consumers read
+ * ~/.env.local themselves — memory-sync, summarize and transcribe source it,
+ * and gemini-image-gen.ts parses it — with BASH_ENV pointing every bash at the
+ * same file as a backstop. Keep this list in sync with that extension.
+ */
+const SKIP_KEYS = new Set(["OPENROUTER_API_KEY", "HF_TOKEN", "GROQ_API_KEY", "GEMINI_API_KEY"]);
+
 function loadAndInject(filePath: string): number {
 	if (!existsSync(filePath)) return 0;
 	try {
@@ -55,6 +68,7 @@ function loadAndInject(filePath: string): number {
 		const vars = parseDotenv(content);
 		let count = 0;
 		for (const [key, value] of Object.entries(vars)) {
+			if (SKIP_KEYS.has(key)) continue;
 			// Don't overwrite existing env vars (system/nixos take precedence)
 			if (!process.env[key]) {
 				process.env[key] = value;
