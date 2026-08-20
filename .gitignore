@@ -51,3 +51,6 @@ skills/.provenance.json
 
 # timeline skill: private repo-registry override (symlink to ~/org/private), machine-local
 skills/timeline/scripts/domains.local.json
+
+# Local agent work products — reports, incident captures (/boom). Never published.
+.agent-reports/
