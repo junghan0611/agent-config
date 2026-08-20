@@ -17,8 +17,9 @@
  *   GROQ_API_KEY        transcribe — sources it too, since this landed
  *   GEMINI_API_KEY      gemini-image-gen.ts parses the file directly; the
  *                       command-glgimage script already had --env-file.
- *                       summarize also lands here — it used to summarize
- *                       through openrouter/google/*, now Google direct
+ *                       summarize keeps it as a FALLBACK only — its default
+ *                       rail is the Claude CLI subscription (cli/claude/sonnet,
+ *                       no API key at all), so no metered key is on the hot path
  *   HF_TOKEN            pi-share-hf, a separate repo that is not installed
  *                       here as a pi extension
  *
