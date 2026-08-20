@@ -128,7 +128,9 @@ sentence, the receiver has exactly two moves — believe it or refute it — and
 accusation even when it is only bookkeeping. The friction is a property of the format, not of the
 peers.
 
-- **Carry evidence state on every factual sentence.** Measured here (name the receipt), read at
+- **Carry evidence state on every factual sentence that crosses to someone else.** Working notes
+  inside your own turn owe nothing; the tax is only paid where a claim is handed over.
+  Measured here (name the receipt), read at
   `file:line`, read from an external artifact (name the path), or inherited and not yet checked
   (name the source). A sentence that cannot take one of these is a hypothesis, not a fact.
 - **Keep inherited facts and design proposals in different boxes.** An unverified fact is settled by
