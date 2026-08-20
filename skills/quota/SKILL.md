@@ -75,6 +75,7 @@ access token 이 만료됐거나 401 이면 스크립트가 `https://auth.x.ai/o
   깨지면 공식 CLI의 상태 표시도 같이 깨진다(카나리아 겸용).
 - **zai**: 응답 필드(`unit`/`number`가 윈도우 길이를 인코딩하는 방식, `percentage`가 잔량이
   아니라 소진율이라는 것)는 Z.AI 문서 어디에도 없다 — 실제 응답과 벽시계를 대조해서 역추론한 것.
+  앱 화면 리셋 시각은 베이징시(UTC+8) — quota.py KST가 정확한 한국 시각이고 앱보다 1시간 늦게 보인다(크레딧 숫자는 일치).
 - **copilot**: VS Code/JetBrains가 쓰는 내부 엔드포인트. `ghu_` 토큰이 만료/철회되면 조용히
   깨지는 대신 401을 던진다(스크립트가 `UNAVAILABLE`로 보고).
 - **grok**: `cli-chat-proxy.grok.com` 은 grok CLI 전용 프록시. access token ~6h 만료;
