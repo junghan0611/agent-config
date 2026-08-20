@@ -4,7 +4,7 @@ Hermes Agent를 **자기학습 벤치마크 대상**으로 재는 작업면. 비
 (`AGENTS.md` + skills + semantic-memory + botlog/NEXT 루프).
 
 설치 근거(태그 고정, `.#minimal` + anthropic, `setup_all` 제외, 검색 extra 없음)는
-`run.sh:1026-` 주석이 SSOT다. 여기는 **측정 결과와 남은 것**만 적는다.
+`run.sh:1028-` 주석이 SSOT다. 여기는 **측정 결과와 남은 것**만 적는다.
 
 > 후보이지 채택이 아니다. `nixos-config`에 선언하지 않고, 우리 스킬 SSOT를
 > `~/.hermes/skills`에 연결하지 않는다 — 주입하면 측정 대상이 사라진다.

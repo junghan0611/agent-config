@@ -26,7 +26,7 @@ pi-skills CLI들이 정상 동작하려면 아래 환경변수가 필요합니�
 | `PI_TELEGRAM_CHAT_ID` | entwurf 허용 chat_id |
 | `PI_ENTWURF_BOT_TOKEN` | pi-telegram 봇 토큰 (`@glg_entwurf_bot`) |
 
-`~/.env.local`에 설정. `run.sh setup`이 `PI_ENTWURF_BOT_TOKEN`을 읽어 `~/.pi/agent/telegram.json`을 자동 생성함.
+`~/.env.local`에 설정. ~~`run.sh setup`이 `PI_ENTWURF_BOT_TOKEN`을 읽어 `~/.pi/agent/telegram.json`을 자동 생성함~~ — telegram.json 생성은 2026-08-06에 폐지됐다(pi-telegram 브리지 은퇴, `v2026.8.6`). setup은 이제 남아 있는 `telegram.json`을 지운다. 토큰 자체는 `~/.env.local`에 그대로 둔다(봇은 텔레그램에서 계속 응답).
 
 ## NixOS 로컬 설정
 
