@@ -124,7 +124,11 @@ cd ~/repos/gh/agent-config && ./run.sh setup
 
 ```bash
 ./run.sh env        # 모든 하네스 링크 상태 + 바이너리 arch/크기 한 판
+./run.sh doctor     # 바이너리가 "있나"가 아니라 "도나" — arch/인터프리터/스모크
 ```
+`env`는 파일이 있는지만 본다. **있는데 실행하면 죽는** 상태(아래 nix GC 함정)는 `doctor`만
+잡는다. `setup:build` 끝에서도 자동으로 돈다.
+
 체크 순서:
 1. **`skills/<name>/SKILL.md` 있나** — 없으면 fan-out 스캔(`[ -f SKILL.md ]`)에서 탈락.
 2. **개별-링크 하네스면 `setup:links` 다시 돌렸나** — pi/claude-plugin/codex는 새 스킬에
@@ -151,6 +155,17 @@ cd ~/repos/gh/agent-config && ./run.sh setup
 - **PI_SKIP_SKILLS는 일부러 비어 있다.** semantic-memory를 pi 네이티브 registerTool과
   SKILL.md 스킬 **양쪽으로** 노출하는 건 정책상 중립(SSOT 하나, 호출 표면 둘). 충돌 아님.
 - **바이너리는 gitignored.** `skills/*/denotecli` 등을 커밋하려 들지 마라. SSOT는 형제 repo.
+- **nix GC가 dictcli를 죽인다** (2026-08-20, oracle). 파일은 16MB 그대로 있고 `+x`도 붙어
+  있는데 실행하면 `cannot execute: required file not found`. 없는 건 바이너리가 아니라
+  **인터프리터**다 — native-image 산출물은 nix store의 glibc 경로를 절대경로로 박는데,
+  `nix-collect-garbage`가 그 경로를 정당하게 수거해버린 것. Go 형제 넷은
+  `CGO_ENABLED=0` static이라 인터프리터가 아예 없어 무관하다. dictcli만 동적이라 걸린다.
+  - 확인: `readelf -l skills/dictcli/dictcli | grep interpreter` → 그 경로가 존재하나?
+  - `--static`으로 못 피한다. GraalVM은 musl에서만 static을 지원하는데
+    NixOS aarch64엔 musl-gcc가 없다(`pkgs.musl`은 iconv/ldd만). 그래서 dictcli `run.sh`가
+    빌드 직후 `pin_libc_gcroot`로 인터프리터/RUNPATH store 경로에 gcroot를 건다
+    (`~/.local/state/nix/gcroots/dictcli/`). GC가 더는 못 지운다.
+  - 고치기: `./run.sh setup:build` (재빌드 + gcroot 재고정).
 
 ## ⚠️ 스킬 테스트 공백 (정직하게)
 

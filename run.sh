@@ -572,7 +572,7 @@ setup_build() {
       warn "dictcli: build failed (기존 바이너리 유지)"
     fi
     if [ -f "$SKILLS_DIR/dictcli/dictcli" ]; then
-      ok "dictcli $(du -h "$SKILLS_DIR/dictcli/dictcli" | cut -f1)"
+      ok "dictcli $(du -h "$SKILLS_DIR/dictcli/dictcli" | cut -f1)"  # 실행 여부는 doctor_bins 가 본다
     else
       fail "dictcli: binary missing"
     fi
@@ -588,6 +588,9 @@ setup_build() {
     log "fix it in the sibling repo (SSOT), then re-run: ./run.sh setup:build"
     return 1
   fi
+
+  # 빌드했다고 도는 게 아니다 — 방금 깔아놓은 것들이 실제로 실행되는지 확인하고 끝낸다
+  doctor_bins || return 1
 
   return 0
 }
@@ -619,6 +622,109 @@ write_provenance() {
     printf '\n  }\n}\n'
   } > "$out"
   ok "provenance → $(basename "$out") (${#GO_BUILD_PROVENANCE[@]} tools)"
+}
+
+# --- doctor:bins — 배포된 스킬 바이너리가 실제로 "실행되는지" 검사 ---
+#
+# setup:build 는 여태 "파일이 있나"까지만 봤다(`[ -f ... ] && ok`). 그래서 오라클에서
+# nix-collect-garbage 가 dictcli 의 인터프리터(nix store glibc)를 지워버렸을 때도
+# 빌드는 통과했고, 스킬 목록에는 멀쩡히 뜨면서 호출하는 순간에만 죽었다:
+#   ./dictcli: cannot execute: required file not found
+# 존재가 아니라 실행을 검사한다. 그리고 동적 링크 + nix store 인터프리터 조합은
+# 지금 돌더라도 다음 GC 한 번에 같은 방식으로 죽으므로 fragile 로 경고한다.
+doctor_bins() {
+  section "Skill Binary Health ($ARCH)"
+
+  local broken=() fragile=() name bin ft interp arch_ok store_top
+  local checked=0 passed=0
+
+  # gcroot 목록은 한 번만 조회한다. 파이프로 grep -q 하지 말 것 —
+  # set -o pipefail 아래서 grep 이 첫 매치에 빠지면 생산자가 SIGPIPE(141)을 받고
+  # 파이프라인 전체가 "실패"로 읽혀, 고정된 경로를 고정 안 됐다고 오탐한다.
+  local nix_roots=""
+  command -v nix-store >/dev/null 2>&1 && nix_roots="$(nix-store --gc --print-roots 2>/dev/null || true)"
+
+  for name in denotecli bibcli gitcli lifetract dictcli; do
+    bin="$SKILLS_DIR/$name/$name"
+    checked=$((checked + 1))
+
+    if [ ! -f "$bin" ]; then
+      fail "$name: missing — $bin"
+      broken+=("$name"); continue
+    fi
+    if [ ! -x "$bin" ]; then
+      fail "$name: not executable"
+      broken+=("$name"); continue
+    fi
+
+    ft="$(file -b "$bin" 2>/dev/null || echo unknown)"
+    case "$ft:$ARCH" in
+      *aarch64*:aarch64|*x86-64*:x86_64) arch_ok=yes ;;
+      *ELF*)  arch_ok=no ;;
+      *)      arch_ok=skip ;;   # file(1) 없음 — 스모크 테스트로 판단
+    esac
+    if [ "$arch_ok" = no ]; then
+      fail "$name: wrong arch for $ARCH — $ft"
+      broken+=("$name"); continue
+    fi
+
+    # 동적 링크면 인터프리터가 실제로 존재하는지 (GC 로 사라진 경로 탐지)
+    # readelf 는 non-ELF 에서 실패한다. set -o pipefail 아래선 그 실패가 파이프라인
+    # 전체를 죽여 검사가 중간에 멈추므로 반드시 || true 로 받아낸다.
+    interp="$( { readelf -l "$bin" 2>/dev/null || true; } | sed -n 's/.*interpreter: \([^]]*\)].*/\1/p')"
+    if [ -n "$interp" ] && [ ! -e "$interp" ]; then
+      fail "$name: interpreter gone — $interp (nix GC? 재빌드 필요)"
+      broken+=("$name"); continue
+    fi
+
+    # 스모크 — 실제로 프로세스가 뜨는지
+    if [ "$name" = dictcli ]; then
+      # dictcli 는 CWD 의 graph.edn 에 의존한다 (PATH 심링크가 없는 이유와 동일)
+      if ! ( cd "$SKILLS_DIR/dictcli" && DICTCLI_GRAPH=graph.edn ./dictcli validate ) >/dev/null 2>&1; then
+        fail "$name: smoke failed (validate)"
+        broken+=("$name"); continue
+      fi
+    else
+      if ! "$bin" --help >/dev/null 2>&1; then
+        fail "$name: smoke failed (--help)"
+        broken+=("$name"); continue
+      fi
+    fi
+
+    if [ -n "$interp" ]; then
+      case "$interp" in
+        /nix/store/*)
+          # 지금 도는 것과 계속 돌 것은 다르다. gcroot 로 고정돼 있어야 GC 를 견딘다.
+          store_top="${interp#/nix/store/}"; store_top="/nix/store/${store_top%%/*}"
+          if [[ "$nix_roots" == *"$store_top"* ]]; then
+            ok "$name: ok (dynamic, gcroot 고정됨)"
+          else
+            warn "$name: ok, but fragile — 고정 안 된 nix store 인터프리터 ($store_top)"
+            fragile+=("$name")
+          fi ;;
+        *) ok "$name: ok (dynamic → $interp)" ;;
+      esac
+    else
+      ok "$name: ok (static)"
+    fi
+    passed=$((passed + 1))
+  done
+
+  if [ ${#fragile[@]} -gt 0 ]; then
+    echo ""
+    warn "fragile: ${fragile[*]}"
+    log "지금은 돌지만 nix-collect-garbage 한 번이면 죽는다 → ./run.sh setup:build (gcroot 재고정)"
+  fi
+  # setup_all 의 Verification 이 재실행 없이 이 결과를 그대로 쓴다
+  DOCTOR_RAN=1; DOCTOR_TOTAL=$checked; DOCTOR_PASS=$passed
+
+  if [ ${#broken[@]} -gt 0 ]; then
+    echo ""
+    fail "broken: ${broken[*]}"
+    log "고치려면: ./run.sh setup:build"
+    return 1
+  fi
+  return 0
 }
 
 # --- setup:links — Symlinks for pi, claude, codex, gemini, antigravity ---
@@ -1138,19 +1244,15 @@ setup_all() {
   setup_git_hooks
 
   section "Verification"
+  # 예전 이 자리의 검사는 `[ -f ] && [ -x ]` 였다. 그래서 nix GC 로 인터프리터를 잃은
+  # dictcli 를 ✅ 로 통과시켰다 — 파일도 있고 +x 도 붙어 있었으니까. 실행 검사는
+  # doctor_bins 하나로 모은다. setup_build 안에서 이미 돌았으면 그 결과를 재사용한다.
   local total=0 pass=0
-  for cli in denotecli bibcli gitcli lifetract dictcli; do
-    local bin="$SKILLS_DIR/$cli/$cli"
-    if [ -f "$bin" ] && [ -x "$bin" ]; then
-      local arch
-      arch=$(file "$bin" | grep -oP 'ARM aarch64|x86-64' || echo "unknown")
-      ok "$cli ($arch, $(du -h "$bin" | cut -f1))"
-      pass=$((pass + 1))
-    else
-      fail "$cli: missing or not executable"
-    fi
-    total=$((total + 1))
-  done
+  if [ "${DOCTOR_RAN:-0}" != "1" ]; then
+    doctor_bins || true
+  fi
+  total=${DOCTOR_TOTAL:-0}
+  pass=${DOCTOR_PASS:-0}
   # gog — global on PATH (nixos-config managed, upstream), not bundled here
   if command -v gog >/dev/null 2>&1; then
     ok "gog ($(gog --version 2>/dev/null | head -1), PATH)"
@@ -1205,6 +1307,9 @@ Usage: ./run.sh <command> [args]
                               → Claude/GPT/Solar 되고 messaging·voice는 클로저에 없음
                               → 자기학습 루프 벤치마크 후보. nixos-config 미등록
   update                      추적 리포 일괄 pull (dirty면 skip) — setup은 pull 안 함
+  doctor                      배포된 스킬 바이너리 헬스체크 (arch/인터프리터/스모크)
+                              → "파일은 있는데 실행하면 죽는" 상태를 잡는다
+                              → nix GC 가 동적 링크 인터프리터를 지운 경우 등
 
 === 테스트 ===
   test                        모든 테스트 (unit + integration)
@@ -1300,6 +1405,8 @@ case "${1:-help}" in
     setup_repos ;;
   setup:build)
     setup_build ;;
+  doctor|doctor:bins)
+    doctor_bins ;;
   setup:links)
     setup_links ;;
   setup:pnpm|setup:npm)
