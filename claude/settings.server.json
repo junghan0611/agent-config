@@ -1,8 +1,5 @@
 {
   "cleanupPeriodDays": 365,
-  "env": {
-    "DISABLE_AUTOCOMPACT": "1"
-  },
   "permissions": {
     "allow": [
       "Bash",
