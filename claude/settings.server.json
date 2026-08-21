@@ -1,8 +1,11 @@
 {
   "cleanupPeriodDays": 365,
   "env": {
-    "DISABLE_AUTOCOMPACT": "1"
+    "DISABLE_AUTOCOMPACT": "1",
+    "CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN": "1",
+    "CLAUDE_CODE_DISABLE_MOUSE": "1"
   },
+  "tui": "default",
   "permissions": {
     "allow": [
       "Bash",

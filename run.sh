@@ -994,14 +994,19 @@ setup_links() {
   # under skills/ appear without re-link. Parent ~/.copilot/ is owned by the
   # Copilot runtime (config.json, session-state, …); we only own skills/.
   #
-  # Do NOT touch ~/.copilot/settings.json from here. entwurf owns the birth
-  # plugin + statusLine unit (#82 install-copilot-bridge / install-copilot-statusline).
-  # Linking settings would clobber co-owned keys the same way agy did.
+  # settings.json is co-owned: entwurf owns birth plugin + statusLine (#82).
+  # Do NOT symlink the whole file. We keyset-merge only personal TUI prefs
+  # from copilot/settings.fragment.json (today: mouse:false — tmux owns scroll;
+  # harness must not capture the wheel). Alt-screen itself has no off switch
+  # in Copilot 1.0.80; mouse off is the available lever.
   if [ -d "$HOME/.copilot" ] || command -v copilot >/dev/null 2>&1; then
     mkdir -p "$HOME/.copilot"
     ensure_link "$SKILLS_DIR" "$HOME/.copilot/skills"
+    if [ -f "$SCRIPT_DIR/copilot/settings.fragment.json" ]; then
+      merge_settings "$SCRIPT_DIR/copilot/settings.fragment.json" "$HOME/.copilot/settings.json"
+    fi
   else
-    log "copilot: skipped skills link (no ~/.copilot and no copilot on PATH)"
+    log "copilot: skipped skills/settings (no ~/.copilot and no copilot on PATH)"
   fi
 
   return 0
