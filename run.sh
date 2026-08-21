@@ -996,9 +996,9 @@ setup_links() {
   #
   # settings.json is co-owned: entwurf owns birth plugin + statusLine (#82).
   # Do NOT symlink the whole file. We keyset-merge only personal TUI prefs
-  # from copilot/settings.fragment.json (today: mouse:false — tmux owns scroll;
-  # harness must not capture the wheel). Alt-screen itself has no off switch
-  # in Copilot 1.0.80; mouse off is the available lever.
+  # from copilot/settings.fragment.json (today: mouse:true). Copilot 1.0.80
+  # always uses alt-screen (#2148/#4509); tmux scroll is unavailable. Keep
+  # mouse on so wheel + PgUp/PgDn can scroll the internal viewport.
   if [ -d "$HOME/.copilot" ] || command -v copilot >/dev/null 2>&1; then
     mkdir -p "$HOME/.copilot"
     ensure_link "$SKILLS_DIR" "$HOME/.copilot/skills"

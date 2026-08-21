@@ -35,11 +35,11 @@ skills/<name>/SKILL.md (+바이너리)   ← SSOT (이 repo)
 생기면 자동으로 보인다.
 
 Copilot 소유 경계: **skills 통링크 + 개인 TUI 키만** agent-config
-(`copilot/settings.fragment.json` → keyset-merge, 현재 `mouse: false`). birth plugin ·
-statusLine 은 entwurf `#82`. settings **통링크 금지**(agy 회귀). GLG 취향: 스크롤 통제는
-**tmux** — Claude는 `tui: default` + `CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN` /
-`CLAUDE_CODE_DISABLE_MOUSE`; Copilot alt-screen 자체 off 스위치는 1.0.80에 없음.
-Gemini CLI legacy (`~/.gemini/skills`) 는 2026-08-06 은퇴.
+(`copilot/settings.fragment.json` → keyset-merge, 현재 `mouse: true`). birth plugin ·
+statusLine 은 entwurf `#82`. settings **통링크 금지**(agy 회귀). GLG 취향은 스크롤
+통제를 **tmux**에 두는 것 — Claude는 `tui: default` + alt-screen/mouse disable env.
+Copilot은 alt-screen 강제(`#2148`/`#4509`, `--no-alt-screen` 제거)라 tmux 스크롤 불가;
+아쉬운 대로 mouse on + 휠/PgUp/PgDn. Gemini CLI legacy 는 2026-08-06 은퇴.
 
 OpenCode 는 쓰지 않는다 — `run.sh` 에 분기가 없고 `~/.config/opencode/skills` 도 만든 적이
 없다. 문서에만 있던 하네스라 2026-07-14 에 걷어냈다.
