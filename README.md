@@ -45,7 +45,7 @@ agent-config attacks this with three layers:
 
 1. **Shared memory layer** ([andenken](https://github.com/junghan0611/andenken)) — past conversations from every harness + the exported public digital garden in a semantically searchable index. Ask "보편 학문 관련 노트 찾아줘" and it searches the garden md memory without being told the English word.
 
-2. **Shared skill set** — the same capabilities (search notes, read bibliography, check git history, write to journal) available identically whether you're in pi, Claude Code, Codex, Antigravity, or OpenClaw.
+2. **Shared skill set** — the same capabilities (search notes, read bibliography, check git history, write to journal) available identically whether you're in pi, Claude Code, Codex, Antigravity, Copilot CLI, or OpenClaw.
 
 3. **Session continuity protocol** — `/new` + recap + semantic search instead of expensive compact. Start a new session, recover full context in seconds for ~2K tokens instead of re-reading 50K.
 
@@ -63,7 +63,8 @@ The result: context survives across sessions, across harnesses, across models. O
 | **pi + anthropic** (`claude-opus-4-8` / `claude-sonnet-5`) | andenken extension (in-process LanceDB) | full skill set including `semantic-memory` skill; `session_search` / `knowledge_search` registerTool also available | Direct provider — available, not the current default |
 | **Claude Code** | andenken skill (CLI wrapper) | full skill set | CLAUDE.md + hooks; `entwurf-bridge` MCP available; settings tuned to mirror entwurf overlay (`autoMemoryEnabled: false`, binary/external tools deny-listed); `permissions.defaultMode: bypassPermissions` — agent-config owns the native key, entwurf owns the ACP overlay's |
 | **Codex CLI** | skill surface + repo-managed MCP registration | full skill set | `~/.codex/skills/` from SSOT + `codex/config.toml` carries `entwurf-bridge`; verified as a garden citizen from a direct session |
-| **Antigravity CLI (`agy`)** | repo-managed settings + skills | full skill set | `~/.gemini/antigravity-cli/{settings.json,skills}` from SSOT; `mcp_config.json` is entwurf-owned. Native-push citizen (`entwurf_register_native`) — no mailbox, replies inject into the live conversation |
+| **Antigravity CLI (`agy`)** | repo-managed settings + skills | full skill set | `~/.gemini/antigravity-cli/skills` from SSOT; `settings.json` + `mcp_config.json` are entwurf-owned. Native-push citizen (`entwurf_register_native`) — no mailbox, replies inject into the live conversation |
+| **Copilot CLI** | skill surface only from this repo | full skill set | `~/.copilot/skills` → `skills/` (directory symlink). `settings.json` / birth plugin / statusLine are entwurf-owned (`install-copilot-bridge`, `install-copilot-statusline`). No MCP doorbell on this rail yet |
 | **OpenClaw** (4 bots) | andenken skill (same SSOT via symlink) | full skill set | settings / Nix store mount |
 
 **OpenCode is not used.** It once appeared in this table and in the fan-out list, but `run.sh` never wires it — there is no `~/.config/opencode/skills` link and no OpenCode branch anywhere in setup. The rows have been removed rather than left as an aspiration; a harness this repo does not actually reach should not be advertised as supported.
@@ -207,13 +208,15 @@ entwurf runs Claude with `settingSources: []` (SDK isolation), so `~/.claude/ski
 
 What this repo does is narrower: `run.sh setup` builds **one local consumer layout** under `~/.pi/agent/claude-plugin/` (manifest + per-skill symlinks back to `agent-config/skills/`) and points this repo's pi settings at that path. That path is an agent-config convention, not a entwurf contract.
 
-Adding a new skill here still works the same way: drop it into `agent-config/skills/<name>/SKILL.md` and re-run `./run.sh setup`. The same SSOT fans out to five surfaces: `~/.claude/skills/`, `~/.pi/agent/skills/pi-skills/`, `~/.pi/agent/claude-plugin/skills/`, `~/.codex/skills/`, and `~/.gemini/antigravity-cli/skills/` (Antigravity direct).
+Adding a new skill here still works the same way: drop it into `agent-config/skills/<name>/SKILL.md` and re-run `./run.sh setup`. The same SSOT fans out to six surfaces: `~/.claude/skills/`, `~/.pi/agent/skills/pi-skills/`, `~/.pi/agent/claude-plugin/skills/`, `~/.codex/skills/`, `~/.gemini/antigravity-cli/skills/` (Antigravity direct), and `~/.copilot/skills/` (Copilot CLI personal root).
 
 > `~/.gemini/` is Antigravity's home, not Gemini CLI's. The standalone `gemini` binary is gone from this machine and its legacy surface (`~/.gemini/settings.json`, `~/.gemini/skills/`) was retired 2026-08-06 — but `~/.gemini/antigravity-cli/` and `~/.gemini/config/` are live and must survive any cleanup of that directory.
 
 Codex direct mode also uses this repo-managed surface for MCP now: `codex/config.toml` carries a `entwurf-bridge` stdio registration, so direct Codex sessions can see the same bridge family instead of remaining the one MCP-empty harness.
 
 For Antigravity direct mode, `run.sh setup` wires only the skills path. Both `settings.json` and `mcp_config.json` are **not** wired from here — `entwurf`'s `install-agy-bridge` / `install-agy-statusline` adapters own them: they adopt or create a regular file and record the bare `entwurf-bridge` / `entwurf-agy-statusline` stable bins. A symlink from this repo makes those adapters REFUSE.
+
+The same ownership split applies to Copilot CLI: `run.sh setup` links only `~/.copilot/skills` (directory symlink to SSOT). `~/.copilot/settings.json`, the birth plugin marketplace unit, and statusLine stay with entwurf (`install-copilot-bridge` / `install-copilot-statusline`). Do not symlink Copilot settings from this repo.
 
 `settings.json` was linked from here until 2026-08-13. It caused a silent regression loop: every `setup:links` pushed the live file — carrying entwurf's exact permission grants and statusLine — aside as `.bak.YYYYMMDD` and replaced it with the repo copy, so agy lost its entwurf wiring until the next `install-agy-*` run (observed twice each on thinkpad and oracle). agy also replaces the file rather than following a symlink when it saves settings, so the link never survived anyway. Skills stay ours; settings and MCP do not.
 
@@ -252,7 +255,7 @@ cd agent-config
 - Build native CLI binaries (Go + GraalVM) — **gated**: each Go CLI must pass its sibling repo's test suite and be built from committed sources, or it is not installed. `skills/.provenance.json` records what actually landed; `./run.sh env` warns when a live binary drifts from its recorded build
 - Symlink pi extensions, full skill set (including `semantic-memory`), themes, settings, keybindings, prompts
 - Run andenken's own `run.sh setup` (build + deps). It is **no longer declared as a pi package here** — agents reach it through the `semantic-memory` skill, which every harness can invoke. Where it is already registered as a pi package, pi additionally gets the `session_search` / `knowledge_search` registerTool; that is a pi-local convenience, not the shared door
-- Symlink Codex / Antigravity surfaces (`~/.codex/config.toml`, `~/.gemini/antigravity-cli/settings.json`, `~/.gemini/antigravity-cli/skills`) plus skills and Claude Code commands. `~/.claude/settings.json` is **merged** (keyset, never symlinked) — co-owned with entwurf meta-bridge; both workstation (`settings.fragment.json`) and server (`settings.server.json`) merge the same way, and `pi/settings.json` merges too (co-owned with the pi runtime)
+- Symlink Codex / Antigravity / Copilot skill surfaces (`~/.codex/config.toml` + skills, `~/.gemini/antigravity-cli/skills`, `~/.copilot/skills`) plus Claude Code commands. Antigravity/Copilot settings are **not** linked here (entwurf-owned). `~/.claude/settings.json` is **merged** (keyset, never symlinked) — co-owned with entwurf meta-bridge; both workstation (`settings.fragment.json`) and server (`settings.server.json`) merge the same way, and `pi/settings.json` merges too (co-owned with the pi runtime)
 - Symlink `~/.local/bin` PATH binaries
 - pnpm install for extensions and skills
 - Hand off entwurf validation (typecheck, MCP, dual-backend smoke, persisted-bootstrap continuity, cancel-cleanup) to entwurf's own `run.sh`

@@ -727,7 +727,7 @@ doctor_bins() {
   return 0
 }
 
-# --- setup:links — Symlinks for pi, claude, codex, gemini, antigravity ---
+# --- setup:links — Symlinks for pi, claude, codex, antigravity, copilot ---
 
 setup_links() {
   section "Pi Agent Links"
@@ -985,6 +985,24 @@ setup_links() {
   # 유지되지도 않는다. 초기값은 agy 자신 또는 install-agy-bridge /
   # install-agy-statusline이 만든다(없으면 create, 있으면 adopt).
   # (skills 링크는 유지 — agent-config 소유)
+
+  section "Copilot CLI Skills"
+  # Personal skill root per `copilot skill --help` (1.0.80+):
+  #   Project   .github/skills/, .agents/skills/, .claude/skills/
+  #   Personal  ~/.copilot/skills/ or ~/.agents/skills/
+  # Directory symlink — same shape as Claude Code / Antigravity. New skills
+  # under skills/ appear without re-link. Parent ~/.copilot/ is owned by the
+  # Copilot runtime (config.json, session-state, …); we only own skills/.
+  #
+  # Do NOT touch ~/.copilot/settings.json from here. entwurf owns the birth
+  # plugin + statusLine unit (#82 install-copilot-bridge / install-copilot-statusline).
+  # Linking settings would clobber co-owned keys the same way agy did.
+  if [ -d "$HOME/.copilot" ] || command -v copilot >/dev/null 2>&1; then
+    mkdir -p "$HOME/.copilot"
+    ensure_link "$SKILLS_DIR" "$HOME/.copilot/skills"
+  else
+    log "copilot: skipped skills link (no ~/.copilot and no copilot on PATH)"
+  fi
 
   return 0
 }
@@ -1272,6 +1290,7 @@ setup_all() {
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged (keyset, not linked)' || echo 'absent'; })"
   echo "  Codex:    $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo 'config not linked') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
   echo "  Antigrav: $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo 'skills not linked') (settings + mcp: entwurf-owned)"
+  echo "  Copilot:  $(readlink "$HOME/.copilot/skills" 2>/dev/null || echo 'skills not linked') (settings/plugins: entwurf-owned)"
 
   # Sentinel (delegate matrix) moved to entwurf with the rest of the
   # Entwurf Orchestration surface — run it from there when exercising the
@@ -1496,6 +1515,8 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Antigrav skills: $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Antigrav conf:   entwurf-owned (install-agy-statusline / doctor-agy-statusline)"
     echo "  Antigrav MCP:    entwurf-owned (install-agy-bridge / doctor-agy-bridge)"
+    echo "  Copilot skills:$(readlink "$HOME/.copilot/skills" 2>/dev/null || echo '❌ not linked')"
+    echo "  Copilot conf:   entwurf-owned (install-copilot-bridge / install-copilot-statusline)"
 
     section "CLI Binaries"
     # Arch AND provenance. "The binary is present and aarch64" was never the question a

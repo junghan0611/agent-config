@@ -1,6 +1,6 @@
 ---
 name: agent-config
-description: "agent-config 담당자의 운영 면(operating surface) — 스킬·정체성·정렬을 여러 하네스(pi / entwurf Claude / Claude Code / Codex / Gemini / Antigravity)로 펼치는 repo에서 실제로 손을 쓸 때. AGENTS.md가 '정신'을 담고 run.sh가 '로컬 명령'을 담는다면, 이 스킬은 그 둘이 못 가진 삽질 지식을 담는다: 스킬을 추가/수정해서 모든 하네스에 제대로 뜨게 하는 법, 새 기기 setup, '내 스킬이 안 보여요' 진단, .bak 함정, 바이너리-from-sibling-repo 패턴, 스킬 테스트 공백, git-hooks 안전벽. 트리거: 'agent-config', '스킬 추가', '스킬 안 떠', '스킬 링크', 'run.sh setup', '새 기기 셋업', '하네스 펼침', 'setup:links', '담당자 스킬', 'repo-local skill', 'consumer skill 이주'."
+description: "agent-config 담당자의 운영 면(operating surface) — 스킬·정체성·정렬을 여러 하네스(pi / entwurf Claude / Claude Code / Codex / Antigravity / Copilot)로 펼치는 repo에서 실제로 손을 쓸 때. AGENTS.md가 '정신'을 담고 run.sh가 '로컬 명령'을 담는다면, 이 스킬은 그 둘이 못 가진 삽질 지식을 담는다: 스킬을 추가/수정해서 모든 하네스에 제대로 뜨게 하는 법, 새 기기 setup, '내 스킬이 안 보여요' 진단, .bak 함정, 바이너리-from-sibling-repo 패턴, 스킬 테스트 공백, git-hooks 안전벽. 트리거: 'agent-config', '스킬 추가', '스킬 안 떠', '스킬 링크', 'run.sh setup', '새 기기 셋업', '하네스 펼침', 'setup:links', '담당자 스킬', 'repo-local skill', 'consumer skill 이주', 'copilot skills'."
 user_invocable: true
 ---
 
@@ -25,14 +25,19 @@ skills/<name>/SKILL.md (+바이너리)   ← SSOT (이 repo)
    ├─ ~/.pi/agent/claude-plugin/skills/<name>      (entwurf Claude, 개별 — SDK 격리)
    ├─ ~/.claude/skills            → skills/         (Claude Code, 디렉토리 통링크)
    ├─ ~/.codex/skills/<name>                        (Codex, 개별 — .system/ 빌트인 때문)
-   ├─ ~/.gemini/skills            → skills/         (Gemini legacy, 디렉토리 통링크)
-   └─ ~/.gemini/antigravity-cli/skills → skills/    (Antigravity, 디렉토리 통링크)
+   ├─ ~/.gemini/antigravity-cli/skills → skills/    (Antigravity, 디렉토리 통링크)
+   └─ ~/.copilot/skills           → skills/         (Copilot CLI, 디렉토리 통링크)
 ```
 
 핵심 비대칭(이게 삽질의 근원): **어떤 하네스는 디렉토리 통째 링크, 어떤 하네스는 스킬마다
 개별 링크**다. 개별 링크 하네스(pi / claude-plugin / codex)는 `setup:links`를 다시 돌려야
-새 스킬이 잡힌다. 통링크 하네스(claude/gemini/antigravity)는 `skills/`에 디렉토리만
+새 스킬이 잡힌다. 통링크 하네스(claude/antigravity/copilot)는 `skills/`에 디렉토리만
 생기면 자동으로 보인다.
+
+Copilot 소유 경계: **skills만** agent-config. `~/.copilot/settings.json` · birth plugin ·
+statusLine 은 entwurf `#82` (`install-copilot-bridge` / `install-copilot-statusline`).
+settings를 여기서 링크하면 agy 회귀와 같은 공동소유 파괴가 난다. Gemini CLI legacy
+(`~/.gemini/skills`) 는 2026-08-06 에 은퇴 — 바이너리 없음.
 
 OpenCode 는 쓰지 않는다 — `run.sh` 에 분기가 없고 `~/.config/opencode/skills` 도 만든 적이
 없다. 문서에만 있던 하네스라 2026-07-14 에 걷어냈다.
@@ -75,7 +80,7 @@ git -C ~/repos/gh/gitcli commit ...     # 커밋해야 게이트를 통과한다
 
 ### 게이트 — `go_build`가 install을 막는다
 
-setup은 바이너리 하나를 **7개 하네스에 동시에** 펼친다. 그래서 보증은 여기 산다:
+setup은 바이너리 하나를 **직접 설치 하네스 전부에 동시에** 펼친다. 그래서 보증은 여기 산다:
 
 1. **스위트.** `go test ./...` 실패 → 설치 안 함, 직전 바이너리 유지, 나머지 CLI는 계속 빌드,
    끝에서 non-zero. (테스트 없는 빌드가 gitcli day-summary 버그를 전 하네스로 내보냈다.)
@@ -118,7 +123,7 @@ cd ~/repos/gh/agent-config && ./run.sh setup
   → consumer pi install 경로 + `pi/settings.server.json`. 클라이언트(thinkpad/laptop/nuc)는
   파일 없음 → dev 경로(entwurf를 `~/repos/gh/`로 clone). 사설 기기명은
   `~/.config/agent-config/server-devices.txt`.
-- 끝나면 `./run.sh env`로 7개 하네스 링크 + 바이너리 arch 한눈에 검증.
+- 끝나면 `./run.sh env`로 하네스 링크(pi/claude/codex/antigravity/copilot) + 바이너리 arch 한눈에 검증.
 
 ## 진단 — "내 스킬이 안 보여요"
 
@@ -186,7 +191,7 @@ native-image라 `go_build`를 안 탄다.
 
 바이너리 스킬은 **agent-config로 모은다**(2026-07-14 GLG 결정 — 소유가 둘이면 헷갈린다).
 consumer 스킬은 **owning repo로 보낸다**(그 repo CI가 parity gate로 테스트). 방향이 반대인
-게 모순이 아니다: 전자는 *배포*가 어려운 것(7개 하네스 fan-out)이고, 후자는 *검증*이 어려운
+게 모순이 아니다: 전자는 *배포*가 어려운 것(전 하네스 fan-out)이고, 후자는 *검증*이 어려운
 것(owning repo 내부를 wrap)이다. 각자 어려운 쪽이 사는 집으로 간다.
 
 ## 🔒 git-hooks 안전벽 (커밋 삽질)
