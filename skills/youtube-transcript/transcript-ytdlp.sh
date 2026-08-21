@@ -65,6 +65,10 @@ find_cookies() {
   fi
 }
 
+# yt-dlp 2026.08+ needs the EJS challenge solver on locked-down IPs
+# (oracle/datacenter). Without it: "The page needs to be reloaded."
+YTDLP_COMMON=(--js-runtimes node --remote-components ejs:github)
+
 if $LIST_ONLY; then
   COOKIE_FILE=$(find_cookies)
   COOKIE_ARGS=()
@@ -73,7 +77,7 @@ if $LIST_ONLY; then
     cp "$COOKIE_FILE" "$COOKIE_TMP"
     COOKIE_ARGS=(--cookies "$COOKIE_TMP")
   fi
-  yt-dlp "${COOKIE_ARGS[@]}" --list-subs --skip-download "$VIDEO" 2>/dev/null \
+  yt-dlp "${COOKIE_ARGS[@]}" "${YTDLP_COMMON[@]}" --list-subs --skip-download "$VIDEO" 2>/dev/null \
     | grep -E "^(Language|[a-z]{2})" || true
   [[ -n "${COOKIE_TMP:-}" ]] && rm -f "$COOKIE_TMP"
   exit 0
@@ -83,7 +87,7 @@ TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
 yt-dlp \
-  --js-runtimes node \
+  "${YTDLP_COMMON[@]}" \
   --write-auto-subs --write-subs \
   --sub-langs "$LANG_CODE" \
   --sub-format vtt \
@@ -98,7 +102,7 @@ if [[ -z "$SUB_FILE" ]]; then
     COOKIE_COPY="$TMPDIR/cookies.txt"
     cp "$COOKIE_FILE" "$COOKIE_COPY"
     yt-dlp --cookies "$COOKIE_COPY" \
-      --js-runtimes node \
+      "${YTDLP_COMMON[@]}" \
       --write-auto-subs --write-subs \
       --sub-langs "$LANG_CODE" \
       --sub-format vtt \
