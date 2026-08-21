@@ -1093,8 +1093,8 @@ RESUMABLE_BACKENDS = {"pi"}
 
 
 LIVE_RECORD_SCHEMA = 3
-# `meta-session.ts:213` — 이 enum 밖의 backend는 v3 record가 아니다.
-META_CITIZEN_BACKENDS = ("claude-code", "antigravity", "codex", "pi")
+# `meta-session.ts:237` — 이 enum 밖의 backend는 v3 record가 아니다.
+META_CITIZEN_BACKENDS = ("claude-code", "antigravity", "codex", "pi", "copilot")
 # `meta-session.ts:347-357` — strict keyset. 여분 key는 coerce하지 않고 record를 버린다.
 META_IDENTITY_KEYS = frozenset({
     "schemaVersion", "gardenId", "backend", "nativeSessionId", "cwd",
