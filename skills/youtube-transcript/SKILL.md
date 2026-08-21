@@ -59,6 +59,16 @@ transcript.js 실패 시. 쿠키 자동 감지. 같은 정본 계약.
 {baseDir}/transcript-ytdlp.sh <video-id-or-url> --no-save
 ```
 
+### oracle / datacenter 참고
+
+- 주거 IP(thinkpad)에서는 `transcript.js`가 쿠키 없이 되는 경우가 많다.
+- 오라클(클라우드 IP)에서는 JS 경로가 막히고 **ytdlp + 쿠키**가 본선이다.
+- 쿠키 파일: `~/cookies.txt` (컨테이너 마운트 `/home/node/cookies.txt`, **rw**).
+  Netscape 포맷에 **`LOGIN_INFO`가 있어야** 한다. `yt-dlp --cookies-from-browser chrome`은
+  이 필드를 빠뜨리는 경우가 있어, thinkpad에서 `browser-cookie3`로 export 한 뒤 scp 한다.
+- yt-dlp **≥ 2026.8.19** + `--remote-components ejs:github` 필요(스크립트가 자동 포함).
+  컨테이너 재빌드 전 임시 갱신: `docker exec -u root openclaw-gateway pip install -U --break-system-packages 'yt-dlp>=2026.8.19'`.
+
 ## 출력 예
 
 파일명: `20260811T095500--gurudev-on-the-future-of-humanity__transcript_youtube.md`
