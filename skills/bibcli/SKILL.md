@@ -5,9 +5,9 @@ description: "로컬 BibTeX SSOT 검색/조회 + URL 원샷 입수. 유튜브·�
 
 # bibcli — meta-bib SSOT + URL 입수 (org 에이전트 기본)
 
-Binary: `{baseDir}/bibcli`  
-Agent default: `--dir ~/org/resources`  
-리포 오퍼레이터 상세: `~/repos/gh/zotero-config/.claude/skills/zotero-config/SKILL.md`  
+Binary: `{baseDir}/bibcli`
+Live bibliography: `~/sync/org/resources/bib` (always pass `--dir` until the installed binary is rebuilt)
+Renderer/operator logic: `~/repos/gh/zotero-config/.claude/skills/zotero-config/SKILL.md`
 공개 담당자 문서: `denote:20260304T105300` (§zotero-config) — 교리·경계가 바뀌면 그 방 갱신 (새 llmlog 금지)
 
 **역할:** GLG가 유튜브·책(yes24)·블로그·웹 URL만 넘기면, 이 스킬 하나로  
@@ -17,10 +17,15 @@ Zotero 적소에 담고 → 로컬 SSOT에 키를 확정해 → org 글에 바�
 ## 0) Doctrine
 
 ```text
-Zotero Cloud     = 캡처 금고 + 컬렉션 분류 (Book/N00, Category/@Web|Video|…)
-~/org/resources  = 메타 서지 SSOT  ← bibcli가 읽는 유일한 면
-org note         = #+reference: KEY 로 소비
+Zotero Cloud                    = 여러 기기에서 함께 쓰는 캡처 금고 + 컬렉션 분류
+~/sync/org/resources/bib/*.bib  = 메타 서지 SSOT (Syncthing 공유) ← bibcli가 읽는 유일한 면
+각 기기의 zotero-config/.sync/ = 증분 cache만; Git·Syncthing으로 공유 금지
+org note                        = #+reference: KEY 로 소비
 ```
+
+어느 기기의 org 담당자든 자기 기기에서 URL을 바로 `save → pin --sync` 한다.
+일상 입수·인용에 Git pull/push는 없다. Zotero Cloud와 결정론적 렌더가 기기별
+cache 순서를 지우고, Syncthing은 완성된 `bib/*.bib`만 나른다.
 
 | 규칙 | 내용 |
 |---|---|
@@ -33,10 +38,10 @@ org note         = #+reference: KEY 로 소비
 ## 1) 읽기 (로컬 only)
 
 ```bash
-{baseDir}/bibcli search "words" [--type Book|Online|Video|…] --dir ~/org/resources --max 10
-{baseDir}/bibcli show "citation-key" --dir ~/org/resources
-{baseDir}/bibcli list --type Book --dir ~/org/resources --max 20
-{baseDir}/bibcli stats --dir ~/org/resources
+{baseDir}/bibcli search "words" [--type Book|Online|Video|…] --dir ~/sync/org/resources/bib --max 10
+{baseDir}/bibcli show "citation-key" --dir ~/sync/org/resources/bib
+{baseDir}/bibcli list --type Book --dir ~/sync/org/resources/bib --max 20
+{baseDir}/bibcli stats --dir ~/sync/org/resources/bib
 {baseDir}/bibcli lookup ISBN|제목   # 선택 보조, 타임아웃 가능, 필수 아님
 ```
 
@@ -68,7 +73,7 @@ cd ~/repos/gh/zotero-config
 }'
 # → { citationKey, collections:[…], synced:true, dateAdded preserved }
 
-{baseDir}/bibcli show "UNIQUE-KEY" --dir ~/org/resources
+{baseDir}/bibcli show "UNIQUE-KEY" --dir ~/sync/org/resources/bib
 ```
 
 **금지:** `save`만 하고 키·분류를 다음 세션으로 미루기.  
@@ -106,7 +111,7 @@ KDC는 **완벽할 필요 없음**. 분류 축 + SSOT 유일성이 핵심.
 ### 2c) 키 유일성
 
 ```bash
-{baseDir}/bibcli show "후보키" --dir ~/org/resources
+{baseDir}/bibcli show "후보키" --dir ~/sync/org/resources/bib
 # entry not found 여야 신규 핀 가능 (같은 항목 재핀은 예외)
 ```
 
@@ -114,7 +119,7 @@ KDC는 **완벽할 필요 없음**. 분류 축 + SSOT 유일성이 핵심.
 
 ```bash
 cd ~/repos/gh/zotero-config && ./run.sh bib sync
-{baseDir}/bibcli search "제목|url조각" --dir ~/org/resources --max 10
+{baseDir}/bibcli search "제목|url조각" --dir ~/sync/org/resources/bib --max 10
 ```
 
 미분류·키 부실이면 `zoteroKey` 확보 후 **2) pin --sync**로 수선 (같은 세션).
@@ -164,7 +169,8 @@ cd ~/repos/gh/zotero-config && ./run.sh bib sync
 | `ZOTERO_API_KEY` / `ZOTERO_USER_ID` | save, pin, bib |
 | `ZOTERO_TRANSLATION_SERVER` | 기본 `http://localhost:1969` |
 | `DATA4LIBRARY_API_KEY` | 선택 `lookup` only |
-| `BIBCLI_DIR` | 있어도 에이전트는 `--dir ~/org/resources` 명시 |
+| `ZOTERO_BIB_DIR` | renderer 출력면 override; 기본 `~/sync/org/resources/bib` |
+| `BIBCLI_DIR` | 옛 output 경로 변수일 수 있음. 새 binary는 이를 무시하며, 일상 에이전트는 항상 `--dir ~/sync/org/resources/bib` 명시 |
 
 Translation Server 실패 시 클론 위치: `~/repos/3rd/translation-server`.
 
