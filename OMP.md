@@ -31,7 +31,8 @@ curl -fsSL https://omp.sh/install -o /tmp/omp-install.sh
 sh /tmp/omp-install.sh --binary --ref v18.0.0     # → ~/.local/bin/omp, 셸 프로필 무수정
 
 # 2) 프로바이더 봉인 — 반드시 로그인 전에. 아래 §봉인 참조
-omp config set disabledProviders '["openrouter","huggingface","google"]'
+# Thinkpad에서 활성인 API/provider 문까지 함께 봉인한다.
+omp config set disabledProviders '["openrouter","huggingface","google","amazon-bedrock","bedrock-mantle","groq"]'
 omp models        # deepseek 만 남아야 정상
 
 # 3) 소스 체크아웃(측정용, 선택)
@@ -59,6 +60,12 @@ rm ~/.local/bin/omp && rm -rf ~/.omp
 
 `disabledProviders`는 **자격증명 검사 이전** 단계라(`docs/providers.md:23`) env·`.env`·
 저장 키·`models.yml` 어느 경로로도 되살아나지 않는다. 봉인 후 실측: `deepseek(3)`만 남음.
+
+**Thinkpad 재현(A4, 2026-08-23).** 위의 oracle 관측에 없던 `amazon-bedrock(145)` ·
+`bedrock-mantle(5)` · `groq(26)`가 추가로 노출됐다. `GROQ_API_KEY`와 AWS 자격증명 탐색면이
+있어서다. 재현 블록은 이 세 ID까지 닫도록 갱신했으며, 다시 확인한 결과 `deepseek(3)`만
+남았다. 새 provider가 나타나면 해당 ID도 같은 배열에 넣고, **봉인 확인 전에는 로그인하지
+않는다.**
 
 **주의 — `google`은 셋으로 갈라져 있다**(`docs/providers.md:212`):
 
@@ -227,7 +234,7 @@ DAP 28 ops는 GLG 작업 성격상 무관.
 | A1 | 바이너리 기동 | 측정됨 | `omp --version` → `omp/18.0.0` |
 | A2 | 프로바이더 봉인 | 측정됨 | 봉인 후 `deepseek(3)`만 남음 |
 | A3 | 상태 격리 | 미측정 | 세션 한 판 뒤 `~/.omp` 밖 쓰기가 있는가 |
-| A4 | 노트북 재현 | 미측정 | 위 §재현을 다른 기기에서 그대로 |
+| A4 | 노트북 재현 | 측정됨 | Thinkpad에서 `--binary --ref v18.0.0` 기동·확장 봉인 후 `deepseek(3)`만 확인 |
 
 ### B. 상속·정체성
 
