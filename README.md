@@ -266,7 +266,7 @@ What `setup` deliberately does **not** do: install entwurf (that is entwurf's ow
 
 Some questions cannot be answered by reading a project's README. *Does a runtime that generates its own skills from experience beat a human-authored skill set?* You only find out by standing both up on the same machine, giving them the same repeated task, and looking at what each wrote down afterwards.
 
-So this repo installs the competition. The current subject is [Hermes Agent](https://github.com/NousResearch/hermes-agent) — an independent runtime with its own gateway, state tree, cron, memory and skill generation. It is a **candidate under evaluation, not adopted infrastructure**: nothing about it is declared in `nixos-config`, and `setup:hermes` is not part of `setup`.
+So this repo installs the competition. The first subject is [Hermes Agent](https://github.com/NousResearch/hermes-agent) — an independent runtime with its own gateway, state tree, cron, memory and skill generation. It is a **candidate under evaluation, not adopted infrastructure**: nothing about it is declared in `nixos-config`, and `setup:hermes` is not part of `setup`.
 
 ```bash
 ./run.sh setup:hermes    # pinned tag, minimal closure, explicit call only
@@ -281,6 +281,8 @@ Two constraints carry the whole thing, and both are one careless edit from being
 What that leaves is a runtime that reaches Claude, GPT (`openai-codex` OAuth) and Solar (auto-discovered `UPSTAGE_API_KEY`) while being structurally unable to talk to a messaging platform. State lives in `~/.hermes`; deleting it resets the baseline, and the first run after that is t=0 for anything the runtime claims to have learned.
 
 The comparison target is not another product. It is this repo's own loop — `AGENTS.md` + `skills/` + semantic memory + `botlog`/`NEXT` — and the honest question is whether a machine-written skill trail is more transparent and reproducible than the hand-written one.
+
+The second subject is [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) — a fork of the very harness this repo already runs, tuned as a coding-first surface. It asks a different question than Hermes: not *does it learn better*, but *does handing one runtime a whole job cost the operator fewer inspection points than routing it through two or three sibling hops*. The measurements, the provider seal, and the identity/citizenship boundaries live in [OMP.md](OMP.md), which also carries the reproduce block — omp installs from one pinned upstream command rather than a `run.sh` lane, so the doc is the install SSOT until that changes.
 
 ## Session Management — No Compact
 
