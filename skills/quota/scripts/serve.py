@@ -20,12 +20,15 @@ writer will hook in.
 """
 
 import argparse
+import errno
 import json
 import os
 import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -34,6 +37,7 @@ import render
 
 STATE_DIR = os.path.expanduser("~/.local/share/quota")
 LAST = os.path.join(STATE_DIR, "last.json")
+IDENT = "quota-web"
 
 _lock = threading.Lock()
 _cache = {"snap": None, "at": 0.0}
@@ -186,6 +190,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Quota", IDENT)
         self.end_headers()
         self.wfile.write(body)
 
@@ -208,6 +213,35 @@ class Handler(BaseHTTPRequestHandler):
         pass  # the terminal stays readable; errors surface in the page
 
 
+def already_ours(port):
+    """True when 127.0.0.1:port is already this page (this or a prior build)."""
+    try:
+        req = Request(f"http://127.0.0.1:{port}/")
+        with urlopen(req, timeout=0.8) as r:
+            if r.headers.get("X-Quota") == IDENT:
+                return True
+            return b"<title>quota</title>" in r.read(800)
+    except (URLError, TimeoutError, OSError):
+        return False
+
+
+def bind(port):
+    try:
+        return ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    except OSError as e:
+        if e.errno != errno.EADDRINUSE:
+            raise
+        if already_ours(port):
+            print(f"quota web — already running at http://127.0.0.1:{port}")
+            sys.exit(0)
+        print(
+            f"quota web — port {port} already in use (not this server). "
+            f"try: ./run.sh quota:web {port + 1}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8787)
@@ -218,7 +252,7 @@ def main():
                          "sensitive rail's cadence are no longer the same number.")
     a = ap.parse_args()
     Handler.ttl = a.ttl
-    srv = ThreadingHTTPServer(("127.0.0.1", a.port), Handler)
+    srv = bind(a.port)
     print(f"quota web — http://127.0.0.1:{a.port}  (ttl {a.ttl}s, Ctrl-C to stop)")
     try:
         srv.serve_forever()

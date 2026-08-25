@@ -16,7 +16,7 @@ python3 {baseDir}/scripts/quota.py --json     # 정규화 스냅샷
 # GLG (손으로 치는 면)
 ./run.sh quota                 # 1회 출력
 ./run.sh quota:watch [초]      # TUI, 제자리 갱신 (기본 120초)
-./run.sh quota:web [포트]      # http://127.0.0.1:8787 (기본 8787)
+./run.sh quota:web [포트]      # http://127.0.0.1:8787 (기본 8787; 이미 떠 있으면 URL만)
 ./run.sh quota:json            # 정규화 스냅샷
 ```
 

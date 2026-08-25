@@ -1368,7 +1368,7 @@ Usage: ./run.sh <command> [args]
   quota                       다섯 rail 남은 쿼터 1회 출력 (claude/codex/zai/grok/copilot)
                               → 사용률 + 기간 경과 마커 + 배속 + 리셋 시각(요일 포함)
   quota:watch [초]            같은 화면을 제자리 갱신하는 TUI (기본 120초)
-  quota:web [포트]            127.0.0.1 웹으로 띄움 (기본 8787, 브라우저에 걸어두는 용)
+  quota:web [포트]            127.0.0.1 웹으로 띄움 (기본 8787; 이미 떠 있으면 URL만)
   quota:json                  정규화 스냅샷 JSON (스크립트/파이프용)
 
 === 유틸 ===
