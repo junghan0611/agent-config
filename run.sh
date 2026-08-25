@@ -727,7 +727,7 @@ doctor_bins() {
   return 0
 }
 
-# --- setup:links — Symlinks for pi, claude, codex, antigravity, copilot ---
+# --- setup:links — Symlinks for pi, claude, codex, antigravity, copilot, kiro ---
 
 setup_links() {
   section "Pi Agent Links"
@@ -1002,6 +1002,18 @@ setup_links() {
     ensure_link "$SKILLS_DIR" "$HOME/.copilot/skills"
   else
     log "copilot: skipped skills link (no ~/.copilot and no copilot on PATH)"
+  fi
+
+  section "Kiro CLI Skills"
+  # Kiro's documented personal skill root is ~/.kiro/skills/. It is optional:
+  # avoid creating Kiro state on machines where the CLI is not installed.
+  # Kiro stays outside the entwurf citizen surface; settings, agents, and
+  # sessions remain Kiro-owned.
+  if command -v kiro-cli >/dev/null 2>&1; then
+    mkdir -p "$HOME/.kiro"
+    ensure_link "$SKILLS_DIR" "$HOME/.kiro/skills"
+  else
+    log "kiro: skipped skills link (kiro-cli not on PATH)"
   fi
 
   return 0
@@ -1291,6 +1303,7 @@ setup_all() {
   echo "  Codex:    $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo 'config not linked') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
   echo "  Antigrav: $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo 'skills not linked') (settings + mcp: entwurf-owned)"
   echo "  Copilot:  $(readlink "$HOME/.copilot/skills" 2>/dev/null || echo 'skills not linked') (settings/plugins: entwurf-owned)"
+  echo "  Kiro:     $(readlink "$HOME/.kiro/skills" 2>/dev/null || echo 'skills not linked') (optional; Kiro-owned settings/agents/sessions)"
 
   # Sentinel (delegate matrix) moved to entwurf with the rest of the
   # Entwurf Orchestration surface — run it from there when exercising the
@@ -1517,6 +1530,8 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Antigrav MCP:    entwurf-owned (install-agy-bridge / doctor-agy-bridge)"
     echo "  Copilot skills:$(readlink "$HOME/.copilot/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Copilot conf:   entwurf-owned (install-copilot-bridge / install-copilot-statusline)"
+    echo "  Kiro skills:   $(readlink "$HOME/.kiro/skills" 2>/dev/null || echo '❌ not linked (optional; requires kiro-cli)')"
+    echo "  Kiro conf:     Kiro-owned (settings / agents / sessions untouched)"
 
     section "CLI Binaries"
     # Arch AND provenance. "The binary is present and aarch64" was never the question a

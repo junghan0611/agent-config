@@ -1,6 +1,6 @@
 ---
 name: agent-config
-description: "agent-config 담당자의 운영 면(operating surface) — 스킬·정체성·정렬을 여러 하네스(pi / entwurf Claude / Claude Code / Codex / Antigravity / Copilot)로 펼치는 repo에서 실제로 손을 쓸 때. AGENTS.md가 '정신'을 담고 run.sh가 '로컬 명령'을 담는다면, 이 스킬은 그 둘이 못 가진 삽질 지식을 담는다: 스킬을 추가/수정해서 모든 하네스에 제대로 뜨게 하는 법, 새 기기 setup, '내 스킬이 안 보여요' 진단, .bak 함정, 바이너리-from-sibling-repo 패턴, 스킬 테스트 공백, git-hooks 안전벽. 트리거: 'agent-config', '스킬 추가', '스킬 안 떠', '스킬 링크', 'run.sh setup', '새 기기 셋업', '하네스 펼침', 'setup:links', '담당자 스킬', 'repo-local skill', 'consumer skill 이주', 'copilot skills'."
+description: "agent-config 담당자의 운영 면(operating surface) — 스킬·정체성·정렬을 여러 하네스(pi / entwurf Claude / Claude Code / Codex / Antigravity / Copilot / Kiro)로 펼치는 repo에서 실제로 손을 쓸 때. AGENTS.md가 '정신'을 담고 run.sh가 '로컬 명령'을 담는다면, 이 스킬은 그 둘이 못 가진 삽질 지식을 담는다: 스킬을 추가/수정해서 모든 하네스에 제대로 뜨게 하는 법, 새 기기 setup, '내 스킬이 안 보여요' 진단, .bak 함정, 바이너리-from-sibling-repo 패턴, 스킬 테스트 공백, git-hooks 안전벽. 트리거: 'agent-config', '스킬 추가', '스킬 안 떠', '스킬 링크', 'run.sh setup', '새 기기 셋업', '하네스 펼침', 'setup:links', '담당자 스킬', 'repo-local skill', 'consumer skill 이주', 'copilot skills', 'kiro skills', 'kiro-cli'."
 user_invocable: true
 ---
 
@@ -27,17 +27,22 @@ skills/<name>/SKILL.md (+바이너리)   ← SSOT (이 repo)
    ├─ ~/.codex/skills/<name>                        (Codex, 개별 — .system/ 빌트인 때문)
    ├─ ~/.gemini/antigravity-cli/skills → skills/    (Antigravity, 디렉토리 통링크)
    └─ ~/.copilot/skills           → skills/         (Copilot CLI, 디렉토리 통링크)
+   └─ ~/.kiro/skills              → skills/         (Kiro CLI, kiro-cli 설치 시)
 ```
 
 핵심 비대칭(이게 삽질의 근원): **어떤 하네스는 디렉토리 통째 링크, 어떤 하네스는 스킬마다
 개별 링크**다. 개별 링크 하네스(pi / claude-plugin / codex)는 `setup:links`를 다시 돌려야
-새 스킬이 잡힌다. 통링크 하네스(claude/antigravity/copilot)는 `skills/`에 디렉토리만
+새 스킬이 잡힌다. 통링크 하네스(claude/antigravity/copilot/kiro)는 `skills/`에 디렉토리만
 생기면 자동으로 보인다.
 
 Copilot 소유 경계: **skills만** agent-config. `~/.copilot/settings.json` · birth plugin ·
 statusLine 은 entwurf `#82` (`install-copilot-bridge` / `install-copilot-statusline`).
 settings를 여기서 링크하면 agy 회귀와 같은 공동소유 파괴가 난다. Gemini CLI legacy
 (`~/.gemini/skills`) 는 2026-08-06 에 은퇴 — 바이너리 없음.
+
+Kiro도 **skills만** agent-config다. `kiro-cli`가 `PATH`에 있을 때만
+`~/.kiro/skills`를 연결한다. `~/.kiro/settings/`, `agents/`, `sessions/`는 Kiro runtime
+소유이며, Kiro는 의도적으로 entwurf citizen surface에 넣지 않는다.
 
 OpenCode 는 쓰지 않는다 — `run.sh` 에 분기가 없고 `~/.config/opencode/skills` 도 만든 적이
 없다. 문서에만 있던 하네스라 2026-07-14 에 걷어냈다.
@@ -123,7 +128,7 @@ cd ~/repos/gh/agent-config && ./run.sh setup
   → consumer pi install 경로 + `pi/settings.server.json`. 클라이언트(thinkpad/laptop/nuc)는
   파일 없음 → dev 경로(entwurf를 `~/repos/gh/`로 clone). 사설 기기명은
   `~/.config/agent-config/server-devices.txt`.
-- 끝나면 `./run.sh env`로 하네스 링크(pi/claude/codex/antigravity/copilot) + 바이너리 arch 한눈에 검증.
+- 끝나면 `./run.sh env`로 하네스 링크(pi/claude/codex/antigravity/copilot/kiro) + 바이너리 arch 한눈에 검증.
 
 ## 진단 — "내 스킬이 안 보여요"
 
