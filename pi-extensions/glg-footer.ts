@@ -16,7 +16,8 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 
 const FLAGS = {
-	tokenStats: true,         // ↑input ↓output Rcache Wcache
+	tokenStats: false,        // ↑input ↓output Rcache Wcache
+	turnTimes: true,          // last GLG / pi message times, KST HH:MM:SS
 	cost: true,               // $0.045 (sub)
 	contextPct: true,         // 18.3%/200k (auto)
 	rightModel: true,         // model name + thinking level (+ provider) on the right
@@ -33,6 +34,19 @@ function fmtTokens(count: number): string {
 	if (count < 1_000_000) return `${Math.round(count / 1000)}k`;
 	if (count < 10_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
 	return `${Math.round(count / 1_000_000)}M`;
+}
+
+const kstTime = new Intl.DateTimeFormat("en-GB", {
+	timeZone: "Asia/Seoul",
+	hour: "2-digit",
+	minute: "2-digit",
+	second: "2-digit",
+	hour12: false,
+});
+
+function fmtTimestamp(timestamp: number | string): string | undefined {
+	const date = new Date(timestamp);
+	return Number.isNaN(date.getTime()) ? undefined : kstTime.format(date);
 }
 
 function sanitize(text: string): string {
@@ -56,7 +70,18 @@ function splitCwd(cwd: string): [string, string] {
 }
 
 export default function (pi: ExtensionAPI) {
+	let lastUserTimestamp: number | string | undefined;
+	let lastAssistantTimestamp: number | string | undefined;
+
 	pi.on("session_start", async (_event, ctx) => {
+		lastUserTimestamp = undefined;
+		lastAssistantTimestamp = undefined;
+		for (const entry of ctx.sessionManager.getBranch()) {
+			if (entry.type !== "message") continue;
+			if (entry.message.role === "user") lastUserTimestamp = entry.timestamp;
+			if (entry.message.role === "assistant") lastAssistantTimestamp = entry.timestamp;
+		}
+
 		if (!ctx.hasUI) return;
 		const device = getDeviceName();
 		ctx.ui.setFooter((tui, theme, footerData) => {
@@ -97,6 +122,12 @@ export default function (pi: ExtensionAPI) {
 					}
 
 					const statsParts: string[] = [];
+					if (FLAGS.turnTimes) {
+						const lastUserTime = lastUserTimestamp && fmtTimestamp(lastUserTimestamp);
+						const lastAssistantTime = lastAssistantTimestamp && fmtTimestamp(lastAssistantTimestamp);
+						if (lastUserTime) statsParts.push(`GLG ${lastUserTime}`);
+						if (lastAssistantTime) statsParts.push(`pi ${lastAssistantTime}`);
+					}
 					if (FLAGS.tokenStats) {
 						if (totalInput) statsParts.push(`↑${fmtTokens(totalInput)}`);
 						if (totalOutput) statsParts.push(`↓${fmtTokens(totalOutput)}`);
@@ -171,10 +202,10 @@ export default function (pi: ExtensionAPI) {
 
 					const dimStatsLeft = theme.fg("dim", statsLeft);
 					const remainder = statsLine.slice(statsLeft.length);
-					const dimRemainder = theme.fg("dim", remainder);
+					const modelRemainder = theme.bold(theme.fg("text", remainder));
 
 					const pwdRendered = truncateToWidth(pwdLine, width, theme.fg("dim", "..."));
-					const lines: string[] = [pwdRendered, dimStatsLeft + dimRemainder];
+					const lines: string[] = [pwdRendered, dimStatsLeft + modelRemainder];
 
 					if (FLAGS.extensionStatuses) {
 						const statuses = footerData.getExtensionStatuses();
@@ -190,5 +221,13 @@ export default function (pi: ExtensionAPI) {
 				},
 			};
 		});
+	});
+
+	pi.on("message_end", (event, ctx) => {
+		if (event.message.role === "user") lastUserTimestamp = Date.now();
+		else if (event.message.role === "assistant") lastAssistantTimestamp = Date.now();
+		else return;
+		// Request one redraw without leaving a visible extension status.
+		ctx.ui.setStatus("glg-footer-turn-times", undefined);
 	});
 }
