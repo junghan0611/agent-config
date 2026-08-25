@@ -1364,6 +1364,13 @@ Usage: ./run.sh <command> [args]
   bench                       전체 벤치마크 (API 필요)
   bench:dry                   드라이런
 
+=== 쿼터 ===
+  quota                       다섯 rail 남은 쿼터 1회 출력 (claude/codex/zai/grok/copilot)
+                              → 사용률 + 기간 경과 마커 + 배속 + 리셋 시각(요일 포함)
+  quota:watch [초]            같은 화면을 제자리 갱신하는 TUI (기본 120초)
+  quota:web [포트]            127.0.0.1 웹으로 띄움 (기본 8787, 브라우저에 걸어두는 용)
+  quota:json                  정규화 스냅샷 JSON (스크립트/파이프용)
+
 === 유틸 ===
   models                      MODELS.md 스냅샷 갱신 (pi --list-models)
   chunk:org [--sample]        청킹 통계
@@ -1461,6 +1468,23 @@ case "${1:-help}" in
     exec "$SM_DIR/run.sh" status ;;
   bench|bench:dry)
     exec "$SM_DIR/run.sh" "$@" ;;
+
+  # === quota — 구독 rail 잔량 ===
+  # 벤더 엔드포인트를 직접 때리는 건 collect.py 하나뿐이다. 아래 넷은 전부
+  # 같은 스냅샷의 표현면이라 서로 어긋날 수 없다. SSOT: skills/quota/SKILL.md
+  quota)
+    shift; exec python3 "$SKILLS_DIR/quota/scripts/quota.py" "$@" ;;
+  quota:watch)
+    shift; exec python3 "$SKILLS_DIR/quota/scripts/quota.py" --watch "$@" ;;
+  quota:json)
+    exec python3 "$SKILLS_DIR/quota/scripts/quota.py" --json ;;
+  quota:web)
+    shift
+    # 포트를 맨 앞 인자로 편하게 받되, --port 같은 플래그도 그대로 통과시킨다.
+    if [ "${1:-}" ] && [ -z "${1##[0-9]*}" ]; then
+      _port=$1; shift; set -- --port "$_port" "$@"
+    fi
+    exec python3 "$SKILLS_DIR/quota/scripts/serve.py" "$@" ;;
 
   # === Util ===
   models|models:snapshot)
