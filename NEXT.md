@@ -13,6 +13,7 @@
 > ② **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
 > ③ 설치면 소유 경계 — entwurf 이관 옛 소유자 cleanup (issue #46),
 > ④ pi-chat Add-group blocker, ⑤ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
+> ⑥ **턴 시각 축** — pi 푸터는 닫혔고 Claude Code 쪽은 목표만 적혀 있다(아래 [2026-08-25]).
 > `v2026.8.10`으로 닫힘: exact session selector, UUIDv7 discovery, record-backed situation,
 > 양 하네스+semantic 두 축을 함께 보는 `/recall` 복귀 편집실, fresh steward 호출 경계.
 > `v2026.8.7`로 닫힘: `background-bash`(느린 명령 걸고 턴 종료 → 끝나면 자동 재호출),
@@ -23,6 +24,33 @@
 > 대기: 어쏠로그 수선 때 7/13 근거 회수(아래 [2026-07-14] 어쏠로그).
 > ⚠️ [2026-06-11] bibcli 항목은 **2026-07-14 결정과 방향이 반대다** — GLG 재판단 대기(아래).
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+
+## [2026-08-25] 턴 시각 — Claude Code 쪽은 아직 안 했다 (목표만)
+
+> **목표: 마지막으로 답한 형제가 누구인지 시각으로 안다.** pi 쪽은 `df0df60`으로 닫혔다 —
+> `pi-extensions/glg-footer.ts`가 `session_start`에서 브랜치를 훑고 `message_end`로 갱신해
+> 푸터에 `GLG HH:MM:SS · pi HH:MM:SS`(KST)를 찍는다. Claude Code 쪽은 **손대지 않았다.**
+>
+> **재료 (2026-08-25 이 세션에서 확인한 사실):**
+> - `showTurnDuration`은 소요 시간(`23s`)이지 벽시계 시각이 아니다. 네이티브로 턴에 시각을
+>   박는 설정은 없다 (`~/.claude/settings.json`에 현재 `false`).
+> - transcript는 `~/.claude/projects/<slug>/<session-id>.jsonl`에 실시간 append되고 각 줄에
+>   ISO `timestamp`가 있다 — 이 세션에서 확인:
+>   `{"type":"assistant","timestamp":"2026-08-25T02:53:05.599Z"}`.
+> - statusLine stdin JSON에 `session_id`가 온다 (`meta-bridge-statusline.sh:179`가 이미 쓴다).
+>   `transcript_path`도 온다는 것은 **문서 근거일 뿐 아직 실측 안 했다** — 착수 시 stdin을
+>   한 번 덤프해서 확인할 것.
+>
+> **설계 (한 번에 들어간다):** 훅이 찍고 statusline은 읽기만 한다.
+> `UserPromptSubmit` / `Stop` 훅 → `~/.claude/turn-stamps/<session-id>` (세션별, statusline이
+> `cat` 한 번) + `~/.claude/turn-stamps/turns.tsv` (공용 append: `ts / event / device / cwd /
+> session-id`). 공용 파일이 핵심이다 — **자기 세션 푸터로는 형제 비교를 못 푼다.** pi 쪽도
+> `message_end`에서 같은 tsv에 append하면 pi/Claude Code 형제가 한 축에 모인다.
+>
+> **경계: entwurf를 건드리지 않는다.** 현재 statusLine은
+> `~/repos/gh/entwurf/scripts/meta-bridge-statusline.sh`라 렌더면을 고치려면 그 repo를 열어야
+> 한다 — 이번엔 하지 않는다. 훅(이 repo/`~/.claude/hooks`)만으로 스탬프 축을 먼저 세우고,
+> 렌더는 미사용본 `~/.claude/statusline.sh`에서 실험하거나 entwurf 승인 후에 붙인다.
 
 ## [2026-08-10] 세션 이음새 — 남은 두 실
 
