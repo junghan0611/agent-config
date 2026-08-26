@@ -267,7 +267,14 @@ What `setup` deliberately does **not** do: install entwurf (that is entwurf's ow
 
 Some questions cannot be answered by reading a project's README. *Does a runtime that generates its own skills from experience beat a human-authored skill set?* You only find out by standing both up on the same machine, giving them the same repeated task, and looking at what each wrote down afterwards.
 
-So this repo installs the competition. The first subject is [Hermes Agent](https://github.com/NousResearch/hermes-agent) — an independent runtime with its own gateway, state tree, cron, memory and skill generation. It is a **candidate under evaluation, not adopted infrastructure**: nothing about it is declared in `nixos-config`, and `setup:hermes` is not part of `setup`.
+This comparison belongs here, not in entwurf. **entwurf guarantees its own garden-id,
+delivery, and visible-lifecycle logic and compares today's code with yesterday's; it does
+not rank other harnesses.** agent-config is the operator-side proving ground, so it asks
+whether an external runtime actually reduces GLG's inspection points without weakening
+identity, memory, or alignment. This is not a tournament and it is not a reason to grow
+entwurf into a planner.
+
+The first subject is [Hermes Agent](https://github.com/NousResearch/hermes-agent) — an independent runtime with its own gateway, state tree, cron, memory and skill generation. It is a **candidate under evaluation, not adopted infrastructure**: nothing about it is declared in `nixos-config`, and `setup:hermes` is not part of `setup`.
 
 ```bash
 ./run.sh setup:hermes    # pinned tag, minimal closure, explicit call only
@@ -283,7 +290,13 @@ What that leaves is a runtime that reaches Claude, GPT (`openai-codex` OAuth) an
 
 The comparison target is not another product. It is this repo's own loop — `AGENTS.md` + `skills/` + semantic memory + `botlog`/`NEXT` — and the honest question is whether a machine-written skill trail is more transparent and reproducible than the hand-written one.
 
-The second subject is [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) — a fork of the very harness this repo already runs, tuned as a coding-first surface. It asks a different question than Hermes: not *does it learn better*, but *does handing one runtime a whole job cost the operator fewer inspection points than routing it through two or three sibling hops*. The measurements, the provider seal, and the identity/citizenship boundaries live in [OMP.md](OMP.md), which also carries the reproduce block — omp installs from one pinned upstream command rather than a `run.sh` lane, so the doc is the install SSOT until that changes.
+The second subject is [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) — a fork of the very harness this repo already runs, tuned as a coding-first surface. It asks a different question than Hermes: not *does it learn better*, but *does one visible sibling with an internal team cost GLG fewer inspection points than routing the same job through two or three visible sibling hops*. One OMP process would remain one garden citizen; its in-process workers are not citizens and do not widen entwurf's contract. The direction is to admit that one sibling if the operator test holds, but no citizenship implementation has started. The measurements, provider seal, operator boundary, and admission lane live in [OMP.md](OMP.md), which also carries the reproduce block — omp installs from one pinned upstream command rather than a `run.sh` lane, so the doc is the install SSOT until that changes.
+
+[YEGGE.md](YEGGE.md) is the lighter observation log. Wheelhouse is neither installed nor a
+candidate: it is an occasional external sighting used to separate durable runtime facts
+from cockpit fashion. Its current entry records one useful confirmation only — tmux can
+own session lifetime while Emacs remains a replaceable projection — and explicitly opens
+no implementation lane.
 
 ## Session Management — No Compact
 
