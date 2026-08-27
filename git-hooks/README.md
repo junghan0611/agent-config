@@ -42,6 +42,7 @@ graduation checklist: nixos-config `ORACLE.md` "Bot workspace git".
 | `junghan0611/openclaw-config` | private memory/config data |
 | `junghan0611/apply` | private job-application workspace — résumés must name real employers and clients |
 | `junghan0611/workspace-bbot` | graduated OpenClaw bot narrative git (folder name = repo name, always private) |
+| `junghan0611/workspace-glg` | graduated OpenClaw bot narrative git (folder name = repo name, always private) |
 
 The match is on the full `origin` URL (`.git` suffix optional), not the
 directory name, so a lookalike such as `junghan0611/apply-extra` or a public
