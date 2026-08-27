@@ -57,8 +57,13 @@ detect_mode() {
   #   openclaw-config — private memory/config data
   #   apply           — private job-application workspace; resumes must name
   #                     real employers/clients (AGENTS.md in that repo)
+  #   workspace-<id>  — graduated OpenClaw bot narrative git (folder name =
+  #                     repo name, always private). Graduation is a HOST action
+  #                     — do not wildcard; add each name here. Checklist:
+  #                     nixos-config ORACLE.md "Bot workspace git".
+  # Do NOT flip these public. Hook cannot see GitHub visibility.
   case "$remote_bare" in
-    *github.com[:/]junghan0611/openclaw-config|*github.com[:/]junghan0611/apply)
+    *github.com[:/]junghan0611/openclaw-config|*github.com[:/]junghan0611/apply|*github.com[:/]junghan0611/workspace-bbot)
       echo "loose"
       return
       ;;
