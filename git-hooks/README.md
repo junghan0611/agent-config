@@ -28,18 +28,20 @@ The hook auto-detects mode per-repo:
 | Mode | Trigger | Scans |
 |------|---------|-------|
 | `strict` | `origin` matches `github.com/junghan0611/*` or `github.com/junghanacs/*` | secrets **and** identity terms |
-| `loose` | any other origin (work repos, third-party clones, local-only), plus the known private repos `openclaw-config` and `apply` | secrets only |
+| `loose` | any other origin (work repos, third-party clones, local-only), plus known private repos listed below | secrets only |
 | `off` | per-repo override file says so | nothing (with WARN) |
 
-**Known private loose repos**: `_scan.sh` forces `loose` for two PRIVATE repos
+**Known private loose repos**: `_scan.sh` forces `loose` for PRIVATE repos
 whose `origin` matches the strict namespace but whose content legitimately
 carries identity terms. Identity-term scanning is skipped there; gitleaks/secret
-scanning still runs.
+scanning still runs. Add each name explicitly — do not wildcard. Bot-workspace
+graduation checklist: nixos-config `ORACLE.md` "Bot workspace git".
 
 | Repo | Why |
 |------|-----|
 | `junghan0611/openclaw-config` | private memory/config data |
 | `junghan0611/apply` | private job-application workspace — résumés must name real employers and clients |
+| `junghan0611/workspace-bbot` | graduated OpenClaw bot narrative git (folder name = repo name, always private) |
 
 The match is on the full `origin` URL (`.git` suffix optional), not the
 directory name, so a lookalike such as `junghan0611/apply-extra` or a public
