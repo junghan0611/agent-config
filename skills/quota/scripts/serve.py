@@ -3,9 +3,11 @@
 
     serve.py [--port 8787] [--ttl 120]
 
-Serves 127.0.0.1 only. Two routes:
+Serves 127.0.0.1 only. Calling it again on the same port stops the
+running server (toggle). Routes:
     /                  one dark page, same layout as the TUI
     /api/snapshot.json the normalized snapshot
+    /api/stop          graceful shutdown (localhost toggle)
 
 The snapshot is cached for --ttl seconds (default 120) and shared by
 every request, so leaving the tab open all day does not hammer the vendor
@@ -23,6 +25,7 @@ import argparse
 import errno
 import json
 import os
+import signal
 import sys
 import threading
 import time
@@ -206,6 +209,9 @@ class Handler(BaseHTTPRequestHandler):
             snap = get_snapshot(self.ttl)
             self._send(200, "text/plain; charset=utf-8",
                        render.render_text(snap, color=False).encode())
+        elif path == "/api/stop":
+            self._send(200, "text/plain; charset=utf-8", b"stopping\n")
+            threading.Thread(target=self.server.shutdown, daemon=True).start()
         else:
             self._send(404, "text/plain; charset=utf-8", b"not found\n")
 
@@ -225,14 +231,78 @@ def already_ours(port):
         return False
 
 
+def _wait_gone(port, seconds):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if not already_ours(port):
+            return True
+        time.sleep(0.1)
+    return not already_ours(port)
+
+
+def _port_from_cmdline(cmd, default=8787):
+    parts = cmd.split()
+    try:
+        i = parts.index("--port")
+        return int(parts[i + 1])
+    except (ValueError, IndexError):
+        return default
+
+
+def _serve_pids(port):
+    """PIDs whose cmdline is this script bound to port (default 8787)."""
+    here = os.path.abspath(__file__)
+    pids = []
+    try:
+        names = os.listdir("/proc")
+    except OSError:
+        return pids
+    for name in names:
+        if not name.isdigit():
+            continue
+        pid = int(name)
+        if pid == os.getpid():
+            continue
+        try:
+            with open(f"/proc/{pid}/cmdline", "rb") as f:
+                cmd = f.read().replace(b"\x00", b" ").decode("utf-8", "replace")
+        except (FileNotFoundError, PermissionError, ProcessLookupError, OSError):
+            continue
+        if here not in cmd and "quota/scripts/serve.py" not in cmd:
+            continue
+        if _port_from_cmdline(cmd) == port:
+            pids.append(pid)
+    return pids
+
+
+def stop_ours(port):
+    """Stop the quota web on port. Prefer /api/stop; SIGTERM older builds."""
+    try:
+        req = Request(f"http://127.0.0.1:{port}/api/stop")
+        urlopen(req, timeout=1.0).read()
+    except (URLError, TimeoutError, OSError):
+        pass
+    if _wait_gone(port, 1.5):
+        return True
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        for pid in _serve_pids(port):
+            try:
+                os.kill(pid, sig)
+            except ProcessLookupError:
+                pass
+        if _wait_gone(port, 1.5):
+            return True
+    return not already_ours(port)
+
+
 def bind(port):
     try:
         return ThreadingHTTPServer(("127.0.0.1", port), Handler)
     except OSError as e:
         if e.errno != errno.EADDRINUSE:
             raise
-        if already_ours(port):
-            print(f"quota web — already running at http://127.0.0.1:{port}")
+        if already_ours(port) and stop_ours(port):
+            print(f"quota web — stopped http://127.0.0.1:{port}")
             sys.exit(0)
         print(
             f"quota web — port {port} already in use (not this server). "
@@ -252,8 +322,14 @@ def main():
                          "sensitive rail's cadence are no longer the same number.")
     a = ap.parse_args()
     Handler.ttl = a.ttl
+    if already_ours(a.port):
+        if stop_ours(a.port):
+            print(f"quota web — stopped http://127.0.0.1:{a.port}")
+            sys.exit(0)
+        print(f"quota web — failed to stop http://127.0.0.1:{a.port}", file=sys.stderr)
+        sys.exit(1)
     srv = bind(a.port)
-    print(f"quota web — http://127.0.0.1:{a.port}  (ttl {a.ttl}s, Ctrl-C to stop)")
+    print(f"quota web — http://127.0.0.1:{a.port}  (ttl {a.ttl}s, run again to stop)")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
