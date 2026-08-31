@@ -154,5 +154,7 @@
   "voiceEnabled": true,
   "autoUpdates": true,
   "enableWorkflows": false,
-  "workflowKeywordTriggerEnabled": false
+  "workflowKeywordTriggerEnabled": false,
+  "remoteControlAtStartup": false,
+  "outputStyle": "Concise"
 }
