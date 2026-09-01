@@ -1,5 +1,4 @@
 {
-  "cleanupPeriodDays": 365,
   "permissions": {
     "allow": [
       "Bash",
@@ -59,10 +58,6 @@
       }
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": "/home/junghan/.claude/statusline.sh"
-  },
   "enabledPlugins": {
     "commit-commands@claude-plugins-official": false,
     "feature-dev@claude-plugins-official": false,
@@ -77,37 +72,18 @@
     "claude-code-setup@claude-plugins-official": false,
     "gopls-lsp@claude-plugins-official": false,
     "atlassian@claude-plugins-official": false,
-    "telegram@claude-plugins-official": false,
-    "entwurf-meta-receive@meta-bridge-local": true
-  },
-  "extraKnownMarketplaces": {
-    "meta-bridge-local": {
-      "source": {
-        "source": "directory",
-        "path": "/home/junghan/repos/gh/entwurf/pi/meta-bridge/.assembled"
-      }
-    }
+    "telegram@claude-plugins-official": false
   },
   "skillOverrides": {
     "claude-api": "off"
   },
   "language": "Korean",
-  "promptSuggestionEnabled": false,
-  "awaySummaryEnabled": false,
-  "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "editorMode": "normal",
-  "verbose": false,
   "preferredNotifChannel": "notifications_disabled",
-  "autoCompactEnabled": false,
-  "showTurnDuration": false,
-  "terminalProgressBarEnabled": false,
   "agentPushNotifEnabled": true,
-  "useAutoModeDuringPlan": false,
   "voiceEnabled": false,
   "autoUpdates": true,
-  "enableWorkflows": false,
-  "workflowKeywordTriggerEnabled": false,
   "remoteControlAtStartup": false,
   "outputStyle": "Concise"
 }

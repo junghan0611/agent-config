@@ -153,8 +153,6 @@
   "agentPushNotifEnabled": true,
   "voiceEnabled": true,
   "autoUpdates": true,
-  "enableWorkflows": false,
-  "workflowKeywordTriggerEnabled": false,
   "remoteControlAtStartup": false,
   "outputStyle": "Concise"
 }
