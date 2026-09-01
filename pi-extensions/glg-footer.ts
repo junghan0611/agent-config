@@ -143,8 +143,9 @@ export default function (pi: ExtensionAPI) {
 					let costIndex = -1;
 					let costVariants: string[] | undefined;
 					if (FLAGS.cost && (totalCost || usingSubscription)) {
-						const actualText = `$${totalCost.toFixed(3)}${usingSubscription ? " (sub)" : ""}`;
-						costVariants = [actualText];
+						const actualText = `$${totalCost.toFixed(3)}`;
+						const subscriptionText = usingSubscription ? " (sub)" : "";
+						costVariants = [`${actualText}${subscriptionText}`];
 						const rates = ctx.model?.cost;
 						if (rates && totalCost > 0) {
 							const nocache =
@@ -166,7 +167,7 @@ export default function (pi: ExtensionAPI) {
 										: ratio >= 3
 											? theme.fg("warning", ratioText)
 											: theme.fg("error", ratioText);
-								costVariants.push(`${withNocache} ${ratioRendered}`);
+								costVariants.push(`${withNocache} ${ratioRendered}${subscriptionText}`);
 							}
 						}
 						costIndex = statsParts.length;
