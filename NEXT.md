@@ -50,7 +50,8 @@
 > **경계: entwurf를 건드리지 않는다.** 현재 statusLine은
 > `~/repos/gh/entwurf/scripts/meta-bridge-statusline.sh`라 렌더면을 고치려면 그 repo를 열어야
 > 한다 — 이번엔 하지 않는다. 훅(이 repo/`~/.claude/hooks`)만으로 스탬프 축을 먼저 세우고,
-> 렌더는 미사용본 `~/.claude/statusline.sh`에서 실험하거나 entwurf 승인 후에 붙인다.
+> 렌더면은 entwurf 승인 후에 붙인다 — 이 repo가 들고 있던 미사용 사본
+> `claude/statusline.sh`와 그 심링크는 2026-09-01에 제거했다(statusLine은 entwurf 소유).
 
 ## [2026-08-10] 세션 이음새 — 남은 두 실
 

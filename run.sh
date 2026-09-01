@@ -916,7 +916,6 @@ setup_links() {
   fi
   ensure_link "$SCRIPT_DIR/claude/settings.local.json"  "$HOME/.claude/settings.local.json"
   ensure_link "$SCRIPT_DIR/claude/keybindings.json"     "$HOME/.claude/keybindings.json"
-  ensure_link "$SCRIPT_DIR/claude/statusline.sh"        "$HOME/.claude/statusline.sh"
   ensure_link "$SCRIPT_DIR/claude/hooks/session-info.sh" "$HOME/.claude/hooks/session-info.sh"
   # Notification hook (server settings only) — pings ntfy when an agent needs the
   # operator (permission / idle). Shared by all harnesses; topic per ~/.current-forge-profile.
@@ -1547,6 +1546,7 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Pi theme:     $(cat "$HOME/.pi/agent/settings.json" 2>/dev/null | grep -oP '"defaultTheme":\s*"\K[^"]+' || echo 'default')"
     echo "  Claude conf:  $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged keyset (real file, co-owned w/ entwurf)' || echo '❌ absent'; })"
     echo "  Claude skills:$(readlink "$HOME/.claude/skills" 2>/dev/null || echo '❌ not linked')"
+    echo "  Claude status:  entwurf-owned (meta-bridge statusLine; no repo copy since 2026-09-01)"
     echo "  Codex conf:   $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo '❌ not linked')"
     echo "  Codex skills: $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) linked"
     echo "  Antigrav skills: $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo '❌ not linked')"
