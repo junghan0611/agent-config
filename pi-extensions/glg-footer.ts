@@ -135,8 +135,42 @@ export default function (pi: ExtensionAPI) {
 						if (totalCacheWrite) statsParts.push(`W${fmtTokens(totalCacheWrite)}`);
 					}
 					const usingSubscription = ctx.model ? ctx.modelRegistry.isUsingOAuth(ctx.model) : false;
+					// Cache-efficiency badge: the actual cost paid, what it would have cost with
+					// every cacheRead/cacheWrite token billed as fresh input instead ("nocache"),
+					// and the ratio between the two. costVariants holds narrowest-first fallbacks
+					// so render() can drop the lowest-priority piece (ratio, then nocache) first
+					// when width is tight — the actual cost is never dropped.
+					let costIndex = -1;
+					let costVariants: string[] | undefined;
 					if (FLAGS.cost && (totalCost || usingSubscription)) {
-						statsParts.push(`$${totalCost.toFixed(3)}${usingSubscription ? " (sub)" : ""}`);
+						const actualText = `$${totalCost.toFixed(3)}${usingSubscription ? " (sub)" : ""}`;
+						costVariants = [actualText];
+						const rates = ctx.model?.cost;
+						if (rates && totalCost > 0) {
+							const nocache =
+								(rates.input / 1e6) * (totalInput + totalCacheRead + totalCacheWrite) +
+								(rates.output / 1e6) * totalOutput;
+							const ratio = nocache / totalCost;
+							// ACP provider sessions currently report all four usage fields (input,
+							// output, cacheRead, cacheWrite) as 0, not just the cache ones
+							// (entwurf#93). That drives both nocache and ratio to 0, and the
+							// `ratio > 0` guard below then suppresses the whole badge — no badge,
+							// not a false ×1.0 or a false ×0.0, is the honest state until it lands.
+							if (Number.isFinite(ratio) && ratio > 0) {
+								const withNocache = `${actualText} ($${nocache.toFixed(3)})`;
+								costVariants.push(withNocache);
+								const ratioText = `×${ratio.toFixed(1)}`;
+								const ratioRendered =
+									ratio >= 7
+										? theme.fg("success", ratioText)
+										: ratio >= 3
+											? theme.fg("warning", ratioText)
+											: theme.fg("error", ratioText);
+								costVariants.push(`${withNocache} ${ratioRendered}`);
+							}
+						}
+						costIndex = statsParts.length;
+						statsParts.push(costVariants[costVariants.length - 1]);
 					}
 
 					if (FLAGS.contextPct) {
@@ -159,6 +193,15 @@ export default function (pi: ExtensionAPI) {
 
 					let statsLeft = statsParts.join(" ");
 					let statsLeftWidth = visibleWidth(statsLeft);
+					// Degrade the cost badge one piece at a time (ratio, then nocache) before
+					// falling back to a hard "..." truncation of the whole line.
+					if (statsLeftWidth > width && costIndex >= 0 && costVariants) {
+						for (let i = costVariants.length - 2; i >= 0 && statsLeftWidth > width; i--) {
+							statsParts[costIndex] = costVariants[i];
+							statsLeft = statsParts.join(" ");
+							statsLeftWidth = visibleWidth(statsLeft);
+						}
+					}
 					if (statsLeftWidth > width) {
 						statsLeft = truncateToWidth(statsLeft, width, "...");
 						statsLeftWidth = visibleWidth(statsLeft);
