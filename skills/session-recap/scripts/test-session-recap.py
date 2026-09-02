@@ -272,5 +272,127 @@ class PiCorpusAdmissionTest(unittest.TestCase):
         self.assertFalse(recap._is_excluded_project_dir("--home-junghan-repos-gh-agent-config--"))
 
 
+class SessionCorpusTest(unittest.TestCase):
+    """Corpus fixtures stay entirely below a temporary HOME and corpus root."""
+
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory(prefix="session-recap-corpus-test-")
+        self.home = Path(self.tempdir.name) / "home"
+        self.corpus = Path(self.tempdir.name) / "corpus"
+        self._had_corpus_env = recap.CORPUS_ENV in os.environ
+        self._old_corpus_env = os.environ.get(recap.CORPUS_ENV)
+        self._old_home = os.environ.get("HOME")
+        os.environ["HOME"] = str(self.home)
+        os.environ.pop(recap.CORPUS_ENV, None)
+
+        self.project_dir = "--home-junghan-repos-gh-agent-config--"
+        self.live_pi = (
+            self.home / ".pi" / "agent" / "sessions" / self.project_dir / "live.jsonl"
+        )
+        ExactSessionFileTest._write_pi(self.live_pi)
+
+    def tearDown(self):
+        if self._old_home is None:
+            os.environ.pop("HOME", None)
+        else:
+            os.environ["HOME"] = self._old_home
+        if self._had_corpus_env:
+            os.environ[recap.CORPUS_ENV] = self._old_corpus_env
+        else:
+            os.environ.pop(recap.CORPUS_ENV, None)
+        self.tempdir.cleanup()
+
+    def enable_corpus(self):
+        self.corpus.mkdir(parents=True, exist_ok=True)
+        os.environ[recap.CORPUS_ENV] = str(self.corpus)
+
+    def corpus_pi_file(self, device: str, name: str = "corpus.jsonl") -> Path:
+        path = (
+            self.corpus
+            / device
+            / ".pi"
+            / "agent"
+            / "sessions"
+            / self.project_dir
+            / name
+        )
+        ExactSessionFileTest._write_pi(path)
+        return path
+
+    def run_cli(self, *args: str) -> subprocess.CompletedProcess[str]:
+        env = os.environ.copy()
+        env["HOME"] = str(self.home)
+        env.pop("CLAUDECODE", None)
+        return subprocess.run(
+            ["python3", str(SCRIPT), *args],
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def test_unset_corpus_keeps_live_discovery_only(self):
+        self.assertEqual(
+            recap.get_sessions_dirs("pi"),
+            [(self.home / ".pi" / "agent" / "sessions", "pi", None)],
+        )
+
+    def test_corpus_devices_ignore_metadata_files_and_union_with_live(self):
+        self.enable_corpus()
+        for name in ("MANIFEST.json", "MANIFEST.sha256", "README.md", "AGENTS.md"):
+            (self.corpus / name).write_text("fixture\n")
+        self.corpus_pi_file("oracle")
+        self.corpus.mkdir(exist_ok=True)
+        (self.corpus / "thinkpad").mkdir()
+
+        self.assertEqual(recap.corpus_devices(), ["oracle", "thinkpad"])
+        self.assertEqual(
+            recap.get_sessions_dirs("pi"),
+            [
+                (self.home / ".pi" / "agent" / "sessions", "pi", None),
+                (self.corpus / "oracle" / ".pi" / "agent" / "sessions", "pi", "oracle"),
+            ],
+        )
+
+    def test_dedupe_prefers_larger_copy(self):
+        self.enable_corpus()
+        small = self.corpus_pi_file("thinkpad", "same.jsonl")
+        large = self.corpus_pi_file("oracle", "same.jsonl")
+        small.write_text("x" * 20)
+        large.write_text("x" * 40)
+        items = [
+            (0.0, small, "agent-config", "pi", "thinkpad"),
+            (0.0, large, "agent-config", "pi", "oracle"),
+        ]
+
+        self.assertEqual(recap.dedupe_by_basename(items), [items[1]])
+
+    def test_dedupe_equal_size_prefers_lexicographically_smaller_path(self):
+        self.enable_corpus()
+        smaller = self.corpus_pi_file("alpha", "same.jsonl")
+        larger = self.corpus_pi_file("beta", "same.jsonl")
+        smaller.write_text("x" * 40)
+        larger.write_text("x" * 40)
+        items = [
+            (0.0, larger, "agent-config", "pi", "beta"),
+            (0.0, smaller, "agent-config", "pi", "alpha"),
+        ]
+
+        self.assertEqual(recap.dedupe_by_basename(items), [items[1]])
+
+    def test_exact_accepts_live_and_corpus_and_labels_only_corpus(self):
+        self.enable_corpus()
+        corpus_file = self.corpus_pi_file("oracle")
+
+        live = self.run_cli("--session-file", str(self.live_pi))
+        self.assertEqual(live.returncode, 0, live.stderr)
+        self.assertIn("agent-config [pi:gpt]", live.stdout)
+        self.assertNotIn("pi:gpt@", live.stdout)
+
+        corpus = self.run_cli("--session-file", str(corpus_file))
+        self.assertEqual(corpus.returncode, 0, corpus.stderr)
+        self.assertIn("agent-config [pi:gpt@oracle]", corpus.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -177,5 +177,105 @@ class TestPiUnchanged(unittest.TestCase):
             self.assertEqual(len(list(ex.extract_failures(p))), 1)
 
 
+class TestSessionCorpus(unittest.TestCase):
+    """Corpus discovery fixtures never consult the operator's stores."""
+
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory(prefix="improve-agent-corpus-test-")
+        self.home = os.path.join(self.tempdir.name, "home")
+        self.corpus = os.path.join(self.tempdir.name, "corpus")
+        self.project = os.path.join(self.home, "repos", "fixture-project")
+        os.makedirs(self.project)
+        self.flat = self.project.strip("/").replace("/", "-")
+
+        self.old_pi_base = ex.PI_BASE
+        self.old_claude_base = ex.CLAUDE_BASE
+        ex.PI_BASE = os.path.join(self.home, ".pi", "agent", "sessions")
+        ex.CLAUDE_BASE = os.path.join(self.home, ".claude", "projects")
+        self.live_pi = os.path.join(ex.PI_BASE, f"--{self.flat}--")
+        self.live_claude = os.path.join(ex.CLAUDE_BASE, f"-{self.flat}")
+        os.makedirs(self.live_pi)
+        os.makedirs(self.live_claude)
+
+        self.had_corpus_env = ex.CORPUS_ENV in os.environ
+        self.old_corpus_env = os.environ.get(ex.CORPUS_ENV)
+        os.environ.pop(ex.CORPUS_ENV, None)
+        ex._FORMAT_CACHE.clear()
+        ex._START_CACHE.clear()
+
+    def tearDown(self):
+        ex.PI_BASE = self.old_pi_base
+        ex.CLAUDE_BASE = self.old_claude_base
+        if self.had_corpus_env:
+            os.environ[ex.CORPUS_ENV] = self.old_corpus_env
+        else:
+            os.environ.pop(ex.CORPUS_ENV, None)
+        ex._FORMAT_CACHE.clear()
+        ex._START_CACHE.clear()
+        self.tempdir.cleanup()
+
+    def enable_corpus(self):
+        os.makedirs(self.corpus, exist_ok=True)
+        os.environ[ex.CORPUS_ENV] = self.corpus
+
+    def corpus_dir(self, device, source):
+        if source == "pi":
+            path = os.path.join(
+                self.corpus, device, ".pi", "agent", "sessions", f"--{self.flat}--"
+            )
+        else:
+            path = os.path.join(
+                self.corpus, device, ".claude", "projects", f"-{self.flat}"
+            )
+        os.makedirs(path, exist_ok=True)
+        return path
+
+    def test_unset_corpus_keeps_live_discovery_only(self):
+        self.assertEqual(ex.find_sessions_dirs(self.project, "pi"), [self.live_pi])
+
+    def test_corpus_devices_ignore_metadata_and_add_project_candidates(self):
+        self.enable_corpus()
+        for name in ("MANIFEST.json", "MANIFEST.sha256", "README.md", "AGENTS.md"):
+            write_jsonl(os.path.join(self.corpus, name), [])
+        oracle = self.corpus_dir("oracle", "claude")
+        os.makedirs(os.path.join(self.corpus, "thinkpad"))
+
+        self.assertEqual(ex.corpus_devices(), ["oracle", "thinkpad"])
+        self.assertEqual(
+            ex.find_sessions_dirs(self.project, "claude"),
+            [self.live_claude, oracle],
+        )
+
+    def test_dedupe_prefers_larger_then_lexicographically_smaller_path(self):
+        self.enable_corpus()
+        oracle = self.corpus_dir("oracle", "pi")
+        thinkpad = self.corpus_dir("thinkpad", "pi")
+
+        small = os.path.join(thinkpad, "shared.jsonl")
+        large = os.path.join(oracle, "shared.jsonl")
+        with open(small, "w") as f:
+            f.write("x" * 20)
+        with open(large, "w") as f:
+            f.write("x" * 40)
+        self.assertEqual(ex.dedupe_by_basename([small, large]), [large])
+
+        alpha = self.corpus_dir("alpha", "pi")
+        beta = self.corpus_dir("beta", "pi")
+        first = os.path.join(alpha, "tie.jsonl")
+        second = os.path.join(beta, "tie.jsonl")
+        with open(first, "w") as f:
+            f.write("x" * 40)
+        with open(second, "w") as f:
+            f.write("x" * 40)
+        self.assertEqual(ex.dedupe_by_basename([second, first]), [first])
+
+    def test_corpus_path_segments_classify_claude_and_pi_without_sniffing(self):
+        self.enable_corpus()
+        claude = os.path.join(self.corpus_dir("oracle", "claude"), "session.jsonl")
+        pi = os.path.join(self.corpus_dir("oracle", "pi"), "session.jsonl")
+        self.assertTrue(ex.is_claude_file(claude))
+        self.assertFalse(ex.is_claude_file(pi))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
