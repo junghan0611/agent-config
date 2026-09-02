@@ -6,7 +6,7 @@
 # RAIL — 현재 좌표
 
 - [x] **1. 세션 코퍼스 읽기면 착지** — 두 스킬이 device-merged 코퍼스를 읽는다 (`0b01f00`, `v2026.9.2`)
-- [ ] **2. 그 변경의 검수** ← CURRENT: fixture 닫힘(`01d518e`) → **andenken 골든 대기** → 형제 공지
+- [ ] **2. 그 변경의 검수** ← CURRENT: fixture(`01d518e`) · 라이브 코퍼스 실검수(`15e2385`, 결함 2건 수선) → **andenken 골든 대기** → 형제 공지
 - [ ] **3. entwurf-peek `trace` 파서 수선** ← PAUSED: `mux-placement` acceptance fixture 대기
 - [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
 
@@ -15,9 +15,10 @@
 # NOW
 
 - **Hot group:** 세션 코퍼스 (아래 [2026-09-02])
-- **Next:** andenken 재구축 수치가 오면 골든으로 `semantic-memory` SKILL.md 기대치를 판단하고,
-  그 다음에 형제들에게 공지한다. 숫자를 받기 전에 문구를 고치지 않는다.
-- **Blocker:** andenken 재구축 대기(막힌 게 아니라 남의 작업 대기). 이쪽에서 지금 할 것은 없다.
+- **Next:** andenken 골든(검색 품질 회귀) 결과가 오면 `semantic-memory` SKILL.md의
+  **기대치 문구**를 판단한다. device 축 문단은 실측으로 이미 넣었다(`15e2385`).
+  그 다음에 형제들에게 공지한다. 골든 숫자를 받기 전에 품질 문구는 고치지 않는다.
+- **Blocker:** andenken 골든 대기(막힌 게 아니라 남의 작업 대기).
 - **Read:** 아래 [2026-09-02] 섹션, `AGENTS.md § semantic-memory → andenken`의 device 축 문단,
   참조 구현은 andenken `session-corpus.test.ts`.
 - **Do not touch:** `~/repos/gh/session`은 git이 아니다(`MANIFEST.sha256`으로 검증되는 데이터 폴더,
@@ -88,6 +89,20 @@
 
 **다음 한 걸음 (순서대로):**
 
+0. ~~라이브 코퍼스 실검수~~ **완료 (`15e2385`, 2026-09-03).** 재구축 끝난 코퍼스를 상대로
+   fresh reader가 실제로 돌려봤고 결함 2건이 나왔다 — 둘 다 fixture로는 안 잡히는 종류다.
+   - **stale env로 코퍼스가 조용히 꺼진다.** env는 로그인 때 한 번 캡처되므로 09-02 17:09에
+     `~/.env.local`에 추가된 줄을 그 전에 뜬 세션·데몬·에이전트는 영영 못 본다(실측: 이 셸에
+     다른 `ANDENKEN_SESSION_*`는 다 있고 CORPUS만 없었다). 색인 경로는 1,609/1,609가 코퍼스
+     경로라(`andenken/data/session-manifest.json` 실독, oracle 1,017 / thinkpad 592)
+     `semantic-memory` → `--session-file` 이음매가 **전부** 거부됐다. 이제 변수가 env에
+     *없을 때만* `.env.local`에서 그 키 하나를 읽는다. 빈 값 명시는 라이브 전용 탈출구로 유지.
+   - **`--device`가 기본 `--skip 1`에 최신 세션을 뺏겼다.** 현재 세션은 라이브라 device가
+     없어 필터에 안 걸리므로, skip이 남의 기기 진짜 최신을 대신 버린다(실측: `--device oracle`이
+     09-02T19:08 `69f08580`을 통째로 떨궜다). `--device`는 이제 `--skip 0`을 함의한다.
+   - recap 22→27 / extract 12→14, 변이 확인. `--device`가 dedupe *앞*에서 걸린다는 사실
+     (그래서 `--device thinkpad`는 코퍼스 사본을 가리킨다 — 실측 winning copy 라이브 2,106 /
+     oracle 469 / thinkpad 0)은 SKILL.md에 기록했다.
 1. ~~fixture 테스트~~ **완료 (`01d518e`, 2026-09-02).** recap 17→22 / extract 8→12, 전부 tmp
    HOME + tmp 코퍼스. env 미설정 / 실제 코퍼스 / 빈 tmp 코퍼스 세 조건에서 통과한다. 세 규칙
    (동률 사전순 · `corpus_devices` 디렉터리 필터 · 라이브 ∪ 코퍼스)은 변이 테스트로 이빨을
