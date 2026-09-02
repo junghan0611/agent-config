@@ -21,8 +21,8 @@ bash {baseDir}/scripts/sync-sessions.sh           # sessions increment (default)
 bash {baseDir}/scripts/sync-sessions.sh --push    # increment + oracle rsync (DB+manifest)
 ```
 
-> **On thinkpad only.** See § Device authority below — this runs the indexer, and
-> `INVARIANT.md` §7.1 says oracle must not.
+> **On thinkpad only — the script enforces it.** A call from a non-authority device
+> is refused before any API call or DB write. See § Device authority below.
 
 Just call it. No args, no preview needed. The script handles it:
 
@@ -50,14 +50,26 @@ thinkpad builds the index; oracle is a **query replica** and receives it by rsyn
 (`INVARIANT.md` §7.1). Running the indexer on oracle forks the corpus — it happened
 once already (2026-06-19→07-06, replica 27,966 chunks against the canonical 24,882).
 
-- `--push` is guarded: it refuses unless `~/.current-device` matches
-  `$ANDENKEN_INDEX_AUTHORITY` (default `thinkpad`).
-- **The increment itself is not guarded.** Measured 2026-09-03: `INDEX_AUTHORITY` is
-  referenced only inside `push_replica` (`andenken/scripts/sync-sessions.sh:148-154`),
-  so a plain call from oracle embeds into oracle's own `sessions.lance` and diverges
-  it from the canonical index — silently, until the next push overwrites it.
-- So the rule lives here rather than in a guard: **on oracle, do not call this.** If
-  oracle's recall feels stale, the fix is a push from thinkpad, not a local sync.
+Both halves are now gated, and the gate is the script's, not this page's:
+
+- **The increment refuses on a non-authority device** — before the dim preflight, the
+  embedding and any DB write, so a refused run costs nothing
+  (`andenken/scripts/sync-sessions.sh:118-132`, read 2026-09-03). It is also *after*
+  Step 0, so a refused call on oracle still contributes oracle's sessions to the
+  corpus, which is the half that machine is supposed to do.
+- **`--push` refuses on the same test** (`:177-182`), protecting the canonical index
+  from being overwritten by an older copy.
+- Escape hatch: `ANDENKEN_ALLOW_REPLICA_INDEX=1` for one run, or move the authority
+  with `ANDENKEN_INDEX_AUTHORITY`. Both fork the corpus — do not reach for either to
+  make a refusal go away.
+- **A refusal is not a stale replica.** This machine's sessions still get indexed:
+  they travel to the authority as source files via the gather and come back inside
+  the pushed index. If oracle's recall feels stale, the fix is a push from thinkpad.
+
+Until 2026-09-03 only `--push` was guarded, so the replica was free to fork *itself* —
+the worse of the two failures, and the one §7.1 actually names. The friendly entry
+point (this skill, "기억 최신화") was exactly what a sibling on the replica would
+reach for.
 
 The sessions track is OpenRouter `qwen/qwen3-embedding-8b` / 4096d. The old
 `--backend ollama|gpu1i` 2560d path is retired. Cost is small but not zero
