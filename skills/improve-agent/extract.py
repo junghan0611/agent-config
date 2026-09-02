@@ -117,6 +117,9 @@ def _corpus_from_env_file() -> str:
 
     An explicitly empty key (`export ANDENKEN_SESSION_CORPUS=`) is a deliberate
     live-only opt-out, so the caller never reaches this function for that case.
+    That reading is read-side only: andenken's `sync-sessions.sh` has the same
+    fallback but tests with `-z`, so an empty value there means unset and the file
+    wins (read 2026-09-03).
     """
     try:
         with open(os.path.expanduser(ENV_FILE_NAME), encoding="utf-8", errors="replace") as f:

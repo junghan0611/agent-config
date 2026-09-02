@@ -99,6 +99,13 @@ off while `semantic-memory` kept returning corpus paths that `--session-file` th
 refused. Setting the variable to the empty string (`export ANDENKEN_SESSION_CORPUS=`)
 is still a deliberate live-only opt-out and wins over the file.
 
+**That opt-out is read-side only.** andenken's `sync-sessions.sh` has the same
+fallback (its own `ANDENKEN_SESSION_CORPUS` guard near the top of the script, read
+2026-09-03) but tests with `-z`, so an empty value there is treated as unset and the
+file wins. Same variable, two readings of the empty string: recap/improve-agent stay
+on live stores, the indexer still gathers. Use the empty string to scope a recap, not
+to disable the corpus system-wide.
+
 **Discovery reads live ∪ corpus, not corpus instead of live.** andenken's indexer
 replaces the live stores because `sync-sessions.sh` gathers first and so owns the
 corpus's freshness; recap has no gather step. Corpus-only discovery would drop *this

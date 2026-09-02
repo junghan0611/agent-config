@@ -100,7 +100,9 @@
      다른 `ANDENKEN_SESSION_*`는 다 있고 CORPUS만 없었다). 색인 경로는 1,609/1,609가 코퍼스
      경로라(`andenken/data/session-manifest.json` 실독, oracle 1,017 / thinkpad 592)
      `semantic-memory` → `--session-file` 이음매가 **전부** 거부됐다. 이제 변수가 env에
-     *없을 때만* `.env.local`에서 그 키 하나를 읽는다. 빈 값 명시는 라이브 전용 탈출구로 유지.
+     *없을 때만* `.env.local`에서 그 키 하나를 읽는다. 빈 값 명시는 라이브 전용 탈출구로
+     유지 — 단 **읽기면 한정**이다. `sync-sessions.sh`도 같은 폴백을 갖고 있지만 `-z`로
+     검사해 빈 값을 미설정으로 본다(확인 2026-09-03). 같은 변수, 빈 문자열 해석 두 가지.
    - **`--device`가 기본 `--skip 1`에 최신 세션을 뺏겼다.** 현재 세션은 라이브라 device가
      없어 필터에 안 걸리므로, skip이 남의 기기 진짜 최신을 대신 버린다(실측: `--device oracle`이
      09-02T19:08 `69f08580`을 통째로 떨궜다). `--device`는 이제 `--skip 0`을 함의한다.

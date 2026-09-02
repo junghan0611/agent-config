@@ -155,7 +155,9 @@ def _corpus_from_env_file() -> str:
     `.env.local` 을 직접 읽는다 (`ENV-SETUP.md`).
 
     키를 **빈 값으로 명시**한 경우(`export ANDENKEN_SESSION_CORPUS=`)는 의도된
-    라이브 전용이므로 호출자가 여기까지 오지 않는다.
+    라이브 전용이므로 호출자가 여기까지 오지 않는다. 이 해석은 **읽기면 한정**이다 —
+    andenken `sync-sessions.sh` 도 같은 폴백을 갖지만 `-z` 로 검사해 빈 값을
+    미설정으로 보고 파일 값을 쓴다 (확인 2026-09-03).
     """
     try:
         env_file = Path(os.path.expanduser(ENV_FILE_NAME))
