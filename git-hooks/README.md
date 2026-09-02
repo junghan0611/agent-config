@@ -134,6 +134,73 @@ git add /tmp/test.txt
 git diff --cached -U0 | ~/repos/gh/agent-config/git-hooks/_scan.sh staged
 ```
 
+## OPEN — the prefix rules have no left boundary (2026-09-02)
+
+**Measured, not fixed.** Nothing in this directory was changed for it. Recorded
+here so the next person starts from the receipts instead of re-deriving them.
+
+**The defect.** 15 rules in `gitleaks.toml` match a literal prefix with no left
+token boundary — lines 44, 50, 56, 62, 68, 74, 80, 86, 102, 108, 114, 120, 146,
+152, 158 (anthropic, OpenAI legacy/project, OpenRouter, Google AI, Groq,
+HuggingFace, Replicate, GitHub PAT/fine-grained/OAuth/App, Telegram, Slack,
+Discord). Since urlsafe-base64 uses `[A-Za-z0-9_-]`, a `r8_` or `hf_` sitting
+mid-blob matches. Real case: GPT reasoning signatures inside session
+transcripts.
+
+**What it does NOT do:** it does not miss real tokens. Measured on gitleaks
+8.30.1 with a two-line sample (blob-internal `r8_`, then a realistic
+`REPLICATE_API_TOKEN=r8_…`), the current config reports **both**. The cost is a
+false positive added, not a detection lost — which matters, because a rail that
+cries wolf trains people to reach for the bypass.
+
+**Do not fix it with lookbehind.** `(?<![A-Za-z0-9_-])` makes gitleaks **panic**
+(`invalid named capture`) — it compiles rules with Go `regexp`/RE2, which has no
+lookbehind. The working form is a non-capturing alternation plus an explicit
+secret group:
+
+```toml
+regex = '''(?:^|[^A-Za-z0-9_-])(r8_[a-zA-Z0-9]{20,})'''
+secretGroup = 1
+```
+
+`Match` then keeps the leading delimiter while `Secret` holds the token alone,
+which is what `_scan.sh` prints (`.Secret[0:80]`). No `(?m)` is needed: gitleaks
+scans the stdin stream whole, so `^` covers the first line and every later line
+is preceded by a newline, which already satisfies `[^A-Za-z0-9_-]`. (A rule
+anchored on a bare `^` *would* need `(?m)`.)
+
+**Four traps, each one measured:**
+
+1. **Not a `sed` sweep.** `openrouter` (62) and `github-app` (120) already
+   contain capture groups, so wrapping them shifts what `secretGroup = 1` points
+   at. The boundary alternation must stay non-capturing, and those two need
+   their group numbers re-checked by hand.
+2. **`useDefault = true` does not rescue this.** The default ruleset has no
+   Anthropic / OpenRouter / Groq / HuggingFace / Replicate / Slack / Discord
+   rule at all, so deleting our customs would delete the detection. And the
+   default GitHub PAT/OAuth rules match blob-internal `Xghp_…` / `Xgho_…`
+   themselves — "drop the duplicate custom rule" fixes nothing there. Only
+   Google is a genuine duplicate, and our custom one is the *worse* of the two
+   (it re-introduces a false positive the default does not have).
+3. **The fallback is boundary-less too.** `_scan.sh:248-250` runs a bare ERE
+   when gitleaks is absent. Fixing only the toml silently splits the two paths.
+4. **A left boundary is not zero-FP.** A blob that *begins* with `r8_` right
+   after a delimiter still matches. Anyone promising "fixed" is overselling.
+
+**Trap for whoever writes the test matrix:** do not build fixtures out of
+sequential alphabets. `r8_abcdefghijklmnopqrstuvwxyz0123456789ABCD` is silently
+dropped by the inherited global allowlist — `--log-level=trace` shows
+`skipping finding: global allowlist allowed-stopword=abcdefghijklmnopqrstuvwxyz`.
+A fixture that never fires reads exactly like a rule that works. Use random
+strings.
+
+**Status:** open. The prescription, if it is ever taken up, is per-service and
+not global — fix the customs worth keeping with a start/delimiter/blob-internal/
+UTF-8 matrix each, compare Google and GitHub against default-only before
+deleting anything, and decide the fallback's parity in the same pass.
+Independently reviewed 2026-09-02 (`openai-codex/gpt-5.6-terra`); receipts are
+that review plus the commands above.
+
 ## Installation
 
 Set globally (via nixos-config home-manager):
