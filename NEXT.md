@@ -6,7 +6,7 @@
 # RAIL — 현재 좌표
 
 - [x] **1. 세션 코퍼스 읽기면 착지** — 두 스킬이 device-merged 코퍼스를 읽는다 (`0b01f00`, `v2026.9.2`)
-- [ ] **2. 그 변경의 검수** ← CURRENT: fixture(`01d518e`) · 라이브 코퍼스 실검수(`15e2385`, 결함 2건 수선) → **andenken 골든 대기** → 형제 공지
+- [ ] **2. 그 변경의 검수** ← CURRENT: fixture(`01d518e`) · 실검수(`15e2385`) · 골든 반영(`df49e79`) → **남은 건 형제 공지뿐**
 - [ ] **3. entwurf-peek `trace` 파서 수선** ← PAUSED: `mux-placement` acceptance fixture 대기
 - [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
 
@@ -15,10 +15,10 @@
 # NOW
 
 - **Hot group:** 세션 코퍼스 (아래 [2026-09-02])
-- **Next:** andenken 골든(검색 품질 회귀) 결과가 오면 `semantic-memory` SKILL.md의
-  **기대치 문구**를 판단한다. device 축 문단은 실측으로 이미 넣었다(`15e2385`).
-  그 다음에 형제들에게 공지한다. 골든 숫자를 받기 전에 품질 문구는 고치지 않는다.
-- **Blocker:** andenken 골든 대기(막힌 게 아니라 남의 작업 대기).
+- **Next:** 형제 공지. 검수는 닫혔다 — 골든 30/32(andenken `f048a0a`)를 받아
+  `semantic-memory` 기대치 문구(무-recency 랭킹 · chunk 밀도 · query-echo)와
+  `memory-sync` device authority를 `df49e79`로 반영했다.
+- **Blocker:** 없음. 공지 문구만 쓰면 된다.
 - **Read:** 아래 [2026-09-02] 섹션, `AGENTS.md § semantic-memory → andenken`의 device 축 문단,
   참조 구현은 andenken `session-corpus.test.ts`.
 - **Do not touch:** `~/repos/gh/session`은 git이 아니다(`MANIFEST.sha256`으로 검증되는 데이터 폴더,
@@ -110,6 +110,14 @@
 2. **골든 — andenken 재구축 완료 후.** 그쪽 `pnpm run golden`(검색 품질 회귀) 결과와
    최종 파일수·chunk수·role 분포를 받아, 우리 `semantic-memory` SKILL.md 기대치 문구를
    고칠지 판단한다. 숫자를 받기 전에 문구를 고치지 않는다.
+2b. ~~골든 반영~~ **완료 (`df49e79`, 2026-09-03).** 골든 30/32. 세션 축 실패 1건은
+   assertion(query-echo) 이슈, md 실패 1건은 오늘 작업과 무관(md 인덱스 미변경).
+   품질 문구 세 가지를 실측으로 고쳤다 — recency decay 0(`cli.ts:255`·`index.ts:571`,
+   `retriever.ts:365` 단락), chunk 밀도 75,267/1,609(최대 1,382), query-echo.
+   덤으로 `memory-sync`: 증분 자체는 **device 가드가 없다**(`INDEX_AUTHORITY`는
+   `push_replica` 안에서만 참조 — `sync-sessions.sh:148-154`). 오라클에서 부르면
+   §7.1이 금지한 replica 인덱싱이 조용히 일어난다. 가드는 andenken 소유라 규칙만
+   우리 SKILL.md에 적고 담당자에게 보고했다.
 3. **그 다음에 공지.** 1·2가 닫히기 전에는 형제들에게 "쓰라"고 알리지 않는다.
 
 **검증 기준:** 위 fixture 6항목이 통과하고, `ANDENKEN_SESSION_CORPUS` 유무 양쪽에서 기존
