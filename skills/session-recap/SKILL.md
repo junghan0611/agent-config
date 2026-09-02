@@ -79,7 +79,7 @@ python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
 | `--source` | runtime fallback | `pi`, `claude`, `all`. Unset → Claude Code=claude, every other surface=pi; third surfaces should set explicitly |
 | `--harness` | all | pi-internal filter: `gpt`, `acp`, `all`. Use with `--source pi` or `all` |
 | `--min-kb N` | 300 | Size floor, `size > N*KB`. `0` disables; use it when a real recent GPT/ACP session is below the default floor |
-| `--device NAME` | all | Session-corpus device filter (`oracle`, `thinkpad`). Only meaningful with a corpus configured — see below |
+| `--device NAME` | all | Session-corpus device filter (`oracle`, `thinkpad`). **Implies `--skip 0`** unless you pass `--skip` yourself. Only meaningful with a corpus configured — see below |
 | `--session-file PATH` | — | **Exact selection.** One absolute `.jsonl` path. Bypasses every discovery filter; cannot be combined with any of them |
 
 ### Session corpus — other machines' sessions
@@ -88,6 +88,16 @@ python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
 points at the gathered corpus, where every device's sessions live under
 `<corpus>/<device>/` keeping the runtime's own path shape. Unset → live stores only,
 exactly as before.
+
+**The variable is the switch; `~/.env.local` is its SSOT.** When the variable is
+*absent* from the process environment, recap reads that one key out of the file
+before giving up. A process environment is captured once at login, so a line added
+to `.env.local` afterwards is invisible to every session, daemon and agent that
+started earlier — measured 2026-09-03, a shell carried every other
+`ANDENKEN_SESSION_*` but not `ANDENKEN_SESSION_CORPUS`, and the corpus was silently
+off while `semantic-memory` kept returning corpus paths that `--session-file` then
+refused. Setting the variable to the empty string (`export ANDENKEN_SESSION_CORPUS=`)
+is still a deliberate live-only opt-out and wins over the file.
 
 **Discovery reads live ∪ corpus, not corpus instead of live.** andenken's indexer
 replaces the live stores because `sync-sessions.sh` gathers first and so owns the
@@ -106,6 +116,25 @@ The header shows provenance as `[claude@oracle]` / `[pi:gpt@oracle]`; live sessi
 no `@` suffix. **A device says where a session was collected, not where it was created.**
 The two machines exchanged an `rsync -a` with mtimes preserved, so origin is not
 recoverable — use it to label and filter, never to rank.
+
+### `--device` — what it selects, and why it skips nothing
+
+`--device` filters before the dedupe fold, so it names *the copy under that device*,
+not "the winner that happened to come from there". Two consequences, both measured
+2026-09-03 on the live corpus:
+
+- **On this machine, `--device thinkpad` is the corpus copy, not the live one.** Of
+  2,575 discovered sessions the winning copy was live for 2,106 and `oracle` for 469
+  — **zero** thinkpad-corpus winners, because a live transcript is always at least as
+  large as its gathered copy. `--device thinkpad` is therefore how you reach a
+  session that was *deleted from the live store* and survives only in the append-only
+  corpus; for anything still live it just names the other copy of the same session.
+- **`--device` implies `--skip 0`.** `--skip 1` exists to drop "the session being
+  written right now", identified as newest mtime. That session is in the *live* store
+  and carries no device, so it can never appear in a device-filtered list — skipping
+  one there throws away the other machine's genuine newest session instead. Measured:
+  `-p agent-config --device oracle` hid the 2026-09-02T19:08 session (`69f08580`)
+  entirely until `--skip 0`. An explicit `--skip N` is still honoured.
 
 ## Exact selection — `--session-file`
 

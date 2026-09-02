@@ -53,7 +53,8 @@ ls -lt ~/.pi/agent/sessions/ | head
 ```
 
 This is the **live store on this machine**. Another device's sessions live in the
-gathered corpus (`$ANDENKEN_SESSION_CORPUS/<device>/…`, unset → live only);
+gathered corpus (`$ANDENKEN_SESSION_CORPUS/<device>/…`, unset → live only, and the
+variable's SSOT is `~/.env.local` which the skill also reads);
 `session-recap --device <name>` reaches them without a path by hand.
 
 ## 1. The live board — who else is here
@@ -130,6 +131,20 @@ Lead your reply with the header of what you actually read:
 대상 세션: ═══ <project> [claude] (...) ═══ + ═══ <project> [pi:gpt] (...) ═══
 ```
 
+### 2.6 Device axis — the recap may already be another machine's
+
+Both machines' sessions now sit in one union, so a §2 header can come back as
+`[claude@oracle]` / `[pi:gpt@oracle]`. That suffix is **collection provenance, not
+origin and not a ranking signal** — carry it into §6 verbatim rather than flattening
+it, because "어제 그거" may have happened on the other machine.
+
+The two default recaps stay device-blind on purpose: recency across both devices is
+the honest return lane. Reach for `--device <name>` only when the operator asks about
+a specific machine, and know two things about it — it implies `--skip 0` (the current
+session is live, so it is never in a device-filtered list), and on this machine
+`--device thinkpad` names the *corpus copy*, which for a still-live session is a
+duplicate view rather than a new find. See `session-recap` SKILL.md § `--device`.
+
 ### 2.5 Conscious markers
 
 ```bash
@@ -162,6 +177,15 @@ retrieve poorly; that is why the two-step strategy in `AGENTS.md` exists.
 To read the turns around a session hit, stay in this tool — `--with-excerpt`. To restore
 the *whole* session a hit came from, hand its `file` to `session-recap --session-file`.
 The path joins; the `line` does not.
+
+Since the unified corpus went live, **every** returned `file` is a corpus path
+(`~/repos/gh/session/<device>/…`), including this machine's own older sessions — the
+index was built from the corpus, not from a live store. Measured 2026-09-03 by reading
+`andenken/data/session-manifest.json`: 1,609 of 1,609 indexed paths are corpus paths
+(oracle 1,017 / thinkpad 592), zero live-store paths. `--session-file` accepts
+those. If it answers `must be under ~/.pi/agent/sessions or ~/.claude/projects`, the
+corpus root did not resolve on the recap side; say so rather than falling back to
+reading the JSONL by hand.
 
 If a returned session path is already covered by §2, its new-information value is near
 zero — say so in §6 in one clause and move on. That is a reporting decision, not a reason

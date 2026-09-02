@@ -380,6 +380,101 @@ class SessionCorpusTest(unittest.TestCase):
 
         self.assertEqual(recap.dedupe_by_basename(items), [items[1]])
 
+    def write_env_local(self, value: str = None):
+        """`~/.env.local` under the temp HOME, holding only the corpus line."""
+        if value is None:
+            value = str(self.corpus)
+        self.corpus.mkdir(parents=True, exist_ok=True)
+        env_file = self.home / ".env.local"
+        env_file.parent.mkdir(parents=True, exist_ok=True)
+        env_file.write_text(
+            "export UNRELATED_KEY=nope\n"
+            f'export {recap.CORPUS_ENV}="{value}"   # trailing comment\n'
+        )
+        return env_file
+
+    def test_env_file_supplies_corpus_when_the_variable_is_absent(self):
+        """A login-captured env predating the .env.local line must not disable it.
+
+        The variable is only *absent* here — never set — which is exactly the
+        stale-session case measured 2026-09-03.
+        """
+        self.write_env_local()
+        self.corpus_pi_file("oracle")
+
+        self.assertEqual(recap.corpus_root(), self.corpus)
+        self.assertEqual(
+            recap.get_sessions_dirs("pi"),
+            [
+                (self.home / ".pi" / "agent" / "sessions", "pi", None),
+                (self.corpus / "oracle" / ".pi" / "agent" / "sessions", "pi", "oracle"),
+            ],
+        )
+
+    def test_env_file_expands_home_and_reads_only_the_corpus_key(self):
+        self.write_env_local("$HOME/../corpus")
+        root = recap.corpus_root()
+        self.assertIsNotNone(root)
+        self.assertEqual(root.resolve(), self.corpus.resolve())
+
+    def test_explicitly_empty_variable_beats_the_env_file(self):
+        """`export ANDENKEN_SESSION_CORPUS=` is a deliberate live-only opt-out."""
+        self.write_env_local()
+        self.corpus_pi_file("oracle")
+        os.environ[recap.CORPUS_ENV] = ""
+
+        self.assertIsNone(recap.corpus_root())
+        self.assertEqual(
+            recap.get_sessions_dirs("pi"),
+            [(self.home / ".pi" / "agent" / "sessions", "pi", None)],
+        )
+
+    NATIVE_A = "2026-08-10T06-20-36-243Z_019fea54-8813-7905-9a89-f777aba5c3ef.jsonl"
+    NATIVE_B = "2026-08-11T06-20-36-243Z_019fea54-8813-7905-9a89-f777aba5c3f0.jsonl"
+
+    def cli_paths(self, *args: str) -> list[str]:
+        """Session paths the CLI actually selected, via --format json."""
+        result = self.run_cli(*args, "--format", "json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return [s["meta"]["path"] for s in json.loads(result.stdout)]
+
+    def test_device_filter_defaults_skip_to_zero(self):
+        """--device must not lose its newest session to the current-session skip.
+
+        The current session lives in the *live* store and carries no device, so a
+        device-filtered list can never contain it; `--skip 1` would drop the real
+        newest hit instead. Measured 2026-09-03 on the live corpus: `--device
+        oracle` hid the 09-02T19:08 session (69f08580) until `--skip 0`.
+        """
+        self.enable_corpus()
+        newest = self.corpus_pi_file("oracle", self.NATIVE_B)
+        older = self.corpus_pi_file("oracle", self.NATIVE_A)
+        os.utime(older, (1_600_000_000, 1_600_000_000))
+        os.utime(newest, (1_700_000_000, 1_700_000_000))
+
+        common = ("-p", "agent-config", "--source", "pi", "--device", "oracle",
+                  "-s", "5", "--min-kb", "0")
+        self.assertEqual(
+            self.cli_paths(*common), [str(newest), str(older)]
+        )
+        self.assertEqual(
+            self.cli_paths(*common, "--skip", "1"), [str(older)]
+        )
+
+    def test_no_device_keeps_the_current_session_skip(self):
+        self.enable_corpus()
+        live = self.live_pi.with_name(self.NATIVE_A)
+        ExactSessionFileTest._write_pi(live)
+        corpus = self.corpus_pi_file("oracle", self.NATIVE_B)
+        os.utime(corpus, (1_600_000_000, 1_600_000_000))
+        os.utime(live, (1_700_000_000, 1_700_000_000))
+
+        self.assertEqual(
+            self.cli_paths("-p", "agent-config", "--source", "pi",
+                           "-s", "5", "--min-kb", "0"),
+            [str(corpus)],
+        )
+
     def test_exact_accepts_live_and_corpus_and_labels_only_corpus(self):
         self.enable_corpus()
         corpus_file = self.corpus_pi_file("oracle")

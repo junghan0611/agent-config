@@ -17,7 +17,7 @@ the table omits this prefix.
 | Meaning in known slice | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode hybrid --limit 5` | Structured filters first, semantic rank second. |
 | Public-garden concept | `search-md "query" --limit 5` | Choose a document and open its path; `--full` widens snippets. |
 | Exact title/tag/person | `denotecli search "name" --max 5` | Semantic neighbors never prove exact existence. |
-| Chosen session context | `search-sessions "query" --with-excerpt --excerpt-limit 1` | Surrounding turns; raise to at most 3. Whole session: `session-recap --session-file <file>`. |
+| Chosen session context | `search-sessions "query" --with-excerpt --excerpt-limit 1` | Surrounding turns; raise to at most 3. Whole session: `session-recap --session-file <file>` — the `file` is a corpus path and joins as-is. |
 | Health / maintenance | `status` · `memory-sync` · `andenken-embed` | Check freshness; full maintenance is human-gated. |
 
 ## Eight operating rules
@@ -56,6 +56,26 @@ hits are thin. Keep tracks separate and never compare their scores.
 `recent` is a timestamp-DESC stored scan with no embedding/BM25/dictcli call.
 These options are for `search-sessions`; `search-md` accepts query, limit, and
 `--full` only. Convert natural-language KST dates to ISO in the caller.
+
+## Device axis — one index, two machines
+
+The session index is built from the **gathered corpus**, not from one machine's live
+store, so results mix thinkpad and oracle work and a query from either machine can
+recover the other's. Measured 2026-09-03 by reading
+`andenken/data/session-manifest.json`: 1,609 of 1,609 indexed paths are corpus paths
+(oracle 1,017 / thinkpad 592), zero live-store paths.
+
+- **There is no `--device` option here, by design** — no schema gained a device
+  column. The device is the segment after the corpus root in the returned `file`
+  (`~/repos/gh/session/<device>/…`). Read it there when provenance matters.
+- The device says where a session was **collected**, not where it was created (the
+  machines exchanged an `rsync -a` with mtimes preserved). Label with it; never rank
+  or date with it.
+- The returned `file` is exactly what `session-recap --session-file` takes — that
+  seam is the reason no path is ever assembled by hand. `session-recap --device
+  <name>` is the place a device *filter* exists.
+- A hit whose path lives under the other device is normal now, not a bug report. Say
+  which machine it came from when you quote it.
 
 ## Boundaries
 

@@ -19,7 +19,10 @@ to* the live stores — the corpus keeps each runtime's path shape under
 `<corpus>/<device>/`, so the other machine's sessions for the same project are found by
 the same mangled-cwd lookup. Copies held by both devices are folded by basename (larger
 file wins, size tie → lexicographically smaller path), so a pattern count never sees one
-conversation twice. Unset → live stores only. A device records where a session was
+conversation twice. Unset → live stores only; the variable is the switch and `~/.env.local` is its SSOT, so
+that one key is read out of the file when the variable is *absent* from the environment
+(a login-captured env predating the line would otherwise disable the corpus silently —
+measured 2026-09-03). A device records where a session was
 **collected**, not where it was created — do not weight by it.
 
 ## How It Works

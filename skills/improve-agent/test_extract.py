@@ -200,12 +200,18 @@ class TestSessionCorpus(unittest.TestCase):
         self.had_corpus_env = ex.CORPUS_ENV in os.environ
         self.old_corpus_env = os.environ.get(ex.CORPUS_ENV)
         os.environ.pop(ex.CORPUS_ENV, None)
+        # Point the .env.local fallback at the fixture too, or an unset-variable
+        # test silently consults the operator's real file.
+        self.old_env_file = ex.ENV_FILE_NAME
+        self.env_file = os.path.join(self.tempdir.name, "env.local")
+        ex.ENV_FILE_NAME = self.env_file
         ex._FORMAT_CACHE.clear()
         ex._START_CACHE.clear()
 
     def tearDown(self):
         ex.PI_BASE = self.old_pi_base
         ex.CLAUDE_BASE = self.old_claude_base
+        ex.ENV_FILE_NAME = self.old_env_file
         if self.had_corpus_env:
             os.environ[ex.CORPUS_ENV] = self.old_corpus_env
         else:
@@ -230,7 +236,39 @@ class TestSessionCorpus(unittest.TestCase):
         os.makedirs(path, exist_ok=True)
         return path
 
+    def write_env_local(self, value=None):
+        """Fixture `.env.local` holding only the corpus line."""
+        if value is None:
+            value = self.corpus
+        os.makedirs(self.corpus, exist_ok=True)
+        with open(self.env_file, "w") as f:
+            f.write("export UNRELATED_KEY=nope\n")
+            f.write('export %s="%s"   # trailing comment\n' % (ex.CORPUS_ENV, value))
+
     def test_unset_corpus_keeps_live_discovery_only(self):
+        self.assertEqual(ex.find_sessions_dirs(self.project, "pi"), [self.live_pi])
+
+    def test_env_file_supplies_corpus_when_the_variable_is_absent(self):
+        """A login-captured env predating the .env.local line must not disable it.
+
+        Measured 2026-09-03: a shell carried every other ANDENKEN_SESSION_* but
+        not ANDENKEN_SESSION_CORPUS, the line added that afternoon.
+        """
+        self.write_env_local()
+        oracle = self.corpus_dir("oracle", "pi")
+
+        self.assertEqual(ex.corpus_root(), self.corpus)
+        self.assertEqual(
+            ex.find_sessions_dirs(self.project, "pi"), [self.live_pi, oracle]
+        )
+
+    def test_explicitly_empty_variable_beats_the_env_file(self):
+        """`export ANDENKEN_SESSION_CORPUS=` is a deliberate live-only opt-out."""
+        self.write_env_local()
+        self.corpus_dir("oracle", "pi")
+        os.environ[ex.CORPUS_ENV] = ""
+
+        self.assertIsNone(ex.corpus_root())
         self.assertEqual(ex.find_sessions_dirs(self.project, "pi"), [self.live_pi])
 
     def test_corpus_devices_ignore_metadata_and_add_project_candidates(self):

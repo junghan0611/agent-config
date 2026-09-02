@@ -102,11 +102,48 @@ CLAUDE_BASE = os.path.expanduser("~/.claude/projects")
 #   <corpus>/oracle/.claude/projects/-home-junghan-repos-gh-andenken/…
 # Unset (or pointing nowhere) means live stores only — same behaviour as before.
 CORPUS_ENV = "ANDENKEN_SESSION_CORPUS"
+ENV_FILE_NAME = "~/.env.local"
+
+
+def _corpus_from_env_file() -> str:
+    """Read just the corpus value out of `~/.env.local` ("" when absent).
+
+    A process environment is captured once at login, so a line added to
+    `.env.local` afterwards is invisible to every session, daemon and agent that
+    started before it — measured 2026-09-03: a shell carried every other
+    `ANDENKEN_SESSION_*` but not `ANDENKEN_SESSION_CORPUS`, the line added that
+    afternoon. The corpus then switches itself off silently. Other consumers in
+    this repo read `.env.local` directly for the same reason (`ENV-SETUP.md`).
+
+    An explicitly empty key (`export ANDENKEN_SESSION_CORPUS=`) is a deliberate
+    live-only opt-out, so the caller never reaches this function for that case.
+    """
+    try:
+        with open(os.path.expanduser(ENV_FILE_NAME), encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return ""
+    value = ""
+    for line in text.splitlines():
+        m = re.match(rf"\s*(?:export\s+)?{CORPUS_ENV}=(.*)$", line)
+        if m:
+            value = m.group(1).strip().split("#")[0].strip().strip("\"'")
+    # Only `$HOME`/`${HOME}` are expanded — never arbitrary shell expansion.
+    home = os.path.expanduser("~")
+    return value.replace("${HOME}", home).replace("$HOME", home)
 
 
 def corpus_root() -> str | None:
-    """Corpus root, or None when unset / not a directory."""
-    raw = os.environ.get(CORPUS_ENV, "").strip()
+    """Corpus root, or None when unset / not a directory.
+
+    The env var is the switch; `~/.env.local` is its SSOT, so the file is
+    consulted only when the variable is **absent** from the environment
+    (see `_corpus_from_env_file` for the stale-env case that motivates it).
+    """
+    if CORPUS_ENV in os.environ:
+        raw = os.environ[CORPUS_ENV].strip()
+    else:
+        raw = _corpus_from_env_file().strip()
     if not raw:
         return None
     root = os.path.expanduser(raw)

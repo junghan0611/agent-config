@@ -139,19 +139,56 @@ def _extract_project(dirname: str) -> str:
 
 
 CORPUS_ENV = "ANDENKEN_SESSION_CORPUS"
+ENV_FILE_NAME = "~/.env.local"
+
+
+def _corpus_from_env_file() -> str:
+    """`~/.env.local` 에서 코퍼스 값 하나만 읽는다 (없으면 빈 문자열).
+
+    프로세스 env 가 SSOT 파일보다 오래된 경우를 위한 폴백이다. 환경변수는
+    로그인 시점에 한 번 캡처되므로, `.env.local` 에 코퍼스 줄이 추가된 뒤
+    **그 전에 시작된 세션·데몬·에이전트는 영영 그 값을 못 본다** — 측정
+    2026-09-03: 이 셸에 `ANDENKEN_SESSION_*` 는 있는데
+    `ANDENKEN_SESSION_CORPUS` 만 없었다(17:09 에 추가된 줄). 그러면 코퍼스가
+    조용히 꺼져 `--session-file` 이 semantic-memory 가 준 코퍼스 경로를 전부
+    거절한다. 이 repo 의 다른 소비자(memory-sync·transcribe 등)도 같은 이유로
+    `.env.local` 을 직접 읽는다 (`ENV-SETUP.md`).
+
+    키를 **빈 값으로 명시**한 경우(`export ANDENKEN_SESSION_CORPUS=`)는 의도된
+    라이브 전용이므로 호출자가 여기까지 오지 않는다.
+    """
+    try:
+        env_file = Path(os.path.expanduser(ENV_FILE_NAME))
+        text = env_file.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    value = ""
+    for line in text.splitlines():
+        m = re.match(rf"\s*(?:export\s+)?{CORPUS_ENV}=(.*)$", line)
+        if m:
+            value = m.group(1).strip().split("#")[0].strip().strip("\"'")
+    # `$HOME`/`${HOME}`/`~` 만 편다 — 임의 셸 확장은 하지 않는다.
+    home = os.path.expanduser("~")
+    value = value.replace("${HOME}", home).replace("$HOME", home)
+    return value
 
 
 def corpus_root() -> Path | None:
     """세션 코퍼스 루트. 미설정이거나 디렉토리가 아니면 None.
 
-    andenken 과 **같은 환경변수 하나**를 읽는다 (`~/.env.local`). 코퍼스는 라이브
-    경로 앞에 `<device>` 한 마디만 덧댄 모양이라, 아래 discovery/resolve 는 루트를
-    더하는 것으로 끝난다:
+    andenken 과 **같은 환경변수 하나**를 읽는다. 그 변수의 SSOT 는
+    `~/.env.local` 이므로, 변수가 프로세스 env 에 **아예 없을 때만** 그 파일을
+    한 번 더 본다 (`_corpus_from_env_file` docstring 의 stale-env 사례).
+    코퍼스는 라이브 경로 앞에 `<device>` 한 마디만 덧댄 모양이라, 아래
+    discovery/resolve 는 루트를 더하는 것으로 끝난다:
 
       <corpus>/oracle/.pi/agent/sessions/--home-junghan-repos-gh-andenken--/…
       <corpus>/oracle/.claude/projects/-home-junghan-repos-gh-andenken/…
     """
-    raw = os.environ.get(CORPUS_ENV, "").strip()
+    if CORPUS_ENV in os.environ:
+        raw = os.environ[CORPUS_ENV].strip()
+    else:
+        raw = _corpus_from_env_file().strip()
     if not raw:
         return None
     root = Path(os.path.expanduser(raw))
@@ -639,6 +676,8 @@ def main():
         "--device", default=None, metavar="NAME",
         help="세션 코퍼스 디바이스 필터 (예: oracle, thinkpad). "
              "ANDENKEN_SESSION_CORPUS 가 설정된 경우에만 의미가 있다. "
+             "명시적 --skip 이 없으면 skip 기본값이 0 이 된다 (현재 세션은 라이브라 "
+             "device 필터에 애초에 안 걸린다). "
              "주의: device 는 '어디서 수집됐는가'이지 '어디서 만들어졌는가'가 아니다"
     )
     parser.add_argument(
@@ -690,7 +729,14 @@ def main():
     else:
         source = args.source if args.source else _default_source()
         harness = args.harness if args.harness else "all"
-        skip = args.skip if args.skip is not None else 1
+        # --device 는 skip 기본값을 0 으로 바꾼다. `--skip 1` 은 "지금 쓰이고 있는
+        # 세션 = mtime 최신" 하나를 버리는 장치인데, 현재 세션은 이 기계의 **라이브**
+        # 저장소에 있고 device 가 없어 어떤 --device 값에도 안 걸린다. 그래서 device
+        # 필터를 건 목록의 맨 위는 항상 남의 기기의 *진짜* 최신 세션이고, 거기에 1 을
+        # 건너뛰면 그걸 버린다. 측정 2026-09-03: `-p agent-config --device oracle` 이
+        # 09-02T19:08 세션(69f08580)을 떨궜고 `--skip 0` 에서만 나왔다.
+        # 명시적 --skip 은 그대로 존중한다.
+        skip = args.skip if args.skip is not None else (0 if args.device else 1)
         min_kb = args.min_kb if args.min_kb is not None else DEFAULT_MIN_KB
         sessions = args.sessions if args.sessions is not None else 1
 
