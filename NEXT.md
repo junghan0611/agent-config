@@ -6,7 +6,7 @@
 # RAIL — 현재 좌표
 
 - [x] **1. 세션 코퍼스 읽기면 착지** — 두 스킬이 device-merged 코퍼스를 읽는다 (`0b01f00`, `v2026.9.2`)
-- [ ] **2. 그 변경의 검수** ← CURRENT: fixture 6항목 → andenken 골든 → 형제 공지
+- [ ] **2. 그 변경의 검수** ← CURRENT: fixture 닫힘(`01d518e`) → **andenken 골든 대기** → 형제 공지
 - [ ] **3. entwurf-peek `trace` 파서 수선** ← PAUSED: `mux-placement` acceptance fixture 대기
 - [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
 
@@ -15,10 +15,9 @@
 # NOW
 
 - **Hot group:** 세션 코퍼스 (아래 [2026-09-02])
-- **Next:** (1) fixture 6항목을 `test-session-recap.py` / `test_extract.py`에 붙인다 →
-  (2) andenken 재구축 수치가 오면 골든으로 `semantic-memory` SKILL.md 기대치 판단 →
-  (3) 그 다음에 형제들에게 공지
-- **Blocker:** none. (2)는 andenken 재구축 대기이지 막힌 게 아니다 — (1)은 지금 할 수 있다.
+- **Next:** andenken 재구축 수치가 오면 골든으로 `semantic-memory` SKILL.md 기대치를 판단하고,
+  그 다음에 형제들에게 공지한다. 숫자를 받기 전에 문구를 고치지 않는다.
+- **Blocker:** andenken 재구축 대기(막힌 게 아니라 남의 작업 대기). 이쪽에서 지금 할 것은 없다.
 - **Read:** 아래 [2026-09-02] 섹션, `AGENTS.md § semantic-memory → andenken`의 device 축 문단,
   참조 구현은 andenken `session-corpus.test.ts`.
 - **Do not touch:** `~/repos/gh/session`은 git이 아니다(`MANIFEST.sha256`으로 검증되는 데이터 폴더,
@@ -28,8 +27,9 @@
 # ACTIVE
 
 ## 세션 코퍼스 — 검수 (아래 [2026-09-02])
-- Current: 코드는 들어갔고 테스트는 0줄. 라이브 실측만 있고 fixture가 없다.
-- Verify: 코퍼스 유무 양쪽에서 기존 테스트(recap 17 / extract 8)가 그대로 통과할 것.
+- Current: fixture 닫힘(`01d518e`, recap 17→22 / extract 8→12). 남은 건 골든뿐이다.
+- Verify: 세 규칙은 변이 테스트로 이빨을 확인했다 — 동률 사전순 / `corpus_devices` 디렉터리 필터 /
+  라이브 ∪ 코퍼스, 각각을 지우면 정확히 새 테스트 하나가 빨개진다.
 
 ## entwurf-peek — `trace`만 남았다 (아래 [2026-08-07] · [2026-08-06])
 - Current: `situation`은 `0259f19`로 착지, entwurf #64가 caller-side projection으로 승인.
@@ -75,7 +75,7 @@
 
 **막힌 데가 아니라 안 한 것 — 지금 사실:**
 
-- **새 코드에 테스트가 0줄이다.** 측정 2026-09-02:
+- ~~새 코드에 테스트가 0줄이다~~ — 닫힘(`01d518e`). 당시 측정 2026-09-02:
   `grep -c "corpus\|device" skills/session-recap/scripts/test-session-recap.py` → **0**,
   `skills/improve-agent/test_extract.py` → **0**. 기존 테스트는 통과한다(recap 17/17,
   extract 8/8) — 그러나 그건 코퍼스가 없던 시절의 계약만 지킨다. `corpus_root` /
@@ -88,11 +88,10 @@
 
 **다음 한 걸음 (순서대로):**
 
-1. **fixture 테스트를 붙인다.** andenken `session-corpus.test.ts`가 같은 계약을 반대편에서
-   검증하므로 그것을 참조 구현으로 읽고, 우리 쪽은 tmp HOME + tmp 코퍼스로 짠다. 최소 항목:
-   env 미설정 시 라이브만 / 코퍼스 device 열거가 파일(MANIFEST.json 등)을 세지 않을 것 /
-   같은 basename의 큰 쪽이 이길 것 / 크기 동률 시 경로 사전순 / device 라벨이 코퍼스에만
-   붙을 것 / `--session-file`이 코퍼스 경로를 받고 라이브 경로도 계속 받을 것.
+1. ~~fixture 테스트~~ **완료 (`01d518e`, 2026-09-02).** recap 17→22 / extract 8→12, 전부 tmp
+   HOME + tmp 코퍼스. env 미설정 / 실제 코퍼스 / 빈 tmp 코퍼스 세 조건에서 통과한다. 세 규칙
+   (동률 사전순 · `corpus_devices` 디렉터리 필터 · 라이브 ∪ 코퍼스)은 변이 테스트로 이빨을
+   확인했다. **"한 번도 안 밟힌 분기 아니냐"는 의심은 여기서 닫혔다.**
 2. **골든 — andenken 재구축 완료 후.** 그쪽 `pnpm run golden`(검색 품질 회귀) 결과와
    최종 파일수·chunk수·role 분포를 받아, 우리 `semantic-memory` SKILL.md 기대치 문구를
    고칠지 판단한다. 숫자를 받기 전에 문구를 고치지 않는다.
