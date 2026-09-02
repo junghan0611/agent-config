@@ -53,15 +53,17 @@ once already (2026-06-19→07-06, replica 27,966 chunks against the canonical 24
 Both halves are now gated, and the gate is the script's, not this page's:
 
 - **The increment refuses on a non-authority device** — before the dim preflight, the
-  embedding and any DB write, so a refused run costs nothing
-  (`andenken/scripts/sync-sessions.sh:118-132`, read 2026-09-03). It is also *after*
-  Step 0, so a refused call on oracle still contributes oracle's sessions to the
-  corpus, which is the half that machine is supposed to do.
-- **`--push` refuses on the same test** (`:177-182`), protecting the canonical index
-  from being overwritten by an older copy.
+  embedding and any DB write, so a refused run costs nothing. The gate is the
+  `INDEX_AUTHORITY` test in `andenken/scripts/sync-sessions.sh`, sitting between the
+  gather and Step 1 (read 2026-09-03; grep the name rather than trusting a line
+  number across repos). Being *after* Step 0 is deliberate: a refused call on oracle
+  has already gathered, which is the half that machine is supposed to do.
+- **`--push` refuses on the same test** inside `push_replica`, protecting the
+  canonical index from being overwritten by an older copy.
 - Escape hatch: `ANDENKEN_ALLOW_REPLICA_INDEX=1` for one run, or move the authority
   with `ANDENKEN_INDEX_AUTHORITY`. Both fork the corpus — do not reach for either to
-  make a refusal go away.
+  make a refusal go away. **Neither is a way to catch up**: catching up is the
+  authority's next run, and a fork is the one state no later push can reconcile.
 - **A refusal is not a stale replica.** This machine's sessions still get indexed:
   they travel to the authority as source files via the gather and come back inside
   the pushed index. If oracle's recall feels stale, the fix is a push from thinkpad.
