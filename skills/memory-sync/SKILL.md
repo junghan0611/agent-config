@@ -55,8 +55,8 @@ Both halves are now gated, and the gate is the script's, not this page's:
 - **The increment refuses on a non-authority device** — before the dim preflight, the
   embedding and any DB write, so a refused run costs nothing. The gate is the
   `INDEX_AUTHORITY` test in `andenken/scripts/sync-sessions.sh`, sitting between the
-  gather and Step 1 (read 2026-09-03; grep the name rather than trusting a line
-  number across repos). Being *after* Step 0 is deliberate: a refused call on oracle
+  gather and Step 1 (andenken `v2026.9.3`; grep the name rather than trusting a line
+  number across repos — a tag is the anchor that survives the trip). Being *after* Step 0 is deliberate: a refused call on oracle
   has already gathered, which is the half that machine is supposed to do.
 - **`--push` refuses on the same test** inside `push_replica`, protecting the
   canonical index from being overwritten by an older copy.

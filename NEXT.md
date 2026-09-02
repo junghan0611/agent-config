@@ -15,14 +15,15 @@
 # NOW
 
 - **Hot group:** 세션 코퍼스 (아래 [2026-09-02])
-- **Next:** 형제 공지. 검수는 닫혔다 — 골든 30/32(andenken `f048a0a`)를 받아
-  `semantic-memory` 기대치 문구(무-recency 랭킹 · chunk 밀도 · query-echo)와
-  `memory-sync` device authority를 `df49e79`로 반영했다.
-- **Blocker:** 없음 — 다만 **공지 순서**가 andenken 푸시에 묶여 있다. 오라클 코드는
-  아직 `14ccdc5`라 `--push` 가드도 인덱싱 가드도 **둘 다 없다**. GLG 승인 → andenken
-  푸시 → 오라클 pull 이 끝나기 전에는 공지하지 않는다. 그 전까지 유일한 방어는
-  "오라클에서 `sync:sessions`/`/memory-sync`를 부르지 않는다"이며, 이건 andenken
-  담당자가 GLG 아침 결정 항목에 올려뒀다.
+- **Next:** 형제 공지. 검수·문서는 닫혔고(`b3d8d01`까지 푸시됨) **공지 창도 열렸다.**
+  문서면 자체는 이미 공지다 — `AGENTS.md § device 축`을 모든 형제가 읽는다.
+  남은 건 GLG가 직접 부를 브로드캐스트뿐이라 여기서 일방 발신하지 않는다.
+- **Blocker:** 없음. 순서 게이트가 풀렸다 — 오라클이 `v2026.9.3`(`501cfe8`)로 올라와
+  인덱싱 가드가 실렸다 (확인 2026-09-03 06:15, `ssh oracle git log -1` + `describe --tags`,
+  `ANDENKEN_ALLOW_REPLICA_INDEX` 2회 출현). 즉 "오라클에서 `sync:sessions`/`/memory-sync`를
+  부르지 않는다"는 **더 이상 유일한 방어가 아니다** — 스크립트가 막고, gather는 마친 뒤
+  인덱싱만 거절한다(andenken 담당자가 오라클에서 실행 확인). 공지에 이 사실을 넣어도 된다:
+  실수로 불러도 코퍼스는 포크되지 않는다.
 - **Read:** 아래 [2026-09-02] 섹션, `AGENTS.md § semantic-memory → andenken`의 device 축 문단,
   참조 구현은 andenken `session-corpus.test.ts`.
 - **Do not touch:** `~/repos/gh/session`은 git이 아니다(`MANIFEST.sha256`으로 검증되는 데이터 폴더,
