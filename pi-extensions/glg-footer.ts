@@ -15,6 +15,9 @@ import type { AssistantMessage } from "@mariozechner/pi-ai";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 
+type AcpTokenAccounting = Pick<AssistantMessage["usage"], "input" | "output" | "cacheRead" | "cacheWrite">;
+type UsageWithAcpAccounting = AssistantMessage["usage"] & { acp?: AcpTokenAccounting };
+
 const FLAGS = {
 	tokenStats: false,        // ↑input ↓output Rcache Wcache
 	turnTimes: true,          // last GLG / pi message times, KST HH:MM:SS
@@ -98,10 +101,11 @@ export default function (pi: ExtensionAPI) {
 					for (const e of ctx.sessionManager.getEntries()) {
 						if (e.type === "message" && e.message.role === "assistant") {
 							const m = e.message as AssistantMessage;
-							totalInput += m.usage.input;
-							totalOutput += m.usage.output;
-							totalCacheRead += m.usage.cacheRead;
-							totalCacheWrite += m.usage.cacheWrite;
+							const usage = (m.usage as UsageWithAcpAccounting).acp ?? m.usage;
+							totalInput += usage.input;
+							totalOutput += usage.output;
+							totalCacheRead += usage.cacheRead;
+							totalCacheWrite += usage.cacheWrite;
 							totalCost += m.usage.cost.total;
 						}
 					}
@@ -152,11 +156,10 @@ export default function (pi: ExtensionAPI) {
 								(rates.input / 1e6) * (totalInput + totalCacheRead + totalCacheWrite) +
 								(rates.output / 1e6) * totalOutput;
 							const ratio = nocache / totalCost;
-							// ACP provider sessions currently report all four usage fields (input,
-							// output, cacheRead, cacheWrite) as 0, not just the cache ones
-							// (entwurf#93). That drives both nocache and ratio to 0, and the
-							// `ratio > 0` guard below then suppresses the whole badge — no badge,
-							// not a false ×1.0 or a false ×0.0, is the honest state until it lands.
+							// ACP sessions keep pi's four per-request fields at zero (entwurf#93),
+							// but carry their turn accounting aggregate on usage.acp. The accumulation
+							// above prefers that aggregate, so nocache and ratio remain meaningful
+							// without feeding a multi-request total back into pi's context readers.
 							if (Number.isFinite(ratio) && ratio > 0) {
 								const withNocache = `${actualText} ($${nocache.toFixed(3)})`;
 								costVariants.push(withNocache);
