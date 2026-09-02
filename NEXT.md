@@ -3,27 +3,63 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-> NOW: active ⓪ **세션 코퍼스 — 스킬 두 개를 고쳤는데 그 코드에 테스트가 0줄이다** (아래 [2026-09-02]),
-> ⓪ʹ **entwurf-peek — `situation`은 착지(`0259f19`), `trace` 파서만 재료 대기.**
-> record 기반 판단면은 열렸고 entwurf #64가 caller-side projection으로 승인했다. 남은 것은
-> `trace`의 nonce→sender-envelope 수선이고 fixture는 `mux-placement` acceptance 산출물로만
-> 한다 — **임의 샘플 금지** (아래 [2026-08-07] · [2026-08-06]),
-> ① **Solar Open 2 계정 승인 대기** (아래 [2026-07-30], issue #17),
-> ①ʹ **Hermes 벤치마크 — 설치만 끝나고 한 줄도 재지 않았다.** 검수 매트릭스는
-> `HERMES.md`(아래 [2026-08-06] Hermes). 본체는 D축(자기학습 루프) 비교,
-> ② **dictcli provenance 공백 + oracle(aarch64) GraalVM 확인**,
-> ③ 설치면 소유 경계 — entwurf 이관 옛 소유자 cleanup (issue #46),
-> ④ pi-chat Add-group blocker, ⑤ gogcli 재인증 마무리(선택 — 아래 [2026-07-02]).
-> ⑥ **턴 시각 축** — pi 푸터는 닫혔고 Claude Code 쪽은 목표만 적혀 있다(아래 [2026-08-25]).
-> `v2026.8.10`으로 닫힘: exact session selector, UUIDv7 discovery, record-backed situation,
-> 양 하네스+semantic 두 축을 함께 보는 `/recall` 복귀 편집실, fresh steward 호출 경계.
-> `v2026.8.7`로 닫힘: `background-bash`(느린 명령 걸고 턴 종료 → 끝나면 자동 재호출),
-> agent-stuff에서 `review`·`goal`·`continue`·`/discuss` 이식, env 상태표시줄 압축.
-> `v2026.8.6`으로 닫힘: Upstage provider + Solar Pro 4(512K), timeline 스킬, exa-search 기본화,
-> 죽은 면 정리(telegram·gemini legacy·autoresearch·scripts), pi 설정 레퍼런스 단일화·소유권 분리.
-> 스킬면 SSOT·게이트·provenance와 gitcli/lifetract 시간 계약은 `v2026.7.14`로 닫힘.
-> 대기: 어쏠로그 수선 때 7/13 근거 회수(아래 [2026-07-14] 어쏠로그).
-> ⚠️ [2026-06-11] bibcli 항목은 **2026-07-14 결정과 방향이 반대다** — GLG 재판단 대기(아래).
+# RAIL — 현재 좌표
+
+- [x] **1. 세션 코퍼스 읽기면 착지** — 두 스킬이 device-merged 코퍼스를 읽는다 (`0b01f00`, `v2026.9.2`)
+- [ ] **2. 그 변경의 검수** ← CURRENT: fixture 6항목 → andenken 골든 → 형제 공지
+- [ ] **3. entwurf-peek `trace` 파서 수선** ← PAUSED: `mux-placement` acceptance fixture 대기
+- [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
+
+현재 좌표: 1 완료 → **2 진행** → 3·4 보류
+
+# NOW
+
+- **Hot group:** 세션 코퍼스 (아래 [2026-09-02])
+- **Next:** (1) fixture 6항목을 `test-session-recap.py` / `test_extract.py`에 붙인다 →
+  (2) andenken 재구축 수치가 오면 골든으로 `semantic-memory` SKILL.md 기대치 판단 →
+  (3) 그 다음에 형제들에게 공지
+- **Blocker:** none. (2)는 andenken 재구축 대기이지 막힌 게 아니다 — (1)은 지금 할 수 있다.
+- **Read:** 아래 [2026-09-02] 섹션, `AGENTS.md § semantic-memory → andenken`의 device 축 문단,
+  참조 구현은 andenken `session-corpus.test.ts`.
+- **Do not touch:** `~/repos/gh/session`은 git이 아니다(`MANIFEST.sha256`으로 검증되는 데이터 폴더,
+  `.jsonl`은 발화 정본이라 읽기만). 수집기와 편입 기준은 andenken 소유.
+  `git-hooks/gitleaks.toml`의 접두 룰은 **미결로 기록만** 했다 — 고치라는 지시가 없었다.
+
+# ACTIVE
+
+## 세션 코퍼스 — 검수 (아래 [2026-09-02])
+- Current: 코드는 들어갔고 테스트는 0줄. 라이브 실측만 있고 fixture가 없다.
+- Verify: 코퍼스 유무 양쪽에서 기존 테스트(recap 17 / extract 8)가 그대로 통과할 것.
+
+## entwurf-peek — `trace`만 남았다 (아래 [2026-08-07] · [2026-08-06])
+- Current: `situation`은 `0259f19`로 착지, entwurf #64가 caller-side projection으로 승인.
+- Next: nonce → callback sender-envelope 상관으로 파서 교체. **임의 샘플 금지** —
+  fixture는 `mux-placement` acceptance 산출물만.
+- Do not: 현재 구현을 다시 뜯어고치지 말 것.
+
+## 턴 시각 — Claude Code 쪽 (아래 [2026-08-25])
+- Current: pi 푸터는 `df0df60`으로 닫혔다. Claude Code 쪽은 목표와 설계만 적혀 있다.
+- Next: 훅이 찍고 statusline은 읽기만 — 공용 `turns.tsv`가 핵심. entwurf 렌더면은 건드리지 않는다.
+
+## Hermes — 재지 않았다 (아래 [2026-08-06] Hermes)
+- Current: `setup:hermes`는 설치면이다. 매트릭스는 `HERMES.md`.
+- Next: D1(스킬 자동 생성 관측). 곁가지로 A5(plugin.yaml 범위), B1(대안 레일 한 턴).
+
+## 설치면 소유 경계 — #46 (아래 [2026-07-13])
+- Current: agy lane은 2026-08-13에 닫혔다. `pi/settings.json`·`pi/settings.server.json`의
+  entwurf package + repo-path provider 잔존이 남았다.
+- Next: **entwurf `setup`을 먼저** 돌려 bare `entwurf-bridge`로 normalize한 뒤 이쪽을 뺀다.
+
+# DORMANT
+
+- [2026-07-30] **Solar Open 2** — 계정 승인 대기. 트래킹 issue #17. 승인되면 한 줄로 찍힌다.
+- [2026-07-14] **dictcli provenance 공백** — GraalVM native-image라 `go_build`를 안 탄다.
+  oracle(aarch64)에 GraalVM이 있는지 확인이 선행.
+- [2026-05-29] **pi-chat Add-group** — setup TUI가 즉시 닫힌다. 재현 명령은 아래 섹션에.
+- [2026-07-02] **gogcli 재인증** — 선택. 남은 건 optional 커맨드뿐.
+- [2026-07-14] **어쏠로그 7/13 근거 회수** — 수선할 때 원석과 근거를 별도 축으로.
+- [2026-06-11] ⚠️ **bibcli 이주 계획** — 2026-07-14 결정과 방향이 반대다. GLG 재판단 대기.
+
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
 
 ## [2026-09-02] 세션 코퍼스 — 고쳤고, 검수는 아직 안 했다

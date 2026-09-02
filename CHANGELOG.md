@@ -7,6 +7,38 @@
 
 ## Unreleased
 
+## v2026.9.2 — 코퍼스가 한 기계를 벗어나고, 게이트가 자기 결함을 적는다
+
+### Added
+
+* **세션 코퍼스 읽기면.** `session-recap`과 `improve-agent`가 `ANDENKEN_SESSION_CORPUS` 하나를 andenken 인덱서와 공유해, 디바이스별로 모인 코퍼스(`<corpus>/<device>/`)를 읽는다. 코퍼스는 라이브 경로 앞에 두 마디만 덧댄 모양이라 discovery·exact 선택·mangled-cwd 조회가 전부 루트 추가로 끝났다 — 스키마도 device 컬럼도 만들지 않았다. 측정: thinkpad 라이브 2,104 → 합집합 2,567 (+463 oracle) 0.07s. 헤더는 `[claude@oracle]`로 출처를 밝히되, **device는 수집처이지 생성처가 아니다**(두 기계가 `rsync -a`를 mtime 보존으로 주고받아 원본 방향은 판정 불가) — 그 경고가 docstring·`--help`·SKILL.md 세 곳에 라벨과 함께 다닌다.
+
+* **`quota` 스킬 — 다섯 rail의 잔량을 한 번에.** Copilot 프리미엄, Z.AI GLM 5시간/주간, Codex 5h/weekly, Claude 5h/7d, Grok SuperGrok weekly. pace-aware TUI와 로컬 웹 뷰를 함께 열고, 두 번째 실행은 웹 서버를 토글한다. 다음 형제를 어느 rail로 보낼지 정할 때 쓴다.
+
+* **`cloudflare` 스킬.** 개인 계정의 DNS·Single Redirect·Email Routing·터널을 브라우저 없이 조작하고 공개면을 검증한다.
+
+* **푸터에 마지막 턴 시각과 캐시 효율.** `GLG HH:MM:SS · pi HH:MM:SS`(KST)로 마지막에 답한 쪽이 언제였는지 보이고, 비용 통계에 캐시 효율 배수가 붙는다. ACP 턴 회계를 쓰도록 고쳤다.
+
+### Changed
+
+* **추론을 OpenRouter로 흘리지 않는다.** OpenRouter는 임베딩/이미지 전용 개인 rail이고, 형제 호출은 승인된 구독·직접 엔드포인트만 쓴다. skill 전용 provider 키는 pi 모델 선택기에서 감춘다 — 고를 수 없는 것을 목록에 두지 않는다.
+
+* **하네스 소유 경계를 실제 소유자에게 넘겼다.** Claude statusLine은 entwurf 소유임을 기록하고 미사용 사본과 심링크를 지웠다. entwurf가 소유하는 키를 settings fragment에서 뺐고, `antigravity/` 표면은 통째로 제거했다(설정·MCP 배선은 entwurf `install-agy-*`가 소유). Copilot은 `~/.copilot/skills`로 SSOT를 팬아웃하고, Kiro는 스킬면만 링크한다. 스크롤 제어는 하네스가 아니라 tmux가 갖는다.
+
+* **형제 사이에서 사실이 건너가는 방식을 `AGENTS.md`에 규범으로 세웠다.** 남에게 건너가는 문장마다 근거 상태(측정/`file:line`/외부 아티팩트/미검증 인용)를 달고, 상속된 사실과 설계 제안을 다른 상자에 둔다. 근거 없는 주장은 오류가 아니라 단서이고, 회신은 "틀렸다"가 아니라 "영수증이 없어서 재봤다"이다. GitHub 이슈·코멘트에는 저자 표기를 붙여 에이전트 초안과 GLG의 목소리를 가른다.
+
+* **`semantic-memory` 스킬을 호출자 계약 형태로 다시 썼다.** 5건으로 시작해 고르고 열기 — 정확한 제목/인물은 denotecli, 하루 전체는 timeline.
+
+### Fixed / aligned
+
+* **`git-hooks`의 경로 allowlist가 gitleaks에 닿지 않는다는 사실을 문서화했다.** `allowlist-paths.txt`와 `.git-hooks-allow`는 `parse_added_lines`만 먹이고, gitleaks는 필터되지 않은 diff를 받는다. 경로를 allow해도 gitleaks는 침묵하지 않고 스캔도 빨라지지 않는다 — 2.9GB 코퍼스가 47분 47초 스캔에 걸렸을 때 가장 그럴듯해 보였던 처방이 실제로는 아무것도 바꾸지 못했을 것이다.
+
+* **접두 시크릿 룰 15개에 좌측 토큰 경계가 없다는 것을 미결로 기록했다.** urlsafe-base64 본문 한복판의 `r8_`/`hf_`가 매칭된다. **진짜를 놓치는 게 아니라 오탐을 더한다** — 그래서 긴급이 아니라 미결이다. 고치려는 사람이 밟을 함정도 같이 적었다: 룩비하인드는 gitleaks를 panic시키고(Go RE2), sed 일괄 치환은 이미 capture group을 가진 두 룰을 깨뜨리며, `useDefault`는 대부분의 서비스를 덮지 못하는 데다 기본 GitHub 룰 자체가 같은 결함을 갖는다. 순차 알파벳으로 만든 fixture는 global allowlist stopword에 먹혀 조용히 빠진다 — 안 터지는 fixture는 잘 도는 룰과 똑같이 보인다. 독립 세션 검수를 거쳤다.
+
+* **`doctor`가 스킬 바이너리의 존재가 아니라 실행을 확인한다.** 파일이 있다는 것은 도는 것과 다르다.
+
+* PRIVATE 봇 workspace 리포 둘(`workspace-bbot`, `workspace-glg`)을 identity 스캔에서 loose로 내렸다(시크릿 스캔은 유지). Z.AI 앱 리셋 시각이 베이징(UTC+8) 기준임을 명시하고, Grok rail은 SuperGrok weekly `creditUsagePercent`를 읽는다. youtube-transcript는 org md transcript 아래에 저장하고 데이터센터 yt-dlp에서 EJS solver를 켠다. README/ENV-SETUP/HERMES의 누적 문서 드리프트와 스킬 카탈로그 드리프트를 바로잡았다.
+
 ## v2026.8.10 — 세미 젠킨스의 복귀면: 폴라로이드에서 편집실로
 
 ### Added
