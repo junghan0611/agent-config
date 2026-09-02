@@ -3,7 +3,8 @@
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
 
-> NOW: active ⓪ **entwurf-peek — `situation`은 착지(`0259f19`), `trace` 파서만 재료 대기.**
+> NOW: active ⓪ **세션 코퍼스 — 스킬 두 개를 고쳤는데 그 코드에 테스트가 0줄이다** (아래 [2026-09-02]),
+> ⓪ʹ **entwurf-peek — `situation`은 착지(`0259f19`), `trace` 파서만 재료 대기.**
 > record 기반 판단면은 열렸고 entwurf #64가 caller-side projection으로 승인했다. 남은 것은
 > `trace`의 nonce→sender-envelope 수선이고 fixture는 `mux-placement` acceptance 산출물로만
 > 한다 — **임의 샘플 금지** (아래 [2026-08-07] · [2026-08-06]),
@@ -24,6 +25,49 @@
 > 대기: 어쏠로그 수선 때 7/13 근거 회수(아래 [2026-07-14] 어쏠로그).
 > ⚠️ [2026-06-11] bibcli 항목은 **2026-07-14 결정과 방향이 반대다** — GLG 재판단 대기(아래).
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+
+## [2026-09-02] 세션 코퍼스 — 고쳤고, 검수는 아직 안 했다
+
+> `0b01f00`으로 `session-recap`과 `improve-agent`가 세션 코퍼스(`ANDENKEN_SESSION_CORPUS`
+> → `~/repos/gh/session`)를 읽는다. 계약·측정·판단 근거는 커밋 본문과
+> `AGENTS.md § semantic-memory → andenken`의 device 축 문단에 있다. 여기 남는 건
+> **검수와 공지**뿐이다.
+
+**왜 남겨두는가:** 에이전트가 쓰는 표면을 바꿨다. 나중에 형제들이 "왜 다른 기계 세션이
+보이지?", "`[claude@oracle]`이 뭐냐"고 물어볼 것이고, 그때 우리가 답할 수 있어야 한다.
+검수 없이 답하면 그 답이 또 추측이 된다.
+
+**막힌 데가 아니라 안 한 것 — 지금 사실:**
+
+- **새 코드에 테스트가 0줄이다.** 측정 2026-09-02:
+  `grep -c "corpus\|device" skills/session-recap/scripts/test-session-recap.py` → **0**,
+  `skills/improve-agent/test_extract.py` → **0**. 기존 테스트는 통과한다(recap 17/17,
+  extract 8/8) — 그러나 그건 코퍼스가 없던 시절의 계약만 지킨다. `corpus_root` /
+  `corpus_devices` / `dedupe_by_basename` / device 라벨 / `resolve_session_file`의 코퍼스
+  루트 수용 — 전부 미검증이다. **라이브 실측만 있고 fixture가 없다**(측정치는 커밋 본문).
+- **andenken 재구축이 아직 안 끝났다** (2026-09-02 18시 기준 300/1592). 2K 절단 폐기로
+  색인 본문이 두 배(chars 61.6M)가 됐고, 세션 축 recency decay도 껐다. 검색의 성격이
+  달라졌다면 `skills/semantic-memory/SKILL.md`의 기대치 문구가 그걸 반영해야 한다.
+  **지금은 손댈 근거가 없다 — 수치가 없다.**
+
+**다음 한 걸음 (순서대로):**
+
+1. **fixture 테스트를 붙인다.** andenken `session-corpus.test.ts`가 같은 계약을 반대편에서
+   검증하므로 그것을 참조 구현으로 읽고, 우리 쪽은 tmp HOME + tmp 코퍼스로 짠다. 최소 항목:
+   env 미설정 시 라이브만 / 코퍼스 device 열거가 파일(MANIFEST.json 등)을 세지 않을 것 /
+   같은 basename의 큰 쪽이 이길 것 / 크기 동률 시 경로 사전순 / device 라벨이 코퍼스에만
+   붙을 것 / `--session-file`이 코퍼스 경로를 받고 라이브 경로도 계속 받을 것.
+2. **골든 — andenken 재구축 완료 후.** 그쪽 `pnpm run golden`(검색 품질 회귀) 결과와
+   최종 파일수·chunk수·role 분포를 받아, 우리 `semantic-memory` SKILL.md 기대치 문구를
+   고칠지 판단한다. 숫자를 받기 전에 문구를 고치지 않는다.
+3. **그 다음에 공지.** 1·2가 닫히기 전에는 형제들에게 "쓰라"고 알리지 않는다.
+
+**검증 기준:** 위 fixture 6항목이 통과하고, `ANDENKEN_SESSION_CORPUS` 유무 양쪽에서 기존
+테스트(recap 17 / extract 8)가 그대로 통과할 것. 코퍼스 유무가 기존 계약을 흔들면 그게 결함이다.
+
+**건드리지 말 것:** `~/repos/gh/session`은 git이 아니다(2026-09-02 GLG가 `.git` 삭제).
+`MANIFEST.sha256`으로 검증되는 데이터 폴더이고, `.jsonl`은 발화 정본이라 읽기만 한다.
+수집기(`gather-corpus.sh`)와 편입 기준은 andenken 소유다 — 여기서 고치지 않는다.
 
 ## [2026-08-25] 턴 시각 — Claude Code 쪽은 아직 안 했다 (목표만)
 
