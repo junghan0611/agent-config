@@ -49,14 +49,45 @@ directory name, so a lookalike such as `junghan0611/apply-extra` or a public
 clone in another namespace stays `strict`.
 
 **Per-repo override**: write `strict` / `loose` / `off` (single word) to
-`<repo>/.git-hooks-mode`. Useful for:
+`<repo>/.git-hooks-mode`. Only the first line is read (`head -1`), so anything
+below it is free-form justification. Useful for:
 - Forcing strict on a work repo that will later be open-sourced
 - Forcing loose on a personal repo that legitimately discusses identity
   terms (rare — usually the right answer is to put that detail in a
   gitignored `PRIVATE.md`)
 
+**Known `off` repos** — none right now, and the one case that asked for it is
+worth keeping as precedent because of how it ended.
+
+`~/repos/gh/session` (the GLG session corpus, 2.9 GB / 2,145 immutable `.jsonl`)
+was put on `off` on 2026-09-02: its initial-commit diff took gitleaks **47m47s**
+(measured), and the corpus is speech-of-record — `session/AGENTS.md` forbids
+editing a `.jsonl`, so a finding had no "fix and re-stage" path. The gate could
+only block, never resolve.
+
+Hours later GLG deleted the corpus's `.git` entirely (verified: no
+`~/repos/gh/session/.git`). The corpus is now a plain data folder, kept by
+snapshot rather than by commit, and no hook runs there at all. The reason is the
+one worth carrying: **the guard had started costing the work it exists to
+protect** — embedding stalled while the session went round on git and secrets.
+`.git-hooks-mode` is left in that folder as a standing default should anyone ever
+`git init` it again.
+
+Read that as the shape of a real `off` case: not "the scan is annoying" but
+"this content cannot be edited to satisfy the scan, there is no remote to
+protect, and the gate is now blocking the actual job." Two of those three no
+longer needed a hook answer — they needed git to leave.
+
 **Per-repo allowlist**: extra path regexes can go in
 `<repo>/.git-hooks-allow` (same format as `allowlist-paths.txt`).
+
+> ⚠ **The path allowlist does not reach gitleaks.** `allowlist-paths.txt` and
+> `.git-hooks-allow` are consumed by `parse_added_lines`, which feeds the
+> identity-term scan and the no-gitleaks fallback. `scan_secrets_gitleaks` is
+> handed the *unfiltered* `$DIFF_FILE`. So allowlisting a path suppresses term
+> hits but neither silences gitleaks on it nor makes the scan faster — reach for
+> `gitleaks.toml`'s own `[allowlist].paths` for that, and do not expect
+> `.git-hooks-allow` to solve a slow scan.
 
 ## What gets scanned
 
