@@ -52,6 +52,10 @@ Scope unclear? List recent sessions:
 ls -lt ~/.pi/agent/sessions/ | head
 ```
 
+This is the **live store on this machine**. Another device's sessions live in the
+gathered corpus (`$ANDENKEN_SESSION_CORPUS/<device>/…`, unset → live only);
+`session-recap --device <name>` reaches them without a path by hand.
+
 ## 1. The live board — who else is here
 
 Call the **`entwurf-peek` skill** and run its `situation`. Invoke it through whatever

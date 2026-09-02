@@ -94,6 +94,85 @@ from datetime import datetime, timezone
 PI_BASE = os.path.expanduser("~/.pi/agent/sessions")
 CLAUDE_BASE = os.path.expanduser("~/.claude/projects")
 
+# Session corpus — the same single env var andenken's indexer and session-recap
+# read (`~/.env.local`). Gathered sessions from every device live under
+# `<corpus>/<device>/` with the runtime's own path shape kept intact, so the
+# corpus path is just the live path with two segments bolted on the front:
+#   <corpus>/oracle/.pi/agent/sessions/--home-junghan-repos-gh-andenken--/…
+#   <corpus>/oracle/.claude/projects/-home-junghan-repos-gh-andenken/…
+# Unset (or pointing nowhere) means live stores only — same behaviour as before.
+CORPUS_ENV = "ANDENKEN_SESSION_CORPUS"
+
+
+def corpus_root() -> str | None:
+    """Corpus root, or None when unset / not a directory."""
+    raw = os.environ.get(CORPUS_ENV, "").strip()
+    if not raw:
+        return None
+    root = os.path.expanduser(raw)
+    return root if os.path.isdir(root) else None
+
+
+def corpus_devices() -> list[str]:
+    """Device dirs under the corpus root, sorted for deterministic order.
+
+    The root also holds files (MANIFEST.json, README.md) — directories only.
+    """
+    root = corpus_root()
+    if root is None:
+        return []
+    try:
+        return sorted(
+            d for d in os.listdir(root)
+            if not d.startswith(".") and os.path.isdir(os.path.join(root, d))
+        )
+    except OSError:
+        return []
+
+
+def corpus_device_of(filepath: str) -> str | None:
+    """Which device dir a corpus path came from, else None for a live path.
+
+    Provenance only: the device says where a session was **collected**, not
+    where it was created. The two machines exchanged an `rsync -a` of the
+    claude store at some point and mtimes were preserved, so the origin is not
+    recoverable. Never rank or weight by it.
+    """
+    root = corpus_root()
+    if root is None:
+        return None
+    rel = os.path.relpath(os.path.realpath(filepath), os.path.realpath(root))
+    if rel.startswith(os.pardir) or os.path.isabs(rel):
+        return None
+    parts = rel.split(os.sep)
+    return parts[0] if len(parts) > 1 else None
+
+
+def dedupe_by_basename(files: list[str]) -> list[str]:
+    """Fold copies of one session held by more than one device.
+
+    Same rule as andenken `dedupeByBasename` and session-recap: key on the
+    **basename** (pi/claude session ids are UUIDs, so a shared basename is the
+    same conversation), the **larger** file wins (a transcript only grows, so
+    the larger copy was captured later and holds strictly more turns), and a
+    size tie breaks on the lexicographically smaller path so the choice is
+    stable across machines.
+
+    Without this, an analysis run over live ∪ corpus would count the same
+    conversation twice and let one session's pattern answer as two.
+    """
+    best: dict[str, tuple[int, str]] = {}
+    for f in files:
+        try:
+            size = os.path.getsize(f)
+        except OSError:
+            continue
+        key = os.path.basename(f)
+        cur = best.get(key)
+        if cur is None or size > cur[0] or (size == cur[0] and f < cur[1]):
+            best[key] = (size, f)
+    return [f for _, f in best.values()]
+
 
 def default_source() -> str:
     """Analyze the harness we are running under unless told otherwise."""
@@ -112,9 +191,13 @@ def is_claude_file(filepath: str) -> bool:
     "user"/"assistant" and hangs a parentUuid off it.
     """
     real = os.path.realpath(filepath)
-    if real.startswith(CLAUDE_BASE):
+    # Match on the path segment, not a `~`-anchored prefix: the corpus repeats
+    # the same shape under `<corpus>/<device>/`, and andenken's `detectSource`
+    # keys off exactly this. Prefix matching would send every corpus file down
+    # the sniff path below — correct, but slower and silently so.
+    if f"{os.sep}.claude{os.sep}" in real:
         return True
-    if real.startswith(PI_BASE):
+    if f"{os.sep}.pi{os.sep}agent{os.sep}sessions{os.sep}" in real:
         return False
     if real in _FORMAT_CACHE:
         return _FORMAT_CACHE[real]
@@ -202,6 +285,20 @@ def find_sessions_dirs(project_path: str | None = None,
         candidates.append(os.path.join(PI_BASE, f"--{flat}--"))
     if source in ("claude", "all"):
         candidates.append(os.path.join(CLAUDE_BASE, f"-{flat}"))
+    # Live ∪ corpus, not corpus-instead-of-live. This machine's current
+    # sessions are only in the live store until the next gather runs, and
+    # `dedupe_by_basename` folds whatever the two roots hold in common.
+    root = corpus_root()
+    if root is not None:
+        for device in corpus_devices():
+            if source in ("pi", "all"):
+                candidates.append(
+                    os.path.join(root, device, ".pi", "agent", "sessions", f"--{flat}--")
+                )
+            if source in ("claude", "all"):
+                candidates.append(
+                    os.path.join(root, device, ".claude", "projects", f"-{flat}")
+                )
     return [c for c in candidates if os.path.isdir(c)]
 
 
@@ -258,6 +355,7 @@ def get_session_files(sessions_dirs: list[str], last: int,
     files: list[str] = []
     for d in sessions_dirs:
         files.extend(list_jsonl(d))
+    files = dedupe_by_basename(files)
     files.sort(key=session_start, reverse=True)
     return filter_by_date(files, before, after)[:last]
 
@@ -287,6 +385,7 @@ def get_multi_project_files(
             for f in list_jsonl(d):
                 project_map[f] = name
                 all_files.append(f)
+    all_files = dedupe_by_basename(all_files)
     all_files.sort(key=session_start, reverse=True)
     result = filter_by_date(all_files, before, after)[:last]
     return result, project_map

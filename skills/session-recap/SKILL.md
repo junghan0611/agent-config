@@ -79,7 +79,33 @@ python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
 | `--source` | runtime fallback | `pi`, `claude`, `all`. Unset → Claude Code=claude, every other surface=pi; third surfaces should set explicitly |
 | `--harness` | all | pi-internal filter: `gpt`, `acp`, `all`. Use with `--source pi` or `all` |
 | `--min-kb N` | 300 | Size floor, `size > N*KB`. `0` disables; use it when a real recent GPT/ACP session is below the default floor |
+| `--device NAME` | all | Session-corpus device filter (`oracle`, `thinkpad`). Only meaningful with a corpus configured — see below |
 | `--session-file PATH` | — | **Exact selection.** One absolute `.jsonl` path. Bypasses every discovery filter; cannot be combined with any of them |
+
+### Session corpus — other machines' sessions
+
+`ANDENKEN_SESSION_CORPUS` (set in `~/.env.local`, shared with andenken's indexer)
+points at the gathered corpus, where every device's sessions live under
+`<corpus>/<device>/` keeping the runtime's own path shape. Unset → live stores only,
+exactly as before.
+
+**Discovery reads live ∪ corpus, not corpus instead of live.** andenken's indexer
+replaces the live stores because `sync-sessions.sh` gathers first and so owns the
+corpus's freshness; recap has no gather step. Corpus-only discovery would drop *this
+machine's current session* whenever it was written after the last gather, and that
+silently breaks the `--skip 1` invariant (current session = newest mtime) the whole
+size-filter ordering above exists to protect.
+
+Copies of one session held by two devices are folded by **basename** (UUID session id):
+larger file wins — a transcript only grows, so the larger copy holds strictly more turns
+— and a size tie breaks on the lexicographically smaller path, which keeps the choice
+stable across machines. Same rule as andenken `dedupeByBasename`. Measured 2026-09-02:
+2,104 live → 2,567 after union (+463 oracle), 0.07s.
+
+The header shows provenance as `[claude@oracle]` / `[pi:gpt@oracle]`; live sessions carry
+no `@` suffix. **A device says where a session was collected, not where it was created.**
+The two machines exchanged an `rsync -a` with mtimes preserved, so origin is not
+recoverable — use it to label and filter, never to rank.
 
 ## Exact selection — `--session-file`
 
@@ -102,8 +128,8 @@ still being appended and is not strictly time-ordered; the extracted text is una
 **It refuses rather than guesses.** Combining it with `-s/-p/-a/--skip/--source/
 --harness/--min-kb` is an error (exit 2), not a silent override — those flags describe a
 search that is no longer happening. Named errors, each a different fact: not absolute ·
-not `.jsonl` · a symlink · unreadable · outside `~/.pi/agent/sessions` and
-`~/.claude/projects` · **parsed 0 messages** (exit 1 — the path is a real session file
+not `.jsonl` · a symlink · unreadable · outside `~/.pi/agent/sessions`,
+`~/.claude/projects`, and (when set) the corpus roots · **parsed 0 messages** (exit 1 — the path is a real session file
 but holds no readable turns; nothing is printed to stdout, so you can never write a
 header for a session you did not actually read).
 
@@ -189,7 +215,7 @@ context the user pointed at**:
 When unsure:
 
 ```bash
-ls -lt ~/.pi/agent/sessions/ | head
+ls -lt ~/.pi/agent/sessions/ | head          # live store on this machine
 ```
 
 inspect the recent session dirs and **confirm the user's stated task matches a recent

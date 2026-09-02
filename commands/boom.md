@@ -29,6 +29,10 @@ Capture the incident into the **target repo's** `.agent-reports/` so the next wo
    | Claude Code | `~/.claude/projects/<encoded>/<uuid>.jsonl` | leading `/` becomes `-`, `/` → `-`. Example: `-home-junghan-repos-gh-agent-config` |
    | Codex | `~/.codex/sessions/YYYY/MM/*.jsonl` | no cwd encoding — search by date |
 
+   Those are the **live stores on this machine**. When `ANDENKEN_SESSION_CORPUS` is set,
+   the same two shapes repeat under `<corpus>/<device>/` (`<corpus>/oracle/.claude/projects/…`)
+   and hold the other device's sessions too. Unset → live only.
+
    If session id given → grep filename. Otherwise → list the encoded dir, pick the JSONL whose mtime sits in the user's time window. If multiple plausible candidates, list them and ask.
 
 4. **Pull a small extract.** Roughly the error and ±20 surrounding turns. Do not copy the entire file unless the user asks.

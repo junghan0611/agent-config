@@ -13,6 +13,15 @@ updating AGENTS.md, creating new skills, or improving code/infra.
 Code records into the pi schema on read, so every mode below works on either source.
 Default source is the harness you are running under; override with `--source`.
 
+**Multi-device.** With `ANDENKEN_SESSION_CORPUS` set (`~/.env.local`, the same variable
+andenken's indexer and session-recap read), the gathered corpus is scanned *in addition
+to* the live stores — the corpus keeps each runtime's path shape under
+`<corpus>/<device>/`, so the other machine's sessions for the same project are found by
+the same mangled-cwd lookup. Copies held by both devices are folded by basename (larger
+file wins, size tie → lexicographically smaller path), so a pattern count never sees one
+conversation twice. Unset → live stores only. A device records where a session was
+**collected**, not where it was created — do not weight by it.
+
 ## How It Works
 
 Each session is a JSONL file capturing tool calls, tool results (with
@@ -188,8 +197,9 @@ For those, go straight to the JSONL with jq, grep, or python one-liners.
 **Mind the schema.** The recipes below are **pi-shaped**. Run them against a
 Claude Code file and they return nothing — which reads like "no problems found"
 and is the easiest way to draw a false conclusion here. `extract.py` hides this
-difference; raw `jq` does not. Check which harness the file belongs to first
-(`~/.pi/…` vs `~/.claude/projects/…`) and use the matching column:
+difference; raw `jq` does not. Check which harness the file belongs to first — the
+`.pi/agent/sessions/` vs `.claude/projects/` segment, which holds for corpus paths too
+(`<corpus>/<device>/.claude/projects/…`) — and use the matching column:
 
 | | pi (`~/.pi/agent/sessions/<mangled>/`) | Claude Code (`~/.claude/projects/<mangled>/`) |
 |---|---|---|

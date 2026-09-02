@@ -138,16 +138,111 @@ def _extract_project(dirname: str) -> str:
     return rest
 
 
-def get_sessions_dirs(source: str = "all") -> list[tuple[Path, str]]:
-    """하네스별 세션 디렉토리 반환. (path, source_name) 튜플 리스트."""
-    dirs = []
+CORPUS_ENV = "ANDENKEN_SESSION_CORPUS"
+
+
+def corpus_root() -> Path | None:
+    """세션 코퍼스 루트. 미설정이거나 디렉토리가 아니면 None.
+
+    andenken 과 **같은 환경변수 하나**를 읽는다 (`~/.env.local`). 코퍼스는 라이브
+    경로 앞에 `<device>` 한 마디만 덧댄 모양이라, 아래 discovery/resolve 는 루트를
+    더하는 것으로 끝난다:
+
+      <corpus>/oracle/.pi/agent/sessions/--home-junghan-repos-gh-andenken--/…
+      <corpus>/oracle/.claude/projects/-home-junghan-repos-gh-andenken/…
+    """
+    raw = os.environ.get(CORPUS_ENV, "").strip()
+    if not raw:
+        return None
+    root = Path(os.path.expanduser(raw))
+    return root if root.is_dir() else None
+
+
+def corpus_devices() -> list[str]:
+    """코퍼스 루트 아래 device 디렉토리명. 결정적 순서로 정렬.
+
+    루트에는 MANIFEST.json / README.md 같은 파일도 같이 산다 — 디렉토리만 센다.
+    """
+    root = corpus_root()
+    if root is None:
+        return []
+    try:
+        return sorted(
+            d.name for d in root.iterdir() if d.is_dir() and not d.name.startswith(".")
+        )
+    except OSError:
+        return []
+
+
+def get_sessions_dirs(source: str = "all") -> list[tuple[Path, str, str | None]]:
+    """세션 디렉토리 반환. (path, source_name, device) 튜플 리스트.
+
+    device 는 라이브 저장소면 None, 코퍼스면 디바이스명이다.
+
+    **라이브 ∪ 코퍼스** 를 모두 훑는다 — andenken 인덱서가 코퍼스 설정 시 라이브를
+    *대체* 하는 것과 의도적으로 다르다. 인덱서는 `sync-sessions.sh` Step 0 에서
+    gather 를 먼저 돌려 코퍼스 신선도를 자기가 보장하지만, recap 에는 gather 단계가
+    없다. 코퍼스만 보면 마지막 gather 이후에 쓰인 **이 기계의 현재 세션이 목록에서
+    빠지고**, `--skip 1` 이 기대는 "현재 세션 = mtime 최신" 불변식이 조용히 깨진다
+    (find_session_files docstring 참조). 합집합은 dedupe_by_basename 이 중복을
+    접기 때문에 안전하다 — 같은 세션의 라이브본과 코퍼스본이 만나면 큰 쪽(=최신)이
+    이긴다.
+    """
+    dirs: list[tuple[Path, str, str | None]] = []
     pi_dir = Path.home() / ".pi" / "agent" / "sessions"
     claude_dir = Path.home() / ".claude" / "projects"
     if source in ("all", "pi") and pi_dir.exists():
-        dirs.append((pi_dir, "pi"))
+        dirs.append((pi_dir, "pi", None))
     if source in ("all", "claude") and claude_dir.exists():
-        dirs.append((claude_dir, "claude"))
+        dirs.append((claude_dir, "claude", None))
+
+    root = corpus_root()
+    if root is not None:
+        for device in corpus_devices():
+            if source in ("all", "pi"):
+                d = root / device / ".pi" / "agent" / "sessions"
+                if d.is_dir():
+                    dirs.append((d, "pi", device))
+            if source in ("all", "claude"):
+                d = root / device / ".claude" / "projects"
+                if d.is_dir():
+                    dirs.append((d, "claude", device))
     return dirs
+
+
+def dedupe_by_basename(
+    results: list[tuple[float, Path, str, str, str | None]],
+) -> list[tuple[float, Path, str, str, str | None]]:
+    """같은 세션의 사본을 하나로 접는다. andenken `dedupeByBasename` 와 같은 규칙.
+
+    키는 **basename**: pi/claude 세션 id 는 UUID 라 basename 이 같으면 같은
+    대화다. 승자는 **큰 쪽** — transcript 는 자라기만 하므로 큰 사본이 나중에
+    떠진 것이고 턴이 더 많다. 크기 동률이면 **경로 사전순** 으로 끊어 기계와
+    무관하게 같은 답이 나오게 한다.
+
+    두 기계가 과거에 `rsync -a` 로 claude 저장소를 주고받아 겹침이 실재한다
+    (2026-09-02 측정: 코퍼스 2,145 중 553건). 그중 md5 가 갈린 5건은 fork 가
+    아니라 **작은 쪽이 큰 쪽의 정확한 바이트 접두** 임이 확인됐다(andenken 담당자
+    + Sol 대조) — append-only 스냅샷의 시점 차이다. "큰 쪽 승"이 그래서 안전하다.
+    """
+    best: dict[str, tuple[float, Path, str, str, str | None]] = {}
+    sizes: dict[str, int] = {}
+    for item in results:
+        path = item[1]
+        try:
+            size = path.stat().st_size
+        except OSError:
+            continue
+        key = path.name
+        cur = best.get(key)
+        if (
+            cur is None
+            or size > sizes[key]
+            or (size == sizes[key] and str(path) < str(cur[1]))
+        ):
+            best[key] = item
+            sizes[key] = size
+    return list(best.values())
 
 
 def detect_pi_harness(filepath: Path, max_lines: int = 200) -> str:
@@ -223,11 +318,21 @@ def resolve_session_file(session_file: str) -> tuple[float, Path, str, str]:
     if not path.is_file():
         raise ValueError("--session-file must name a regular file")
 
-    roots = [
-        (Path.home() / ".pi" / "agent" / "sessions", "pi"),
-        (Path.home() / ".claude" / "projects", "claude"),
+    roots: list[tuple[Path, str, str | None]] = [
+        (Path.home() / ".pi" / "agent" / "sessions", "pi", None),
+        (Path.home() / ".claude" / "projects", "claude", None),
     ]
-    for root, source in roots:
+    # 코퍼스 루트도 **항상** 더한다 (discovery 와 달리 조건부가 아니다). exact 선택은
+    # 호출자가 경로를 직접 짚은 것이므로, 라이브든 코퍼스든 알려진 루트 아래 있고
+    # 읽히면 받는다. 여기서 라이브를 배제하면 코퍼스를 켠 기계에서 "현재 세션을
+    # 경로로 지목" 하는 정상 사용이 거부된다.
+    corpus = corpus_root()
+    if corpus is not None:
+        for device in corpus_devices():
+            roots.append((corpus / device / ".pi" / "agent" / "sessions", "pi", device))
+            roots.append((corpus / device / ".claude" / "projects", "claude", device))
+
+    for root, source, device in roots:
         try:
             relative = path.relative_to(root.resolve())
         except (OSError, ValueError):
@@ -236,15 +341,24 @@ def resolve_session_file(session_file: str) -> tuple[float, Path, str, str]:
             raise ValueError("--session-file must be inside a project session directory")
         dirname = relative.parts[0].strip("-")
         project = _extract_project(dirname)
-        return stat.st_mtime, path, project, source
+        return stat.st_mtime, path, project, source, device
 
-    raise ValueError("--session-file must be under ~/.pi/agent/sessions or ~/.claude/projects")
+    known = "~/.pi/agent/sessions or ~/.claude/projects"
+    if corpus is not None:
+        known += f" or {corpus}/<device>/…"
+    raise ValueError(f"--session-file must be under {known}")
 
 
 def find_session_files(
-    source: str = "all", project: str | None = None
-) -> list[tuple[float, Path, str, str]]:
-    """(mtime, path, project_name, source) 목록을 최신순 반환.
+    source: str = "all", project: str | None = None, device: str | None = None
+) -> list[tuple[float, Path, str, str, str | None]]:
+    """(mtime, path, project_name, source, device) 목록을 최신순 반환.
+
+    device 는 라이브 저장소면 None, 코퍼스면 디바이스명. `device` 인자를 주면 그
+    디바이스에서 수집된 것만 남긴다 — **"어디서 수집됐는가"이지 "어디서
+    만들어졌는가"가 아니다** (corpus README: 두 기계가 `rsync -a` 로 주고받아
+    mtime 까지 보존돼 원본 방향은 판정 불가). provenance 표기/필터로만 쓰고
+    랭킹이나 중요도 신호로 쓰지 않는다.
 
     **구조 필터만** 적용 (크기 필터는 호출자가 skip 후 적용 — 아래 설명).
     - tmp/probe 프로젝트 디렉토리 제외 (양 런타임)
@@ -261,7 +375,9 @@ def find_session_files(
     완전한 최신순 목록 위에서 해야 정확하다. 크기 필터는 skip 이후 표시 후보에만 건다.
     """
     results = []
-    for sessions_dir, src in get_sessions_dirs(source):
+    for sessions_dir, src, dev in get_sessions_dirs(source):
+        if device and dev != device:
+            continue
         for subdir in sessions_dir.iterdir():
             if not subdir.is_dir():
                 continue
@@ -298,8 +414,9 @@ def find_session_files(
                     continue
                 if st.st_size <= 0:
                     continue
-                results.append((st.st_mtime, f, proj, src))
+                results.append((st.st_mtime, f, proj, src, dev))
 
+    results = dedupe_by_basename(results)
     results.sort(key=lambda x: x[0], reverse=True)
     return results
 
@@ -446,9 +563,14 @@ def format_output(sessions_data: list[dict], output_format: str) -> str:
 
         source = meta.get("source")
         if source == "pi" and meta.get("harness"):
-            source_label = f" [pi:{meta['harness']}]"
+            source_label = f"pi:{meta['harness']}"
         else:
-            source_label = f" [{source}]" if source else ""
+            source_label = source or ""
+        # device 는 수집처 표기다 (생성처가 아니다 — find_session_files docstring).
+        # 라이브 저장소에서 온 것은 device 가 없으므로 접미가 붙지 않는다.
+        if meta.get("device"):
+            source_label = f"{source_label}@{meta['device']}" if source_label else f"@{meta['device']}"
+        source_label = f" [{source_label}]" if source_label else ""
         lines.append(f"═══ {meta['project']}{source_label} ({meta['file'][:40]}...) ═══")
         if meta.get("exact"):
             lines.append(f"  파일: {meta['path']}")
@@ -514,6 +636,12 @@ def main():
              "pi=pi 세션만, claude=Claude Code 세션만, all=양쪽"
     )
     parser.add_argument(
+        "--device", default=None, metavar="NAME",
+        help="세션 코퍼스 디바이스 필터 (예: oracle, thinkpad). "
+             "ANDENKEN_SESSION_CORPUS 가 설정된 경우에만 의미가 있다. "
+             "주의: device 는 '어디서 수집됐는가'이지 '어디서 만들어졌는가'가 아니다"
+    )
+    parser.add_argument(
         "--harness", choices=["gpt", "acp", "all"], default=None,
         help="pi 내부 하네스 필터. gpt=pi native OpenAI/Codex, "
              "acp=entwurf Claude (historical: pi-shell-acp), all=필터 없음. Claude Code source 의미는 바꾸지 않음"
@@ -547,6 +675,8 @@ def main():
             incompatible.append("--harness")
         if args.min_kb is not None:
             incompatible.append("--min-kb")
+        if args.device is not None:
+            incompatible.append("--device")
         if incompatible:
             parser.error(f"--session-file cannot be combined with {', '.join(incompatible)}")
         # `-m 0` 은 deque(maxlen=0) 로 전부 버린다. 그러면 아래 0건 guard 가 읽을 수
@@ -567,6 +697,7 @@ def main():
         files = find_session_files(
             source=source,
             project=args.project if not args.all_projects else None,
+            device=args.device,
         )
 
         if not files:
@@ -603,7 +734,7 @@ def main():
             sys.exit(1)
 
     sessions_data = []
-    for mtime, fpath, proj, src in files:
+    for mtime, fpath, proj, src, dev in files:
         harness = detect_pi_harness(fpath) if src == "pi" else None
         data = extract_messages(
             fpath, args.messages, args.chars, args.commits, args.cost
@@ -627,6 +758,7 @@ def main():
                     "path": str(fpath),
                     "exact": exact,
                     "source": src,
+                    "device": dev,
                     "harness": harness,
                     "size_kb": fpath.stat().st_size // 1024,
                     "mtime": datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat(),
