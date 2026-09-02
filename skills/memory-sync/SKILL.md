@@ -21,17 +21,43 @@ bash {baseDir}/scripts/sync-sessions.sh           # sessions increment (default)
 bash {baseDir}/scripts/sync-sessions.sh --push    # increment + oracle rsync (DB+manifest)
 ```
 
+> **On thinkpad only.** See § Device authority below — this runs the indexer, and
+> `INVARIANT.md` §7.1 says oracle must not.
+
 Just call it. No args, no preview needed. The script handles it:
 
+0. **`corpus:gather`** — collects every device's admitted sessions into
+   `$ANDENKEN_SESSION_CORPUS` first, because the index is built from the corpus, not
+   from this machine's live store. Network I/O (ssh rsync to oracle), delta-only. A
+   device that is unreachable is a warning; a gather that *fails* aborts with
+   "refusing to index a corpus of unknown freshness" and embeds nothing
+   (`andenken/scripts/sync-sessions.sh:74-81`, read 2026-09-03). `SKIP_GATHER=1`
+   opts out. Skipped entirely when `ANDENKEN_SESSION_CORPUS` is unset.
 1. **dim 4096 preflight** (1 call) confirms provider/DB dim agreement.
 2. **`to_index=0` → API-0 exit.** Nothing to embed → no probe, just exit (zero cost).
    Safe to re-call right after a run.
-3. `to_index≥1` embeds only the new sessions. Usually a few seconds, ~$0.000–0.001.
+3. `to_index≥1` embeds only the new sessions — **from every device**, not just this
+   one. Usually a few seconds, ~$0.000–0.001.
 
 | Flag | Default | Effect |
 |------|---------|--------|
 | (none) | - | sessions increment, no oracle push |
-| `--push` | off | after finishing, rsync `sessions.lance` + `session-manifest.json` → oracle |
+| `--push` | off | after finishing, rsync `sessions.lance` + `session-manifest.json` → oracle. **thinkpad only** — refused elsewhere by the authority guard |
+
+## Device authority — call this on thinkpad
+
+thinkpad builds the index; oracle is a **query replica** and receives it by rsync
+(`INVARIANT.md` §7.1). Running the indexer on oracle forks the corpus — it happened
+once already (2026-06-19→07-06, replica 27,966 chunks against the canonical 24,882).
+
+- `--push` is guarded: it refuses unless `~/.current-device` matches
+  `$ANDENKEN_INDEX_AUTHORITY` (default `thinkpad`).
+- **The increment itself is not guarded.** Measured 2026-09-03: `INDEX_AUTHORITY` is
+  referenced only inside `push_replica` (`andenken/scripts/sync-sessions.sh:148-154`),
+  so a plain call from oracle embeds into oracle's own `sessions.lance` and diverges
+  it from the canonical index — silently, until the next push overwrites it.
+- So the rule lives here rather than in a guard: **on oracle, do not call this.** If
+  oracle's recall feels stale, the fix is a push from thinkpad, not a local sync.
 
 The sessions track is OpenRouter `qwen/qwen3-embedding-8b` / 4096d. The old
 `--backend ollama|gpu1i` 2560d path is retired. Cost is small but not zero

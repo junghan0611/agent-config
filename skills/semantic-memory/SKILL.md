@@ -34,14 +34,28 @@ the table omits this prefix.
    Denote ID/path, description, and short snippets. Read the chosen path; add
    excerpts only after choosing a session hit.
 5. **Scores rank; they do not certify.** Scores are uncalibrated within-query
-   signals. Session and MD score distributions are not comparable.
+   signals. Session and MD score distributions are not comparable. **Nothing in
+   the ranking is recency** — the session axis applies no temporal decay
+   (`recencyHalfLifeDays: 0` at `cli.ts:255` and `index.ts:571`, and
+   `retriever.ts:365` short-circuits at `<= 0`; read 2026-09-03). A hit from
+   2026-04 can outrank one from an hour ago on merit alone. When recency is
+   what you actually want, say so with `--mode recent` or `--date-from`, never
+   by assuming the top row is the newest.
 6. **People/existence need exact proof.** Semantic search proposes candidates;
    `denotecli` confirms the exact room/person before you assert or link it.
-7. **Count documents, not rows.** Repeated chunks are one document. Explore
-   results need distinct useful documents; a narrow lookup may favor one.
+7. **Count documents, not rows.** Repeated chunks are one document, and the
+   session axis is chunk-dense: 75,267 chunks over 1,609 files, one session
+   reaching 1,382 (measured 2026-09-03 from `andenken/data/session-manifest.json`).
+   Long turns are split into numbered parts rather than truncated at 2K, so
+   several rows from one turn is the normal shape, not a ranking signal.
+   Explore results need distinct useful documents; a narrow lookup may favor one.
 8. **Know the limits.** No production track has automatic Kiwi stem enrichment;
    dictcli expansion needs Hangul. MD `indexedAt` is export mtime, not the note
-   date. Confirm temporal claims with `timeline`.
+   date. Confirm temporal claims with `timeline`. A question-shaped query
+   retrieves its own echo — asking `"남은 작업 뭐지"` returns the turns where
+   *that question was asked*, not the answers (andenken golden, 2026-09-03,
+   inherited). That is the concrete case behind `AGENTS.md`'s two-step strategy:
+   pass 2 with concrete names, files and commands.
 
 An unfiltered session search may append labeled MD fallback rows when session
 hits are thin. Keep tracks separate and never compare their scores.
