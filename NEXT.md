@@ -18,7 +18,11 @@
 - **Next:** 형제 공지. 검수는 닫혔다 — 골든 30/32(andenken `f048a0a`)를 받아
   `semantic-memory` 기대치 문구(무-recency 랭킹 · chunk 밀도 · query-echo)와
   `memory-sync` device authority를 `df49e79`로 반영했다.
-- **Blocker:** 없음. 공지 문구만 쓰면 된다.
+- **Blocker:** 없음 — 다만 **공지 순서**가 andenken 푸시에 묶여 있다. 오라클 코드는
+  아직 `14ccdc5`라 `--push` 가드도 인덱싱 가드도 **둘 다 없다**. GLG 승인 → andenken
+  푸시 → 오라클 pull 이 끝나기 전에는 공지하지 않는다. 그 전까지 유일한 방어는
+  "오라클에서 `sync:sessions`/`/memory-sync`를 부르지 않는다"이며, 이건 andenken
+  담당자가 GLG 아침 결정 항목에 올려뒀다.
 - **Read:** 아래 [2026-09-02] 섹션, `AGENTS.md § semantic-memory → andenken`의 device 축 문단,
   참조 구현은 andenken `session-corpus.test.ts`.
 - **Do not touch:** `~/repos/gh/session`은 git이 아니다(`MANIFEST.sha256`으로 검증되는 데이터 폴더,
@@ -115,9 +119,10 @@
    품질 문구 세 가지를 실측으로 고쳤다 — recency decay 0(`cli.ts:255`·`index.ts:571`,
    `retriever.ts:365` 단락), chunk 밀도 75,267/1,609(최대 1,382), query-echo.
    덤으로 `memory-sync`: 증분 자체는 **device 가드가 없다**(`INDEX_AUTHORITY`는
-   `push_replica` 안에서만 참조 — `sync-sessions.sh:148-154`). 오라클에서 부르면
-   §7.1이 금지한 replica 인덱싱이 조용히 일어난다. 가드는 andenken 소유라 규칙만
-   우리 SKILL.md에 적고 담당자에게 보고했다.
+   `push_replica` 안에서만 참조). 오라클에서 부르면 §7.1이 금지한 replica 인덱싱이
+   조용히 일어났다. 보고 → andenken `ae8c5fb`가 가드를 인덱싱 진입 **앞**으로 올렸고
+   (`sync-sessions.sh:118-132`, 확인), 우리 문구는 "문서 규칙"에서 "스크립트가 강제"로
+   격상했다(`d5d7895`).
 3. **그 다음에 공지.** 1·2가 닫히기 전에는 형제들에게 "쓰라"고 알리지 않는다.
 
 **검증 기준:** 위 fixture 6항목이 통과하고, `ANDENKEN_SESSION_CORPUS` 유무 양쪽에서 기존
