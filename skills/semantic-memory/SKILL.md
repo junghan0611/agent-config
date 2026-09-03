@@ -52,6 +52,16 @@ Rules that follow:
   Quote it as what the bot *keeps*, `source=sessions` as what was *said*.
 - Chunking differs (OpenClaw `chunkTokens:400`), so rule 8's "count documents"
   applies per axis with a different density.
+- **The openclaw track is local/replica only and never mixes with the garden
+  (md) axis by any path.** md is the exported, public axis. The bot index holds
+  GLG's whole world — family, health, money, code, in one place (measured
+  2026-09-03 by the andenken steward on a sample). GLG's ruling, same day:
+  "가족은 하나야. 그러려고 합친 거야" — that is the point of harvesting it, not a
+  problem to filter. The only wall is local versus public; inside local, do not
+  invent a personal/coding split the owner did not ask for.
+- **"Not found in sessions, so try bot memory" is not a valid move.** Choose
+  the axis from the question, never from a miss on another axis. This holds
+  for the pi tools too, where an agent picks the tool by judgment.
 
 **This table is the CLI surface.** The pi extension exposes a different surface:
 its tools are `session_search` and `knowledge_search` only (andenken `index.ts`,
