@@ -637,6 +637,24 @@ write_provenance() {
 # 소유 경계: 로직·graph.edn 은 dictcli 리포(SSOT), **기기별 빌드·배포 운영은 여기**다.
 # GraalVM native-image 라 기기마다 굽는 물건이고(oracle aarch64 / thinkpad x86_64),
 # 스택이 까다로워 조용히 깨지거나 조용히 낡는다. 그래서 형제 Go CLI 와 달리 별도로 본다.
+# 이 기기가 표준 ELF loader 를 제공하는가 (non-NixOS, 또는 NixOS + nix-ld).
+#
+# dictcli 진단의 갈림길이 여기다. 배포는 언제나 `cp` 한 번이고, 다른 것은 **어느 산출물을
+# 복사했느냐**뿐이다 — 배포본(`target/…-portable`, 표준 loader)이냐 개발본
+# (`target/dictcli-<arch>`, nix store interp)이냐. 그런데 그 판정이 기기마다 뒤집힌다:
+#   · 표준 loader 있음 → 배포본이 정상. store interp 는 **개발본 오배포**다.
+#   · 표준 loader 없음 → 배포본이 못 돈다. 개발본이 유일한 배포 수단이라 store interp 가 정상.
+# 그래서 이름이 하나가 아니라 둘이어야 한다 (dictcli 담당자와 합의, 2026-09-03).
+has_std_loader() {
+  local ld
+  case "$ARCH" in
+    aarch64) ld=/lib/ld-linux-aarch64.so.1 ;;
+    x86_64)  ld=/lib64/ld-linux-x86-64.so.2 ;;
+    *)       return 1 ;;
+  esac
+  [ -e "$ld" ]
+}
+
 dictcli_stale_check() {
   local repo="$REPOS/dictcli" bin="$SKILLS_DIR/dictcli/dictcli"
   local graph="$SKILLS_DIR/dictcli/graph.edn" newest src_ts bin_ts
@@ -708,12 +726,15 @@ doctor_bins() {
           fail "$name: interpreter gone — $interp (nix GC? 재빌드 필요)" ;;
         *)
           # 표준 loader 경로가 없다 = 이 기기가 NixOS인데 nix-ld 가 없다.
-          # portable 본을 깔아둔 상태이고, 재빌드해도 같은 자리에서 죽는다.
-          # 처방은 재빌드가 아니라 host 본으로 교체다.
+          # 배포본(portable)을 깔아둔 상태이고, 재빌드해도 같은 자리에서 죽는다.
+          # 처방은 재빌드가 아니라 개발본으로 교체다.
           fail "$name: standard loader missing — $interp"
-          log "  → NixOS + nix-ld 부재로 보인다. portable 본은 이 기기에서 못 돈다."
-          log "  → nix-ld 를 켜거나, host 본으로 교체:"
-          log "     cp ~/repos/gh/dictcli/target/dictcli-$ARCH $SKILLS_DIR/$name/$name" ;;
+          log "  → NixOS + nix-ld 부재로 보인다. 배포본(portable)은 이 기기에서 못 돈다."
+          log "  → nix-ld 를 켜거나, 개발본으로 교체:"
+          log "     cp ~/repos/gh/dictcli/target/dictcli-$ARCH $SKILLS_DIR/$name/$name"
+          # ⚠️ 이 cp 는 아래 '개발본 오배포' 와 같은 상태를 만든다. 여기서는 그게 정상이다 —
+          # 표준 loader 가 없는 기기에서만 허용되는 예외이고, has_std_loader 가 두 경우를 가른다.
+          log "  → 이 기기는 개발본 배포가 정상인 예외다. 표준 loader 가 생기면 배포본으로 되돌려라." ;;
       esac
       broken+=("$name"); continue
     fi
@@ -740,10 +761,34 @@ doctor_bins() {
     if [ -n "$interp" ]; then
       case "$interp" in
         /nix/store/*)
-          # 지금 도는 것과 계속 돌 것은 다르다. gcroot 로 고정돼 있어야 GC 를 견딘다.
           store_top="${interp#/nix/store/}"; store_top="/nix/store/${store_top%%/*}"
-          if [[ "$nix_roots" == *"$store_top"* ]]; then
-            ok "$name: ok (dynamic, gcroot 고정됨)"
+          if [ "$name" = dictcli ] && has_std_loader; then
+            # 이 기기는 배포본을 돌릴 수 있다. 그런데 깔려 있는 건 개발본이다 —
+            # 4a3afd6 이후 `build --output` 은 portable 만 내보내므로(dictcli 담당자가
+            # run.sh:271 + make_portable_binary 방어 셋에서 확인, 2026-09-03), 이 상태는
+            # 4a3afd6 이전 배포 잔재이거나 손으로 개발본을 복사한 것 둘 중 하나다.
+            # gcroot 로 고칠 문제가 아니다 — 배포본은 store 의존이 0이라 핀이 보호할 대상이 없다.
+            warn "$name: 개발본 오배포 — 스킬 디렉토리에 nix store interp ($store_top)"
+            log "  → 개발본은 그 기기의 빌드 상태다(캐시 키·파생 원본·validate 대상). 건너가지 않는다."
+            log "  → 배포본으로 교체: ./run.sh setup:build"
+            fragile+=("$name(misdeploy)")
+          elif [[ "$nix_roots" == *"$store_top"* ]]; then
+            # 표준 loader 가 없는 기기 — 개발본 배포가 정상인 예외다. 이때만 gcroot 가 방어선이다.
+            #
+            # 다만 핀이 있다고 이 본이 지켜지는 건 아니다. pin_libc_gcroot 는 매 빌드마다
+            # root 집합을 리셋해 **지금의 개발본**이 참조하는 경로만 가리킨다. 낡은 개발본이
+            # 배포돼 있으면 핀은 다른 glibc 를 잡고 있고 이 본은 무방비다 — 2026-09-03
+            # thinkpad 가 정확히 그 형태였다(08-21 배포본이 요구한 glibc-2.40-218 이
+            # 08-29 리빌드의 핀 교체로 보호 밖). 그래서 불변식은 "핀에 있나"가 아니라
+            # **"배포된 개발본 == 지금 리포의 개발본"** 이다 (dictcli 담당자 지적, 합의).
+            if [ "$name" = dictcli ] && [ -f "$REPOS/dictcli/target/dictcli-$ARCH" ] \
+               && ! cmp -s "$bin" "$REPOS/dictcli/target/dictcli-$ARCH"; then
+              warn "$name: 배포된 개발본이 리포의 개발본과 다르다 — 핀은 최신 빌드만 가리킨다"
+              log "  → 다시 나르기: ./run.sh setup:build"
+              fragile+=("$name(stale-dev)")
+            else
+              ok "$name: ok (dynamic, gcroot 고정됨)"
+            fi
           else
             warn "$name: ok, but fragile — 고정 안 된 nix store 인터프리터 ($store_top)"
             fragile+=("$name")
@@ -763,7 +808,12 @@ doctor_bins() {
   if [ ${#fragile[@]} -gt 0 ]; then
     echo ""
     warn "fragile: ${fragile[*]}"
-    log "지금은 돌지만 nix-collect-garbage 한 번이면 죽는다 → ./run.sh setup:build (gcroot 재고정)"
+    # 항목마다 이유가 다르므로 요약이 한 처방으로 뭉뚱그리지 않는다. 복구 명령은 같지만
+    # 고쳐지는 이유가 다르다 — 오배포는 산출물이 바뀌어 낫고, 나머지는 핀이 다시 잡혀 낫는다.
+    log "모두 지금은 돌지만 그대로 두면 죽는다 → ./run.sh setup:build"
+    log "  misdeploy = 개발본이 깔려 있다 (배포본으로 교체되며 store 의존이 사라진다)"
+    log "  stale-dev = 배포된 개발본이 리포와 다르다 (핀은 최신 빌드만 가리킨다)"
+    log "  그 외      = nix store 인터프리터가 gcroot 밖이다 (nix-collect-garbage 한 번이면 죽는다)"
   fi
   # setup_all 의 Verification 이 재실행 없이 이 결과를 그대로 쓴다
   DOCTOR_RAN=1; DOCTOR_TOTAL=$checked; DOCTOR_PASS=$passed

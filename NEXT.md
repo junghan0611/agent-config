@@ -59,17 +59,27 @@
   `cmp` 동일, gcroot 09-03 10:08, smoke `harness`). 거기서 `build --force` 는 **돌리지 마라**:
   src가 04-15 이후 무변화라 산출물이 같은데 native-image Peak RSS 1.65GB를 봇 호스트에서 쓴다.
 - Do not: 번들을 host 본으로 되돌리지 마라. nix-ld 덕에 portable 본이 NixOS 호스트에서도
-  돈다(양 기기 실측). 되돌리면 **개발본 오배포**가 되고, 아래 안건의 그 실패로 직행한다.
-- Discuss(dictcli 담당자): **개발본/배포본을 이름으로 가르자** (GLG 제안 2026-09-03).
-  개발본 `target/dictcli-$ARCH` 는 store interp + gcroot 보호 + 그 기기에서만 (빌드·테스트가
-  기기마다 따로 도니 기기에 남는다), 배포본 `…-portable` 은 표준 loader + store 의존 0 이라
-  gcroot가 필요 없고 이것만 건너간다. 이 틀에서 `pin_libc_gcroot` 의 `rm -f "$root_dir"/*` 는
-  결함이 아니다 — 기기당 개발본은 한 벌이고 핀은 그 상태의 반영이라, 누적하면 죽은 빌드의
-  glibc를 영원히 붙잡는다. thinkpad에서 본 무방비(08-21 배포본이 요구하는 glibc-2.40-218 이
-  08-29 리빌드의 핀 교체로 보호 밖에 있었다)는 gcroot 로직이 아니라 **개발본이 배포돼 있었기
-  때문**이다. 그래서 안건은 진단명 하나다: 스킬 디렉토리의 바이너리가 store interp를 가지면
-  그건 `fragile`(처방=재빌드)이 아니라 **개발본 오배포**(처방=portable 본으로 교체)다.
-  이 이름이었다면 2026-08 오라클 사고도 같은 이름으로 잡혔다.
+  돈다(양 기기 실측). 되돌리면 **개발본 오배포**이고, doctor 가 그 이름으로 잡는다.
+- Closed(합의): **doctor 진단명을 기기 능력으로 갈랐다** (dictcli 담당자와 논의 완료,
+  2026-09-03). 배포는 언제나 `cp` 한 번이고 갈림길은 어느 산출물이냐뿐인데, 그 판정이
+  기기마다 뒤집힌다 — 표준 loader 있으면 store interp 는 **개발본 오배포**(처방=배포본 교체,
+  gcroot 무관), 없으면 개발본 배포가 **정상인 예외**(이때만 gcroot 가 방어선). `run.sh`
+  `has_std_loader()` 가 가르고 `fragile` 태그가 `misdeploy` / `stale-dev` / 그 외로 나뉜다.
+  담당자가 찾아준 자기모순도 닫았다 — `standard loader missing` 처방이 "개발본을 깔아라"라
+  시키는데 새 이름은 같은 상태를 오배포라 불렀다. 이제 그 분기에 "이 기기는 예외"라고 명시한다.
+  `stale-dev` 는 담당자 지적에서 나온 새 검사다: 핀은 매 빌드 리셋돼 *지금의* 개발본만
+  가리키므로 불변식은 "핀에 있나"가 아니라 **배포된 개발본 == 리포의 개발본**이다.
+  변이 테스트로 확인 — 개발본을 스킬 디렉토리에 넣으니 `dictcli(misdeploy)` 로 잡히고,
+  배포본으로 되돌리니 GREEN(`cmp` 로 복구 확인).
+- Not changed(합의): dictcli 리포는 안 건드린다. `pin_libc_gcroot` 의 `rm -f "$root_dir"/*`
+  는 결함이 아니고(기기당 개발본 한 벌 = 핀은 그 상태의 반영), `build --output` 이 portable
+  아닌 것을 내보내는 경로도 없다(담당자가 `run.sh:271` + `make_portable_binary` 방어 셋에서
+  확인). 담당자가 기록한 무해 엣지 둘 — `DICTCLI_STATIC=1` 전환 시 이전 핀 **누수**(덮어쓰기가
+  아니라 반대 방향), 한 `$HOME` 에서 두 arch 병존 시 `root_dir` 미분리. 둘 다 현재 미발동이라
+  고치지 않았다.
+- Detect(중요): `dictcli_stale_check` 는 `find -newer` mtime 비교라 **손으로 방금 cp 한
+  개발본은 오히려 제일 최신이라 안 걸린다.** 즉 interp 분기가 개발본 오배포의 **유일한
+  탐지기**다 — 이름을 틀리게 붙이면 탐지 경로 하나가 통째로 잘못된 처방을 낸다.
 
 ## 세션 코퍼스 — 검수 (아래 [2026-09-02])
 - Current: fixture 닫힘(`01d518e`, recap 17→22 / extract 8→12). 남은 건 골든뿐이다.

@@ -125,12 +125,38 @@ timeline 축(`~/repos/gh/junghan0611`)은 이 스킬들을 링크만 하는 게 
 
   빌드·테스트가 기기마다 따로 도니 개발본은 기기에 남고, `run.sh build --output` 이
   **배포본만** graph.edn과 한 세트로 내보낸다.
-- **스킬 디렉토리의 바이너리가 store 인터프리터를 가지면 그건 개발본 오배포다.** 처방이
-  `fragile`(재빌드)이 아니라 portable 본으로 교체다. 2026-09-03 thinkpad에서 실제로 그
-  상태였다 — 08-21에 깔린 개발본이 요구하는 glibc-2.40-218 이, 08-29 리빌드가 핀을
-  갈아치우면서 보호 밖에 있었다. `pin_libc_gcroot` 의 `rm -f "$root_dir"/*` 는 결함이
-  아니다: 기기당 개발본은 한 벌이고 핀은 그 상태의 반영이라, 누적하면 죽은 빌드의 glibc를
-  영원히 붙잡는다. **doctor의 진단명 교정은 dictcli 담당자와 논의 예정**(NEXT § Discuss).
+#### 배포는 언제나 `cp` 한 번 — 갈림길은 "어느 산출물을 복사했나"
+
+정상 배포도 예외 처방도 하는 일은 같다. 다른 것은 원본뿐이고, `readelf` 로 사후에 구분된다.
+
+| | 정상 배포 | 예외 처방 |
+|---|---|---|
+| 원본 | `target/<arch>-portable` | `target/dictcli-<arch>` (개발본) |
+| 실행 주체 | `run.sh build --output` (우리) | 손으로 |
+| 결과 interp | 표준 loader | nix store |
+
+그런데 **그 판정이 기기마다 뒤집힌다.** 그래서 doctor 는 이름을 하나가 아니라 둘로 쓴다
+(dictcli 담당자와 합의, 2026-09-03 · `run.sh has_std_loader`):
+
+- **표준 loader 있음** (nix-ld 또는 non-NixOS) — 배포본이 도는 기기다. 스킬 디렉토리의
+  store interp 는 **개발본 오배포**(`fragile: dictcli(misdeploy)`), 처방은 `setup:build`.
+  gcroot 는 여기서 무관하다 — 배포본은 store 의존이 0이라 핀이 보호할 대상이 없다.
+  `4a3afd6` 이후 `build --output` 은 portable 만 내보내므로(dictcli `run.sh:271` +
+  `make_portable_binary` 방어 셋), 이 상태는 **4a3afd6 이전 잔재이거나 손으로 복사한 것**뿐이다.
+- **표준 loader 없음** (nix-ld 없는 NixOS) — 배포본이 못 돈다. 개발본 배포가 **정상인 예외**고,
+  이때만 gcroot 가 방어선이다. 단 불변식은 "인터프리터가 핀 목록에 있나"가 아니라
+  **"배포된 개발본 == 지금 리포의 개발본"**(`fragile: dictcli(stale-dev)`)이다 —
+  `pin_libc_gcroot` 는 매 빌드마다 root 집합을 리셋해 *지금의* 개발본만 가리키므로, 낡은
+  개발본이 깔려 있으면 핀이 있어도 그 본은 무방비다. 2026-09-03 thinkpad가 정확히 그
+  형태였다(08-21 배포본이 요구한 glibc-2.40-218 이 08-29 리빌드의 핀 교체로 보호 밖).
+
+`pin_libc_gcroot` 의 `rm -f "$root_dir"/*` 는 **결함이 아니다** — 기기당 개발본은 한 벌이고
+핀은 그 상태의 반영이라, 누적하면 죽은 빌드의 glibc를 영원히 붙잡는다. dictcli 리포는
+건드리지 않는다(담당자 확인: `--output` 이 portable 아닌 것을 내보내는 경로 없음).
+
+**이게 문서상의 정확성 문제가 아닌 이유:** `dictcli_stale_check` 는 `find -newer` mtime 비교라
+**방금 손으로 cp 한 개발본은 오히려 제일 최신이라 안 걸린다.** graph.edn 도 세트로 나르면
+통과한다. 즉 **interp 분기가 개발본 오배포의 유일한 탐지기**다.
 - 소비자가 호스트만이 아니다. **봇 컨테이너(openclaw-gateway, Debian)가 같은 파일 하나를
   본다** — `~/.pi/agent/skills/pi-skills/dictcli/dictcli` → `skills/dictcli/dictcli` 심링크.
   그래서 "호스트에서 되니까 됐다"가 성립하지 않는다.
@@ -156,7 +182,9 @@ cd ~/repos/gh/agent-config && ./run.sh setup:build   # dictcli/run.sh build --ou
 `doctor_bins`가 dictcli에 대해 따로 보는 것:
 
 - **표준 loader 부재** → `standard loader missing`. 이건 **재빌드로 안 고쳐진다.** NixOS인데
-  nix-ld가 없는 기기다. nix-ld를 켜거나 `target/dictcli-<arch>`(host 본)로 교체한다.
+  nix-ld가 없는 기기다. nix-ld를 켜거나 `target/dictcli-<arch>`(개발본)로 교체한다 —
+  그 기기에서는 그게 오배포가 아니라 정상이다.
+- **개발본 오배포** → 위 표 참조. 표준 loader 가 있는데 store interp 가 깔려 있는 경우.
   ✅ **양 기기 모두 nix-ld가 있어 이 분기는 미발동이다** (2026-09-03 실측): oracle
   `/lib/ld-linux-aarch64.so.1` · thinkpad `/lib64/ld-linux-x86-64.so.2`, 둘 다 → `nix-ld-2.0.6`.
   portable 본이 NixOS 호스트에서도 돈다. 새 기기에서만 다시 확인하면 된다.
