@@ -7,6 +7,30 @@
 
 ## Unreleased
 
+## v2026.9.4 — 대문이 읽는 법을 먼저 말하고, 태그가 릴리즈까지 간다
+
+### Added
+
+* **README 상단에 「How to Read This」.** 대문은 매뉴얼이 아니라 현관이다 — 프레임워크를 설치하려는 사람이 아니라 **한 운영자가 실제로 무엇을 돌리는지** 보러 온 사람을 위해 쓴다. 네 가지를 먼저 세운다: ① 이 repo는 엔진이 아니다(엔진은 entwurf) ② 조용할수록 건강하다, 스킬 수는 기능 목록이 아니다 ③ 온 이유별 3갈래 읽기 표 ④ **여기 문장은 영수증을 달고 다닌다** — 이 문서 자신에게도 적용된다. `AGENTS.md`의 「이 섹션을 읽는 올바른 방식」이 담당자용이라면, 이것은 방문자용 같은 자리다.
+
+* **담당자 문서를 공개 면으로 연결했다.** README는 [§agent-config: 스킬 SSOT와 시험소 — 멀티하네스 이후](https://notes.junghanacs.com/botlog/20260312T174622)로, `AGENTS.md`는 denote id `20260312T174622`로. 대문은 **지금 무엇이 참인지**를, 그 노트는 **어떻게 여기까지 왔는지**를 말한다. 에이전트에게는 `--outline` 우선 읽기까지 붙였다 — 통째로 읽고 다시 쓰는 것이 그 문서를 망치는 방식이라서.
+
+* **prime-agent가 벤치의 세 번째 주체로 들어왔다.** 앞의 둘과 성격이 다르다 — 남의 런타임을 재는 것이 아니라 **직접 기르는 팔**이다. 상류 Prime Agent의 RLM이 persistent Python REPL에 사는데, 이 포크는 그 언어를 갈아끼운다: GraalVM native image 위 Clojure/SCI workspace, H8(`edc3a3e8`)부터 **기본 커널이 clojure이고 fallback이 없다**(바이너리가 없으면 teaching error). 이유는 언어 취향이 아니라 legibility다 — "자연어는 탐색, Lisp는 공개 상태·계약·form". 성공 조건도 벤치 점수가 아니라 **GLG가 workspace form을 읽고 다음 설계를 판단할 수 있는가**다. 세 규칙(Python oracle 안 지움 / 커버리지는 말할 자격 / FAIL은 판정이 아니라 분류할 관측)과 entwurf#88의 coordination↔computation 경계를 함께 실었다.
+
+### Changed
+
+* **`compaction` 키를 파이 레퍼런스에서 뺐다 — 그리고 그게 정리가 아닌 이유를 남겼다.** README의 절 제목이 `Session Management — No Compact`였고, 하네스가 compaction에 못 박혀 있는 것처럼 읽혔다. 아니다: `~/.claude/settings.json`에는 compaction 키가 **아예 없고**, 라이브 `~/.pi/agent/settings.json`은 `enabled: true`다(둘 다 oracle 실측 2026-09-04). entwurf가 0.17.2 #94에서 `autoCompactEnabled`/`env.DISABLE_AUTOCOMPACT`를 `RETIRED_SETTINGS_SCALARS`로 넘기며 스위치를 돌려줬고 — 소유권 이전이지 상태 변경이 아니다 — 운영자는 어느 쪽으로도 선언하지 않기로 했다. `merge_settings`가 EXISTING-WINS라 이 repo의 `false`는 **돌아가는 기계에 닿은 적이 없다**. 새 기계에만 운영자가 버린 의도를 심고 있었을 뿐이고, 그게 이 repo가 다른 데서 drift bomb이라 부르는 모양이다. 이유는 키가 있던 자리에 `_no_compaction`으로 남겼다 — 기억으로 되살리지 못하도록. **설정이 강제해야만 도는 습관은 애초에 습관이 아니었다.**
+
+* **OMP는 후보가 아니라 형제다.** entwurf `0.16.0`(2026-08-31)이 OMP를 **다섯 번째 garden backend**로 admit했고 이 호스트에 실제로 서 있다 — `omp/18.0.0`, `~/.omp/agent/extensions/`의 `entwurf-meta-omp`·`entwurf-receive-omp`, `mcp.json`의 native `entwurf-bridge`, `tools.xdev: false`(실측 2026-09-04). README와 `OMP.md`가 아직 "시민권 미착수"라고 말하고 있었다. `OMP.md`에는 문장을 지우지 않고 `[2026-09-04] 정정` 절로 C4·C5·C1만 닫았다. **닫힌 것과 열린 것을 표로 갈랐다**: 시민권(주소가 서는가, entwurf 소관)은 닫혔고, 위임 이득(GLG의 검수 홉이 줄어드는가, 여기 소관)의 D1–D5는 **전부 미측정**이다. 그래서 셋은 계속 안 한다 — `run.sh`에 `omp` 브랜치 없음, `nixos-config`에 없음, **`~/.omp`에 스킬 SSOT 주입 없음**. 이미 내 스킬셋으로 채워준 대상은 "스킬셋이 필요했는가"에 답할 수 없다.
+
+* **entwurf 소비면을 0.17.2로 맞췄다.** 여섯 rail을 한 문단으로 세웠다 — Claude Code·Copilot·OMP는 mailbox self-fetch, Antigravity는 mailbox가 아예 없는 native-push, Codex는 delivery probe는 있으나 managed install lane은 아직, pi는 control socket 공급. 도구 목록에서 빠져 있던 `entwurf_resume_call`을 채웠다(이번 세션 MCP 스키마에서 읽음). Harness Support 표에 OMP 행을 넣되 "이 repo는 아무것도 배선하지 않는다"를 그 행의 내용으로 적었다.
+
+* **GitHub 디스크립션을 교체했다.** 낡은 것이 셋이었다 — "Gemini Embedding 2"(은퇴, 지금은 Qwen3-Embedding-8B 4096d), "org-mode knowledge bases"(org 축은 프로덕션 비활성, 살아있는 것은 md 가든 축), "Pi extension"(방향은 pi 확장이 아니라 모든 하네스가 부르는 스킬). 스킬 수 42 → 43도 실측으로 맞췄다.
+
+### Fixed
+
+* **`tag-release`가 실제로 GitHub Release를 만든다.** 이전 스킬은 릴리즈를 문서 맨 끝 한 줄짜리 "Optional"로 뒀고, 그 결과가 그대로 나왔다 — `v2026.9.2`와 `v2026.8.10`은 태그만 있고 릴리즈가 없다(실측). **`git push origin "$TAG"`는 릴리즈를 만들지 않는다.** GLG가 github.com에서 읽는 것은 CHANGELOG가 아니라 릴리즈 노트 페이지이므로, 릴리즈 없는 태그는 취향이 아니라 **미완료 컷**이다. Make 단계가 pre-flight → tag/push → **`gh release create`** → stamp가 되고, 노트는 CHANGELOG 해당 절을 **그대로** 추출한다(두 번째 요약은 원문에서 흘러내린다). 빌드 산출물 첨부가 이제 선택 항목이다 — 사용자가 직접 만들 수 없는 바이너리에만, gitignore된 빌드 출력을 검토된 것처럼 붙이지 않는다. 릴리즈 없이 지나간 태그는 같은 세션에 backfill하고 그 사실을 말한다.
+
 ## v2026.9.2 — 코퍼스가 한 기계를 벗어나고, 게이트가 자기 결함을 적는다
 
 ### Added

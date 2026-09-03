@@ -6,18 +6,25 @@
 # RAIL — 현재 좌표
 
 - [x] **1. 세션 코퍼스 읽기면 착지** — 두 스킬이 device-merged 코퍼스를 읽는다 (`0b01f00`, `v2026.9.2`)
-- [ ] **2. 그 변경의 검수** ← CURRENT: fixture(`01d518e`) · 실검수(`15e2385`) · 골든 반영(`df49e79`) → **남은 건 형제 공지뿐**
+- [x] **2. 그 변경의 검수** — fixture(`01d518e`) · 실검수(`15e2385`) · 골든 반영(`df49e79`). 형제 공지는 GLG가 직접 부를 몫이라 여기서 닫는다
+- [x] **5. 대문·릴리즈 면 정렬** — README 읽기 가이드 + 담당자 문서 링크, compaction 키 제거, OMP 형제 정정, prime-agent 벤치 편입, `tag-release`가 실제 GitHub Release를 만든다 (`v2026.9.4`)
 - [ ] **3. entwurf-peek `trace` 파서 수선** ← PAUSED: `mux-placement` acceptance fixture 대기
 - [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
 
-현재 좌표: 1 완료 → **2 진행** → 3·4 보류
+현재 좌표: 1·2·5 완료 → **다음 CURRENT 미정** → 3·4 보류(둘 다 남의 손 대기)
 
 # NOW
 
-- **Hot group:** 세션 코퍼스 (아래 [2026-09-02])
-- **Next:** 형제 공지. 검수·문서는 닫혔고(`b3d8d01`까지 푸시됨) **공지 창도 열렸다.**
-  문서면 자체는 이미 공지다 — `AGENTS.md § device 축`을 모든 형제가 읽는다.
-  남은 건 GLG가 직접 부를 브로드캐스트뿐이라 여기서 일방 발신하지 않는다.
+- **Hot group:** 없음. `v2026.9.4`로 대문·릴리즈 면이 닫혔고, 3·4는 둘 다 남의 손을 기다린다.
+- **Next:** GLG가 다음 축을 고른다. 남아 있는 두 후보는 아래 3(entwurf-peek `trace`)과 4(#46)이고,
+  **둘 다 여기서 시작할 수 없다** — 각각 entwurf 쪽 fixture와 normalize가 선행이다.
+- **직전에 닫은 것 (2026-09-04):** README 상단 「How to Read This」 · 담당자 문서
+  `20260312T174622` 연결(README 공개 URL / `AGENTS.md` denote id) · `pi/settings.json`에서
+  `compaction` 제거하고 이유를 `_no_compaction`에 남김 · OMP를 후보에서 형제로 정정
+  (`OMP.md` `[2026-09-04] 정정`, D축은 여전히 열림) · prime-agent를 벤치 세 번째 주체로 편입 ·
+  `tag-release`가 `gh release create`까지 간다(+ 릴리즈 없이 지나간 `v2026.9.2`·`v2026.8.10` backfill).
+- **형제 공지:** 코퍼스 문서면 자체가 이미 공지다 — `AGENTS.md § device 축`을 모든 형제가 읽는다.
+  브로드캐스트는 GLG가 직접 부를 몫이라 여기서 일방 발신하지 않는다.
 - **Blocker:** 없음. 순서 게이트가 풀렸다 — 오라클이 `v2026.9.3`(`501cfe8`)로 올라와
   인덱싱 가드가 실렸다 (확인 2026-09-03 06:15, `ssh oracle git log -1` + `describe --tags`,
   `ANDENKEN_ALLOW_REPLICA_INDEX` 2회 출현). 즉 "오라클에서 `sync:sessions`/`/memory-sync`를
