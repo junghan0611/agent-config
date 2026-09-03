@@ -6,7 +6,11 @@ description: "Meaning search over past pi/Claude sessions and the public garden.
 # semantic-memory
 
 Search, choose, then open. CLI: `{baseDir}/semantic-memory`;
-the table omits this prefix.
+the table omits this prefix. **The CLI surface is exactly
+`search-sessions | search-md | search-knowledge | status | reindex`** — anything
+else named here is a *sibling skill*, invoked on its own, not a subcommand.
+Calling one as a subcommand returns `{"error":"Unknown command"}`
+(reproduced at the bot 2026-09-03, reported by the GPT bot on andenken#10).
 
 ## API
 
@@ -18,15 +22,17 @@ the table omits this prefix.
 | Public-garden concept | `search-md "query" --limit 5` | Choose a document and open its path; `--full` widens snippets. |
 | Exact title/tag/person | `denotecli search "name" --max 5` | Semantic neighbors never prove exact existence. |
 | Chosen session context | `search-sessions "query" --with-excerpt --excerpt-limit 1` | Surrounding turns; raise to at most 3. Whole session: `session-recap --session-file <file>` — the `file` is a corpus path and joins as-is. |
-| Health / maintenance | `status` · `memory-sync` · `andenken-embed` | Check freshness; full maintenance is human-gated. |
+| Health / maintenance | `status` (CLI) · then the `memory-sync` / `andenken-embed` **skills** | Check freshness; full maintenance is human-gated. |
 
 ## Eight operating rules
 
 1. **Pick the axis.** Sessions recover what was said/decided and carry
    time/project signals. MD recovers durable public interpretation; it has no
    production time/project query axis.
-2. **Freshness first.** Run `memory-sync` before recent-work retrieval when the
-   transcript may have grown. A stale absence is not a ranking miss.
+2. **Freshness first.** Invoke the `memory-sync` **skill** (not
+   `semantic-memory memory-sync` — that is not a subcommand) before recent-work
+   retrieval when the transcript may have grown. A stale absence is not a
+   ranking miss.
 3. **Start at 5.** MD keeps the same 40-candidate pool for limits up to 10, so 5
    lowers reading cost without shrinking findability. Widen only after reading
    the first screen and refining concrete names or terms.
@@ -97,5 +103,5 @@ recover the other's. Measured 2026-09-03 by reading
 - Missing cwd, parent/child, or garden identity is not inferred: use
   `entwurf-peek` for the canonical meta-record join.
 - Production org embedding is disabled: use `denotecli` for exact/raw `~/org`.
-- `reindex --force` is destructive and paid-remote gated. Prefer `memory-sync`;
-  full rebuilds require the human cost gate.
+- `reindex --force` is destructive and paid-remote gated. Prefer the
+  `memory-sync` skill; full rebuilds require the human cost gate.

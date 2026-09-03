@@ -32,14 +32,19 @@
 
 # ACTIVE
 
-## dictcli Layer 3 — 고쳤고, 이월 둘은 위임했다 (아래 [2026-09-03])
-- Current: 봇 위치 GREEN(마운트 형태 `expand "하네스"` → `["harness"]` exit 0, stderr 노이즈 0줄).
-  프로비저닝은 nixos-config#9로 닫혔다.
-- Next: **우리가 직접 들 것은 없다.** FHS 아티팩트는 dictcli 담당자에게 위임(pi/codex,
-  `~/repos/gh/dictcli`, 2026-09-03 09:5x 개설), 확장 폭 문제는 andenken#12로 열어두고
-  착수 보류(GLG 기억축 작업 중).
-- Watch: dictcli를 재빌드하면 `~/openclaw/docker-compose.yml`의 store 해시 2줄이 죽는다.
-  **그 갱신은 우리 책임**이라고 nixos-config 담당자에게 약속했다. FHS 아티팩트가 착지하면 소멸.
+## dictcli Layer 3 — 부채까지 닫았다. 남은 건 마운트 제거 한 줄 (아래 [2026-09-03])
+- Current: 봇 위치 GREEN. 그리고 **portable 아티팩트가 착지했다** — dictcli `4a3afd6`
+  (담당자 pi/codex, push+도장 완료). 번들도 교체했다: `skills/dictcli/dictcli` 는 이제
+  portable 본(interp `/lib/ld-linux-aarch64.so.1`, RUNPATH 0). 호스트·컨테이너 양쪽
+  `["harness"]` exit 0 재확인(2026-09-03).
+- Next: nixos-config 담당자에게 **compose store 마운트 두 줄 제거**를 요청한다. 그게
+  진짜 검증(마운트 없이 봇이 도는지)이고, 다음 recreate 창에 얹힌다 — GLG 타이밍.
+- Watch: **skew 부채는 여기서 소멸한다.** 마운트가 빠지면 dictcli 재빌드가 compose를
+  깨뜨리지 않는다. 그때까지만 우리 책임으로 남는다.
+- Do not: 번들을 host 본으로 되돌리지 마라 — nix-ld(`/lib/ld-linux-aarch64.so.1` →
+  `nix-ld-2.0.6`) 덕에 portable 본이 NixOS 호스트에서도 돈다(오라클 실측). 단
+  **nix-ld 없는 NixOS 기기에서는 죽는다** — thinkpad 미확인. 거기서 깨지면 dictcli
+  `target/dictcli-aarch64`(host 본)로 갈아끼우는 게 답이다.
 
 ## 세션 코퍼스 — 검수 (아래 [2026-09-02])
 - Current: fixture 닫힘(`01d518e`, recap 17→22 / extract 8→12). 남은 건 골든뿐이다.
@@ -126,6 +131,34 @@ dictcli가 손대지 않는 쿼리다. 즉 **이 골든셋에서 확장의 이�
 **협업 기록.** nixos-config 담당자와 entwurf로 6왕복. 세션 도중 GLM-5.3 쿼터 소진 →
 grok-4.6 인수. 우리 쪽 실측이 상대의 두 전제를 뒤집었고, 상대 쪽 compose·recreate가
 우리 검증을 가능하게 했다 — 어느 쪽도 혼자서는 못 닫았다.
+
+**그리고 부채까지 닫혔다.** dictcli 담당자(pi/codex, `~/repos/gh/dictcli`)를 열어 FHS
+아티팩트를 맡겼고 한 시간 안에 끝났다 — `4a3afd6`. host 본(nix store interp, gcroot 유지)과
+portable 본(표준 loader, RUNPATH 제거)을 매 빌드마다 2벌 굽고, `portable-test` 가
+`debian:bookworm-slim` 에서 정확 비교한다.
+
+**(B)는 불가능으로 확정됐고, 옛 주석이 틀렸다.** `run.sh` 는 "NixOS aarch64에 musl-gcc
+툴체인이 없다"고 적어뒀지만, 툴체인은 nixos-26.05에 있었다(GCC 15.2.0 aarch64 static).
+막은 것은 GraalVM 25.0.2 자체 — `lib/static/linux-aarch64/musl` 의 java/nio/net static
+library 부재로 `Building images on LINUX_AARCH64 (target libc: musl) is not supported`.
+주석은 그 실측으로 정정됐다. **왜 안 되는지의 receipt가 되게 만든 것보다 오래 남는다.**
+
+**내가 찾은 사실 하나가 설계를 줄였다.** 스킬 트리의 `dictcli` 는 호스트 에이전트와 컨테이너
+봇이 **같은 파일 하나**를 본다. "번들을 portable로 갈면 NixOS 호스트가 깨지니 wrapper가
+필요하다"가 다음 걱정이었는데, 이 기기에 nix-ld가 있어 표준 loader 경로가 이미 존재한다
+(`/lib/ld-linux-aarch64.so.1` → `nix-ld-2.0.6`). **한 벌로 양쪽을 덮는다** — wrapper도
+환경별 분기도 `~/openclaw/bin` 별도 SSOT(gog 전례)도 필요 없다.
+
+**GPT 봇의 독립 검증이 확장 가설을 좁혔다** (andenken#10 · GPT 봇 → #12에 반영).
+고유어를 뺀 긴 한국어 질의에서 `expanded: ["salvation","saving","rescueing"]` — **3개뿐인데
+해롭다.** 즉 축이 둘이다: 폭(개수)과 질(무관성). 단순 top-N 컷은 절반만 푼다. 확장어를
+BM25 경로에만 주는 안이 두 축을 동시에 무해화한다. 짧은 개념어(`하네스 엔지니어링` →
+`["harness"]`)에서는 깨끗하다는 것도 같은 보고에 있다 — **끄는 문제가 아니라 언제 켜는지다.**
+
+같은 보고가 우리 문서 결함도 하나 짚었다: `semantic-memory` SKILL.md가 `memory-sync` 를
+CLI 하위 명령처럼 안내하는데 실제 CLI 표면은
+`search-sessions|search-md|search-knowledge|status|reindex` 뿐이라 `Unknown command` 가
+난다(봇 위치에서 재현). CLI 하위 명령과 형제 스킬을 문서에서 갈랐다.
 
 ## [2026-09-02] 세션 코퍼스 — 고쳤고, 검수는 아직 안 했다
 
