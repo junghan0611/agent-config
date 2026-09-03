@@ -24,7 +24,7 @@ Calling one as a subcommand returns `{"error":"Unknown command"}`
 | Chosen session context | `search-sessions "query" --with-excerpt --excerpt-limit 1` | Surrounding turns; raise to at most 3. Whole session: `session-recap --session-file <file>` — the `file` is a corpus path and joins as-is. |
 | Health / maintenance | `status` (CLI) · then the `memory-sync` / `andenken-embed` **skills** | Check freshness; full maintenance is human-gated. |
 
-## Eight operating rules
+## Nine operating rules
 
 1. **Pick the axis.** Sessions recover what was said/decided and carry
    time/project signals. MD recovers durable public interpretation; it has no
@@ -39,7 +39,20 @@ Calling one as a subcommand returns `{"error":"Unknown command"}`
 4. **Open, do not re-query.** Results are compact document candidates: title,
    Denote ID/path, description, and short snippets. Read the chosen path; add
    excerpts only after choosing a session hit.
-5. **Scores rank; they do not certify.** Scores are uncalibrated within-query
+5. **Two passes, not one.** A first query in GLG's own abstract phrasing
+   retrieves the neighborhood, rarely the canonical hit. Read the top candidates
+   for concrete handles — project names, file names, coined terms, commands —
+   and search again with those. This is the normal shape of the tool, not a
+   recovery from a bad query: an independent GPT-bot run reached the wrong
+   neighbor on pass 1 and the exact source turn on pass 2 (andenken#10,
+   2026-09-03). Rule 4 forbids re-querying the *same* abstraction; this rule
+   requires re-querying with what pass 1 taught you.
+   Corollary: a long natural-language sentence is the weakest possible pass-1
+   query. It also triggers the widest dictcli expansion, and wide expansion
+   measurably hurts — the same run saw `["salvation","saving","rescueing"]`
+   attached to a query about session addressing (andenken#12). Keep pass 1
+   short and conceptual; put the length into pass 2's concrete terms.
+6. **Scores rank; they do not certify.** Scores are uncalibrated within-query
    signals. Session and MD score distributions are not comparable. **Nothing in
    the ranking is recency** — the session axis applies no temporal decay
    (`recencyHalfLifeDays: 0` at `cli.ts:255` and `index.ts:571`, and
@@ -47,21 +60,21 @@ Calling one as a subcommand returns `{"error":"Unknown command"}`
    2026-04 can outrank one from an hour ago on merit alone. When recency is
    what you actually want, say so with `--mode recent` or `--date-from`, never
    by assuming the top row is the newest.
-6. **People/existence need exact proof.** Semantic search proposes candidates;
+7. **People/existence need exact proof.** Semantic search proposes candidates;
    `denotecli` confirms the exact room/person before you assert or link it.
-7. **Count documents, not rows.** Repeated chunks are one document, and the
+8. **Count documents, not rows.** Repeated chunks are one document, and the
    session axis is chunk-dense: 75,267 chunks over 1,609 files, one session
    reaching 1,382 (measured 2026-09-03 from `andenken/data/session-manifest.json`).
    Long turns are split into numbered parts rather than truncated at 2K, so
    several rows from one turn is the normal shape, not a ranking signal.
    Explore results need distinct useful documents; a narrow lookup may favor one.
-8. **Know the limits.** No production track has automatic Kiwi stem enrichment;
+9. **Know the limits.** No production track has automatic Kiwi stem enrichment;
    dictcli expansion needs Hangul. MD `indexedAt` is export mtime, not the note
    date. Confirm temporal claims with `timeline`. A question-shaped query
    retrieves its own echo — asking `"남은 작업 뭐지"` returns the turns where
    *that question was asked*, not the answers (andenken golden, 2026-09-03,
-   inherited). That is the concrete case behind `AGENTS.md`'s two-step strategy:
-   pass 2 with concrete names, files and commands.
+   inherited). That is the concrete case behind rule 5 and `AGENTS.md`'s
+   two-step strategy.
 
 An unfiltered session search may append labeled MD fallback rows when session
 hits are thin. Keep tracks separate and never compare their scores.

@@ -37,10 +37,11 @@
   (담당자 pi/codex, push+도장 완료). 번들도 교체했다: `skills/dictcli/dictcli` 는 이제
   portable 본(interp `/lib/ld-linux-aarch64.so.1`, RUNPATH 0). 호스트·컨테이너 양쪽
   `["harness"]` exit 0 재확인(2026-09-03).
-- Next: nixos-config 담당자에게 **compose store 마운트 두 줄 제거**를 요청한다. 그게
-  진짜 검증(마운트 없이 봇이 도는지)이고, 다음 recreate 창에 얹힌다 — GLG 타이밍.
-- Watch: **skew 부채는 여기서 소멸한다.** 마운트가 빠지면 dictcli 재빌드가 compose를
-  깨뜨리지 않는다. 그때까지만 우리 책임으로 남는다.
+- Next: **없다. 닫혔다.** 마운트 두 줄이 제거됐고 10:36 recreate 후 마운트 없는 상태로
+  실측 GREEN — 컨테이너 `/nix/store` 에 qqx8w6hd·rrd22q5c **부재**, 봇 위치
+  `expand "하네스"` → `["harness"]` exit 0, 검색 stderr `not found` 0줄(우리가 따로 잼).
+- Watch: **skew 부채 소멸.** 이제 dictcli를 재빌드해도 compose가 깨지지 않는다.
+  단 `run.sh build` 뒤 `skills/dictcli/dictcli` 번들 갱신은 여전히 수동이다.
 - Do not: 번들을 host 본으로 되돌리지 마라 — nix-ld(`/lib/ld-linux-aarch64.so.1` →
   `nix-ld-2.0.6`) 덕에 portable 본이 NixOS 호스트에서도 돈다(오라클 실측). 단
   **nix-ld 없는 NixOS 기기에서는 죽는다** — thinkpad 미확인. 거기서 깨지면 dictcli
@@ -159,6 +160,13 @@ BM25 경로에만 주는 안이 두 축을 동시에 무해화한다. 짧은 개
 CLI 하위 명령처럼 안내하는데 실제 CLI 표면은
 `search-sessions|search-md|search-knowledge|status|reindex` 뿐이라 `Unknown command` 가
 난다(봇 위치에서 재현). CLI 하위 명령과 형제 스킬을 문서에서 갈랐다.
+
+그리고 봇이 제안한 세 품질축 중 **우리 몫 하나를 반영했다**: "1차 추상 → 후보 읽기 →
+2차 구체"를 SKILL.md 운영 규칙 5번으로 승격(규칙 여덟 → 아홉). 지금까지는 AGENTS.md에만
+있었고 스킬 문서에는 규칙 8의 꼬리 문장으로만 걸려 있었다. 규칙 4("다시 묻지 말고 열어라")와
+충돌해 보이므로 그 경계를 명시했다 — **같은 추상어로 다시 묻지 마라, 1차가 가르쳐준 고유어로는
+다시 물어라.** 나머지 둘(OpenClaw 코퍼스 연결, 오확장 억제)은 각각 nixos-config NEXT와
+andenken#12에 있고 우리 착수 대상이 아니다.
 
 ## [2026-09-02] 세션 코퍼스 — 고쳤고, 검수는 아직 안 했다
 
