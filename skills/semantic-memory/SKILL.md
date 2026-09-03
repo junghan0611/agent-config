@@ -1,13 +1,14 @@
 ---
 name: semantic-memory
-description: "Meaning search over past pi/Claude sessions and the public garden. Use for past decisions, concept discovery, cross-lingual retrieval, and time/project session slices. Start with 5, choose, then open. Exact title/person → denotecli; whole-day truth → timeline/day-query. Triggers: semantic memory, session search, knowledge search, 의미 검색, 과거 결정."
+description: "Meaning search over three separate axes — own pi/Claude sessions, the public garden, and (pending) OpenClaw bot memory — always naming which axis a hit came from. Use for past decisions, concept discovery, cross-lingual retrieval, and time/project session slices. Start with 5, choose, then open. Exact title/person → denotecli; whole-day truth → timeline/day-query. Triggers: semantic memory, session search, knowledge search, 의미 검색, 과거 결정."
 ---
 
 # semantic-memory
 
 Search, choose, then open. CLI: `{baseDir}/semantic-memory`;
 the table omits this prefix. **The CLI surface is exactly
-`search-sessions | search-md | search-knowledge | status | reindex`** — anything
+`search-sessions | search-md | search-knowledge | status | reindex`**
+(`search-openclaw` is pending, andenken#13) — anything
 else named here is a *sibling skill*, invoked on its own, not a subcommand.
 Calling one as a subcommand returns `{"error":"Unknown command"}`
 (reproduced at the bot 2026-09-03, reported by the GPT bot on andenken#10).
@@ -20,15 +21,55 @@ Calling one as a subcommand returns `{"error":"Unknown command"}`
 | Known time/project | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode recent` | Caller supplies a half-open ISO window; no embed/BM25/dictcli. |
 | Meaning in known slice | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode hybrid --limit 5` | Structured filters first, semantic rank second. |
 | Public-garden concept | `search-md "query" --limit 5` | Choose a document and open its path; `--full` widens snippets. |
+| What a bot said/remembers | **not callable yet** — `search-openclaw` is a planned subcommand (andenken#13); running it today returns `{"error":"Unknown command"}` | Until it ships, say so; do not substitute a session or md search and call it bot memory. |
 | Exact title/tag/person | `denotecli search "name" --max 5` | Semantic neighbors never prove exact existence. |
 | Chosen session context | `search-sessions "query" --with-excerpt --excerpt-limit 1` | Surrounding turns; raise to at most 3. Whole session: `session-recap --session-file <file>` — the `file` is a corpus path and joins as-is. |
 | Health / maintenance | `status` (CLI) · then the `memory-sync` / `andenken-embed` **skills** | Check freshness; full maintenance is human-gated. |
+
+## Three axes — say which one you searched
+
+GLG's rule (2026-09-03): when a hit is quoted, the reader must be able to tell
+**OpenClaw bot memory** from **our own sessions** from **the garden**. The three
+are different corpora with different provenance, and no one of them is a fallback
+for another.
+
+| Axis | Track | What it is | Provenance to carry |
+|---|---|---|---|
+| sessions | `search-sessions` | pi / Claude Code transcripts of GLG's own work, every device | harness (`pi`/`claude`), device segment of `file`, project, date |
+| garden | `search-md` | published notes (`notes/content`) | Denote ID / path |
+| openclaw | `search-openclaw` *(planned, not callable)* | chunks the OpenClaw bots embedded themselves (`memory` + `sessions` sources, 6 agents), harvested as-is with zero re-embedding | `agent` (glg/bbot/gpt/…), `source` (`memory`/`sessions`), path, `updated_at` |
+
+Rules that follow:
+
+- **One axis per call, named in the answer.** "found in glg-bot's memory" and
+  "found in your 2026-08 Claude session" are different claims. Never write
+  "found in memory" for either.
+- **Scores never cross axes** (rule 6 below), and neither do results: no
+  automatic openclaw fallback into a session search, no session fallback into
+  openclaw. The existing labeled MD fallback on thin session hits is the only
+  cross-axis row and it stays labeled.
+- **OpenClaw `source=memory` is the bot's durable memory, not a transcript.**
+  Quote it as what the bot *keeps*, `source=sessions` as what was *said*.
+- Chunking differs (OpenClaw `chunkTokens:400`), so rule 8's "count documents"
+  applies per axis with a different density.
+
+**This table is the CLI surface.** The pi extension exposes a different surface:
+its tools are `session_search` and `knowledge_search` only (andenken `index.ts`,
+read by the andenken steward 2026-09-03), and there is **no openclaw tool in pi
+yet** — a sibling inside pi cannot reach that axis until andenken adds
+`openclaw_search` (open item on andenken#13). Do not assume the table above is
+callable from pi.
+
+The `search-openclaw` subcommand and the `openclaw.lance` track are being built in
+andenken (andenken#13); until the CLI ships, this section is the contract, not a
+working call.
 
 ## Nine operating rules
 
 1. **Pick the axis.** Sessions recover what was said/decided and carry
    time/project signals. MD recovers durable public interpretation; it has no
-   production time/project query axis.
+   production time/project query axis. OpenClaw recovers what the bots said and
+   kept, keyed by agent.
 2. **Freshness first.** Invoke the `memory-sync` **skill** (not
    `semantic-memory memory-sync` — that is not a subcommand) before recent-work
    retrieval when the transcript may have grown. A stale absence is not a

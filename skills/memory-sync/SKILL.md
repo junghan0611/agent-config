@@ -1,48 +1,108 @@
 ---
 name: memory-sync
-description: "Incrementally embed sessions only — near-live. On call, new sessions land in semantic-memory immediately. OpenRouter Qwen3-Embedding-8B 4096d, paid remote but ~$0.000–0.001 for a few recent sessions. dim 4096 preflight → API-0 exit when to_index=0. Use before a new session or when recent-session recall feels stale. '/memory-sync', 'memory sync', 'session embedding', '세션 임베딩', '세션 증분', '기억 최신화'."
+description: "Incrementally embed sessions only — two modes. Default = local: this laptop's live sessions, zero ssh (embedding API still remote), no replica update; safe to call often. --global = gather every device (oracle+thinkpad), embed, then push the index AND replicate the corpus to oracle in one breath. OpenRouter Qwen3-Embedding-8B 4096d, ~$0.000–0.001 per call. dim 4096 preflight → API-0 exit when to_index=0. Garden (md) and OpenClaw harvest are NOT here → andenken-embed. '/memory-sync', '/memory-sync --global', 'memory sync', 'session embedding', '세션 임베딩', '세션 증분', '글로벌 세션 동기화', '기억 최신화'."
 user_invocable: true
 ---
 
-# memory-sync — live session-index increment
+# memory-sync — session-index increment, two modes
 
-Increments **only the sessions index** of semantic-memory. On call, new sessions
-land in the memory layer right away. The one hand that keeps session recall fresh
-— call it right before searching (semantic-memory) to catch the latest turns.
+Increments **only the sessions index** of semantic-memory. Two modes, one script.
+These are steps 1) and 2) of the four-step operating procedure GLG fixed on
+2026-09-03 (andenken#13, second comment — the thread wins over the body).
 
-**md (garden), verify, compact, oracle replication are NOT done here.** That full
-maintenance belongs to the `andenken-embed` skill in the andenken repo. This skill
-is **one track, immediate increment** only.
+| | **local** (default) | **`--global`** |
+|--|--|--|
+| Step | 1) 빠른 세션 증분 | 2) 글로벌 세션 동기화 |
+| Cadence | often / automatable | explicit call |
+| Sessions gathered | this device only (`gather-corpus.sh --only <local>`) | every active device in `DEVICES.json` (oracle + thinkpad) |
+| SSH / replica traffic | **none** — zero ssh | ssh to oracle (gather, push, replicate) |
+| Embedding API | OpenRouter, remote, paid (same in both modes — "no ssh" is not "offline") | same |
+| Embeds | new sessions in the corpus | same |
+| After embedding | nothing | `sessions.lance` + manifest → oracle, **and** `corpus:replicate` → oracle, together |
+| Oracle's bot sees | last `--global` | now |
+| Fails when | local rsync fails | a rostered active device is unreachable (`--strict`) |
+| Cost | ~$0.000–0.001 | same |
+
+The canonical form of this table is the script's own `--help`
+(`sync-sessions.sh --help`, read 2026-09-03 after the andenken steward widened
+the help range to include it). If the two disagree, the script is right.
+
+Steps 3) garden embedding (`sync:md`) and 4) OpenClaw harvest (`sync:openclaw`)
+are **not here** — they are the `andenken-embed` skill. This skill is one track:
+sessions.
 
 ## Call
 
 ```bash
-bash {baseDir}/scripts/sync-sessions.sh           # sessions increment (default)
-bash {baseDir}/scripts/sync-sessions.sh --push    # increment + oracle rsync (DB+manifest)
+bash {baseDir}/scripts/sync-sessions.sh             # local  — step 1)
+bash {baseDir}/scripts/sync-sessions.sh --global    # global — step 2)
 ```
 
-> **On thinkpad only — the script enforces it.** A call from a non-authority device
-> is refused before any API call or DB write. See § Device authority below.
+`/memory-sync` = local. `/memory-sync --global` = global. Arguments pass straight
+through to the SSOT script; the wrapper only sources `~/.env.local` for the key.
+`--local` and `--global` are exclusive (both → exit 2, "--local and --global are
+exclusive"); an unknown flag is exit 2, "unknown arg: X". Measured 2026-09-03 by
+the tester session.
 
-Just call it. No args, no preview needed. The script handles it:
+> **On thinkpad only — the script enforces it, in both modes.** A call from a
+> non-authority device is refused before any API call or DB write. See § Device
+> authority.
 
-0. **`corpus:gather`** — collects every device's admitted sessions into
-   `$ANDENKEN_SESSION_CORPUS` first, because the index is built from the corpus, not
-   from this machine's live store. Network I/O (ssh rsync to oracle), delta-only. A
-   device that is unreachable is a warning; a gather that *fails* aborts with
-   "refusing to index a corpus of unknown freshness" and embeds nothing
-   (`andenken/scripts/sync-sessions.sh:74-81`, read 2026-09-03). `SKIP_GATHER=1`
-   opts out. Skipped entirely when `ANDENKEN_SESSION_CORPUS` is unset.
-1. **dim 4096 preflight** (1 call) confirms provider/DB dim agreement.
-2. **`to_index=0` → API-0 exit.** Nothing to embed → no probe, just exit (zero cost).
-   Safe to re-call right after a run.
-3. `to_index≥1` embeds only the new sessions — **from every device**, not just this
-   one. Usually a few seconds, ~$0.000–0.001.
+## What each mode does
 
-| Flag | Default | Effect |
-|------|---------|--------|
-| (none) | - | sessions increment, no oracle push |
-| `--push` | off | after finishing, rsync `sessions.lance` + `session-manifest.json` → oracle. **thinkpad only** — refused elsewhere by the authority guard |
+**local** (no flag, or `--local`):
+
+0. **gather this device only.** `gather-corpus.sh --only <local device>` copies
+   this machine's admitted live sessions into `$ANDENKEN_SESSION_CORPUS`. The
+   indexer reads the corpus, never the live store, so this local copy is what
+   makes "new sessions land immediately" true. Local disk only; a failure here
+   still aborts with "refusing to index a corpus of unknown freshness" — a
+   local rsync that fails is a real failure.
+1. dim 4096 preflight (1 call) when there is work.
+2. `to_index=0` → API-0 exit. Safe to re-call right after a run.
+3. embeds only the new sessions.
+
+**What local buys is not availability but not waiting.** An unreachable oracle
+was already a warning, not a failure, in the full gather (`gather-corpus.sh`,
+"An unreachable remote is a warning, not a failure"; read 2026-09-03). What local
+removes is the ssh connect timeout, the remote enumeration and the rsync round
+trip that every full gather pays — zero ssh, every call.
+
+**Local does not update the replica. That is intended.** A step that runs often
+must not drag an rsync to oracle every time, or the automation gets heavy. The
+price is stated plainly: until the next `--global`, oracle's bots answer from the
+index as of the last `--global`, and oracle-native sessions written since then
+are not in the index at all. They are not lost — the corpus is append-only, and
+`--global` catches them up. No fork is possible from this mode.
+
+**`--global`**:
+
+0. gather **every** active device (`gather-corpus.sh --strict`). An unreachable
+   active device is a failure in this mode, not a warning — "global" promises
+   both sides agree, and a push without oracle's sessions in it does not deliver
+   that. Strict fails *last*: every reachable device is gathered and the
+   manifest updated, then exit 1 — it reports incompleteness, it does not undo
+   work. **A `--global` that fails because a peer is down is not a broken
+   script: run local, and run `--global` again when the peer is back.** The
+   full gather's own default stays lenient; only `--global` asks for strict.
+1–3. as local.
+4. `verify sessions` (API 0) — a failed verify refuses the push. Same rule as
+   andenken-embed's "verify BEFORE pushing", now on this path too.
+5. push `sessions.lance` + `session-manifest.json` → oracle (`rsync --delete`,
+   authority-guarded), **and** `corpus:replicate` → oracle. The two never travel
+   apart: on 2026-09-03 the index was pushed without the corpus and the replica
+   sat at 75,326 chunks against the canonical 75,922 — asking the bot about that
+   day returned nothing. Runs even when `to_index=0` (catch-up path); skipped
+   entirely if the embed step did not complete cleanly.
+
+Measured 2026-09-03 17:05/17:07 on thinkpad by the andenken steward: local
+printed `mode: local (device=thinkpad)` and `gather corpus (local: thinkpad)`
+with no roster loop and no push; global ran `verify sessions before publish` →
+rsync index + manifest → `replicate corpus → replica` as one flow.
+
+`--push` is a **deprecated alias of `--global`** (the script prints a notice and
+behaves as `--global`). It is no longer part of this skill's surface; write
+`--global`. Removal is reviewed once the documentation paths have landed.
 
 ## Device authority — call this on thinkpad
 
@@ -50,72 +110,73 @@ thinkpad builds the index; oracle is a **query replica** and receives it by rsyn
 (`INVARIANT.md` §7.1). Running the indexer on oracle forks the corpus — it happened
 once already (2026-06-19→07-06, replica 27,966 chunks against the canonical 24,882).
 
-Both halves are now gated, and the gate is the script's, not this page's:
+The gate is the script's, not this page's, and it is the same gate in both modes:
 
-- **The increment refuses on a non-authority device** — before the dim preflight, the
-  embedding and any DB write, so a refused run costs nothing. The gate is the
-  `INDEX_AUTHORITY` test in `andenken/scripts/sync-sessions.sh`, sitting between the
-  gather and Step 1 (andenken `v2026.9.3`; grep the name rather than trusting a line
-  number across repos — a tag is the anchor that survives the trip). Being *after* Step 0 is deliberate: a refused call on oracle
-  has already gathered, which is the half that machine is supposed to do.
-- **`--push` refuses on the same test** inside `push_replica`, protecting the
+- **The increment refuses on a non-authority device** — after the gather, before
+  the dim preflight, the embedding and any DB write, so a refused run costs
+  nothing. The gate is the `INDEX_AUTHORITY` test in
+  `andenken/scripts/sync-sessions.sh` (grep the name rather than trusting a line
+  number). Being *after* the gather is deliberate: a refused local call on
+  oracle has already gathered oracle's own sessions, which is the half that
+  machine is supposed to do.
+- **The push inside `--global` refuses on the same test**, protecting the
   canonical index from being overwritten by an older copy.
-- Escape hatch: `ANDENKEN_ALLOW_REPLICA_INDEX=1` for one run, or move the authority
-  with `ANDENKEN_INDEX_AUTHORITY`. Both fork the corpus — do not reach for either to
-  make a refusal go away. **Neither is a way to catch up**: catching up is the
-  authority's next run, and a fork is the one state no later push can reconcile.
+- Escape hatches `ANDENKEN_ALLOW_REPLICA_INDEX=1` and `ANDENKEN_INDEX_AUTHORITY`
+  exist; both fork the corpus. **Neither mode is implemented through them, and
+  neither is a way to catch up.** Catching up is the authority's next
+  `--global`.
 - **A refusal is not a stale replica.** This machine's sessions still get indexed:
   they travel to the authority as source files via the gather and come back inside
-  the pushed index. If oracle's recall feels stale, the fix is a push from thinkpad.
+  the pushed index. If oracle's recall feels stale, the fix is `--global` from
+  thinkpad.
 
-Until 2026-09-03 only `--push` was guarded, so the replica was free to fork *itself* —
-the worse of the two failures, and the one §7.1 actually names. The friendly entry
-point (this skill, "기억 최신화") was exactly what a sibling on the replica would
-reach for.
-
-The sessions track is OpenRouter `qwen/qwen3-embedding-8b` / 4096d. The old
-`--backend ollama|gpu1i` 2560d path is retired. Cost is small but not zero
-(`$0.01/M tokens`). The wrapper sources `~/.env.local` for `OPENROUTER_API_KEY`;
-provider/dim safety lives in the andenken SSOT script.
+The sessions track is OpenRouter `qwen/qwen3-embedding-8b` / 4096d. Cost is small
+but not zero (`$0.01/M tokens`). Provider/dim safety lives in the andenken SSOT
+script.
 
 ## One synchronous call
 
 The script takes a **non-blocking flock** (`data/.sync-sessions.lock`): if another
 sync already holds it, the second run exits cleanly ("already running") instead of
-racing the LanceDB writer. So an impatient re-call is safe — it just no-ops while
-the first finishes. Still prefer one synchronous call and wait, so you don't fire
-redundant runs.
+racing the LanceDB writer. An impatient re-call is safe — it just no-ops. Still
+prefer one synchronous call and wait. A `--global` holds the lock through the
+push and replicate, so a local call fired during it no-ops too.
 
-| Pattern | Result |
-|---------|--------|
-| Synchronous call, wait to completion | ✅ correct |
-| Background call, then other work | ⚠️ fine — but don't re-fire; the lock no-ops it |
-| Concurrent call from two sessions / cron | ✅ safe — the second backs off cleanly |
-
-To check by hand, use a self-match-safe pattern (a plain `pgrep -af sync-sessions`
-also matches pgrep's own command line): `pgrep -af '[s]ync-sessions'`.
+To check by hand: `pgrep -af '[s]ync-sessions'` (self-match-safe).
 
 ## Role split vs andenken-embed
 
 | | memory-sync (this skill) | andenken-embed (andenken repo) |
 |--|--|--|
-| Scope | one track: sessions | sessions + md (garden) full maintenance |
-| Purpose | recall freshness, immediate live increment | re-embed · verify · defrag · replicate |
+| Scope | one track: sessions, modes local / global | sessions + md (garden) + OpenClaw harvest, full maintenance |
+| Steps of the 4-step procedure | 1), 2) | 3) `sync:md` (+ `sync:md:oracle`), 4) `sync:openclaw` |
+| Purpose | recall freshness | re-embed · verify · defrag · replicate · harvest |
 | Anywhere | ✅ thin wrapper | in the andenken repo via `./run.sh` |
-| md / verify / compact / oracle ops | ❌ (→ andenken-embed) | ✅ |
+| md / verify / compact / openclaw | ❌ | ✅ |
 | Full rebuild (destructive) | ❌ | human gate (no agent automation) |
 
-Just want sessions fresh fast → this skill. Need md increment / integrity checks /
-fragment cleanup / oracle replication → `andenken-embed` in the repo.
+Sessions fresh now → `/memory-sync`. Oracle's bots must see today → `/memory-sync
+--global`. Garden, OpenClaw, integrity, defrag → `andenken-embed` in the repo.
 
 ## Notes
 
-- **Explicit call only.** An agent does not call this on cron/automatically.
-  (The andenken `sync-sessions.sh` itself assumes an hourly cron cadence, but that
-  is andenken-side infra running separately from this skill's invocation.)
-- When to call: before starting a new session, right after `/new` when prior-session
-  recall is needed, before a search to catch the latest turns.
+- **Explicit call only** from an agent. Local mode is the shape the timer takes:
+  andenken ships `scripts/systemd/andenken-sync-sessions.{service,timer}` (30
+  min, `ExecStart` with no arguments = local). It is **not installed** on
+  thinkpad (`systemctl --user is-enabled andenken-sync-sessions.timer` →
+  not-found, measured by the andenken steward 2026-09-03); installing it is
+  GLG's choice, and that infra is separate from this skill.
+- When to call local: before a new session, right after `/new`, before a search
+  that needs the latest turns.
+- When to call global: before asking an oracle-side bot about recent work, at
+  end of day, after a long oracle session.
+- `SKIP_GATHER=1` is a debugging escape (index whatever snapshot is on disk),
+  **not** the local mode and not an operating surface — with it set, a session
+  written since the last gather is never seen.
 - Full-sync / cost gates / destructive rebuilds are not agent-automated (₩100K
-  incident residual safety). Sessions increment only here; the rest → andenken-embed.
+  incident residual safety).
 - SSOT is `~/repos/gh/andenken/scripts/sync-sessions.sh`. This skill is a thin
-  wrapper that execs it (`{baseDir}/scripts/sync-sessions.sh`).
+  wrapper that execs it (`{baseDir}/scripts/sync-sessions.sh`). Flag names and
+  the mode table above are the contract agreed with the andenken steward on
+  2026-09-03 (andenken#13); if the script's `--help` disagrees, the script is
+  right and this page owes an edit.
