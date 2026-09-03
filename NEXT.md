@@ -41,7 +41,13 @@
   실측 GREEN — 컨테이너 `/nix/store` 에 qqx8w6hd·rrd22q5c **부재**, 봇 위치
   `expand "하네스"` → `["harness"]` exit 0, 검색 stderr `not found` 0줄(우리가 따로 잼).
 - Watch: **skew 부채 소멸.** 이제 dictcli를 재빌드해도 compose가 깨지지 않는다.
-  단 `run.sh build` 뒤 `skills/dictcli/dictcli` 번들 갱신은 여전히 수동이다.
+- Own: **dictcli 배포 운영은 우리 것으로 명시했다** (GLG 2026-09-03). 로직·graph는 dictcli
+  담당자, 회수 품질은 andenken 담당자, **기기별 굽기·배포는 여기.** GraalVM이라 크로스
+  컴파일이 없고(oracle aarch64 / thinkpad x86_64) 조용히 깨지거나 조용히 낡는다.
+  `doctor_bins`가 셋을 본다: 표준 loader 부재(재빌드로 안 고쳐짐 — host 본으로 교체) ·
+  배포 신선도 · graph.edn 세트 어긋남. 절차는 `.claude/skills/agent-config/SKILL.md § dictcli`.
+- Next(기기): **thinkpad에 아직 안 날랐다.** 거기서 `./run.sh setup:build` 를 처음 칠 때
+  nix-ld 유무에 따라 `standard loader missing` 이 뜰 수 있다 — 미확인. 뜨면 host 본으로 교체.
 - Do not: 번들을 host 본으로 되돌리지 마라 — nix-ld(`/lib/ld-linux-aarch64.so.1` →
   `nix-ld-2.0.6`) 덕에 portable 본이 NixOS 호스트에서도 돈다(오라클 실측). 단
   **nix-ld 없는 NixOS 기기에서는 죽는다** — thinkpad 미확인. 거기서 깨지면 dictcli

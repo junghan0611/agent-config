@@ -74,7 +74,8 @@ git -C ~/repos/gh/gitcli commit ...     # 커밋해야 게이트를 통과한다
 ./run.sh setup:build                    # go_build → skills/gitcli/gitcli (gitignored)
 ```
 - denotecli/gitcli/lifetract/bibcli = `go_build`. gog = 글로벌 upstream(nixos-config).
-  dictcli = GraalVM native-image + Kiwi(`dictcli/run.sh build`) — **게이트 밖이다**.
+  dictcli = GraalVM native-image + Kiwi(`dictcli/run.sh build`) — **게이트 밖이고 배포 운영을
+  우리가 진다. 아래 전용 절 참조.**
 - 바이너리는 **머신별 네이티브 빌드**(oracle=aarch64, 나머지=x86_64). 기기 옮기면 재빌드 필수.
 
 > 2026-07-14: lifetract가 자기 `run.sh deploy`로 `skills/lifetract/`에 바이너리와 SKILL.md를
@@ -100,6 +101,64 @@ export할 때마다 dirty다. 그걸로 막으면 코드와 무관한 이유로 
 timeline 축(`~/repos/gh/junghan0611`)은 이 스킬들을 링크만 하는 게 아니라 **shell out해서 그
 숫자를 `events.jsonl`에 역사로 쓴다** — 어느 바이너리가 그 행을 만들었는지 이제 읽을 수 있다.
 `./run.sh env`가 각 바이너리의 revision을 찍고, 기록된 빌드와 다르면 경고한다.
+
+### dictcli — 배포 운영은 우리가 진다 (형제 중 유일한 예외 취급)
+
+**소유 경계:** 로직·`graph.edn`·빌드 스크립트는 dictcli 리포(SSOT). **기기별 굽기와 배포
+운영은 여기다.** 어휘 그래프 고도화나 확장 알고리즘은 dictcli 담당자가, 회수 품질은 andenken
+담당자가 각자 가져간다 — 우리는 *그 산출물이 모든 기기·모든 하네스·봇 컨테이너에서 실제로
+도는가* 만 책임진다.
+
+왜 형제 Go CLI와 다르게 취급하나:
+
+- **GraalVM native-image**라 `go_build` 게이트 밖이다. 크로스 컴파일이 없다 —
+  **oracle(aarch64)과 thinkpad(x86_64)에서 각각 굽는다.**
+- 산출물이 **2벌**이다 (dictcli `4a3afd6`, 2026-09-03):
+  - `target/dictcli-<arch>` — **host 본.** nix store 인터프리터 + `pin_libc_gcroot`.
+  - `target/dictcli-<arch>-portable` — **portable 본.** 표준 loader(`/lib/ld-linux-aarch64.so.1`
+    · x86_64는 `/lib64/ld-linux-x86-64.so.2`), RUNPATH 제거.
+  - `run.sh build --output` 이 **portable 본**을 graph.edn과 한 세트로 배포한다.
+- 소비자가 호스트만이 아니다. **봇 컨테이너(openclaw-gateway, Debian)가 같은 파일 하나를
+  본다** — `~/.pi/agent/skills/pi-skills/dictcli/dictcli` → `skills/dictcli/dictcli` 심링크.
+  그래서 "호스트에서 되니까 됐다"가 성립하지 않는다.
+- **깨지는 방식이 조용하다.** 파일은 멀쩡히 있고 스킬 목록에도 뜨는데 호출 순간에만 죽거나,
+  아예 안 죽고 낡은 어휘 그래프를 계속 쓴다.
+
+#### 지금까지 실제로 깨진 방식 셋
+
+| 언제 | 증상 | 원인 | 처방 |
+|---|---|---|---|
+| 2026-08 (oracle) | `cannot execute: required file not found` | `nix-collect-garbage`가 host 본의 nix store 인터프리터를 수거 | `pin_libc_gcroot`(dictcli run.sh)가 gcroot로 고정 |
+| 2026-09-03 (봇 컨테이너) | `./dictcli: not found`, exit 127, **Layer 3가 통째로 0** | 컨테이너에 그 nix store 경로가 없음 | portable 본 도입 (nixos-config#9 · andenken#11) |
+| 상시 | 아무 증상 없음 | dictcli 리포가 앞서갔는데 이 기기에 안 날랐다 | `doctor_bins`의 `dictcli_stale_check` |
+
+#### 운영 루프
+
+```bash
+# dictcli 담당자가 로직/graph.edn 을 고치고 커밋한 뒤 — 기기마다 1회씩
+cd ~/repos/gh/agent-config && ./run.sh setup:build   # dictcli/run.sh build --output 호출
+./run.sh doctor:bins                                  # 실행·arch·신선도 검사
+```
+
+`doctor_bins`가 dictcli에 대해 따로 보는 것:
+
+- **표준 loader 부재** → `standard loader missing`. 이건 **재빌드로 안 고쳐진다.** NixOS인데
+  nix-ld가 없는 기기다. nix-ld를 켜거나 `target/dictcli-<arch>`(host 본)로 교체한다.
+  ⚠️ 오라클에는 nix-ld가 있어(`/lib/ld-linux-aarch64.so.1` → `nix-ld-2.0.6`) portable 본이
+  호스트에서도 돈다. **thinkpad는 미확인** — 거기서 처음 배포할 때 이 경고를 보게 될 수 있다.
+- **배포 신선도** — 리포의 `src/`·`graph.edn`·`run.sh`·`deps.edn` 중 배포본보다 새 것이 있으면 경고.
+- **graph.edn 세트 어긋남** — 바이너리와 그래프는 한 세트다. 따로 어긋나면 확장 결과가 조용히 달라진다.
+
+#### 아직 자동화하지 않은 것 (정직하게)
+
+- 기기 간 전파는 **수동**이다. 오라클에서 굽는다고 thinkpad가 갱신되지 않는다. 각 기기에서
+  `setup:build`를 쳐야 한다. 신선도 검사가 그걸 *알려줄* 뿐 대신 해주지는 않는다.
+- `.provenance.json`에 dictcli revision을 적지 않는다(go_build 게이트 밖이라). 그래서 "지금
+  배포된 dictcli가 어느 커밋인가"는 mtime 비교로만 근사한다.
+- **aarch64 GraalVM에서 static 산출은 불가하다** (2026-09-03 실측). musl 툴체인은 nixos-26.05에
+  있지만(GCC 15.2.0 aarch64 static) GraalVM 25.0.2 자체에 `lib/static/linux-aarch64/musl`의
+  java/nio/net static library가 없다. **다음에 이 문제를 만나면 static을 먼저 시도하지 말고
+  patchelf 경로로 바로 가라.**
 
 ## repo-local 담당자 스킬 패턴 (← 이 파일이 바로 그 샘플)
 

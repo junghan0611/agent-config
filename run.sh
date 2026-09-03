@@ -632,6 +632,35 @@ write_provenance() {
 #   ./dictcli: cannot execute: required file not found
 # 존재가 아니라 실행을 검사한다. 그리고 동적 링크 + nix store 인터프리터 조합은
 # 지금 돌더라도 다음 GC 한 번에 같은 방식으로 죽으므로 fragile 로 경고한다.
+# dictcli 배포 신선도 — 리포가 앞서 있으면 경고한다.
+#
+# 소유 경계: 로직·graph.edn 은 dictcli 리포(SSOT), **기기별 빌드·배포 운영은 여기**다.
+# GraalVM native-image 라 기기마다 굽는 물건이고(oracle aarch64 / thinkpad x86_64),
+# 스택이 까다로워 조용히 깨지거나 조용히 낡는다. 그래서 형제 Go CLI 와 달리 별도로 본다.
+dictcli_stale_check() {
+  local repo="$REPOS/dictcli" bin="$SKILLS_DIR/dictcli/dictcli"
+  local graph="$SKILLS_DIR/dictcli/graph.edn" newest src_ts bin_ts
+
+  [ -d "$repo" ] || return 0
+  [ -f "$bin" ] || return 0
+
+  # 산출물에 영향을 주는 것만 본다 — 소스, 어휘 그래프, 빌드 스크립트.
+  newest="$(find "$repo/src" "$repo/graph.edn" "$repo/run.sh" "$repo/deps.edn" \
+              -newer "$bin" -print -quit 2>/dev/null || true)"
+  if [ -n "$newest" ]; then
+    warn "dictcli: 배포가 리포보다 낡았다 (${newest#$repo/} 가 더 최신)"
+    log "  → 이 기기에 다시 나르기: ./run.sh setup:build"
+    fragile+=("dictcli(stale)")
+  fi
+
+  # graph.edn 은 바이너리와 한 세트로 나른다. 따로 어긋나면 확장 결과가 조용히 달라진다.
+  if [ -f "$graph" ] && [ -f "$repo/graph.edn" ] && ! cmp -s "$graph" "$repo/graph.edn"; then
+    warn "dictcli: graph.edn 이 리포와 다르다 (배포본 $(wc -l <"$graph") 줄 / 리포 $(wc -l <"$repo/graph.edn") 줄)"
+    log "  → ./run.sh setup:build 로 세트를 맞춘다"
+    fragile+=("dictcli(graph)")
+  fi
+}
+
 doctor_bins() {
   section "Skill Binary Health ($ARCH)"
 
@@ -673,7 +702,19 @@ doctor_bins() {
     # 전체를 죽여 검사가 중간에 멈추므로 반드시 || true 로 받아낸다.
     interp="$( { readelf -l "$bin" 2>/dev/null || true; } | sed -n 's/.*interpreter: \([^]]*\)].*/\1/p')"
     if [ -n "$interp" ] && [ ! -e "$interp" ]; then
-      fail "$name: interpreter gone — $interp (nix GC? 재빌드 필요)"
+      # 같은 증상(인터프리터 부재)에 원인과 처방이 둘이다. 섞으면 진단이 오래 걸린다.
+      case "$interp" in
+        /nix/store/*)
+          fail "$name: interpreter gone — $interp (nix GC? 재빌드 필요)" ;;
+        *)
+          # 표준 loader 경로가 없다 = 이 기기가 NixOS인데 nix-ld 가 없다.
+          # portable 본을 깔아둔 상태이고, 재빌드해도 같은 자리에서 죽는다.
+          # 처방은 재빌드가 아니라 host 본으로 교체다.
+          fail "$name: standard loader missing — $interp"
+          log "  → NixOS + nix-ld 부재로 보인다. portable 본은 이 기기에서 못 돈다."
+          log "  → nix-ld 를 켜거나, host 본으로 교체:"
+          log "     cp ~/repos/gh/dictcli/target/dictcli-$ARCH $SKILLS_DIR/$name/$name" ;;
+      esac
       broken+=("$name"); continue
     fi
 
@@ -684,6 +725,11 @@ doctor_bins() {
         fail "$name: smoke failed (validate)"
         broken+=("$name"); continue
       fi
+      # --- 배포 신선도 ---
+      # dictcli 는 로직·데이터를 자기 리포에서 고치고, 각 기기로 실제로 나르는 것은
+      # 여기(agent-config)다. 그 사이가 벌어져도 아무것도 깨지지 않는다 — 봇은 그냥
+      # 낡은 어휘 그래프를 계속 쓴다. 조용한 실패라서 검사한다.
+      dictcli_stale_check
     else
       if ! "$bin" --help >/dev/null 2>&1; then
         fail "$name: smoke failed (--help)"
@@ -702,7 +748,11 @@ doctor_bins() {
             warn "$name: ok, but fragile — 고정 안 된 nix store 인터프리터 ($store_top)"
             fragile+=("$name")
           fi ;;
-        *) ok "$name: ok (dynamic → $interp)" ;;
+        *)
+          # 표준 loader. NixOS에서는 nix-ld 가 이 경로를 제공한다 — 즉 여기의 ok 는
+          # nix-ld 에 기대고 있다. nix-ld 없는 NixOS 기기로 이 바이너리를 옮기면
+          # 위 "standard loader missing" 으로 떨어진다.
+          ok "$name: ok (dynamic → $interp)" ;;
       esac
     else
       ok "$name: ok (static)"
