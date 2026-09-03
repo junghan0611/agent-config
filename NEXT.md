@@ -46,12 +46,30 @@
   컴파일이 없고(oracle aarch64 / thinkpad x86_64) 조용히 깨지거나 조용히 낡는다.
   `doctor_bins`가 셋을 본다: 표준 loader 부재(재빌드로 안 고쳐짐 — host 본으로 교체) ·
   배포 신선도 · graph.edn 세트 어긋남. 절차는 `.claude/skills/agent-config/SKILL.md § dictcli`.
-- Next(기기): **thinkpad에 아직 안 날랐다.** 거기서 `./run.sh setup:build` 를 처음 칠 때
-  nix-ld 유무에 따라 `standard loader missing` 이 뜰 수 있다 — 미확인. 뜨면 host 본으로 교체.
-- Do not: 번들을 host 본으로 되돌리지 마라 — nix-ld(`/lib/ld-linux-aarch64.so.1` →
-  `nix-ld-2.0.6`) 덕에 portable 본이 NixOS 호스트에서도 돈다(오라클 실측). 단
-  **nix-ld 없는 NixOS 기기에서는 죽는다** — thinkpad 미확인. 거기서 깨지면 dictcli
-  `target/dictcli-aarch64`(host 본)로 갈아끼우는 게 답이다.
+  신선도 검사가 `run.sh` 를 보는 것은 과검출이 아니다 — `4a3afd6` 이 배포 산출물의 종류
+  자체를 바꿨고(host → portable) 두 기기 모두 실제로 재배포가 필요했다. 재배포 후 양쪽 다
+  경고가 사라졌다. 검사 대상에서 빼지 마라.
+- Devices: **양 기기 정렬 완료 (2026-09-03, thinkpad 실측).** thinkpad에도 nix-ld가 있다
+  (`/lib64/ld-linux-x86-64.so.2` → `nix-ld-2.0.6`) — `standard loader missing` 은 뜨지
+  않았다. 그 분기는 두 기기 모두에서 미발동이고, 미확인 칸은 닫혔다. GraalVM 전체 재빌드
+  (`build --force`, native-image 19.4s, `:trans 2453` validate 통과) → gcroot 2경로 재고정
+  → portable + graph.edn 세트 배포 → `doctor` 5/5 GREEN. 호스트 본 크기가 이전과
+  바이트 동일해 src 무변화가 빌드 결정성으로도 확인됐다. 오라클은 read-only 확인만 했고
+  손대지 않았다 — 이미 목표 상태다(배포본 == `target/dictcli-aarch64-portable`, graph
+  `cmp` 동일, gcroot 09-03 10:08, smoke `harness`). 거기서 `build --force` 는 **돌리지 마라**:
+  src가 04-15 이후 무변화라 산출물이 같은데 native-image Peak RSS 1.65GB를 봇 호스트에서 쓴다.
+- Do not: 번들을 host 본으로 되돌리지 마라. nix-ld 덕에 portable 본이 NixOS 호스트에서도
+  돈다(양 기기 실측). 되돌리면 **개발본 오배포**가 되고, 아래 안건의 그 실패로 직행한다.
+- Discuss(dictcli 담당자): **개발본/배포본을 이름으로 가르자** (GLG 제안 2026-09-03).
+  개발본 `target/dictcli-$ARCH` 는 store interp + gcroot 보호 + 그 기기에서만 (빌드·테스트가
+  기기마다 따로 도니 기기에 남는다), 배포본 `…-portable` 은 표준 loader + store 의존 0 이라
+  gcroot가 필요 없고 이것만 건너간다. 이 틀에서 `pin_libc_gcroot` 의 `rm -f "$root_dir"/*` 는
+  결함이 아니다 — 기기당 개발본은 한 벌이고 핀은 그 상태의 반영이라, 누적하면 죽은 빌드의
+  glibc를 영원히 붙잡는다. thinkpad에서 본 무방비(08-21 배포본이 요구하는 glibc-2.40-218 이
+  08-29 리빌드의 핀 교체로 보호 밖에 있었다)는 gcroot 로직이 아니라 **개발본이 배포돼 있었기
+  때문**이다. 그래서 안건은 진단명 하나다: 스킬 디렉토리의 바이너리가 store interp를 가지면
+  그건 `fragile`(처방=재빌드)이 아니라 **개발본 오배포**(처방=portable 본으로 교체)다.
+  이 이름이었다면 2026-08 오라클 사고도 같은 이름으로 잡혔다.
 
 ## 세션 코퍼스 — 검수 (아래 [2026-09-02])
 - Current: fixture 닫힘(`01d518e`, recap 17→22 / extract 8→12). 남은 건 골든뿐이다.

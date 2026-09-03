@@ -54,9 +54,9 @@ Pipeline: `"설계했다" → stem → "설계" → expand → ["design","archit
 
 ## Data
 
-- `graph.edn`: 3,971 triples, 2,449 `:trans` mappings, 4,728 words, 526 clusters
+- `graph.edn`: 3,989 triples, 2,453 `:trans` mappings, 4,735 words, 526 clusters
 - Sources: meta-note clusters, Syntopicon 102 Great Ideas, philosophy glossary
-- Relations: `:trans`(2449), `:source`(1422), `:related`(44), `:synonym`(44)
+- Relations: `:trans`(2453), `:source`(1422), `:related`(58), `:synonym`(44)
 
 ## Architecture Note
 

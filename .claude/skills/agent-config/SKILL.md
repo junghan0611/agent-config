@@ -113,11 +113,24 @@ timeline 축(`~/repos/gh/junghan0611`)은 이 스킬들을 링크만 하는 게 
 
 - **GraalVM native-image**라 `go_build` 게이트 밖이다. 크로스 컴파일이 없다 —
   **oracle(aarch64)과 thinkpad(x86_64)에서 각각 굽는다.**
-- 산출물이 **2벌**이다 (dictcli `4a3afd6`, 2026-09-03):
-  - `target/dictcli-<arch>` — **host 본.** nix store 인터프리터 + `pin_libc_gcroot`.
-  - `target/dictcli-<arch>-portable` — **portable 본.** 표준 loader(`/lib/ld-linux-aarch64.so.1`
-    · x86_64는 `/lib64/ld-linux-x86-64.so.2`), RUNPATH 제거.
-  - `run.sh build --output` 이 **portable 본**을 graph.edn과 한 세트로 배포한다.
+- 산출물이 **2벌**이고, 그 둘은 **개발본과 배포본**이다 (dictcli `4a3afd6`, 2026-09-03):
+
+  | | 개발본 (host) | 배포본 (portable) |
+  |---|---|---|
+  | 경로 | `target/dictcli-<arch>` | `target/dictcli-<arch>-portable` |
+  | loader | nix store 인터프리터 | 표준 (`/lib/ld-linux-aarch64.so.1` · x86_64 `/lib64/ld-linux-x86-64.so.2`), RUNPATH 제거 |
+  | GC 보호 | **필요** — `pin_libc_gcroot` | 불필요 (store 의존 0) |
+  | 사는 곳 | 그 기기의 리포. **건너가지 않는다** | 스킬 디렉토리 + 봇 컨테이너 |
+  | 쓰임 | `validate`·테스트·다음 빌드 캐시 | 실제 호출 |
+
+  빌드·테스트가 기기마다 따로 도니 개발본은 기기에 남고, `run.sh build --output` 이
+  **배포본만** graph.edn과 한 세트로 내보낸다.
+- **스킬 디렉토리의 바이너리가 store 인터프리터를 가지면 그건 개발본 오배포다.** 처방이
+  `fragile`(재빌드)이 아니라 portable 본으로 교체다. 2026-09-03 thinkpad에서 실제로 그
+  상태였다 — 08-21에 깔린 개발본이 요구하는 glibc-2.40-218 이, 08-29 리빌드가 핀을
+  갈아치우면서 보호 밖에 있었다. `pin_libc_gcroot` 의 `rm -f "$root_dir"/*` 는 결함이
+  아니다: 기기당 개발본은 한 벌이고 핀은 그 상태의 반영이라, 누적하면 죽은 빌드의 glibc를
+  영원히 붙잡는다. **doctor의 진단명 교정은 dictcli 담당자와 논의 예정**(NEXT § Discuss).
 - 소비자가 호스트만이 아니다. **봇 컨테이너(openclaw-gateway, Debian)가 같은 파일 하나를
   본다** — `~/.pi/agent/skills/pi-skills/dictcli/dictcli` → `skills/dictcli/dictcli` 심링크.
   그래서 "호스트에서 되니까 됐다"가 성립하지 않는다.
@@ -144,9 +157,12 @@ cd ~/repos/gh/agent-config && ./run.sh setup:build   # dictcli/run.sh build --ou
 
 - **표준 loader 부재** → `standard loader missing`. 이건 **재빌드로 안 고쳐진다.** NixOS인데
   nix-ld가 없는 기기다. nix-ld를 켜거나 `target/dictcli-<arch>`(host 본)로 교체한다.
-  ⚠️ 오라클에는 nix-ld가 있어(`/lib/ld-linux-aarch64.so.1` → `nix-ld-2.0.6`) portable 본이
-  호스트에서도 돈다. **thinkpad는 미확인** — 거기서 처음 배포할 때 이 경고를 보게 될 수 있다.
+  ✅ **양 기기 모두 nix-ld가 있어 이 분기는 미발동이다** (2026-09-03 실측): oracle
+  `/lib/ld-linux-aarch64.so.1` · thinkpad `/lib64/ld-linux-x86-64.so.2`, 둘 다 → `nix-ld-2.0.6`.
+  portable 본이 NixOS 호스트에서도 돈다. 새 기기에서만 다시 확인하면 된다.
 - **배포 신선도** — 리포의 `src/`·`graph.edn`·`run.sh`·`deps.edn` 중 배포본보다 새 것이 있으면 경고.
+  `run.sh` 를 보는 것은 과검출이 아니다 — `4a3afd6` 이 배포 산출물의 종류를 host→portable로
+  바꿨고 두 기기 모두 실제로 재배포가 필요했다. 검사 대상에서 빼지 마라.
 - **graph.edn 세트 어긋남** — 바이너리와 그래프는 한 세트다. 따로 어긋나면 확장 결과가 조용히 달라진다.
 
 #### 아직 자동화하지 않은 것 (정직하게)
