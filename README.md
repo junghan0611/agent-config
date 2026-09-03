@@ -2,6 +2,28 @@
 
 **Contextual continuity infrastructure for AI agents.** Every new AI session starts at zero — no memory of past conversations, no access to your knowledge base, no awareness of your tools. agent-config solves this: when you switch agents, sessions, or even models, the same human's memory, knowledge, and work context carries over.
 
+## How to Read This
+
+This is a front door, not a manual. It is written for someone who wants to see **what one operator actually runs day to day** — not for someone about to install a framework. Four things to hold before the first table.
+
+**1. This repo is not the engine.** The engine is [`entwurf`](https://github.com/junghan0611/entwurf) (v0.17.2, 2026-09-03) — the dispatch substrate that lets six already-existing harnesses address one another by **garden id**. agent-config is the resident side: the **skills SSOT** plus the **시험소 (proving ground)** where config is hardened on a real daily surface before entwurf absorbs it. So when a table below describes harness wiring, read it as *what is currently being proven here*, not as a finished contract.
+
+**2. A quiet repo is a healthy one.** The end state is a thin skills SSOT plus a test bench. Growth here is not progress — a busy changelog usually means something is still being proven. Do not read the skill count as a feature list; the identity is the working method, not the tool count.
+
+**3. Read one of three passes, depending on why you came:**
+
+| You came for | Read |
+|---|---|
+| *What can these agents actually do?* | [§ Skills](#skills-skills) · [§ Semantic Memory](#semantic-memory--andenken) |
+| *How does context survive a new session?* | [§ Why This Exists](#why-this-exists) · [§ Session Management](#session-management--new--recall) |
+| *Is any of this measured, or just asserted?* | [§ Agent Runtime Bench](#agent-runtime-bench) · [OMP.md](OMP.md) · [MODELS.md](MODELS.md) |
+
+**4. Sentences here try to carry their evidence.** Where a claim was measured, the receipt is named — a date, a host, a file, a version. Where it is inherited or still open, it says so. A sentence that cannot name one of those is a hypothesis, including in this document. This is the same rule the agents working in this repo are held to.
+
+> **What this is NOT:** not a prompt collection, not a LangChain-style automation layer, not a generic multi-agent framework. It is the infrastructure that lets one human's memory, knowledge, and working surface survive across sessions, harnesses, and models.
+
+## What This Is
+
 **Official reference consumer and proving ground for [`entwurf`](https://github.com/junghan0611/entwurf).**
 
 `entwurf` is the integrated substrate that configures every harness and unifies agent integration — the strong, stable core (a garden-citizen dispatch substrate, not a pi adapter). agent-config is the resident-side layer that feeds it: the **skills SSOT** (`skills/`) plus a **시험소 (proving ground)** where harness config, hooks, and wiring are hardened on the operator's real surface and soak-tested for weeks before being promoted into entwurf. Pushing unproven config straight into entwurf would weaken the core, so agent-config absorbs that churn first.
@@ -13,13 +35,13 @@ The two are not co-equal halves — entwurf is the destination, agent-config is 
 
 > The natural end state is a thin skills SSOT plus a test bench: **agent-config quiet means the pipeline is healthy.** See [ROADMAP § purpose shift](ROADMAP.md).
 
+**Why the boundary moved, in the operator's own words:** [§agent-config: 스킬 SSOT와 시험소 — 멀티하네스 이후](https://notes.junghanacs.com/botlog/20260312T174622). That is the 담당자 문서 (resident's note) for this repo — a public, append-only record in the digital garden of how the job here was re-scoped when harness integration went to entwurf and semantic memory went to andenken. It reads as a chronology rather than a spec, which is the point: this README says what is true now, that note says how it got here.
+
 ### The bench is self-sufficient
 
 A proving ground that can only install what it already believes in is not a proving ground. This repo's `run.sh` stands up, pins, and tears down the things it evaluates **on its own** — including whole agent runtimes that compete with the stack it currently runs. Nothing about that path routes through entwurf, pi, or any harness under test.
 
-That self-sufficiency is what lets the subject matter widen. The bench started at "does this skill load in five harnesses" and now reaches questions like *does a runtime that writes its own skills beat a human-authored skill set* — see [§ Agent Runtime Bench](#agent-runtime-bench). The rule that makes those answers worth anything is boring and strict: **the subject is version-pinned and installed small**, so a re-run means the same thing twice.
-
-> **What this is NOT:** not a prompt collection, not a LangChain-style automation layer, not a generic multi-agent framework. It is the infrastructure that lets one human's memory, knowledge, and working surface survive across sessions, harnesses, and models.
+That self-sufficiency is what lets the subject matter widen. The bench started at "does this skill load in five harnesses"; it now asks whether a runtime that writes its own skills beats a human-authored set, whether one sibling with an internal team costs the operator fewer inspection points than three visible ones, and — on the arm being built here rather than installed — whether a Lisp workspace can stand up an RLM loop that a Python REPL currently carries. See [§ Agent Runtime Bench](#agent-runtime-bench). The rule that makes those answers worth anything is boring and strict: **the subject is version-pinned and installed small**, so a re-run means the same thing twice.
 
 ## Official Reference Surface for entwurf
 
@@ -45,7 +67,7 @@ agent-config attacks this with three layers:
 
 1. **Shared memory layer** ([andenken](https://github.com/junghan0611/andenken)) — past conversations from every harness + the exported public digital garden in a semantically searchable index. Ask "보편 학문 관련 노트 찾아줘" and it searches the garden md memory without being told the English word.
 
-2. **Shared skill set** — the same capabilities (search notes, read bibliography, check git history, write to journal) available identically whether you're in pi, Claude Code, Codex, Antigravity, Copilot CLI, or OpenClaw.
+2. **Shared skill set** — the same capabilities (search notes, read bibliography, check git history, write to journal) available identically whether you're in pi, Claude Code, Codex, Antigravity, Copilot CLI, Kiro, or OpenClaw. One rail is held out on purpose: OMP gets no skills from here, because it is the subject of a measurement (below), and a subject you have already furnished is no longer a subject.
 
 3. **Session continuity protocol** — `/new` + recap + semantic search instead of expensive compact. Start a new session, recover full context in seconds for ~2K tokens instead of re-reading 50K.
 
@@ -66,6 +88,7 @@ The result: context survives across sessions, across harnesses, across models. O
 | **Antigravity CLI (`agy`)** | repo-managed settings + skills | full skill set | `~/.gemini/antigravity-cli/skills` from SSOT; `settings.json` + `mcp_config.json` are entwurf-owned. Native-push citizen (`entwurf_register_native`) — no mailbox, replies inject into the live conversation |
 | **Copilot CLI** | skill surface only from this repo | full skill set | `~/.copilot/skills` → `skills/` (directory symlink). `settings.json` / birth plugin / statusLine are entwurf-owned (`install-copilot-bridge`, `install-copilot-statusline`). No MCP doorbell on this rail yet |
 | **Kiro CLI** (optional) | skill surface only from this repo | full skill set when installed | `~/.kiro/skills` → `skills/` when `kiro-cli` is on `PATH`. Kiro is intentionally not an entwurf citizen; its settings, agents, and sessions remain Kiro-owned. |
+| **OMP** (`omp`, oh-my-pi) | none from this repo | **deliberately none** | The fifth garden backend, admitted by entwurf 0.16.0 (2026-08-31) as a self-fetch citizen. Everything on this rail is entwurf-owned (`install-omp-bridge` / `install-omp-receive` / `install-omp-config`); this repo wires **nothing** — there is no `omp` branch in `run.sh` and no `~/.omp/skills` (measured on oracle, 2026-09-04). That absence is the experiment, not a gap: see [§ Agent Runtime Bench](#agent-runtime-bench) and [OMP.md](OMP.md) |
 | **OpenClaw** (4 bots) | andenken skill (same SSOT via symlink) | full skill set | settings / Nix store mount |
 
 **OpenCode is not used.** It once appeared in this table and in the fan-out list, but `run.sh` never wires it — there is no `~/.config/opencode/skills` link and no OpenCode branch anywhere in setup. The rows have been removed rather than left as an aspiration; a harness this repo does not actually reach should not be advertised as supported.
@@ -128,13 +151,15 @@ This repo is the **official consumer reference** for the `entwurf` surface.
 |---|---|
 | backend provider (`entwurfProvider`) | `pi/settings.json` (`_common` + device overlay) |
 | MCP bridge (`entwurf-bridge`) | same settings files |
-| `entwurf_v2` / `entwurf_peers` / `entwurf_self` / `entwurf_inbox_read` / `entwurf_fresh_call` / `entwurf_register_native` | `home/AGENTS.md`, operational use, skills like `entwurf-peek` |
+| `entwurf_v2` / `entwurf_peers` / `entwurf_self` / `entwurf_inbox_read` / `entwurf_fresh_call` / `entwurf_resume_call` / `entwurf_register_native` | `home/AGENTS.md`, operational use, skills like `entwurf-peek` |
 | skill plugin injection | `run.sh setup` builds this repo's local plugin root and points settings at it |
 | install / version pin | **entwurf's own `./run.sh`** — this repo pins nothing on its behalf |
 
 So when `entwurf` changes, this is the first consumer that should stay green.
 
-The bridge surface above is the **v2** one. The v1 trio (`entwurf` / `entwurf_resume` / `entwurf_send`) was removed in a hard cut (entwurf `CHANGELOG.md` #50) and no longer exists anywhere — a doc row naming those tools is stale, not a fallback. Note also that `session_search` / `knowledge_search` never came from this bridge: they are andenken's pi-native `registerTool` surface.
+**Six rails, one address layer (entwurf 0.17.2).** The citizen set is no longer Claude-plus-others: Claude Code, Copilot CLI and **OMP** are mailbox-backed self-fetch citizens, Antigravity is a native-push citizen with no mailbox at all, Codex has a verified delivery probe but no managed install lane yet, and pi supplies the control sockets. `entwurf_fresh_call` opens a new visible sibling on `pi` / `claude-code` / `copilot` / `omp`; `entwurf_resume_call` reopens a dormant **pi** citizen under its own garden id without running a turn. A dormant citizen on any other rail is honestly unreachable rather than silently resumed in the background — the hidden-resume path was withdrawn under entwurf's visible-first rule, and that refusal is a feature this repo relies on.
+
+The seven tools above are what this session's MCP schema actually exposes (read 2026-09-04); the bridge surface is the **v2** one. The v1 trio (`entwurf` / `entwurf_resume` / `entwurf_send`) was removed in a hard cut (entwurf `CHANGELOG.md` #50) and no longer exists anywhere — a doc row naming those tools is stale, not a fallback. Note also that `session_search` / `knowledge_search` never came from this bridge: they are andenken's pi-native `registerTool` surface.
 
 There is deliberately **no release-pin row** here. This repo does not carry an entwurf version constant, an install spec, or a tracking ref — `setup_repos` clones the source for dogfooding and stops there. It does not even declare entwurf as a pi package any more: entwurf's own `./run.sh install` registers it as a user-scope citizen in `~/.pi/agent/settings.json`, and `remove-user-scope` is the inverse. Install, auth, and version selection belong to that side, because a consumer that pins its own copy weakens the release gate it is supposed to exercise.
 
@@ -183,7 +208,7 @@ Aside from the hook channel, the two surfaces are interchangeable. This is the r
 
 ### Skills ([`skills/`](skills/))
 
-42 skills. Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query, timeline), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (slack-latest, jiracli, telegram), code surface (forge — v1.5, multi-profile), work workbench (plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli), entwurf (entwurf-peek), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), tools (emacs, tmux, diskspace, cloudflare, quota, butlercli).
+43 skills (counted 2026-09-04). Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query, timeline), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (slack-latest, jiracli, telegram), code surface (forge — v1.5, multi-profile), work workbench (plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli), entwurf (entwurf-peek), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), tools (emacs, tmux, diskspace, cloudflare, quota, butlercli).
 
 **Binary skills: agent-config owns the skill surface, alone.** For skills backed by a sibling-repo CLI (denotecli, bibcli, gitcli, lifetract), this repo owns **both** the `SKILL.md` and the deployed binary; the sibling repo holds **code only** and its own `deploy` never writes into the skill directory. Two owners means nobody knows which one is true. `run.sh setup:build` gates each install behind the sibling repo's test suite and refuses uncommitted sources, then writes [`skills/.provenance.json`](skills/.provenance.json) — per tool: `vcs_revision`, `src_tree`, and the installed binary's `sha256`. A snapshot whose tools cannot be named is not reproducible, it only looks it. (`dictcli` is the open gap: GraalVM native-image doesn't ride the Go gate, so it carries no provenance yet.)
 
@@ -269,6 +294,15 @@ What `setup` deliberately does **not** do: install entwurf (that is entwurf's ow
 
 Some questions cannot be answered by reading a project's README. *Does a runtime that generates its own skills from experience beat a human-authored skill set?* You only find out by standing both up on the same machine, giving them the same repeated task, and looking at what each wrote down afterwards.
 
+Three subjects sit on this bench, and they ask three different questions:
+
+| Subject | Question | Standing |
+|---|---|---|
+| [Hermes Agent](https://github.com/NousResearch/hermes-agent) | Does a self-learning runtime out-write a hand-authored skill set? | candidate, pinned, not adopted |
+| [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) | Does one sibling with an internal team cost the operator fewer inspection hops? | **admitted as a sibling** (entwurf 0.16.0); the operator question is still open |
+| [prime-agent](https://github.com/junghan0611/prime-agent) (fork) | Can a Lisp workspace stand up the RLM loop a Python REPL carries today? | **built here**, not installed — Clojure is already the default kernel |
+
+
 This comparison belongs here, not in entwurf. **entwurf guarantees its own garden-id,
 delivery, and visible-lifecycle logic and compares today's code with yesterday's; it does
 not rank other harnesses.** agent-config is the operator-side proving ground, so it asks
@@ -292,7 +326,36 @@ What that leaves is a runtime that reaches Claude, GPT (`openai-codex` OAuth) an
 
 The comparison target is not another product. It is this repo's own loop — `AGENTS.md` + `skills/` + semantic memory + `botlog`/`NEXT` — and the honest question is whether a machine-written skill trail is more transparent and reproducible than the hand-written one.
 
-The second subject is [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) — a fork of the very harness this repo already runs, tuned as a coding-first surface. It asks a different question than Hermes: not *does it learn better*, but *does one visible sibling with an internal team cost GLG fewer inspection points than routing the same job through two or three visible sibling hops*. One OMP process would remain one garden citizen; its in-process workers are not citizens and do not widen entwurf's contract. The direction is to admit that one sibling if the operator test holds, but no citizenship implementation has started. The measurements, provider seal, operator boundary, and admission lane live in [OMP.md](OMP.md), which also carries the reproduce block — omp installs from one pinned upstream command rather than a `run.sh` lane, so the doc is the install SSOT until that changes.
+The second subject is [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) — a fork of the very harness this repo already runs, tuned as a coding-first surface. It asks a different question than Hermes: not *does it learn better*, but *does one visible sibling with an internal team cost GLG fewer inspection points than routing the same job through two or three visible sibling hops*. The currency is not tokens. It is **the number of boundaries the operator has to personally inspect.**
+
+**That subject has since been admitted as a sibling — and this section used to say the opposite.** entwurf 0.16.0 (2026-08-31) admitted OMP as the **fifth garden backend**: birth hook, an omp-native MCP hand, an addressed-receive extension, and `entwurf_fresh_call` on all three public surfaces. It is live on this host — `omp/18.0.0`, with `entwurf-meta-omp` and `entwurf-receive-omp` installed under `~/.omp/agent/extensions/` and a native `entwurf-bridge` entry in `~/.omp/agent/mcp.json` (measured on oracle, 2026-09-04). The earlier "no citizenship implementation has started" line in [OMP.md](OMP.md) predates that release; the correction is stamped at the top of that file.
+
+Admission did not settle the bench question, and the two must not be confused:
+
+| | Owner | Settled? |
+|---|---|---|
+| *Is omp addressable as one garden citizen?* | `entwurf` | **Yes** — 0.16.0, one process = one garden id. In-process subagents are not citizens and do not widen the contract |
+| *Does routing work through omp reduce GLG's inspection hops?* | `agent-config` | **Open** — the D-axis in [OMP.md](OMP.md) (D1–D5) is still unmeasured |
+
+Three things stay deliberately unwired here while D is open: no `omp` branch in this repo's `run.sh`, no entry in `nixos-config`, and **no skills SSOT injection into `~/.omp`** (verified absent, 2026-09-04). A subject you have already furnished with your own skill set can no longer answer whether it needed one. The provider seal, operator boundary, and reproduce block live in [OMP.md](OMP.md) — omp installs from one pinned upstream command rather than a `run.sh` lane, so the doc is the install SSOT until that changes.
+
+### The third subject is one GLG is building
+
+[prime-agent](https://github.com/junghan0611/prime-agent) is a fork of [PrimeIntellect-ai/prime-agent](https://github.com/PrimeIntellect-ai/prime-agent), and it is where the bench stops measuring other people's runtimes and grows an arm of its own.
+
+Upstream's core abstraction is the **Recursive Language Model** — context as variables, subagents as function calls, all of it inside a *persistent Python REPL* that survives across turns. This fork replaces that language. `prime-agent-runtime-clj/` stands a **Clojure/SCI workspace on a GraalVM native image** beside the Python one, and since checkpoint `edc3a3e8` (H8) **Clojure is the default kernel with no fallback** — a missing binary raises a teaching error instead of quietly reverting to Python (`PRIME_AGENT_KERNEL_RUNTIME`, branch `feat/clojure-runtime`).
+
+The reason is not language preference. It is what a Lisp workspace makes *legible*:
+
+> Natural language is exploration; Lisp is the public state, the contract, and the form. What the model did has to survive as a form in the workspace, not as a paragraph claiming it did. — the fork's `AGENTS.md`
+
+Which makes the success condition unusual for an agent project: not a benchmark score, but **whether GLG can read the workspace forms and decide the next design from them.** Three rules keep that honest, and they are the same rules this repo's bench runs on:
+
+- **The Python oracle is never deleted.** Two arms have to stand side by side or there is no comparison — only an assertion.
+- **Coverage is standing, not procedure.** *"When coverage is there and the possibility is real, the possibility becomes real. Get it wrong and it is just fraud."* (GLG) No claim of performance or advantage is made before the contract coverage exists to back it.
+- **A failure is an observation to classify, not a verdict.** A red on the Clojure arm is recorded as `semantics-gap`, `model-fumble`, or `harness-gap` — whichever the receipt supports. A prose-only pass or a Python fallback is not a Lisp success.
+
+Scope boundary, stated once so it is not re-derived: this is an experiment in **computation inside one citizen**. It does not touch entwurf's address, delivery, or receipt layer, and it never promotes a message between siblings into an executable form. Coordination and computation stay apart ([entwurf#88](https://github.com/junghan0611/entwurf/issues/88)). Current position and the open board live in the fork's `NEXT.md` and [issue #1](https://github.com/junghan0611/prime-agent/issues/1).
 
 [YEGGE.md](YEGGE.md) is the lighter observation log. Wheelhouse is neither installed nor a
 candidate: it is an occasional external sighting used to separate durable runtime facts
@@ -300,15 +363,27 @@ from cockpit fashion. Its current entry records one useful confirmation only —
 own session lifetime while Emacs remains a replaceable projection — and explicitly opens
 no implementation lane.
 
-## Session Management — No Compact
+## Session Management — `/new` + recall
 
-We don't use compact. Compact = AI reads entire conversation and summarizes = expensive + slow.
-
-Instead:
+The working method is unchanged and simple: when a conversation gets long, start a new one and rebuild context from the memory axes instead of paying a model to re-read and summarize itself.
 
 1. When conversation gets long, `/new` to start fresh
 2. Run `memory-sync` / `/memory reindex` explicitly when recent sessions need fresh indexing (no hidden paid auto-indexing)
 3. In the new session, recover context with `/recall`
+
+**What changed is that this is a habit, not a config lock — and this section used to claim otherwise.** It was titled *No Compact* and read as though the harness were pinned against compaction. It is not, on any surface the operator runs today:
+
+| Surface | Compaction key | Measured |
+|---|---|---|
+| `~/.claude/settings.json` | **no compaction key at all** | oracle, 2026-09-04 |
+| `~/.pi/agent/settings.json` (live) | `compaction.enabled: true` | oracle, 2026-09-04 |
+| `pi/settings.json` (this repo's reference) | **removed 2026-09-04** — was `enabled: false` | this release |
+
+entwurf gave the switch back on 2026-09-03: `autoCompactEnabled` and `env.DISABLE_AUTOCOMPACT` moved from `MANAGED_SETTINGS_SCALARS` to `RETIRED_SETTINGS_SCALARS` (entwurf 0.17.2, #94). Retirement moved **ownership, not state** — nobody's compaction was switched on by that release — and the record carries its own correction: `env.DISABLE_AUTOCOMPACT` was a no-op at Claude Code 2.1.259, so the only key that ever suppressed compaction was `autoCompactEnabled`. The operator declines to declare it either way, and this repo's reference file now says nothing about it either.
+
+Dropping that key was not tidying. Because `merge_settings` is EXISTING-WINS, the `false` never reached a running machine — it only provisioned *fresh* ones with an intention the operator had abandoned, which is precisely the drift shape this repo elsewhere calls a bomb. The reason is kept where the key used to be, as `_no_compaction` in `pi/settings.json`, so nobody re-adds it from memory.
+
+The lesson is worth keeping separately from the setting: **a habit that only works when a config enforces it was never a habit.** `/new` + `/recall` costs ~2K tokens and is chosen every time, which is why removing the lock changed nothing about how sessions are actually run.
 
 `/recall` is the **multi-axis context hydration** protocol owned by agent-config — not a per-session recap, not a entwurf bridge contract. It starts with `session-recap -p <repo> -m 15` but does not stop at one repo transcript. When the work crossed projects or days, it combines:
 
@@ -365,6 +440,7 @@ pia() { _pi_garden_pi --entwurf-control --emacs-agent-socket server "$@"; }
 | [memex-kb](https://github.com/junghan0611/memex-kb) | Knowledge | Legacy document conversion pipeline |
 | [GLG-Mono](https://github.com/junghan0611/GLG-Mono) | Font | Custom monospace programming font |
 | [geworfen](https://github.com/junghan0611/geworfen) | Being | Existence data viewer — WebTUI agenda |
+| [prime-agent](https://github.com/junghan0611/prime-agent) | Runtime (fork) | RLM harness fork whose persistent workspace is Clojure/SCI on GraalVM instead of Python — the bench subject GLG builds rather than installs |
 
 ### Skill Source Repos
 

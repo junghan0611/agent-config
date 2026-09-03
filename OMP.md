@@ -15,6 +15,39 @@ Hermes와 다른 점 하나: omp 설치는 `run.sh`에 함수가 없다. curl �
 
 ---
 
+## [2026-09-04] 정정 — C축은 이미 닫혔다. D축만 열려 있다
+
+아래 본문의 여러 문장이 **"OMP 시민권 구현 미착수"**라고 말한다. 그 문장들은 2026-08-26
+시점의 사실이었고 **지금은 낡았다.** 문장을 지우지 않고 여기서 정정한다.
+
+**측정된 것 (oracle, 2026-09-04):**
+
+- entwurf `0.16.0`(2026-08-31)이 **OMP를 다섯 번째 garden backend로 admit**했다
+  (`CHANGELOG.md § 0.16.0`, #87). `wakeMode: self-fetch`, `deliveryLevel: D6`.
+- 이 호스트에 실제로 서 있다: `omp/18.0.0` · `~/.omp/agent/extensions/`에
+  `entwurf-meta-omp`, `entwurf-receive-omp` 둘 다 설치됨 ·
+  `~/.omp/agent/mcp.json`에 native `entwurf-bridge` 항목 존재 ·
+  `~/.omp/agent/config.yml`의 `tools.xdev: false`(`entwurf_fresh_call` 전제 조건).
+- `entwurf_fresh_call`의 backend enum이 `pi | claude-code | copilot | omp`다
+  (이 세션 MCP 스키마에서 읽음, 2026-09-04).
+
+**따라서 아래 표에서 바뀐 것:**
+
+| 축 | 이 문서의 옛 판정 | 지금 |
+|---|---|---|
+| C4 두 enum + capabilities | 미측정 | **닫힘** — 0.16.0에서 registry 진입 |
+| C5 birth hook | 미측정 | **닫힘** — `meta-bridge-omp.ts`, `session_switch` 양 edge 결합 |
+| C1 도구 도달 | 측정됨(MCP 상속) | **native MCP hand로 대체** — Claude import를 같은 key로 shadow |
+
+**바뀌지 않은 것 — 이 문서의 존재 이유는 그대로다.** D1–D5는 여전히 **전부 미측정**이다.
+시민권(entwurf가 답하는 것: 주소가 서는가)과 위임 이득(agent-config가 답하는 것: GLG의
+검수 홉이 줄어드는가)은 **다른 질문**이고, 앞의 것이 닫혔다고 뒤의 것이 닫히지 않는다.
+그래서 세 가지는 D가 열려 있는 동안 계속 안 한다: `run.sh`에 `omp` 브랜치 없음 ·
+`nixos-config`에 없음 · **`~/.omp`에 스킬 SSOT 주입 없음**(`~/.omp/skills` 부재 실측,
+2026-09-04). 이미 내 스킬셋으로 채워준 대상은 "스킬셋이 필요했는가"에 답할 수 없다.
+
+---
+
 ## [2026-08-26] 왜 이 비교는 여기 있는가 — entwurf 사용자의 운영 판단
 
 원석: `20260824T000000--2026-08-24__journal_week34.org`의 2026-08-25 출근길 기록.

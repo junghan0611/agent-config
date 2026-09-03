@@ -7,6 +7,8 @@
 
   "_no_packages": "This file declares NO pi packages, on purpose. entwurf registers itself (`./run.sh install` adds a user-scope citizen; `remove-user-scope` is the inverse), and andenken reaches agents as the `semantic-memory` skill, which every harness can invoke — so neither needs a settings entry from us. Keeping one was actively harmful: merge_settings compares arrays as a single leaf (jq object merge replaces arrays wholesale), so a live `packages` that legitimately grows when entwurf adds itself could never equal ours, and setup warned on every run. With the key absent there is nothing to compare and nothing to warn about. Consequence to know: on a machine where andenken was never registered as a pi package, pi's `session_search` / `knowledge_search` registerTool will not exist and the `semantic-memory` skill is the door. That is the intended shape — one surface every harness shares, not a pi-only convenience.",
 
+  "_no_compaction": "The `compaction` key was removed 2026-09-04 and must not come back. It carried `enabled: false` from the era when the operator declared no-compact at the harness. That declaration is over on every surface: entwurf retired `autoCompactEnabled` / `env.DISABLE_AUTOCOMPACT` from MANAGED_SETTINGS_SCALARS in 0.17.2 (#94), `~/.claude/settings.json` carries no compaction key at all, and the live `~/.pi/agent/settings.json` reads `enabled: true` (both measured on oracle, 2026-09-04). Because merge_settings is EXISTING-WINS the `false` here never reached a running machine anyway — it only provisioned fresh ones with an intention the operator had abandoned, which is the drift shape this repo elsewhere calls a bomb. The `/new` + `/recall` habit does not need a config to enforce it; see README § Session Management.",
+
   "_common": {
     "defaultProvider": "openai-codex",
     "defaultModel": "gpt-5.6-terra",
@@ -19,9 +21,6 @@
       "skillPlugins": [
         "/home/junghan/.pi/agent/claude-plugin"
       ]
-    },
-    "compaction": {
-      "enabled": false
     }
   },
 
