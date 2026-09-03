@@ -32,6 +32,15 @@
 
 # ACTIVE
 
+## dictcli Layer 3 — 고쳤고, 이월 둘은 위임했다 (아래 [2026-09-03])
+- Current: 봇 위치 GREEN(마운트 형태 `expand "하네스"` → `["harness"]` exit 0, stderr 노이즈 0줄).
+  프로비저닝은 nixos-config#9로 닫혔다.
+- Next: **우리가 직접 들 것은 없다.** FHS 아티팩트는 dictcli 담당자에게 위임(pi/codex,
+  `~/repos/gh/dictcli`, 2026-09-03 09:5x 개설), 확장 폭 문제는 andenken#12로 열어두고
+  착수 보류(GLG 기억축 작업 중).
+- Watch: dictcli를 재빌드하면 `~/openclaw/docker-compose.yml`의 store 해시 2줄이 죽는다.
+  **그 갱신은 우리 책임**이라고 nixos-config 담당자에게 약속했다. FHS 아티팩트가 착지하면 소멸.
+
 ## 세션 코퍼스 — 검수 (아래 [2026-09-02])
 - Current: fixture 닫힘(`01d518e`, recap 17→22 / extract 8→12). 남은 건 골든뿐이다.
 - Verify: 세 규칙은 변이 테스트로 이빨을 확인했다 — 동률 사전순 / `corpus_devices` 디렉터리 필터 /
@@ -67,6 +76,56 @@
 - [2026-06-11] ⚠️ **bibcli 이주 계획** — 2026-07-14 결정과 방향이 반대다. GLG 재판단 대기.
 
 > 방향(시험소·승격 파이프라인)은 `ROADMAP.md [2026-06-30]`. 닫힌 일은 `CHANGELOG.md`.
+
+## [2026-09-03] dictcli — 봇 위치에서 살렸다. 그런데 회수는 안 올랐다.
+
+> andenken#11(소비자축 검수)에서 nixos-config 담당자가 남긴 잔여를 받아 닫았다.
+> 프로비저닝 nixos-config#9 · 품질 andenken#12.
+
+**고친 것.** 컨테이너에서 `./dictcli: not found`(exit 127)가 매 검색마다 찍히고 있었다.
+번들 바이너리가 nix 빌드 ELF라 인터프리터가 `/nix/store/qqx8w6hd…-glibc-2.40-218/…/ld-linux-aarch64.so.1`.
+RUNPATH store 최상위는 **2개**(위 glibc + `rrd22q5c…-gcc-14.3.0-lib`) — 인터프리터 하나만 넣으면
+로더는 뜨고 라이브러리에서 다시 죽는다.
+
+처방은 재빌드도 patchelf도 아니었다. `~/openclaw/docker-compose.yml`이 **emacs를 위해 이미
+nix store 경로를 개별 ro bind로 박아두고 있었다**(주석까지: "근본안은 +/nix/store:ro").
+같은 목록에 두 줄 추가로 끝났다. andenken 코드 0줄, dictcli 재빌드 0회.
+
+두 전제가 틀렸고 그게 처방을 바꿨다 — ① "컨테이너에 `/nix/store`가 없다" → 있다(emacs 4경로).
+② "컨테이너 glibc 2.36 vs 빌드 2.40 심볼 문제" → 무관하다. 로더도 libc도 마운트된 nix 경로에서
+온다. Debian glibc는 이 프로세스가 건드리지 않는다.
+
+**안 오른 것.** recreate 후 컨테이너 안에서 골든셋 33행(session 10 + md 23)을 3회 돌렸다:
+
+| 실행 | 결과 |
+|---|---|
+| `golden-queries.ts --compare` (topScore Δ) | 📈 3 · ➡️ 26 · 📉 4 |
+| 기본 (expand 켬) | **31/33 passed** (session 9/10 · md 22/23) |
+| `--no-expand` | **31/33 passed** — 동일 |
+
+실패 2건도 같은 두 개(`피투성` md, `남은 작업 뭐지` session)이고 **둘 다 `expanded=[]`** —
+dictcli가 손대지 않는 쿼리다. 즉 **이 골든셋에서 확장의 이득은 0**이다. "Layer 3가 0이라
+회수가 깎이고 있다"는 손실 가설은 지지되지 않았다. 고친 건 실제로 고쳤지만 얻은 회수는 0이다.
+
+그리고 최대 변화가 **하락**이고, 하필 골든셋이 대표 사례로 지목한 것이다
+(`golden-queries.ts:103` — "paideia/universalism — dictcli expand가 영어 태그로 확장해야"):
+
+```
+📉 "보편 학문"  1.0713 → 0.8858  expanded 9개
+📈 "하이데거 존재론"  0.9661 → 0.9927  expanded 1개 [ontology]
+```
+
+가설(미검증): 확장어를 원 질의에 이어붙이면 dense 임베딩에서 원 질의가 희석된다. 그렇다면
+다음 작업은 "확장을 살린다"가 아니라 **"폭을 제한한다"**(top-N 컷, 또는 확장어를 BM25
+경로에만 주고 dense는 원 질의 유지). andenken#12에 셋 다 적어뒀다.
+
+**측정 한계를 같이 적는다.** `--compare`는 topScore Δ만 보고, 두 트랙의 점수 스케일이
+다르다(session ~0.06 / md ~1.0). 그래서 결론은 pass/fail 쪽에 뒀다. 골든셋 33행이
+크로스링귀얼 사례를 충분히 덮는지는 **안 쟀다** — "상향 0"은 *이 골든셋에서* 0이라는 뜻이다.
+
+**협업 기록.** nixos-config 담당자와 entwurf로 6왕복. 세션 도중 GLM-5.3 쿼터 소진 →
+grok-4.6 인수. 우리 쪽 실측이 상대의 두 전제를 뒤집었고, 상대 쪽 compose·recreate가
+우리 검증을 가능하게 했다 — 어느 쪽도 혼자서는 못 닫았다.
 
 ## [2026-09-02] 세션 코퍼스 — 고쳤고, 검수는 아직 안 했다
 
