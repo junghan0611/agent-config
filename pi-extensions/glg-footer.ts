@@ -7,6 +7,15 @@
  * modes/interactive/components/footer.ts) for all other content. Toggle
  * individual sections via the FLAGS constants below — set any flag to false
  * to hide that part. Re-sync this file when upstream footer.ts changes.
+ *
+ * ACP accounting invariants:
+ * - Keep this footer on ACP: pi's default footer aggregates only usage.input/output/
+ *   cacheRead/cacheWrite, which ACP deliberately leaves at zero. Its blank cells would
+ *   falsely make missing accounting look like a healthy cache; tokenStats: false,
+ *   cost: true, and usage.acp ?? usage preserve the ACP turn aggregate instead.
+ * - If an upstream carrier adds per-request ACP fields, guard or disable the nocache
+ *   badge. It needs a session accounting total, but the carrier describes only one
+ *   request, so nonzero partial values would silently misstate cache efficiency.
  */
 
 import { readFileSync } from "node:fs";
