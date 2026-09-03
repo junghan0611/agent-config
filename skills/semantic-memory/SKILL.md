@@ -1,15 +1,15 @@
 ---
 name: semantic-memory
-description: "Meaning search over three separate axes — own pi/Claude sessions, the public garden, and (pending) OpenClaw bot memory — always naming which axis a hit came from. Use for past decisions, concept discovery, cross-lingual retrieval, and time/project session slices. Start with 5, choose, then open. Exact title/person → denotecli; whole-day truth → timeline/day-query. Triggers: semantic memory, session search, knowledge search, 의미 검색, 과거 결정."
+description: "Meaning search over three separate axes — own pi/Claude sessions, the public garden, and OpenClaw bot memory — always naming which axis a hit came from. Use for past decisions, concept discovery, cross-lingual retrieval, and time/project session slices. Start with 5, choose, then open. Exact title/person → denotecli; whole-day truth → timeline/day-query. Triggers: semantic memory, session search, knowledge search, 의미 검색, 과거 결정."
 ---
 
 # semantic-memory
 
 Search, choose, then open. CLI: `{baseDir}/semantic-memory`;
 the table omits this prefix. **The CLI surface is exactly
-`search-sessions | search-md | search-knowledge | status | reindex`**
-(`search-openclaw` is pending, andenken#13) — anything
-else named here is a *sibling skill*, invoked on its own, not a subcommand.
+`search-sessions | search-md | search-openclaw | search-knowledge | status |
+reindex`** — anything else named here is a *sibling skill*, invoked on its own,
+not a subcommand.
 Calling one as a subcommand returns `{"error":"Unknown command"}`
 (reproduced at the bot 2026-09-03, reported by the GPT bot on andenken#10).
 
@@ -21,7 +21,7 @@ Calling one as a subcommand returns `{"error":"Unknown command"}`
 | Known time/project | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode recent` | Caller supplies a half-open ISO window; no embed/BM25/dictcli. |
 | Meaning in known slice | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode hybrid --limit 5` | Structured filters first, semantic rank second. |
 | Public-garden concept | `search-md "query" --limit 5` | Choose a document and open its path; `--full` widens snippets. |
-| What a bot said/remembers | **not callable yet** — `search-openclaw` is a planned subcommand (andenken#13); running it today returns `{"error":"Unknown command"}` | Until it ships, say so; do not substitute a session or md search and call it bot memory. |
+| What a bot said/remembers | `search-openclaw "query" --limit 5` · `--full` widens snippets · from the repo: `./run.sh search:openclaw "query"` | Name the axis and the hit's `agent` when you quote it. No dictcli expansion on this axis by design (andenken#12 open). |
 | Exact title/tag/person | `denotecli search "name" --max 5` | Semantic neighbors never prove exact existence. |
 | Chosen session context | `search-sessions "query" --with-excerpt --excerpt-limit 1` | Surrounding turns; raise to at most 3. Whole session: `session-recap --session-file <file>` — the `file` is a corpus path and joins as-is. |
 | Health / maintenance | `status` (CLI) · then the `memory-sync` / `andenken-embed` **skills** | Check freshness; full maintenance is human-gated. |
@@ -37,7 +37,7 @@ for another.
 |---|---|---|---|
 | sessions | `search-sessions` | pi / Claude Code transcripts of GLG's own work, every device | harness (`pi`/`claude`), device segment of `file`, project, date |
 | garden | `search-md` | published notes (`notes/content`) | Denote ID / path |
-| openclaw | `search-openclaw` *(planned, not callable)* | chunks the OpenClaw bots embedded themselves (`memory` + `sessions` sources, 6 agents), harvested as-is with zero re-embedding | `agent` (glg/bbot/gpt/…), `source` (`memory`/`sessions`), path, `updated_at` |
+| openclaw | `search-openclaw` | chunks the OpenClaw bots embedded themselves (`memory` + `sessions` sources, 6 agents), harvested as-is with zero re-embedding | `agent` (glg/bbot/gpt/…), `source` (`memory`/`sessions`), path, `updated_at` |
 
 Rules that follow:
 
@@ -52,10 +52,19 @@ Rules that follow:
   Quote it as what the bot *keeps*, `source=sessions` as what was *said*.
 - Chunking differs (OpenClaw `chunkTokens:400`), so rule 8's "count documents"
   applies per axis with a different density.
-- **The openclaw track is local/replica only and never mixes with the garden
-  (md) axis by any path.** md is the exported, public axis. The bot index holds
-  GLG's whole world — family, health, money, code, in one place (measured
-  2026-09-03 by the andenken steward on a sample). GLG's ruling, same day:
+- **The openclaw track is local only — there is no push step — and never mixes
+  with the garden (md) axis by any path.** The harvest pulls to the authority
+  (thinkpad), imports, and stops: `openclaw.lance` exists on this machine and
+  not on oracle (andenken `INVARIANT.md` §7.2, "The OpenClaw harvest travels the
+  other way"; the only rsync in `scripts/export-openclaw.sh` pulls the export
+  *from* the bot host, and `scripts/sync-sessions.sh`'s publish moves
+  `sessions.lance` and the manifest only — read 2026-09-03). That is today's
+  fact, not a rule: if a replica ever needs this axis, the push has to be added
+  deliberately. **Until then, never describe this track as replicated** — a
+  sibling on oracle who reads "replica" will believe it has an index it does
+  not have. md is the exported, public axis. The bot index holds GLG's whole
+  world — family, health, money, code, in one place (measured 2026-09-03 by the
+  andenken steward on a sample). GLG's ruling, same day:
   "가족은 하나야. 그러려고 합친 거야" — that is the point of harvesting it, not a
   problem to filter. The only wall is local versus public; inside local, do not
   invent a personal/coding split the owner did not ask for.
@@ -70,9 +79,14 @@ yet** — a sibling inside pi cannot reach that axis until andenken adds
 `openclaw_search` (open item on andenken#13). Do not assume the table above is
 callable from pi.
 
-The `search-openclaw` subcommand and the `openclaw.lance` track are being built in
-andenken (andenken#13); until the CLI ships, this section is the contract, not a
-working call.
+The `search-openclaw` subcommand and the `openclaw.lance` track shipped in
+andenken on 2026-09-03 (andenken#13, "착수 완료" comment): 4,651 chunks imported of
+4,683 exported, across 6 agents, with 0 embedding API calls because the vectors
+came already computed. Verified callable here the same day —
+`./run.sh search:openclaw "pi-shell-acp lockSync" --limit 2` returned
+`{"axis":"openclaw", …, "results":[{"agent":"gpt","source":"memory","path":"MEMORY.md","updated_at":…}]}`,
+so the four provenance fields and the `axis` label are in the response, not just
+in this contract.
 
 ## Nine operating rules
 
