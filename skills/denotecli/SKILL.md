@@ -70,6 +70,30 @@ For date queries: `day` + gitcli + lifetract = full daily view (see day-query sk
 - **Unknown flag = fatal.** `error: unknown flag: --X` → exit 1. No silent ignore. Typos like `--tag` (vs `--tags`) or `--limit` (vs `--max`) are caught immediately. Applies to all 11 commands. New in `e0a6c52`.
 - **Header-aware indexing.** `search` and `--tags` index `#+title:` and `#+filetags:` headers (top 30 frontmatter lines) **in union with** the filename slots. Previously filename-only — 6.4% of corpus (192/3,505 notes) had header-only words that silently missed. Each result carries `header_title` field when present. Added 2026-05-12.
 
+### Modification time — `date` is not it
+
+`date` is the note's **creation** stamp (from its Denote id), so comparing it against a commit
+time answers the wrong question. The modification stamp is `#+hugo_lastmod:`, and it now ships
+in the JSON of `search` / `list` / `day` / `read`:
+
+- `lastmod` — normalised `YYYY-MM-DD`, the shape `day` has always used.
+- `hugo_lastmod` — **raw, with `HH:MM` intact**. Compare times with this one. Normalising the
+  time away is what made sorge read an 18:32 commit as newer than a 21:55 stamp on the same day.
+
+So "which notes have gone stale" is one call now, not one call plus opening every file.
+
+`date` itself has two shapes by command, and they are not interchangeable as strings:
+`search`/`list` give `2026-02-22` (derived from the id), `read` gives `[2026-02-22 Sun 09:00]`
+(the `#+date:` line verbatim).
+
+`read --outline` also carries `description` and `abstract` (the callout before the first
+heading), so "what is this note about" no longer needs the body. All four fields are
+`omitempty` — a note that lacks one simply has no key.
+
+Full field-by-field contract lives in the denotecli repo (`README.md` `## Output`, `AGENTS.md`);
+that repo's caretaker document is denote id `20260222T090000`. Copying the field list here would
+make a second copy that ages on its own — v0.9.0, deployed 2026-09-04.
+
 ## Notes
 
 ### Denote filename format
