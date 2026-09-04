@@ -334,6 +334,16 @@ declare -A PACKAGE_REPOS=(
   [entwurf]="https://github.com/junghan0611/entwurf.git"
 )
 
+# Repos that OWN a skill this repo merely CONNECTS to.
+# skills/<name> is a RELATIVE symlink into the owning repo's .claude/skills/<name>,
+# so the SKILL.md exists exactly once and editing it there reaches every harness
+# at once. agent-config keeps no copy and nothing to re-sync — the counter-example
+# is `forge`, documented as a thin pointer while 400 lines actually live here, so
+# nobody can tell which side is true. Clone them so the link is not dangling.
+declare -A LINKED_SKILL_REPOS=(
+  [sorge]="https://github.com/junghan0611/sorge.git"
+)
+
 # is_server_device drives device-specific settings/hooks selection only.
 # (entwurf is NOT consumer-installed by device class anymore — always the dev
 # clone in ~/repos/gh/; see setup_repos + setup_npm.)
@@ -461,6 +471,17 @@ setup_repos() {
   # to entwurf's own ./run.sh setup, not here.
   for name in "${!PACKAGE_REPOS[@]}"; do
     ensure_repo "$name" "${PACKAGE_REPOS[$name]}"
+  done
+
+  section "Linked Skill Repositories"
+  # These own their own SKILL.md; skills/<name> here is only a symlink to it.
+  for name in "${!LINKED_SKILL_REPOS[@]}"; do
+    ensure_repo "$name" "${LINKED_SKILL_REPOS[$name]}"
+    if [ -e "$SKILLS_DIR/$name" ]; then
+      ok "$name: skill linked ($(readlink "$SKILLS_DIR/$name"))"
+    else
+      warn "$name: skills/$name link is dangling — clone failed?"
+    fi
   done
 
   return 0
