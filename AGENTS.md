@@ -209,6 +209,19 @@ Multi-source session indexing: `~/.pi/agent/sessions/` (`source: "pi"`) + `~/.cl
 
 **Device axis (2026-09-02).** `ANDENKEN_SESSION_CORPUS` in `~/.env.local` points at the gathered session corpus (`~/repos/gh/session`), where every device's admitted sessions sit under `<corpus>/<device>/` keeping each runtime's own path shape — so the corpus path is the live path with two segments in front, and no schema gained a device column. One env var is the whole contract, read by andenken's indexer, `session-recap`, and `improve-agent` alike; unset means live stores only. **The variable is the switch, `~/.env.local` is its SSOT** — a process environment is captured once at login, so a line added to that file afterwards is invisible to every session, daemon and agent that started earlier (measured 2026-09-03: a shell held every other `ANDENKEN_SESSION_*` but not the corpus, and `--session-file` refused every path `semantic-memory` returned). The two skills therefore read that one key out of `~/.env.local` when the variable is *absent*; setting it to the empty string is a deliberate live-only opt-out **on the read side only**, because `sync-sessions.sh` has the same fallback but tests with `-z` and so treats an empty value as unset (read 2026-09-03). The producer side never had the login gap: `run.sh` sources the file and `sync-sessions.sh` falls back for this one key by itself. andenken *replaces* the live stores when it is set (its `sync-sessions.sh` gathers first, so it owns the corpus's freshness); the two skills read **live ∪ corpus**, because they have no gather step and corpus-only discovery would drop this machine's current session and break recap's `--skip 1` invariant. Copies held by two devices fold on basename — larger wins, size tie → lexicographically smaller path. A device names where a session was **collected**, not where it was created (the machines exchanged an `rsync -a` with mtimes preserved), so it is provenance and filtering only, never a ranking signal. The corpus itself is not a git repo: it is a plain folder verified by `MANIFEST.sha256` (`sha256sum -c`).
 
+**임베딩 유지보수는 스킬로 노출하지 않는다 — 자격이 붙은 손이다.** 라우팅의 SSOT는
+`~/repos/gh/andenken/.claude/skills/andenken-embed/SKILL.md`이고, 그 파일은 **andenken 리포 안에만
+있다.** 여기로 심링크하지 마라 — `sorge`·`forge`처럼 널리 보여야 하는 도구와 형태만 같고 성질이
+다르다. 링크를 걸면 45개 스킬 목록에 떠서 아무 세션이나 집어들 수 있게 되는데, GLG가 전역에 두지
+않은 것이 바로 그 이유다(2026-09-04 판정: *"이 어려운 작업을 내가 아무나 불러서 하지 않거든"*).
+
+할 수 있는 손은 둘이다 — **이 집 담당자, 또는 andenken 담당자.** 남에게 넘기지도 않는다: 실행과
+비용은 위 § Cross-Repo Work Loop대로 여기가 진다. 부를 때는 그 SKILL.md를 **먼저 읽고** 라우팅
+표대로 간다. 명령만 베껴 치면 안 된다 — 티어 2와 3은 소스를 나르는 방식이 다르고(sessions는 corpus를
+`--global` 안에 싣고, md는 오라클에서 `git -C ~/repos/gh/notes pull`을 따로 해야 한다), 그 차이를
+모르면 replica에 orphan이 남는다. 전체 재구축은 대화형 `yes` 게이트라 에이전트가 넘지 못한다 —
+₩100K 사건의 잔여 안전장치이고, 넘으려 하지 마라.
+
 Knowledge indexing: md direct embedding over `~/repos/gh/notes/content` → `~/repos/gh/andenken/data/md.lance` + `md-manifest.json`. Agents should treat this as the semantic knowledge surface; use `denotecli` for exact/raw `~/org` Denote access.
 
 Environment (`~/.env.local`): `ANDENKEN_SESSION_*` and `ANDENKEN_MD_*` point at OpenRouter Qwen3-Embedding-8B / 4096d. Org env is not part of normal production operation.
