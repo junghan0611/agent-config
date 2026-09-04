@@ -406,6 +406,14 @@ declare -A CLI_GO_SRC=(
   [bibcli]="bibcli"   # inside zotero-config
 )
 
+# Which repo each Go CLI's source lives in. Only bibcli differs from its own name.
+declare -A CLI_REPO_OF=(
+  [denotecli]="denotecli"
+  [gitcli]="gitcli"
+  [lifetract]="lifetract"
+  [bibcli]="zotero-config"
+)
+
 # --- setup:repos — Clone missing repos ---
 
 setup_preflight() {
@@ -698,6 +706,51 @@ has_std_loader() {
   [ -e "$ld" ]
 }
 
+# 배포된 바이너리가 provenance 가 적은 그 빌드인가.
+#
+# `wrong arch` 는 시끄럽고 `right arch, three commits behind` 는 조용하다 — 그 문장은
+# 이미 `env` 의 CLI Binaries 절에 적혀 있었고 검사도 거기 있었다. 문제는 자리였다:
+# 진단을 물을 때 사람이 치는 것은 `doctor:bins` 이고 `env` 가 아니다. 2026-09-04,
+# denotecli 담당자가 자기 집 스크립트로 이 리포의 스킬 디렉토리에 0.9.0 을 얹었고
+# (게이트 둘을 다 우회하는 경로다), 그 뒤 doctor:bins 는 다섯 개 전부 ✅ 를 냈다.
+# 같은 순간 env 는 `⚠ binary does not match the recorded build` 를 내고 있었다.
+# 검사가 없던 게 아니라 아무도 안 보는 자리에 있었다.
+#
+# oracle 이 이 검사의 실제 수요자다. aarch64 이고 원격이라 사람 눈이 닿지 않는데,
+# 스킬 바이너리는 기기마다 굽는 물건이라(cross-compile 하지 않는다) 그 기계에서만
+# 참인 사실이 그 기계에서만 검사된다.
+provenance_check() {
+  local name=$1 bin=$2
+  local prov="$SKILLS_DIR/.provenance.json"
+  ARCH="$ARCH" python3 - "$prov" "$name" "$bin" <<'PY' 2>/dev/null || echo "noprov||"
+import json,sys,hashlib,os
+prov,name,binp=sys.argv[1],sys.argv[2],sys.argv[3]
+try: t=json.load(open(prov))
+except Exception: print("noprov||"); sys.exit()
+tool=t.get("tools",{}).get(name)
+if not tool: print("noprov||"); sys.exit()
+live=hashlib.sha256(open(binp,'rb').read()).hexdigest()
+rev=(tool.get("vcs_revision") or "")[:12]
+arch=t.get("arch","")
+if live!=tool.get("sha256"): print("mismatch|%s|%s"%(rev,arch))
+elif arch and arch!=os.environ.get("ARCH",""): print("archdrift|%s|%s"%(rev,arch))
+else: print("ok|%s|%s"%(rev,arch))
+PY
+}
+
+# Go CLI 배포 신선도 — dictcli 만 갖고 있던 검사를 형제 넷에게 돌려준다.
+# 리포 소스가 배포본보다 최신이면 그 스킬은 조용히 낡은 채로 답한다. dictcli 는
+# 어휘 그래프가 낡고, denotecli 는 없는 필드를 없다고 답한다 — 둘 다 안 깨진다.
+go_cli_stale_check() {
+  local name=$1 bin=$2 repo=$3 src=$4 newest
+  [ -d "$REPOS/$repo/$src" ] || return 0
+  newest="$(find "$REPOS/$repo/$src" -name '*.go' -newer "$bin" -print -quit 2>/dev/null || true)"
+  [ -n "$newest" ] || return 0
+  warn "$name: 배포가 리포보다 낡았다 (${newest#$REPOS/$repo/} 가 더 최신)"
+  log "  → 이 기기에 다시 나르기: ./run.sh setup:build"
+  fragile+=("$name(stale)")
+}
+
 dictcli_stale_check() {
   local repo="$REPOS/dictcli" bin="$SKILLS_DIR/dictcli/dictcli"
   local graph="$SKILLS_DIR/dictcli/graph.edn" newest src_ts bin_ts
@@ -799,7 +852,24 @@ doctor_bins() {
         fail "$name: smoke failed (--help)"
         broken+=("$name"); continue
       fi
+      go_cli_stale_check "$name" "$bin" "${CLI_REPO_OF[$name]}" "${CLI_GO_SRC[$name]}"
     fi
+
+    # 실행되는 것과 우리가 아는 그 코드인 것은 다른 사건이다.
+    IFS='|' read -r _prov_state _prov_rev _prov_arch <<<"$(provenance_check "$name" "$bin")"
+    case "$_prov_state" in
+      mismatch)
+        warn "$name: 배포본이 provenance 가 적은 빌드와 다르다 (기록: ${_prov_rev:-?})"
+        log "  → 게이트를 지나지 않고 얹힌 바이너리다. 소스를 커밋하고 ./run.sh setup:build"
+        fragile+=("$name(unprovenanced)") ;;
+      archdrift)
+        warn "$name: provenance 가 다른 arch 에서 쓰였다 (기록: ${_prov_arch:-?}, 지금: $ARCH)"
+        log "  → 이 기기에서 다시 굽는다: ./run.sh setup:build"
+        fragile+=("$name(arch)") ;;
+      noprov)
+        # dictcli 는 GraalVM 이라 Go 게이트 밖이다 — 아직 provenance 를 안 든다.
+        [ "$name" = dictcli ] || { warn "$name: provenance 기록이 없다"; fragile+=("$name(noprov)"); } ;;
+    esac
 
     if [ -n "$interp" ]; then
       case "$interp" in
@@ -853,10 +923,13 @@ doctor_bins() {
     warn "fragile: ${fragile[*]}"
     # 항목마다 이유가 다르므로 요약이 한 처방으로 뭉뚱그리지 않는다. 복구 명령은 같지만
     # 고쳐지는 이유가 다르다 — 오배포는 산출물이 바뀌어 낫고, 나머지는 핀이 다시 잡혀 낫는다.
-    log "모두 지금은 돌지만 그대로 두면 죽는다 → ./run.sh setup:build"
-    log "  misdeploy = 개발본이 깔려 있다 (배포본으로 교체되며 store 의존이 사라진다)"
-    log "  stale-dev = 배포된 개발본이 리포와 다르다 (핀은 최신 빌드만 가리킨다)"
-    log "  그 외      = nix store 인터프리터가 gcroot 밖이다 (nix-collect-garbage 한 번이면 죽는다)"
+    log "모두 지금은 돈다. 처방은 대개 ./run.sh setup:build 지만 고쳐지는 이유가 다르다:"
+    log "  misdeploy      = 개발본이 깔려 있다 (배포본으로 교체되며 store 의존이 사라진다)"
+    log "  stale-dev      = 배포된 개발본이 리포와 다르다 (핀은 최신 빌드만 가리킨다)"
+    log "  stale          = 리포 소스가 배포본보다 최신이다 (안 죽는다 — 낡은 답을 계속 준다)"
+    log "  unprovenanced  = 게이트를 안 지난 바이너리다 (안 죽는다 — 우리가 아는 코드가 아니다)"
+    log "  arch           = 다른 arch 의 기록이다 (이 기기에서 다시 구워야 한다)"
+    log "  그 외          = nix store 인터프리터가 gcroot 밖이다 (nix-collect-garbage 한 번이면 죽는다)"
   fi
   # setup_all 의 Verification 이 재실행 없이 이 결과를 그대로 쓴다
   DOCTOR_RAN=1; DOCTOR_TOTAL=$checked; DOCTOR_PASS=$passed
