@@ -8,21 +8,28 @@
 - [x] **1. 세션 코퍼스 읽기면 착지** — 두 스킬이 device-merged 코퍼스를 읽는다 (`0b01f00`, `v2026.9.2`)
 - [x] **2. 그 변경의 검수** — fixture(`01d518e`) · 실검수(`15e2385`) · 골든 반영(`df49e79`). 형제 공지는 GLG가 직접 부를 몫이라 여기서 닫는다
 - [x] **5. 대문·릴리즈 면 정렬** — README 읽기 가이드 + 담당자 문서 링크, compaction 키 제거, OMP 형제 정정, prime-agent 벤치 편입, `tag-release`가 실제 GitHub Release를 만든다 (`v2026.9.4`)
+- [x] **6. 배선이 갈린 자리 다섯** — forge 실물 이관 · `doctor:bins` provenance/stale · `CLAUDE.md` 배선 · emacs/denotecli 스킬 문서 · 임베딩 자리 명시 (`v2026.9.4-wiring.1`)
 - [ ] **3. entwurf-peek `trace` 파서 수선** ← PAUSED: `mux-placement` acceptance fixture 대기
 - [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
 
-현재 좌표: 1·2·5 완료 → **다음 CURRENT 미정** → 3·4 보류(둘 다 남의 손 대기)
+현재 좌표: 1·2·5·6 완료 → **다음 CURRENT 미정** → 3·4 보류(둘 다 남의 손 대기)
 
 # NOW
 
-- **Hot group:** 없음. `v2026.9.4`로 대문·릴리즈 면이 닫혔고, 3·4는 둘 다 남의 손을 기다린다.
+- **Hot group:** 없음. `v2026.9.4-wiring.1`로 배선 다섯 자리가 닫혔고, 3·4는 둘 다 남의 손을 기다린다.
 - **Next:** GLG가 다음 축을 고른다. 남아 있는 두 후보는 아래 3(entwurf-peek `trace`)과 4(#46)이고,
   **둘 다 여기서 시작할 수 없다** — 각각 entwurf 쪽 fixture와 normalize가 선행이다.
-- **직전에 닫은 것 (2026-09-04):** README 상단 「How to Read This」 · 담당자 문서
-  `20260312T174622` 연결(README 공개 URL / `AGENTS.md` denote id) · `pi/settings.json`에서
-  `compaction` 제거하고 이유를 `_no_compaction`에 남김 · OMP를 후보에서 형제로 정정
-  (`OMP.md` `[2026-09-04] 정정`, D축은 여전히 열림) · prime-agent를 벤치 세 번째 주체로 편입 ·
-  `tag-release`가 `gh release create`까지 간다(+ 릴리즈 없이 지나간 `v2026.9.2`·`v2026.8.10` backfill).
+- **직전에 닫은 것 (2026-09-04, `v2026.9.4-wiring.1`):** `forge` 스킬 실물을 `forge-config`로
+  이관하고 상대 심링크로 연결(`3b9f72e`, 그쪽 `dfe25c8`) + `LINKED_SKILL_NAMES` · `doctor:bins`가
+  `stale`/`unprovenanced`/`arch`를 이름으로 부른다(`8ea458d`) — **oracle 첫 실행에서 `bibcli`
+  게이트 밖 배포를 잡았다** · `CLAUDE.md` 한 줄로 이 집 `AGENTS.md`가 Claude Code에 실린다
+  (`ac35c02`) · emacs 5인자 형태와 대소문자 감지(`2510512` `7554331`) · denotecli `date` 오해
+  (`9825bbc`) · `Pi ext/skill: not linked` 오탐(`d34c720`) · 임베딩 자리를 스킬이 아닌 포인터로
+  (`b835e2e`). 세션+가든 임베딩 전량 동기화도 이날 돌렸다 — sessions 27건(오라클 포함),
+  md 172건, 양쪽 verify orphan 0.
+- **넘긴 것:** 9월 활동 리포 13개의 `CLAUDE.md` 누락은 **횡단 발견으로 `sorge`에** 넘겼다
+  (남의 집 커밋은 그 집 담당자 몫). `forge-database`(Magit Forge 판) 네이밍 겹침과 base64
+  판독 문제도 같은 경로로 넘겼다.
 - **형제 공지:** 코퍼스 문서면 자체가 이미 공지다 — `AGENTS.md § device 축`을 모든 형제가 읽는다.
   브로드캐스트는 GLG가 직접 부를 몫이라 여기서 일방 발신하지 않는다.
 - **Blocker:** 없음. 순서 게이트가 풀렸다 — 오라클이 `v2026.9.3`(`501cfe8`)로 올라와
