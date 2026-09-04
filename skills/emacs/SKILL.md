@@ -1,6 +1,6 @@
 ---
 name: emacs
-description: "Emacs daemon — org manipulation, denote notes, citar bibliography, org-agenda, arbitrary elisp. Two sockets: server (agent work), user (show file to user). Core: agent-denote-add-history(ID,CONTENT), agent-denote-add-heading(ID,TITLE,BODY) or (ID,TITLE,TAG,BODY) — no tag? body as 3rd arg. Never pass nil. agent-denote-add-link(ID,TARGET-ID,DESC). All 3 args required."
+description: "Emacs daemon — org manipulation, denote notes, citar bibliography, org-agenda, arbitrary elisp. Two sockets: server (agent work), user (show file to user). Core: agent-denote-add-history(ID,CONTENT), agent-denote-add-heading(ID,TITLE,BODY) — TAG and AFTER-HEADING are both optional and combine: (ID,TITLE,TAG,BODY,AFTER-HEADING). Never pass nil. agent-denote-add-link(ID,TARGET-ID,DESC). All 3 args required."
 ---
 
 # Emacs Agent Server
@@ -25,6 +25,8 @@ Falls back to `server` when unset.
 | `agent-denote-add-history` | ID, CONTENT | `ec '(agent-denote-add-history "ID" "@pi — msg")'` |
 | `agent-denote-add-heading` | ID, TITLE, BODY | `ec '(agent-denote-add-heading "ID" "Title" "body")'` |
 | | ID, TITLE, TAG, BODY | `ec '(agent-denote-add-heading "ID" "Title" "LLMLOG" "body")'` |
+| | ID, TITLE, BODY, AFTER-HEADING | `ec '(agent-denote-add-heading "ID" "Title" "body" "보고")'` |
+| | ID, TITLE, TAG, BODY, AFTER-HEADING | `ec '(agent-denote-add-heading "ID" "Title" "LLMLOG" "body" "보고")'` |
 | `agent-denote-add-link` | ID, TARGET-ID, DESC | `ec '(agent-denote-add-link "ID1" "ID2" "desc")'` ⚠️ all 3 args required (see Gotchas) |
 | `agent-denote-set-front-matter` | ID, &rest PLIST | `ec '(agent-denote-set-front-matter "ID" :title "새 제목" :filetags (quote ("meta" "reasoning")) :rename t)'` |
 | `agent-denote-search` | QUERY, ?TYPE(title/tag/fulltext) | `ec '(agent-denote-search "term" (quote tag))'` |
@@ -64,8 +66,12 @@ set-front-matter: touches only front matter / pre-heading region.
 ec '(agent-denote-add-heading "ID" "New Section" "body text here")'
 # with tag — TAG then body
 ec '(agent-denote-add-heading "ID" "New Section" "LLMLOG" "body text here")'
-# insert after a specific heading
+# insert after a specific heading — AFTER-HEADING is a level-1 heading title,
+# and the new heading lands after that heading's whole subtree. Give the last
+# real heading's title to stay in front of an archive section.
 ec '(agent-denote-add-heading "ID" "New Section" "body" "After This Heading")'
+# tag AND placement together — they combine, no need to hand-place with elisp
+ec '(agent-denote-add-heading "ID" "New Section" "LLMLOG" "body" "After This Heading")'
 
 # set front matter — FM only
 ec '(agent-denote-set-front-matter "ID" :title "새 제목" :description "요약")'
