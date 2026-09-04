@@ -1512,8 +1512,12 @@ setup_all() {
   echo "  Skills:   $(find "$SKILLS_DIR" -name "SKILL.md" | wc -l)"
   echo "  Arch:     $ARCH"
   echo "  Claude in pi (default): entwurf via ACP"
-  echo "  Pi ext:   $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo 'not linked')"
-  echo "  Pi skill: $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo 'not linked')"
+  # Both of these are per-ITEM links, not one directory link — semantic-memory stopped being an
+  # extension (it is a skill now) and pi-skills/ became a real dir with one link per skill. So
+  # `readlink` on the parent had nothing to read and printed `not linked` on a machine where all
+  # 46 skills and 14 extensions were linked and working. Count what is there instead.
+  echo "  Pi ext:   $(ls -d "$HOME/.pi/agent/extensions"/*.ts 2>/dev/null | wc -l) extensions"
+  echo "  Pi skill: $(ls -d "$HOME/.pi/agent/skills/pi-skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged (keyset, not linked)' || echo 'absent'; })"
   echo "  Codex:    $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo 'config not linked') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
   echo "  Antigrav: $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo 'skills not linked') (settings + mcp: entwurf-owned)"
