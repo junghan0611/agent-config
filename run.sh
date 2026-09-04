@@ -337,11 +337,20 @@ declare -A PACKAGE_REPOS=(
 # Repos that OWN a skill this repo merely CONNECTS to.
 # skills/<name> is a RELATIVE symlink into the owning repo's .claude/skills/<name>,
 # so the SKILL.md exists exactly once and editing it there reaches every harness
-# at once. agent-config keeps no copy and nothing to re-sync — the counter-example
-# is `forge`, documented as a thin pointer while 400 lines actually live here, so
-# nobody can tell which side is true. Clone them so the link is not dangling.
+# at once. agent-config keeps no copy and nothing to re-sync — `forge` used to be
+# the counter-example, documented as a thin pointer while 361 lines actually lived
+# here, so nobody could tell which side was true; it became a real link on
+# 2026-09-04. Clone them so the link is not dangling.
 declare -A LINKED_SKILL_REPOS=(
   [sorge]="https://github.com/junghan0611/sorge.git"
+  [forge-config]="https://github.com/junghan0611/forge-config.git"
+)
+
+# Repo name → skill name, only where they differ. `sorge` names both its repo and
+# its skill; `forge-config` owns a skill called `forge`, so the link to verify is
+# skills/forge, not skills/forge-config.
+declare -A LINKED_SKILL_NAMES=(
+  [forge-config]="forge"
 )
 
 # is_server_device drives device-specific settings/hooks selection only.
@@ -477,10 +486,11 @@ setup_repos() {
   # These own their own SKILL.md; skills/<name> here is only a symlink to it.
   for name in "${!LINKED_SKILL_REPOS[@]}"; do
     ensure_repo "$name" "${LINKED_SKILL_REPOS[$name]}"
-    if [ -e "$SKILLS_DIR/$name" ]; then
-      ok "$name: skill linked ($(readlink "$SKILLS_DIR/$name"))"
+    local skill="${LINKED_SKILL_NAMES[$name]:-$name}"
+    if [ -e "$SKILLS_DIR/$skill" ]; then
+      ok "$name: skill linked (skills/$skill → $(readlink "$SKILLS_DIR/$skill"))"
     else
-      warn "$name: skills/$name link is dangling — clone failed?"
+      warn "$name: skills/$skill link is dangling — clone failed?"
     fi
   done
 
