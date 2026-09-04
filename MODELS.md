@@ -2,7 +2,12 @@
 
 What `pi --list-models` shows answers "what can you call" — **not "under which contract."** Flat-rate subscriptions and token-metered usage land side by side in the same table. This document adds that layer.
 
-Refresh: `./run.sh models` — rewrites the snapshot below from live `pi --list-models` output.
+**The list below is hand-picked and stays that way.** `./run.sh models` prints the live
+`pi --list-models` output and diffs it against this file — it **writes nothing**. Until
+2026-09-04 it rewrote the block between two snapshot markers, which meant every model GLG
+deleted by hand came back on the next run: the curation was living inside an auto-generated
+region. The markers are gone, the list is 20 of the 54 pi currently offers, and adding one
+is a deliberate act.
 
 ## What GLG Uses Today — 2026-08-20
 
@@ -65,12 +70,47 @@ The list drops from 497 lines to 57. The keys stay in `~/.env.local` (SSOT), and
 
 To bring one back: remove the key from both lists and re-run `./run.sh setup:links`.
 
-## Snapshot
+## The claude-code rail — what a Claude Code sibling opens with
 
-<!-- BEGIN SNAPSHOT -->
-_2026-08-20 15:23 KST · 56 models · refresh with `./run.sh models`_
+Not a pi provider, so it is **not** in the snapshot below and `./run.sh models` does not diff
+it. `entwurf_fresh_call --backend claude-code` takes these aliases (measured from
+`claude --help`, 2026-09-04):
 
-`github-copilot` 28 · `openai-codex` 7 · `entwurf` 6 · `zai` 5 · `upstage` 4 · `xai` 4 · `deepseek` 2
+| Alias | Full id | When |
+|---|---|---|
+| `opus` | `claude-opus-5` | **default for a claude-code sibling.** Use this unless GLG names another |
+| `sonnet` | `claude-sonnet-5` | lighter work on the same rail |
+| **`fable`** | `claude-fable-5` | **only when GLG asks for it by name.** Reserved for genuinely hard design problems — not a default, not a tie-breaker |
+
+`~/.claude/settings.json` carries `modelSettings` for `claude-opus-5` and `claude-fable-5`
+(both `effortLevel: xhigh`), so both are configured; being configured is not being default.
+
+> This table exists because its absence caused a real error. On 2026-09-04 a sibling was
+> opened on `fable` with no instruction to do so: the only place naming a concrete
+> claude-code model string was a *spelling* rule in `home/AGENTS.md` ("when GLG says 페블,
+> pass `fable`"), and a required `model` field got filled from the nearest remembered string.
+> That paragraph has been deleted and the roster lives here instead. **When no model is named
+> and none is documented for a rail, ask — do not fill a required field from memory.**
+
+## Same names on the omp rail
+
+`omp` is a garden sibling, and its model ids are the **same `provider/model` strings pi uses**
+— verified 2026-09-04 by running `omp models` against `pi --list-models`. A model named here
+can be handed to an omp sibling as-is.
+
+Three differences worth knowing before you pass one:
+
+| | pi | omp |
+|---|---|---|
+| xAI provider key | `xai` | **`xai-oauth`** |
+| Claude / Upstage | `entwurf` rail + `upstage` | **absent** — omp has no entwurf bridge and no Upstage |
+| Copilot breadth | 23 | **83**, including explicit `-1m` variants (`claude-opus-5-1m`) |
+
+So a Claude sibling cannot be opened on omp's own providers; omp reaches Claude through
+`github-copilot` instead. And `entwurf_fresh_call` takes a *fuzzy pattern* for omp, not an
+exact id.
+
+## Snapshot — hand-curated
 
 ```text
 provider        model                    context  max-out  thinking  images
@@ -78,57 +118,17 @@ deepseek        deepseek-v4-flash        1M       384K     yes       no
 deepseek        deepseek-v4-pro          1M       384K     yes       no    
 entwurf         claude-opus-5            1M       128K     yes       yes   
 entwurf         claude-sonnet-5          1M       128K     yes       yes   
-entwurf         cortex-auto              200K     128K     yes       yes   
-entwurf         cortex-claude-opus-5     200K     128K     yes       yes   
-entwurf         cortex-claude-sonnet-5   200K     128K     yes       yes   
-entwurf         cortex-openai-gpt-5.4    200K     128K     yes       yes   
-github-copilot  claude-fable-5           1M       128K     yes       yes   
-github-copilot  claude-haiku-4.5         200K     64K      yes       yes   
-github-copilot  claude-opus-4.5          200K     32K      yes       yes   
-github-copilot  claude-opus-4.6          1M       32K      yes       yes   
-github-copilot  claude-opus-4.7          1M       32K      yes       yes   
-github-copilot  claude-opus-4.8          1M       64K      yes       yes   
-github-copilot  claude-opus-5            1M       64K      yes       yes   
-github-copilot  claude-sonnet-4.5        200K     32K      yes       yes   
-github-copilot  claude-sonnet-4.6        1M       32K      yes       yes   
-github-copilot  claude-sonnet-5          1M       128K     yes       yes   
 github-copilot  gemini-3.1-pro-preview   1M       64K      yes       yes   
-github-copilot  gemini-3.5-flash         200K     64K      yes       yes   
-github-copilot  gemini-3.6-flash         1M       64K      yes       yes   
 github-copilot  gemini-3.7-flash         1M       64K      yes       yes   
-github-copilot  gpt-5-mini               264K     64K      yes       yes   
-github-copilot  gpt-5.3-codex            1M       128K     yes       yes   
-github-copilot  gpt-5.4                  1M       128K     yes       yes   
-github-copilot  gpt-5.4-mini             400K     128K     yes       yes   
-github-copilot  gpt-5.5                  1M       128K     yes       yes   
 github-copilot  gpt-5.6-luna             1.1M     128K     yes       yes   
 github-copilot  gpt-5.6-sol              1.1M     128K     yes       yes   
 github-copilot  gpt-5.6-terra            1.1M     128K     yes       yes   
-github-copilot  grok-4.5                 500K     128K     yes       yes   
 github-copilot  grok-4.6                 500K     128K     yes       yes   
-github-copilot  kimi-k2.7-code           256K     32K      yes       yes   
 github-copilot  kimi-k3                  1.0M     131.1K   yes       yes   
-github-copilot  mai-code-1-flash-picker  256K     128K     yes       no    
-github-copilot  mai-code-1.1-flash       256K     128K     yes       yes   
-openai-codex    gpt-5.3-codex-spark      128K     128K     yes       no    
-openai-codex    gpt-5.4                  272K     128K     yes       yes   
-openai-codex    gpt-5.4-mini             272K     128K     yes       yes   
-openai-codex    gpt-5.5                  272K     128K     yes       yes   
 openai-codex    gpt-5.6-luna             272K     128K     yes       yes   
 openai-codex    gpt-5.6-sol              272K     128K     yes       yes   
 openai-codex    gpt-5.6-terra            272K     128K     yes       yes   
-upstage         solar-mini               32.8K    8.2K     no        no    
-upstage         solar-pro2               65.5K    16.4K    yes       no    
-upstage         solar-pro3               131.1K   32.8K    yes       no    
 upstage         solar-pro4               524.3K   131.1K   yes       no    
-xai             grok-4.3                 1M       30K      yes       yes   
-xai             grok-4.5                 500K     500K     yes       yes   
 xai             grok-4.6                 500K     500K     yes       yes   
-xai             grok-build-0.1           256K     256K     yes       yes   
-zai             glm-4.7                  204.8K   131.1K   yes       no    
-zai             glm-5-turbo              200K     131.1K   yes       no    
-zai             glm-5.2                  1M       131.1K   yes       no    
-zai             glm-5.2-highspeed        1M       131.1K   yes       no    
 zai             glm-5.3                  1M       131.1K   yes       no    
 ```
-<!-- END SNAPSHOT -->

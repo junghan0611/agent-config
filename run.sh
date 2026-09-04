@@ -555,6 +555,18 @@ update_repos() {
   for name in "${!PACKAGE_REPOS[@]}"; do
     pull_repo_if_clean "$REPOS/$name" "$name"
   done
+
+  # A linked-skill repo OWNS a SKILL.md this repo only symlinks to, so a stale
+  # clone silently freezes that skill while every other repo moves — the exact
+  # failure the connect-only design exists to prevent. Clone when absent so a
+  # machine that only ever runs `update` still ends up with a live link.
+  for name in "${!LINKED_SKILL_REPOS[@]}"; do
+    if [ -d "$REPOS/$name/.git" ]; then
+      pull_repo_if_clean "$REPOS/$name" "$name"
+    else
+      ensure_repo "$name" "${LINKED_SKILL_REPOS[$name]}"
+    fi
+  done
   return 0
 }
 
@@ -1492,61 +1504,58 @@ Usage: ./run.sh <command> [args]
   quota:json                  정규화 스냅샷 JSON (스크립트/파이프용)
 
 === 유틸 ===
-  models                      MODELS.md 스냅샷 갱신 (pi --list-models)
+  models                      살아있는 모델 목록을 인쇄 + MODELS.md 대조 (쓰지 않는다)
   chunk:org [--sample]        청킹 통계
   env                         환경변수 상태
 EOF
 }
 
-# --- models — MODELS.md 스냅샷을 살아 있는 pi 모델 목록으로 갱신 ---
-# 표가 아니라 pi가 실제로 부를 수 있는 것 그대로를 박는다. 레일/계약 층은
-# MODELS.md 본문이 손으로 관리하고, 이 명령은 마커 사이만 다시 쓴다.
-models_snapshot() {
+# --- models — 살아있는 목록을 인쇄하고 MODELS.md와 대조한다. 쓰지 않는다 ---
+# MODELS.md의 목록은 GLG가 손으로 고른 것이다. 한때 이 명령이 SNAPSHOT 마커 사이를
+# 통째로 다시 썼는데, 그러면 손으로 지운 모델이 다음 실행에 전부 되살아난다 — 큐레이션이
+# 자동 생성 구역 안에 살고 있었다. GLG가 2026-09-04에 마커째 들어냈고(54 → 20),
+# 이제 이 명령은 읽기 전용이다. 고르는 것은 사람이고, 이 명령은 재료만 준다.
+models_report() {
   local doc="$SCRIPT_DIR/MODELS.md"
-  [ -f "$doc" ] || { fail "MODELS.md 없음"; return 1; }
   command -v pi >/dev/null 2>&1 || { fail "pi가 PATH에 없음"; return 1; }
 
-  local list
-  list=$(pi --list-models 2>/dev/null) || { fail "pi --list-models 실패"; return 1; }
-  [ -n "$list" ] || { fail "pi --list-models 출력이 비어 있음"; return 1; }
+  local live
+  live=$(pi --list-models 2>/dev/null) || { fail "pi --list-models 실패"; return 1; }
+  [ -n "$live" ] || { fail "pi --list-models 출력이 비어 있음"; return 1; }
 
-  MODELS_LIST="$list" MODELS_DOC="$doc" python3 - <<'MODELS_PY'
-import os, re, subprocess
+  section "Live — pi --list-models"
+  echo "$live"
 
-doc = os.environ["MODELS_DOC"]
-listing = os.environ["MODELS_LIST"].rstrip("\n")
-stamp = subprocess.run(
-    ["date", "+%Y-%m-%d %H:%M KST"],
-    env={**os.environ, "TZ": "Asia/Seoul"},
-    capture_output=True, text=True, check=True,
-).stdout.strip()
+  [ -f "$doc" ] || { warn "MODELS.md 없음 — 대조 생략"; return 0; }
 
-# 첫 줄은 헤더(provider model context ...)라 세지 않는다.
-rows = [l for l in listing.split("\n")[1:] if l.strip()]
-counts = {}
-for line in rows:
-    counts[line.split()[0]] = counts.get(line.split()[0], 0) + 1
-summary = " · ".join(f"`{p}` {n}" for p, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
+  section "MODELS.md와 대조"
+  # 표는 펜스(```) 안에만 있다. 문서 산문에도 `provider  model` 모양이 나오므로
+  # 펜스 밖을 긁으면 `pi/auto-enables` 같은 유령이 낡은 항목으로 보고된다.
+  local curated live_ids
+  curated=$(awk '/^```/{f=!f; next} f' "$doc" \
+            | awk 'NF>=2 && $1 != "provider" && $1 ~ /^[a-z][a-z0-9-]+$/ && $2 ~ /^[A-Za-z0-9]/ {print $1"/"$2}' \
+            | sort -u)
+  live_ids=$(echo "$live" | tail -n +2 | awk 'NF{print $1"/"$2}' | sort -u)
 
-block = (
-    "<!-- BEGIN SNAPSHOT -->\n"
-    # MODELS.md는 영문 문서다 — 생성되는 줄도 영문이어야 재생성이 문서를 오염시키지 않는다.
-    f"_{stamp} · {len(rows)} models · refresh with `./run.sh models`_\n\n"
-    f"{summary}\n\n"
-    "```text\n" + listing + "\n```\n"
-    "<!-- END SNAPSHOT -->"
-)
+  local gone new
+  gone=$(comm -23 <(echo "$curated") <(echo "$live_ids"))
+  new=$(comm -13 <(echo "$curated") <(echo "$live_ids"))
 
-src = open(doc, encoding="utf-8").read()
-new, n = re.subn(
-    r"<!-- BEGIN SNAPSHOT -->.*?<!-- END SNAPSHOT -->", lambda _m: block, src, flags=re.S
-)
-if n != 1:
-    raise SystemExit(f"MODELS.md의 SNAPSHOT 마커를 {n}번 찾음 (1이어야 함)")
-open(doc, "w", encoding="utf-8").write(new)
-print(f"  {len(rows)} models — {summary}")
-MODELS_PY
-  ok "MODELS.md 스냅샷 갱신"
+  if [ -n "$gone" ]; then
+    warn "MODELS.md에 있으나 pi가 더는 내놓지 않음 — 고쳐야 한다:"
+    echo "$gone" | sed 's/^/    /'
+  else
+    ok "MODELS.md의 모든 항목이 살아 있다"
+  fi
+
+  if [ -n "$new" ]; then
+    log "살아 있으나 MODELS.md에 없음 — 쓸 것만 손으로 넣는다 ($(echo "$new" | grep -c .)개):"
+    echo "$new" | sed 's/^/    /'
+  fi
+
+  echo
+  log "이 명령은 MODELS.md를 쓰지 않는다. 목록은 GLG가 손으로 고른다."
+  return 0
 }
 
 # --- Dispatch ---
@@ -1608,7 +1617,7 @@ case "${1:-help}" in
 
   # === Util ===
   models|models:snapshot)
-    models_snapshot ;;
+    models_report ;;
   chunk:org)
     shift; cd "$SM_DIR" && node --input-type=module -e "
 import { findOrgFiles, chunkOrgFile } from './org-chunker.ts';
