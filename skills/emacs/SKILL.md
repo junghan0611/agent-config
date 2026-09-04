@@ -27,6 +27,10 @@ Falls back to `server` when unset.
 | | ID, TITLE, TAG, BODY | `ec '(agent-denote-add-heading "ID" "Title" "LLMLOG" "body")'` |
 | | ID, TITLE, BODY, AFTER-HEADING | `ec '(agent-denote-add-heading "ID" "Title" "body" "보고")'` |
 | | ID, TITLE, TAG, BODY, AFTER-HEADING | `ec '(agent-denote-add-heading "ID" "Title" "LLMLOG" "body" "보고")'` |
+
+TAG is detected by shape — ALL-CAPS, optionally `:`-joined (`LLMLOG:ARCHIVE`). Detection is
+case-SENSITIVE, so a lowercase or CamelCase one-word body stays BODY (doomemacs-config `f752a07`;
+before it, `case-fold-search` defaulted to `t` and a body like `"body"` was silently eaten as a tag).
 | `agent-denote-add-link` | ID, TARGET-ID, DESC | `ec '(agent-denote-add-link "ID1" "ID2" "desc")'` ⚠️ all 3 args required (see Gotchas) |
 | `agent-denote-set-front-matter` | ID, &rest PLIST | `ec '(agent-denote-set-front-matter "ID" :title "새 제목" :filetags (quote ("meta" "reasoning")) :rename t)'` |
 | `agent-denote-search` | QUERY, ?TYPE(title/tag/fulltext) | `ec '(agent-denote-search "term" (quote tag))'` |
