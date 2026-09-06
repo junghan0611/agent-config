@@ -92,39 +92,48 @@ in this contract.
 
 ## Absent axis — a state, not a failure
 
-The openclaw index has one authority host (**thinkpad**) and is deliberately not
-replicated, so on every other host the axis is **absent**. Absent is an answer,
-not an error, and the wrapper answers it before the CLI is reached:
+Every axis has one **authority host** that builds it; other hosts are consumers
+that receive it, or do not have it at all. An axis this host has no copy of is
+**absent**, and absent is an answer, not an error:
 
 ```json
 {"axis":"openclaw","state":"absent","host":"oracle","authority":"thinkpad",
  "path":"…/data/openclaw.lance","reason":"…","next":"…"}
 ```
 
-Exit code **4**. Read it as *"this host has no copy"*, never as *"the bots never
-said that"* — and never as a permission problem to widen a mount for (sorge#1
-boundary; oracle's `~/repos/gh` bind has been read-only since 2026-08-12,
-`nixos-config` `ORACLE.md`).
+Exit code **4** — neither success (`0`) nor refusal (`1`), so it can never be
+confused with `{"count":0}`. Read it as *"this host has no copy"*, never as
+*"the bots never said that"*, and never as a permission problem to widen a mount
+for (sorge#1 boundary; oracle's `~/repos/gh` bind has been read-only since
+2026-08-12, `nixos-config` `ORACLE.md`).
 
-Why the wrapper and not the CLI: `searchOpenclaw()` has no existence gate, so a
-*read* call writes (andenken `cli.ts:691-694` → `store.ts:185-193`
-`mkdirSync` + `lancedb.connect`; read 2026-09-06). Both shapes were measured
-here that day through this wrapper, with `ANDENKEN_DATA` pointed at a scratch
-dir:
+**andenken owns this, for all four axes** — `sessions`, `md`, `org`, `openclaw`
+(`store.ts` `describeAxisAbsence` / `EXIT_AXIS_ABSENT`, reached from `cli.ts`
+`openAxisForRead`; andenken `1e61698`). It fires before anything is spent, an
+embedding call included, and it refuses on two shapes: the path is missing, and
+**the path exists but holds no table** — the residue a create-on-read leaves
+behind. So this skill's wrapper does *not* gate; calling `cli.ts` or andenken's
+own `./run.sh search:openclaw` directly gets the same answer.
 
-| Host is | Old behavior | Now |
-|---|---|---|
-| read-only | `{"error":"Unable to created lance dataset … (os error 13)"}`, exit 1 — oracle saw the same with EROFS (os error 30) | `state:"absent"`, exit 4 |
-| writable | a fresh **empty** `openclaw.lance` created, then `{"count":0,"results":[]}`, exit 0 | `state:"absent"`, exit 4, nothing created |
+Two host-relative remedies come out of one state, which is why `state` stays a
+single value: compare `host` to `authority` yourself. Missing on the authority
+means *not built yet*; missing anywhere else means *ask the authority*. The
+`next` field already says which. (`state` is reserved for genuinely different
+states — `stale` is the one coming, sorge#1 완료조건 4.)
 
-The writable row is the dangerous one: a silently-created empty axis answers
-every question with "nothing found". The loud EROFS was the lucky case.
+Env: `ANDENKEN_DATA` relocates the data dir; `ANDENKEN_INDEX_AUTHORITY` renames
+the authority host, with `ANDENKEN_OPENCLAW_AUTHORITY` overriding it for that
+one axis.
 
-Env: `ANDENKEN_DATA` relocates the data dir (respected here);
-`ANDENKEN_OPENCLAW_AUTHORITY` renames the authority host if it ever moves.
-The gate is consumer-side only — calling `andenken`'s own
-`./run.sh search:openclaw` or `cli.ts` directly still creates on read
-(open, andenken's side).
+> History, because the failure shape is worth keeping: before andenken's gate, a
+> read call *wrote*. On a read-only host it died loudly — oracle's
+> `Unable to created lance dataset … (os error 30)`, which is what opened
+> sorge#1. On a **writable** host it silently created an empty index and
+> answered `{"count":0}` with exit 0 — an absent axis indistinguishable from an
+> empty one. The loud EROFS was the lucky case. This wrapper carried its own
+> openclaw-only gate for one day (`ad347ef`, retired here); it never checked for
+> the empty-table residue, so it was the weaker of the two copies — and one
+> contract implemented twice is the drift this whole issue is about.
 
 ## Nine operating rules
 

@@ -11,12 +11,14 @@
 - [x] **6. 배선이 갈린 자리 다섯** — forge 실물 이관 · `doctor:bins` provenance/stale · `CLAUDE.md` 배선 · emacs/denotecli 스킬 문서 · 임베딩 자리 명시 (`v2026.9.4-wiring.1`)
 - [ ] **3. entwurf-peek `trace` 파서 수선** ← PAUSED: `mux-placement` acceptance fixture 대기
 - [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
+- [x] **7. openclaw absent 계약 — wrapper 게이트 은퇴 (sorge#1 완료조건 9)** — 계약이 `andenken`으로 내려갔고 wrapper는 다시 얇아졌다
 
-현재 좌표: 1·2·5·6 완료 → **다음 CURRENT 미정** → 3·4 보류(둘 다 남의 손 대기)
+현재 좌표: 1·2·5·6·7 완료 → **다음 CURRENT 미정** → 3·4 보류(둘 다 남의 손 대기)
 
 # NOW
 
-- **Hot group:** 없음. `v2026.9.4-wiring.1`로 배선 다섯 자리가 닫혔고, 3·4는 둘 다 남의 손을 기다린다.
+- **Hot group:** 없음. 7이 닫혔다(아래 ACTIVE 첫 절). `v2026.9.4-wiring.1`로 배선 다섯 자리가
+  닫혔고, 3·4는 둘 다 남의 손을 기다린다.
 - **Next:** GLG가 다음 축을 고른다. 남아 있는 두 후보는 아래 3(entwurf-peek `trace`)과 4(#46)이고,
   **둘 다 여기서 시작할 수 없다** — 각각 entwurf 쪽 fixture와 normalize가 선행이다.
 - **직전에 닫은 것 (2026-09-04, `v2026.9.4-wiring.1`):** `forge` 스킬 실물을 `forge-config`로
@@ -45,6 +47,46 @@
   `git-hooks/gitleaks.toml`의 접두 룰은 **미결로 기록만** 했다 — 고치라는 지시가 없었다.
 
 # ACTIVE
+
+## [2026-09-06] openclaw absent 계약 — 하루 만에 세우고 지웠다 (sorge#1). CLOSED
+- **닫힘.** 아침에 wrapper preflight를 넣었고(`ad347ef`) 저녁에 지웠다 — 계약이 `andenken`
+  라이브러리로 내려갔기 때문이다. 이 집이 답을 소유하지 않고 **계약을 서술만** 한다.
+- **왜 지운 게 맞았나 (내가 실측):** 내 게이트는 `[[ ! -d … ]]` 하나뿐이라 **잔여물 케이스**
+  (디렉터리는 있고 테이블이 없음 — create-on-read가 남기는 모양)를 통과시켰다. andenken의
+  `describeAxisAbsence()`는 `hasDir && hasTable`을 본다. 한 계약을 두 리포에서 구현하면 갈리고,
+  **이미 갈려 있었고 내 쪽이 약한 쪽이었다.** 성능 논거도 죽었다(absent 경로 `0.438s`, 임베딩
+  호출도 라이브러리가 그 앞에서 막는다).
+- **전제였던 것 둘, 다 섰었다:** andenken
+  [`1e61698`](https://github.com/junghan0611/andenken/commit/1e61698) `fix(store): refuse to
+  create an axis on a read call` · nixos-config
+  [`55ef65d`](https://github.com/junghan0611/nixos-config/commit/55ef65d) 오라클 receipt.
+- **은퇴 후 실측 4케이스 (thinkpad, 2026-09-06):** absent openclaw · **잔여물(내 게이트가 놓쳤던
+  그 케이스)** · absent sessions → 셋 다 `state:"absent"` exit 4 · 아무것도 생성 안 됨. present
+  openclaw → `count:1` exit 0, 무변화.
+- **내 Q2 권고가 그쪽에 실렸다:** `state`는 단일값으로 두고 `host === authority`로 remedy를
+  가른다. 실측에서 확인 — thinkpad(=authority)에서는 *"this host is the openclaw authority but
+  has not harvested yet"* + `./run.sh sync:openclaw`, 소비자 호스트에서는 *"ask the authority"*.
+  같은 축, 다른 remedy. `state`는 앞으로 올 `stale`(완료조건 4)을 위해 비워뒀다.
+- **증거:** sorge#1 —
+  [반환](https://github.com/junghan0611/sorge/issues/1#issuecomment-5557358786) ·
+  [보강 §0-c](https://github.com/junghan0611/sorge/issues/1#issuecomment-5557476296).
+
+## 남의 집 것 — 배정 전에는 건드리지 않는다
+- **sorge#1 완료조건 10 (C-15)** — 09-03 임베딩 제공자 오류의 원인·복구. 담당 미정. 단서는
+  `main` 봇이 남겼다: `getSessionsProvider()`가 sessions·openclaw 두 경로의 관문이라 env 하나가
+  빠지면 두 축이 동시에 죽는다; 파일 폴백 `embedding-provider.ts:901-905`.
+  **skill 표면의 계약과 맞닿아 있어 언젠가 이 집 자리가 될 수 있다.**
+- **완료조건 6 (기억축 복구)** — 6봇 중 5봇이 15초 게이트를 통과 못 한다(glg 85.4s).
+  `nixos-config`/oracle 몫으로 승급됐다.
+
+## [2026-09-06] 아직 어디에도 안 박은 규칙 — `file:line`의 스냅샷 앵커
+- 넘어가는 `file:line`에는 **스냅샷 앵커**를 단다 — `HEAD`(sha)인지 워킹트리(시각)인지.
+  형제가 동시에 살아 있으면 `file:line`은 좌표가 아니라 **시점 의존 포인터**다.
+- 오늘 이걸로 미끄러졌다: 내가 `sorge`의 receipt를 "틀렸다"고 했는데 **둘 다 자기 스냅샷에서
+  맞았다** — `sorge`는 15:12에 `HEAD`(`67188c2`)를, 나는 15:29에 워킹트리(mtime 15:24)를 읽었고
+  그 사이 andenken 담당자가 그 게이트를 걷어내는 중이었다.
+- 자리: `~/AGENTS.md § How a fact crosses between siblings`의 "receipt를 나른다"에 붙는 확장.
+  **GLG의 전역 규칙이라 이 집에서 손대지 않았다.** `sorge`가 `sorge#1` 본문에도 박기로 했다.
 
 ## dictcli Layer 3 — 부채까지 닫았다. 남은 건 마운트 제거 한 줄 (아래 [2026-09-03])
 - Current: 봇 위치 GREEN. 그리고 **portable 아티팩트가 착지했다** — dictcli `4a3afd6`
