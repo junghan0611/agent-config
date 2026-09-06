@@ -26,7 +26,7 @@ v0.21.11 설치 확인됨 — 최신판, 새 기능 릴리스는 없다(보안 �
 > 아니라 해석본이 된다."
 
 `youtube-transcript`는 원본 `>>` 화자 경계로만 turn을 나누고, 모르는 화자는 라벨을 안
-붙이고, 문장 부호를 LLM이 다듬지 않는다. 산출물은 `~/org/md/transcript`에 denote md
+붙이고, 문장 부호를 LLM이 다듬지 않는다. 산출물은 `~/org/transcript`에 denote md
 정본으로 남아 가든 아이디로 편입된다. `summarize --extract`는 이 계약이 전혀 없다 — 빠르고
 편하지만, LLM 마크다운 변환(`--markdown-mode llm`)을 켜면 문장 경계·마침표가 재구성될 수
 있고, 기본 readability 경로도 원본 스트림 그대로를 보증하지 않는다.
