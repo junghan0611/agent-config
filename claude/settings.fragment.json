@@ -155,5 +155,7 @@
   "voiceEnabled": true,
   "autoUpdates": true,
   "remoteControlAtStartup": false,
-  "outputStyle": "Concise"
+  "outputStyle": "Concise",
+  "enableArtifact": false,
+  "showTurnDuration": true
 }
