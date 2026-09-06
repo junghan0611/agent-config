@@ -21,7 +21,7 @@ Calling one as a subcommand returns `{"error":"Unknown command"}`
 | Known time/project | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode recent` | Caller supplies a half-open ISO window; no embed/BM25/dictcli. |
 | Meaning in known slice | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode hybrid --limit 5` | Structured filters first, semantic rank second. |
 | Public-garden concept | `search-md "query" --limit 5` | Choose a document and open its path; `--full` widens snippets. |
-| What a bot said/remembers | `search-openclaw "query" --limit 5` · `--full` widens snippets · from the repo: `./run.sh search:openclaw "query"` | Name the axis and the hit's `agent` when you quote it. No dictcli expansion on this axis by design (andenken#12 open). |
+| What a bot said/remembers | `search-openclaw "query" --limit 5` · `--full` widens snippets · from the repo: `./run.sh search:openclaw "query"` | Name the axis and the hit's `agent` when you quote it. No dictcli expansion on this axis by design (andenken#12 open). ⚠️ Off thinkpad this returns `state:"absent"` with exit 4 — see § Absent axis. |
 | Exact title/tag/person | `denotecli search "name" --max 5` | Semantic neighbors never prove exact existence. |
 | Chosen session context | `search-sessions "query" --with-excerpt --excerpt-limit 1` | Surrounding turns; raise to at most 3. Whole session: `session-recap --session-file <file>` — the `file` is a corpus path and joins as-is. |
 | Health / maintenance | `status` (CLI) · then the `memory-sync` / `andenken-embed` **skills** | Check freshness; full maintenance is human-gated. |
@@ -54,15 +54,17 @@ Rules that follow:
   applies per axis with a different density.
 - **The openclaw track is local only — there is no push step — and never mixes
   with the garden (md) axis by any path.** The harvest pulls to the authority
-  (thinkpad), imports, and stops: `openclaw.lance` exists on this machine and
-  not on oracle (andenken `INVARIANT.md` §7.2, "The OpenClaw harvest travels the
+  (thinkpad), imports, and stops: `openclaw.lance` exists **on the authority
+  host, thinkpad, and nowhere else** (andenken `INVARIANT.md` §7.2, "The OpenClaw harvest travels the
   other way"; the only rsync in `scripts/export-openclaw.sh` pulls the export
   *from* the bot host, and `scripts/sync-sessions.sh`'s publish moves
   `sessions.lance` and the manifest only — read 2026-09-03). That is today's
   fact, not a rule: if a replica ever needs this axis, the push has to be added
   deliberately. **Until then, never describe this track as replicated** — a
   sibling on oracle who reads "replica" will believe it has an index it does
-  not have. md is the exported, public axis. The bot index holds GLG's whole
+  not have. **Nor host-relatively**: this file is symlinked identically onto
+  every host, including into the OpenClaw container on oracle, so a phrase like
+  "on this machine" resolves to whoever is reading. Name thinkpad. md is the exported, public axis. The bot index holds GLG's whole
   world — family, health, money, code, in one place (measured 2026-09-03 by the
   andenken steward on a sample). GLG's ruling, same day:
   "가족은 하나야. 그러려고 합친 거야" — that is the point of harvesting it, not a
@@ -87,6 +89,42 @@ came already computed. Verified callable here the same day —
 `{"axis":"openclaw", …, "results":[{"agent":"gpt","source":"memory","path":"MEMORY.md","updated_at":…}]}`,
 so the four provenance fields and the `axis` label are in the response, not just
 in this contract.
+
+## Absent axis — a state, not a failure
+
+The openclaw index has one authority host (**thinkpad**) and is deliberately not
+replicated, so on every other host the axis is **absent**. Absent is an answer,
+not an error, and the wrapper answers it before the CLI is reached:
+
+```json
+{"axis":"openclaw","state":"absent","host":"oracle","authority":"thinkpad",
+ "path":"…/data/openclaw.lance","reason":"…","next":"…"}
+```
+
+Exit code **4**. Read it as *"this host has no copy"*, never as *"the bots never
+said that"* — and never as a permission problem to widen a mount for (sorge#1
+boundary; oracle's `~/repos/gh` bind has been read-only since 2026-08-12,
+`nixos-config` `ORACLE.md`).
+
+Why the wrapper and not the CLI: `searchOpenclaw()` has no existence gate, so a
+*read* call writes (andenken `cli.ts:691-694` → `store.ts:185-193`
+`mkdirSync` + `lancedb.connect`; read 2026-09-06). Both shapes were measured
+here that day through this wrapper, with `ANDENKEN_DATA` pointed at a scratch
+dir:
+
+| Host is | Old behavior | Now |
+|---|---|---|
+| read-only | `{"error":"Unable to created lance dataset … (os error 13)"}`, exit 1 — oracle saw the same with EROFS (os error 30) | `state:"absent"`, exit 4 |
+| writable | a fresh **empty** `openclaw.lance` created, then `{"count":0,"results":[]}`, exit 0 | `state:"absent"`, exit 4, nothing created |
+
+The writable row is the dangerous one: a silently-created empty axis answers
+every question with "nothing found". The loud EROFS was the lucky case.
+
+Env: `ANDENKEN_DATA` relocates the data dir (respected here);
+`ANDENKEN_OPENCLAW_AUTHORITY` renames the authority host if it ever moves.
+The gate is consumer-side only — calling `andenken`'s own
+`./run.sh search:openclaw` or `cli.ts` directly still creates on read
+(open, andenken's side).
 
 ## Nine operating rules
 

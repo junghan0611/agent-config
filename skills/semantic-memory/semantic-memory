@@ -8,4 +8,32 @@ set -euo pipefail
 
 ANDENKEN_DIR="${HOME}/repos/gh/andenken"
 
+# --- openclaw axis: absent is a state, not a failure ------------------------
+# The openclaw index has ONE authority host (thinkpad) and is deliberately not
+# replicated. On every other host the axis is `absent` — and `searchOpenclaw()`
+# has no existsSync gate (andenken cli.ts:691-694 -> store.ts:185-193, which
+# mkdirSync()s the parent and lancedb.connect()s the path), so a read call
+# WRITES. Measured 2026-09-06 on thinkpad through this wrapper:
+#   ANDENKEN_DATA=<read-only dir>  -> {"error":"Unable to created lance dataset
+#     at .../openclaw.lance: Permission denied (os error 13)"}   exit 1
+#     — the same shape as oracle's EROFS (os error 30), sorge#1 §1.
+#   ANDENKEN_DATA=<writable dir>   -> a fresh empty openclaw.lance is created
+#     and the call returns {"count":0,"results":[]} with exit 0 — an absent
+#     axis that is indistinguishable from "the bots never said that".
+# The loud EROFS was the lucky case. Answer the state here, before the CLI is
+# ever reached, so neither shape can happen. Do NOT widen a mount to "fix" it
+# (sorge#1 boundary; nixos-config ORACLE.md, oracle bind ro since 2026-08-12).
+ANDENKEN_DATA_DIR="${ANDENKEN_DATA:-${HOME}/repos/gh/andenken/data}"
+OPENCLAW_AUTHORITY="${ANDENKEN_OPENCLAW_AUTHORITY:-thinkpad}"
+
+case "${1:-}" in
+	search-openclaw | openclaw)
+		if [[ ! -d "${ANDENKEN_DATA_DIR}/openclaw.lance" ]]; then
+			this_host="$(cat "${HOME}/.current-device" 2>/dev/null || hostname)"
+			printf '%s\n' "{\"axis\":\"openclaw\",\"state\":\"absent\",\"host\":\"${this_host}\",\"authority\":\"${OPENCLAW_AUTHORITY}\",\"path\":\"${ANDENKEN_DATA_DIR}/openclaw.lance\",\"reason\":\"the openclaw index is not replicated; this host is a consumer with no copy of the axis\",\"next\":\"ask the authority host (${OPENCLAW_AUTHORITY}), or search another axis (search-sessions / search-md) and say which axis you searched\"}"
+			exit 4
+		fi
+		;;
+esac
+
 exec npx tsx "${ANDENKEN_DIR}/cli.ts" "$@"
