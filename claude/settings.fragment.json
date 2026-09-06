@@ -149,6 +149,7 @@
   "language": "Korean",
   "effortLevel": "high",
   "editorMode": "normal",
+  "tui": "fullscreen",
   "preferredNotifChannel": "notifications_disabled",
   "agentPushNotifEnabled": true,
   "voiceEnabled": true,
