@@ -1,0 +1,31 @@
+disabledProviders:
+  - openrouter
+  - huggingface
+  - google
+  - amazon-bedrock
+  - bedrock-mantle
+  - groq
+symbolPreset: nerd
+composer:
+  shape: pi
+theme:
+  dark: dark-catppuccin
+setupVersion: 2
+statusLine:
+  preset: nerd
+  separator: slash
+  contextLine: embedded
+  transparent: true
+  compactThinkingLevel: false
+  showHookStatus: true
+modelRoles:
+  default: anthropic/claude-opus-5
+tools:
+  xdev: false
+terminal:
+  showProgress: false
+tui:
+  textSizing: false
+display:
+  cacheMissMarker: true
+  showTokenUsage: true

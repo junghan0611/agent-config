@@ -29,7 +29,8 @@ the source and `./run.sh setup:links` links each file into `~/.omp/agent/agents/
 - This changes the old “no OMP branch in `run.sh`” statement below: setup now owns this
   **task-agent catalog only**. It still does not install OMP or inject the shared skill SSOT.
 - Entwurf still owns OMP's bridge, birth/receive extensions, MCP registration, and the
-  co-owned `~/.omp/agent/config.yml`; those are not linked here.
+  co-owned live `~/.omp/agent/config.yml`; no agent-config installer links or writes it.
+  `omp/config.yml` is a known-good repository reference snapshot for manual copy/paste.
 
 ---
 
