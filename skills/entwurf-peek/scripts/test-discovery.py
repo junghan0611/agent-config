@@ -289,6 +289,7 @@ def main():
                 "nativeSessionId": "n1", "cwd": "/x", "model": None, "transcriptPath": None,
                 "createdAt": "t", "recordUpdatedAt": "t"}
         check("well-formed v3 record has no defect", parse_defect(base), None)
+        check("omp is a certified v3 citizen", parse_defect({**base, "backend": "omp"}), None)
         check("missing nativeSessionId is a defect",
               "nativeSessionId" in (parse_defect({**base, "nativeSessionId": ""}) or ""), True)
         check("bogus backend is a defect",
@@ -330,6 +331,8 @@ def main():
               ep.record_activity(unsupported)["precheck"], "identity-unverified")
         check("unsupported backend contributes no state guess",
               ep.record_activity(unsupported)["model"], None)
+        omp = {"backend": "omp", "transcriptPath": str(legacy), "nativeSessionId": native}
+        check("omp transcript shares pi grammar", ep.record_activity(omp)["precheck"], "ok")
         empty_tail = d / "no-identity.jsonl"
         empty_tail.write_text(json.dumps({"type": "user", "message": {"role": "user", "content": "x"}}) + "\n")
         unknown = {"backend": "claude-code", "transcriptPath": str(empty_tail), "nativeSessionId": "cc-x"}

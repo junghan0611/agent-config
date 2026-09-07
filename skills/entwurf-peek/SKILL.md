@@ -53,7 +53,7 @@ verb를 실제로 부르는 절차와 receipt 읽는 법은 **`entwurf-dev` 스�
 
 ```text
 garden id      20260807T081220-b0ae2b   dispatch·socket 파일명·peers가 쓰는 축
-native id      019fd93b-050c-7a80-...   pi 세션 파일명·JSONL header가 쓰는 축
+native id      019fd93b-050c-7a80-...   pi/OMP 세션 파일명·JSONL header가 쓰는 축
 ```
 
 pi 0.84 기준 세션 파일명은 uuidv7이라 **두 축은 문자열로 절대 만나지 않는다.** 잇는 것은
@@ -172,11 +172,12 @@ placement · runtime     tmux anchor, pi runtime 해석, launch 실패
 
 identity가 확인되지 않은 행은 **본문을 아예 읽지 않는다.** 그리고 그 사유를 합치지
 않는다 — `foreign-transcript`(다르다)와 `identity-unverified`(확인 못 했다)는 다른
-사실이다. native id를 읽는 문법이 backend마다 다르기 때문이다(pi는 첫머리
+사실이다. native id를 읽는 문법이 backend마다 다르기 때문이다(pi·OMP는 첫머리
 `type:"session"` header의 `id`, Claude Code는 각 엔트리의 `sessionId`, antigravity·codex는
-이 스킬이 모른다). 한쪽 문법으로 다른 쪽을 읽고 그것을 mismatch라 부르면 "못 읽었다"가
-"남의 것이다"로 둔갑한다 — 2026-08-07 2차 리뷰에서 antigravity record 4건이 그렇게
-오판됐다.
+이 스킬이 모른다). OMP의 pi-shaped header는
+`~/.omp/agent/sessions/.../2026-09-07T06-30-31-430Z_01a07a8f-….jsonl:2`에서 측정했다.
+한쪽 문법으로 다른 쪽을 읽고 그것을 mismatch라 부르면 "못 읽었다"가 "남의 것이다"로
+둔갑한다 — 2026-08-07 2차 리뷰에서 antigravity record 4건이 그렇게 오판됐다.
 
 ### `peek <id|file>`
 
@@ -190,8 +191,8 @@ identity가 확인되지 않은 행은 **본문을 아예 읽지 않는다.** �
 `<id>`는 **garden id**(`20260807T081220-b0ae2b`), **6-hex 접미사**(`b0ae2b`), native
 session id, legacy full UUID, 또는 파일 경로다. garden id는 record를 통해 해석하고,
 나머지는 JSONL header `id`로 해석한다. transcript 문법은 backend마다 다르므로 record가
-`claude-code`라고 말하면 Claude 파서로 읽는다 — record가 없으면 파일 축의 기본값인 pi
-문법으로 읽는다. garden id로 해석했다면 **그 record를 그대로 들고 간다**: 경로만 넘기면
+`claude-code`라고 말하면 Claude 파서로 읽고, `omp`는 pi-shaped header라 pi 파서로 읽는다 —
+record가 없으면 파일 축의 기본값인 pi 문법으로 읽는다. garden id로 해석했다면 **그 record를 그대로 들고 간다**: 경로만 넘기면
 같은 파일을 두 record가 주장할 때 identity를 잃고 남의 문법으로 본문을 읽게 된다.
 
 **record가 있으면 그 record가 owner gate다.** garden selector는 file 축으로 흘러가지

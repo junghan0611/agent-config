@@ -1093,8 +1093,8 @@ RESUMABLE_BACKENDS = {"pi"}
 
 
 LIVE_RECORD_SCHEMA = 3
-# `meta-session.ts:237` — 이 enum 밖의 backend는 v3 record가 아니다.
-META_CITIZEN_BACKENDS = ("claude-code", "antigravity", "codex", "pi", "copilot")
+# `meta-session.ts` META_CITIZEN_BACKENDS — 이 enum 밖의 backend는 v3 record가 아니다.
+META_CITIZEN_BACKENDS = ("claude-code", "antigravity", "codex", "copilot", "omp", "pi")
 # `meta-session.ts:347-357` — strict keyset. 여분 key는 coerce하지 않고 record를 버린다.
 META_IDENTITY_KEYS = frozenset({
     "schemaVersion", "gardenId", "backend", "nativeSessionId", "cwd",
@@ -1366,7 +1366,9 @@ def _label_state(last_event: str | None) -> str:
 
 
 # 이 스킬이 transcript 문법을 아는 backend. 나머지는 "모른다"이지 "남의 것"이 아니다.
-READABLE_TRANSCRIPT_BACKENDS = {"pi", "claude-code"}
+# OMP's live session header is pi-shaped (`type:"session"`, `id`), so it shares
+# the pi parser; this is a grammar fact, not a backend-rank inference.
+READABLE_TRANSCRIPT_BACKENDS = {"pi", "claude-code", "omp"}
 
 
 def transcript_owner(path: Path, rec: dict) -> str:
