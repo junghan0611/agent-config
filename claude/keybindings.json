@@ -18,17 +18,6 @@
         "ctrl+n": "autocomplete:next",
         "ctrl+p": "autocomplete:previous"
       }
-    },
-    {
-      "context": "Scroll",
-      "bindings": {
-        "meta+u": "scroll:halfPageUp",
-        "meta+v": "scroll:halfPageDown",
-        "meta+<": "scroll:top",
-        "meta+>": "scroll:bottom",
-        "meta+shift+,": "scroll:top",
-        "meta+shift+.": "scroll:bottom"
-      }
     }
   ]
 }
