@@ -88,7 +88,7 @@ The result: context survives across sessions, across harnesses, across models. O
 | **Antigravity CLI (`agy`)** | repo-managed settings + skills | full skill set | `~/.gemini/antigravity-cli/skills` from SSOT; `settings.json` + `mcp_config.json` are entwurf-owned. Native-push citizen (`entwurf_register_native`) — no mailbox, replies inject into the live conversation |
 | **Copilot CLI** | skill surface only from this repo | full skill set | `~/.copilot/skills` → `skills/` (directory symlink). `settings.json` / birth plugin / statusLine are entwurf-owned (`install-copilot-bridge`, `install-copilot-statusline`). No MCP doorbell on this rail yet |
 | **Kiro CLI** (optional) | skill surface only from this repo | full skill set when installed | `~/.kiro/skills` → `skills/` when `kiro-cli` is on `PATH`. Kiro is intentionally not an entwurf citizen; its settings, agents, and sessions remain Kiro-owned. |
-| **OMP** (`omp`, oh-my-pi) | none from this repo | **deliberately none** | The fifth garden backend, admitted by entwurf 0.16.0 (2026-08-31) as a self-fetch citizen. Everything on this rail is entwurf-owned (`install-omp-bridge` / `install-omp-receive` / `install-omp-config`); this repo wires **nothing** — there is no `omp` branch in `run.sh` and no `~/.omp/skills` (measured on oracle, 2026-09-04). That absence is the experiment, not a gap: see [§ Agent Runtime Bench](#agent-runtime-bench) and [OMP.md](OMP.md) |
+| **OMP** (`omp`, oh-my-pi) | custom task-agent catalog from this repo; bridge configuration from entwurf | **deliberately no shared skills** | GLG's **working submarine**: one visible OMP parent calls its in-process agents for the work it receives. `omp/agents/*.md` is linked by `./run.sh setup:links` into `~/.omp/agent/agents/`; profiles bind only a name to a model and “Assist the GLG-requested sibling.” The parent chooses its team from the task and current quota. Entwurf owns `install-omp-bridge` / `install-omp-receive` / `install-omp-config`; `~/.omp/skills` remains absent. |
 | **OpenClaw** (4 bots) | andenken skill (same SSOT via symlink) | full skill set | settings / Nix store mount |
 
 **OpenCode is not used.** It once appeared in this table and in the fan-out list, but `run.sh` never wires it — there is no `~/.config/opencode/skills` link and no OpenCode branch anywhere in setup. The rows have been removed rather than left as an aspiration; a harness this repo does not actually reach should not be advertised as supported.
@@ -283,7 +283,7 @@ cd agent-config
 
 - Clone missing tracked repos (`setup` does **not** pull existing repos; use `./run.sh update` for pulls)
 - Build native CLI binaries (Go + GraalVM) — **gated**: each Go CLI must pass its sibling repo's test suite and be built from committed sources, or it is not installed. `skills/.provenance.json` records what actually landed; `./run.sh doctor:bins` warns when a live binary drifts from its recorded build, is stale against its source, or was built for another arch
-- Symlink pi extensions, full skill set (including `semantic-memory`), themes, settings, keybindings, prompts
+- Symlink pi extensions, full skill set (including `semantic-memory`), themes, settings, keybindings, prompts, and the repo-managed OMP task-agent catalog
 - Run andenken's own `run.sh setup` (build + deps). It is **no longer declared as a pi package here** — agents reach it through the `semantic-memory` skill, which every harness can invoke. Where it is already registered as a pi package, pi additionally gets the `session_search` / `knowledge_search` registerTool; that is a pi-local convenience, not the shared door
 - Symlink Codex / Antigravity / Copilot skill surfaces (`~/.codex/config.toml` + skills, `~/.gemini/antigravity-cli/skills`, `~/.copilot/skills`) plus Claude Code commands. When installed, Kiro gets only `~/.kiro/skills`; its settings, agents, and sessions stay Kiro-owned. Antigravity/Copilot settings are **not** linked here (entwurf-owned). `~/.claude/settings.json` is **merged** (keyset, never symlinked) — co-owned with entwurf meta-bridge; both workstation (`settings.fragment.json`) and server (`settings.server.json`) merge the same way, and `pi/settings.json` merges too (co-owned with the pi runtime)
 - Symlink `~/.local/bin` PATH binaries
@@ -301,7 +301,7 @@ Three subjects sit on this bench, and they ask three different questions:
 | Subject | Question | Standing |
 |---|---|---|
 | [Hermes Agent](https://github.com/NousResearch/hermes-agent) | Does a self-learning runtime out-write a hand-authored skill set? | candidate, pinned, not adopted |
-| [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) | Does one sibling with an internal team cost the operator fewer inspection hops? | **admitted as a sibling** (entwurf 0.16.0); the operator question is still open |
+| [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) | Can one visible parent call an in-process team while reducing GLG's inspection hops? | **GLG's working submarine** — admitted as a sibling (entwurf 0.16.0); custom agents active |
 | [prime-agent](https://github.com/junghan0611/prime-agent) (fork) | Can a Lisp workspace stand up the RLM loop a Python REPL carries today? | **built here**, not installed — Clojure is already the default kernel |
 
 
@@ -328,18 +328,18 @@ What that leaves is a runtime that reaches Claude, GPT (`openai-codex` OAuth) an
 
 The comparison target is not another product. It is this repo's own loop — `AGENTS.md` + `skills/` + semantic memory + `botlog`/`NEXT` — and the honest question is whether a machine-written skill trail is more transparent and reproducible than the hand-written one.
 
-The second subject is [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) — a fork of the very harness this repo already runs, tuned as a coding-first surface. It asks a different question than Hermes: not *does it learn better*, but *does one visible sibling with an internal team cost GLG fewer inspection points than routing the same job through two or three visible sibling hops*. The currency is not tokens. It is **the number of boundaries the operator has to personally inspect.**
+The second runtime is [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) — a fork of the harness this repo already runs, tuned as a coding-first surface and now GLG's **working submarine**. One visible OMP parent receives one garden id and calls its internal agents in process for the work it is given. The parent, not the agent profiles, chooses which models to call from the task and the quota currently available. Each profile binds only a name to its model and says “Assist the GLG-requested sibling”; it does not assign rank, speed, cost, context, or a fixed role. The currency is not tokens. It is **the number of boundaries the operator has to personally inspect.**
 
-**That subject has since been admitted as a sibling — and this section used to say the opposite.** entwurf 0.16.0 (2026-08-31) admitted OMP as the **fifth garden backend**: birth hook, an omp-native MCP hand, an addressed-receive extension, and `entwurf_fresh_call` on all three public surfaces. It is live on this host — `omp/18.0.0`, with `entwurf-meta-omp` and `entwurf-receive-omp` installed under `~/.omp/agent/extensions/` and a native `entwurf-bridge` entry in `~/.omp/agent/mcp.json` (measured on oracle, 2026-09-04). The earlier "no citizenship implementation has started" line in [OMP.md](OMP.md) predates that release; the correction is stamped at the top of that file.
+**OMP is an admitted sibling and active work surface.** entwurf 0.16.0 (2026-08-31) admitted OMP as the **fifth garden backend**: birth hook, an OMP-native MCP hand, an addressed-receive extension, and `entwurf_fresh_call` on all three public surfaces. It is live on this host with `entwurf-meta-omp` and `entwurf-receive-omp` under `~/.omp/agent/extensions/` plus a native `entwurf-bridge` entry in `~/.omp/agent/mcp.json` (measured on oracle, 2026-09-04).
 
-Admission did not settle the bench question, and the two must not be confused:
+The two responsibility boundaries remain distinct:
 
-| | Owner | Settled? |
+| | Owner | Standing |
 |---|---|---|
-| *Is omp addressable as one garden citizen?* | `entwurf` | **Yes** — 0.16.0, one process = one garden id. In-process subagents are not citizens and do not widen the contract |
-| *Does routing work through omp reduce GLG's inspection hops?* | `agent-config` | **Open** — the D-axis in [OMP.md](OMP.md) (D1–D5) is still unmeasured |
+| *Is omp addressable as one garden citizen?* | `entwurf` | **Yes** — one process = one garden id. In-process agents are not citizens and do not widen the contract. |
+| *Does the working submarine reduce GLG's inspection hops?* | `agent-config` | **Active and observed** — the D-axis in [OMP.md](OMP.md) remains the record of that operating evidence. |
 
-Three things stay deliberately unwired here while D is open: no `omp` branch in this repo's `run.sh`, no entry in `nixos-config`, and **no skills SSOT injection into `~/.omp`** (verified absent, 2026-09-04). A subject you have already furnished with your own skill set can no longer answer whether it needed one. The provider seal, operator boundary, and reproduce block live in [OMP.md](OMP.md) — omp installs from one pinned upstream command rather than a `run.sh` lane, so the doc is the install SSOT until that changes.
+This repo wires the OMP **task-agent catalog only**: `omp/agents/*.md` is linked by `./run.sh setup:links` into `~/.omp/agent/agents/`. OMP installation remains outside `run.sh` and `nixos-config`, and the shared skills SSOT is still not injected into `~/.omp`; the operational team stays reproducible without turning the measurement surface into a furnished copy. The provider seal, bridge ownership, operator boundary, and reproduce block live in [OMP.md](OMP.md).
 
 ### The third subject is one GLG is building
 

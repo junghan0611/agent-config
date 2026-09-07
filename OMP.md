@@ -15,6 +15,24 @@ Hermes와 다른 점 하나: omp 설치는 `run.sh`에 함수가 없다. curl �
 
 ---
 
+## [2026-09-07] OMP task agents — repository-managed configuration
+
+GLG decided that OMP is the single visible **실무 잠수함**: its in-process team reduces
+tmux-visible siblings and the associated inspection burden. The team definition is therefore
+agent-config operational configuration, not a shared-skill injection: `omp/agents/*.md` is
+the source and `./run.sh setup:links` links each file into `~/.omp/agent/agents/`.
+
+- The catalog is `terra`, `glm`, `grok`, `sonnet`, `opus`, `deepseek-pro`, and
+  `deepseek-flash`. Each profile contains only its name, provider-specific `model:` selector,
+  and the neutral instruction: “Assist the GLG-requested sibling.” Tool access, task shape,
+  thinking, and which models form a team remain the visible OMP parent's decision.
+- This changes the old “no OMP branch in `run.sh`” statement below: setup now owns this
+  **task-agent catalog only**. It still does not install OMP or inject the shared skill SSOT.
+- Entwurf still owns OMP's bridge, birth/receive extensions, MCP registration, and the
+  co-owned `~/.omp/agent/config.yml`; those are not linked here.
+
+---
+
 ## [2026-09-04] 정정 — C축은 이미 닫혔다. D축만 열려 있다
 
 아래 본문의 여러 문장이 **"OMP 시민권 구현 미착수"**라고 말한다. 그 문장들은 2026-08-26

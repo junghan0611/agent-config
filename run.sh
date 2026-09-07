@@ -1061,6 +1061,16 @@ setup_links() {
     log "cleaned up: $(basename "$bak_dir")"
   done
 
+  # OMP receives no shared skill SSOT: it remains an evaluation surface. Its custom
+  # task-agent definitions are agent-config's operational configuration, however,
+  # and live here so every host selects the same named specialist/model mapping.
+  section "OMP Task Agents"
+  mkdir -p "$HOME/.omp/agent/agents"
+  for agent_file in "$SCRIPT_DIR"/omp/agents/*.md; do
+    [ -f "$agent_file" ] || continue
+    ensure_link "$agent_file" "$HOME/.omp/agent/agents/$(basename "$agent_file")"
+  done
+
   section "PATH Binaries (~/.local/bin)"
   mkdir -p "$HOME/.local/bin"
   # dictcli 제외 — CWD에 graph.edn 필요하므로 PATH 심링크 불가. 스킬 디렉토리에서만 실행.
