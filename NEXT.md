@@ -12,15 +12,26 @@
 - [ ] **3. entwurf-peek `trace` 파서 수선** ← PAUSED: `mux-placement` acceptance fixture 대기
 - [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
 - [x] **7. openclaw absent 계약 — wrapper 게이트 은퇴 (sorge#1 완료조건 9)** — 계약이 `andenken`으로 내려갔고 wrapper는 다시 얇아졌다
+- [ ] **8. 예상 답안 게이트 (#24)** ← CURRENT, **GLG 검토 대기**: 계약은 섰고 lint는 돌고, G2(권한 경계)를 (a)기계로 만들지 (b)정책으로 낮출지가 GLG 몫
 
-현재 좌표: 1·2·5·6·7 완료 → **다음 CURRENT 미정** → 3·4 보류(둘 다 남의 손 대기)
+현재 좌표: 1·2·5·6·7 완료 → **CURRENT 8(#24, GLG 검토 대기)** → 3·4 보류(둘 다 남의 손 대기)
 
 # NOW
 
-- **Hot group:** 없음. 7이 닫혔다(아래 ACTIVE 첫 절). `v2026.9.4-wiring.1`로 배선 다섯 자리가
+- **Hot group: #24 예상 답안 게이트 (2026-09-08, B가 부름).** 담당자 턴이 `blocked`로 끝났을 때
+  **무슨 근거로 계속하는가**에 답하는 계약. GLG 원문: *"무슨 근거로 계속 진행을 한다는 거지? 기억축
+  시간축이 있는가 아닌가거든."* 계약 = [#24](https://github.com/junghan0611/agent-config/issues/24),
+  자리 판정 = [#23 코멘트](https://github.com/junghan0611/agent-config/issues/23#issuecomment-5585516702)(별개 이슈, 겹치는 칸은 `decisions_requested` 하나).
+  시험소 조각 = `pi-extensions/decision-gate/` (lint + 테스트, `2b2c19a`·`3059803`, **푸시 없음**).
+  교차검수 한 턴(`openai-codex/gpt-5.6-terra`)이 우회 둘을 재현했고 둘 다 막았다.
+  **GLG가 볼 것: G2(진행 경로에 push·금전·외부 발신 권한 없음)를 (a) 기계로 만들 것인가
+  — 푸시는 `git-hooks/pre-push`로 가능, 외부 발신은 방법을 못 찾았다 — (b) "정책+검수"로 낮추고
+  자동 진행 범위를 줄일 것인가.** 익스텐션 자체는 그 답이 나온 뒤다("코드 넣으면 썩으니까").
+- **직전 Hot group:** 7이 닫혔다(아래 ACTIVE 첫 절). `v2026.9.4-wiring.1`로 배선 다섯 자리가
   닫혔고, 3·4는 둘 다 남의 손을 기다린다.
-- **Next:** GLG가 다음 축을 고른다. 남아 있는 두 후보는 아래 3(entwurf-peek `trace`)과 4(#46)이고,
-  **둘 다 여기서 시작할 수 없다** — 각각 entwurf 쪽 fixture와 normalize가 선행이다.
+- **Next:** #24의 G2 갈림길에 GLG 답이 오면 익스텐션 착수. 그 전에는 여는 것이 없다.
+  나머지 두 후보 3(entwurf-peek `trace`)·4(#46)은 **둘 다 여기서 시작할 수 없다** — 각각 entwurf 쪽
+  fixture와 normalize가 선행이다.
 - **직전에 닫은 것 (2026-09-04, `v2026.9.4-wiring.1`):** `forge` 스킬 실물을 `forge-config`로
   이관하고 상대 심링크로 연결(`3b9f72e`, 그쪽 `dfe25c8`) + `LINKED_SKILL_NAMES` · `doctor:bins`가
   `stale`/`unprovenanced`/`arch`를 이름으로 부른다(`8ea458d`) — **oracle 첫 실행에서 `bibcli`
