@@ -123,7 +123,7 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 | `upstage-provider.ts` | Register Upstage Solar as an OpenAI-compatible provider |
 | `context.ts` | `/context` — show loaded extensions, skills, context usage |
 | `glg-footer.ts` | Footer signature |
-| `go-to-bed.ts` | Late-night reminder |
+| ~~`go-to-bed.ts`~~ | **Disabled 2026-09-08** — blocked every tool 00:00-04:59, so autonomous sessions and entwurf's overnight tests stalled. Kept as `go-to-bed.ts.disabled` |
 | `peon-ping.ts` | Sound notifications |
 | `gemini-image-gen.ts` | Gemini image generation (nanobanana) |
 | `session-breakdown.ts` | Session cost breakdown |

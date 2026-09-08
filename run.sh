@@ -967,7 +967,11 @@ setup_links() {
   # every machine setup had ever touched. The *.bak.* copies are ensure_link's own
   # backups; pi loads only *.ts so they are inert, but they keep dead extension
   # code on disk and mask what the dir actually loads.
-  for stale in "$HOME/.pi/agent/extensions/control.ts" "$HOME/.pi/agent/extensions"/*.bak.*; do
+  # go-to-bed.ts was disabled 2026-09-08 (renamed to *.ts.disabled): its tool_call
+  # hook blocked EVERY tool between 00:00-04:59 until a confirm phrase ran, so
+  # freshly woken pi siblings told each other to go to bed instead of working and
+  # entwurf's overnight tests could not run. Other devices still carry the link.
+  for stale in "$HOME/.pi/agent/extensions/control.ts" "$HOME/.pi/agent/extensions/go-to-bed.ts" "$HOME/.pi/agent/extensions"/*.bak.*; do
     [ -e "$stale" ] || [ -L "$stale" ] || continue
     rm -rf "$stale"
     log "extensions/$(basename "$stale"): removed stale entry"
