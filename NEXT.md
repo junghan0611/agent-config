@@ -13,8 +13,9 @@
 - [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
 - [x] **7. openclaw absent 계약 — wrapper 게이트 은퇴 (sorge#1 완료조건 9)** — 계약이 `andenken`으로 내려갔고 wrapper는 다시 얇아졌다
 - [ ] **8. 예상 답안 게이트 (#24)** ← CURRENT, **GLG 검토 대기**: 계약은 섰고 lint는 돌고, G2(권한 경계)를 (a)기계로 만들지 (b)정책으로 낮출지가 GLG 몫
+- [ ] **9. 시계 판정 (#23)** ← **GLG 검토 대기**: prime-agent heartbeat는 daemon 전용이라 이식하지 않는다. 대신 **pi 익스텐션 하나가 유휴 세션을 스스로 깨워 턴을 돌리는 것을 실측했다**(2026-09-08 22:46 oracle, pi 0.85.1, 로그 `/tmp/hb-probe-receipt.log`). 빌리는 것은 정책 넷(defer·delivery mode·claim·소유권선), 켤지는 GLG 몫 — 켜면 이 집이 한 번도 안 한 "사람 없이 턴이 도는" 판이 열린다. [#23 코멘트](https://github.com/junghan0611/agent-config/issues/23#issuecomment-5586196721)
 
-현재 좌표: 1·2·5·6·7 완료 → **CURRENT 8(#24, GLG 검토 대기)** → 3·4 보류(둘 다 남의 손 대기)
+현재 좌표: 1·2·5·6·7 완료 → **CURRENT 8(#24)·9(#23) 둘 다 GLG 검토 대기** → 3·4 보류(둘 다 남의 손 대기)
 
 # NOW
 
