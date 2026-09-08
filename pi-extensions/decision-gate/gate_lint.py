@@ -14,7 +14,12 @@ Gates (see issue #24):
       an item without one is "불명 — 블로킹" and stops progress there.
   G3  every §6 item anchors to §1 by reusing a date that §1 actually cites,
       so a reader sees the trajectory rather than a single verdict.
-  틀  §1..§6 must all be present; §1 must be in chronological order.
+  틀  §1..§6 must all be present; §1 must be in chronological order and must
+      itself carry at least one citation.
+
+What this CANNOT check (검수 2026-09-08, openai-codex/gpt-5.6-terra): whether a
+citation is about the item it sits under. Form is machine-checkable, relevance
+is not — that stays with the digging sibling and the resident who reads it.
 """
 
 import re
@@ -38,16 +43,32 @@ EVIDENCE = re.compile(
 	r"measured|read[ -]at|read from|inherited|artifact|읽음|측정|상속|회수",
 	re.IGNORECASE,
 )
-# An item inside §6: a top-level bullet or a level-3 heading.
-ITEM = re.compile(r"^(?:-\s+\S|###\s+\S)")
+# An item inside §6: a top-level bullet, a numbered entry, or a level-3 heading.
+# A top-level paragraph also opens an item (see split_items) so that prose
+# trailing a compliant bullet cannot ride on that bullet's citation.
+ITEM = re.compile(r"^(?:[-*+]\s+\S|\d+[.)]\s+\S|###\s+\S)")
 
 
 def citations(text):
-	"""Bracketed groups that carry a date AND an evidence state."""
+	"""Bracketed groups carrying a date AND a source AND an evidence state.
+
+	`[2026-09-08, measured]` is NOT a citation: it names no source, so nobody
+	can go read it. Three fields are the contract.
+	"""
 	found = []
 	for raw in BRACKET.findall(text):
 		date = DATE.search(raw)
-		if date and EVIDENCE.search(raw):
+		if not date or not EVIDENCE.search(raw):
+			continue
+		fields = [f.strip() for f in raw.split(",")]
+		rest = [
+			f
+			for f in fields
+			if f and not DATE.search(f) and not EVIDENCE.fullmatch(f.strip("[]() 「」"))
+		]
+		# Drop the field that is purely the evidence state.
+		rest = [f for f in rest if not EVIDENCE.fullmatch(f)]
+		if len(fields) >= 3 and rest:
 			found.append((date.group(1), raw.strip()))
 	return found
 
@@ -67,15 +88,30 @@ def split_sections(lines):
 
 
 def split_items(body):
-	"""Return [(first_line_index, [item lines])] for §6."""
-	items, buf, start = [], None, 0
+	"""Return [(first_line_index, [item lines])] for §6.
+
+	An item opens on a bullet/numbered/### line, and also on a top-level
+	paragraph that follows a blank line — otherwise "실제 결정: …" written as
+	plain prose after a compliant bullet inherits that bullet's citation.
+	"""
+	items, buf, start, blank = [], None, 0, True
 	for idx, line in enumerate(body):
-		if ITEM.match(line):
+		stripped = line.strip()
+		top_level_prose = (
+			blank
+			and stripped
+			and not line[:1].isspace()
+			and not line.startswith(">")
+			and not line.startswith("|")
+			and not line.startswith("#")
+		)
+		if ITEM.match(line) or top_level_prose:
 			if buf is not None:
 				items.append((start, buf))
 			buf, start = [line], idx
 		elif buf is not None:
 			buf.append(line)
+		blank = not stripped
 	if buf is not None:
 		items.append((start, buf))
 	return items
@@ -112,7 +148,14 @@ def check(path):
 	if 6 not in sections:
 		return problems
 
-	anchor_dates = {d for _, body in [sections.get(1, (0, []))] for line in body for d, _ in citations(line)}
+	anchor_dates = {
+		d
+		for _, body in [sections.get(1, (0, []))]
+		for line in body
+		for d, _ in citations(line)
+	}
+	if not anchor_dates:
+		problems.append(f"{path}: G3 — §1에 인용이 하나도 없다 (§6이 앵커할 원문이 없다)")
 	_, six_body = sections[6]
 	items = split_items(six_body)
 	if not items:
@@ -125,7 +168,7 @@ def check(path):
 		if not cites:
 			problems.append(f"{path}: G1 불명 — 블로킹 — §6 「{name}」에 [날짜, 출처, 증거상태] 인용이 없다")
 			continue
-		if anchor_dates and not any(d in anchor_dates for d, _ in cites):
+		if not anchor_dates or not any(d in anchor_dates for d, _ in cites):
 			problems.append(f"{path}: G3 — §6 「{name}」이 §1의 어느 날짜도 인용하지 않는다 (판정 하나로 뭉침)")
 
 	return problems
