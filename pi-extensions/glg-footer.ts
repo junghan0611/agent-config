@@ -8,6 +8,10 @@
  * individual sections via the FLAGS constants below — set any flag to false
  * to hide that part. Re-sync this file when upstream footer.ts changes.
  *
+ * Deliberate divergence from upstream: the context readout is "used/window pct"
+ * (Claude Code shape, e.g. 235.6K/1M 23%). Upstream footer.ts renders
+ * "pct%/window" and shows no absolute figure at all. Keep this on re-sync.
+ *
  * ACP accounting invariants:
  * - Keep this footer on ACP: pi's default footer aggregates only usage.input/output/
  *   cacheRead/cacheWrite, which ACP deliberately leaves at zero. Its blank cells would
@@ -31,7 +35,7 @@ const FLAGS = {
 	tokenStats: false,        // ↑input ↓output Rcache Wcache
 	turnTimes: true,          // last GLG / pi message times, KST HH:MM:SS
 	cost: true,               // $0.045 (sub)
-	contextPct: true,         // 18.3%/200k (auto)
+	contextPct: true,         // 235.6K/1M 23%  (used/window pct)
 	rightModel: true,         // model name + thinking level (+ provider) on the right
 	sessionName: true,        // • <session-name> after pwd/branch
 	extensionStatuses: true,  // third line listing active extension statuses
@@ -46,6 +50,24 @@ function fmtTokens(count: number): string {
 	if (count < 1_000_000) return `${Math.round(count / 1000)}k`;
 	if (count < 10_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
 	return `${Math.round(count / 1_000_000)}M`;
+}
+
+/**
+ * Context-readout token formatter, following Claude Code's convention: uppercase
+ * K/M, at most one decimal, trailing ".0" dropped. 235_600 -> "235.6K",
+ * 1_000_000 -> "1M", 200_000 -> "200K".
+ *
+ * Deliberately separate from fmtTokens above rather than replacing it. fmtTokens
+ * keeps pi's lowercase "k" and rounds the tenths away at >=10k (235_600 -> "236k");
+ * that discarded tenth is exactly the resolution the context readout is for. The
+ * two therefore disagree on casing if FLAGS.tokenStats is ever turned back on —
+ * unify by pointing the tokenStats branch here, not by widening fmtTokens.
+ */
+function fmtCtxTokens(count: number): string {
+	if (count < 1000) return count.toString();
+	const unit = count < 1_000_000 ? "K" : "M";
+	const value = count < 1_000_000 ? count / 1000 : count / 1_000_000;
+	return `${value.toFixed(1).replace(/\.0$/, "")}${unit}`;
 }
 
 const kstTime = new Intl.DateTimeFormat("en-GB", {
@@ -190,13 +212,24 @@ export default function (pi: ExtensionAPI) {
 						const usage = ctx.getContextUsage();
 						const contextWindow = usage?.contextWindow ?? ctx.model?.contextWindow ?? 0;
 						const pctValue = usage?.percent ?? 0;
-						const pctText = usage?.percent != null ? pctValue.toFixed(1) : "?";
+						// usage.tokens is pi's own absolute context estimate (ContextUsage.tokens
+						// in pi-coding-agent core/extensions/types.d.ts) — read directly, NOT
+						// derived from percent, so the figure keeps full resolution instead of
+						// being quantized to the percentage's decimals. tokens and percent go
+						// null together (e.g. right after compaction, before the next LLM
+						// response), so the one null check covers both.
+						//
+						// Percent is floored, not rounded, to match the requested example
+						// (235.6K of 1M reads "23%", since 23.56 floors to 23). Rounding would
+						// print 24% there. Swap Math.floor -> Math.round below to change it;
+						// the colour thresholds keep using the unrounded pctValue either way.
+						const usedTokens = usage?.tokens ?? null;
 						// autoCompactEnabled is not exposed to extensions; omit the "(auto)"
 						// suffix entirely rather than risk showing a stale/incorrect label.
 						const ctxText =
-							pctText === "?"
-								? `?/${fmtTokens(contextWindow)}`
-								: `${pctText}%/${fmtTokens(contextWindow)}`;
+							usedTokens === null
+								? `?/${fmtCtxTokens(contextWindow)}`
+								: `${fmtCtxTokens(usedTokens)}/${fmtCtxTokens(contextWindow)} ${Math.floor(pctValue)}%`;
 						let ctxRendered: string;
 						if (pctValue > 90) ctxRendered = theme.fg("error", ctxText);
 						else if (pctValue > 70) ctxRendered = theme.fg("warning", ctxText);
