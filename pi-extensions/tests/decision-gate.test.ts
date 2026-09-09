@@ -14,9 +14,9 @@
  * 스텁으로 바꿔치기한 임시 복사본을 불러온다. 로직은 원본 그대로다.
  */
 
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const EXT = new URL("../decision-gate.ts", import.meta.url).pathname;
 const dir = mkdtempSync(join(tmpdir(), "decision-gate-"));
@@ -47,7 +47,7 @@ writeFileSync(
 );
 
 const mod = await import(patched);
-const { buildDigArgv, buildConsultSessionOptions, parseVerdict, findPendingBlocked, CONSULT_ENTRY_TYPE } = mod;
+const { buildDigArgv, buildConsultSessionOptions, parseVerdict, resolveCitedIds, findPendingBlocked, CONSULT_ENTRY_TYPE } = mod;
 
 let failures = 0;
 function check(name: string, ok: boolean, detail = ""): void {
@@ -64,9 +64,13 @@ console.log("G2 — the consult path has no push / paid-spend / outbound authori
 
 const opts = buildConsultSessionOptions({ provider: "openai-codex", id: "gpt-5.6-terra" }, { name: "dig" });
 
-check("noTools is 'all' — read/bash/edit/write are all off", opts.noTools === "all", `got ${String(opts.noTools)}`);
-check("the only tool is dig", opts.customTools.length === 1 && opts.customTools[0].name === "dig");
-check("no `tools` allowlist quietly re-enables built-ins", opts.tools === undefined);
+// `noTools:"all"` would also kill the custom tool — measured 2026-09-09, the sibling
+// then invented a call shape in prose. So the contract is "builtin" + a one-name allowlist.
+check("built-ins are suppressed by default", opts.noTools === "builtin", `got ${String(opts.noTools)}`);
+check("the allowlist names exactly one tool", Array.isArray(opts.tools) && opts.tools.length === 1 && opts.tools[0] === "dig");
+check("dig survives the suppression — the allowlist keeps it", opts.noTools !== "all" && opts.tools.includes("dig"));
+check("no built-in is on the allowlist", !["read", "bash", "edit", "write", "grep", "find", "ls"].some((t) => opts.tools.includes(t)));
+check("the only custom tool is dig", opts.customTools.length === 1 && opts.customTools[0].name === "dig");
 check("session is in-memory — no second session file on disk", (opts.sessionManager as { __inMemory?: boolean }).__inMemory === true);
 check("skills are emptied — a skill doc cannot smuggle a command in", opts.resourceLoader.getSkills().skills.length === 0);
 check("extensions are emptied — no recursion into this extension", opts.resourceLoader.getExtensions().extensions.length === 0);
@@ -85,6 +89,29 @@ for (const [axis, sub] of [
 	check(`${axis} → ${sub}`, argv[0].endsWith(SM) && argv[1] === sub, argv.join(" "));
 }
 check("timeline → query.py, never collect.py", buildDigArgv("timeline", "2026-09-09", 5)[1].endsWith("query.py"));
+// pi does NOT resolve the extension symlink — measured 2026-09-09, five digs died on
+// `spawnSync .../.pi/agent/skills/semantic-memory/semantic-memory ENOENT`. Two things
+// must hold: the argv lands on a CLI that exists, and the symlink hop resolves.
+const repoSkills = new URL("../../skills", import.meta.url).pathname;
+process.env.AGENT_CONFIG_SKILLS_DIR = repoSkills;
+check("the semantic-memory CLI exists where dig will call it", existsSync(buildDigArgv("sessions", "q", 5)[0]), buildDigArgv("sessions", "q", 5)[0]);
+check("timeline query.py exists where dig will call it", existsSync(buildDigArgv("timeline", "2026-09-09", 5)[1]), buildDigArgv("timeline", "2026-09-09", 5)[1]);
+delete process.env.AGENT_CONFIG_SKILLS_DIR;
+
+// The regression itself: from the linked extension, `../skills` is only right after realpath.
+const linked = join(process.env.HOME ?? "", ".pi/agent/extensions/decision-gate.ts");
+if (existsSync(linked)) {
+	check(
+		"realpath of the linked extension lands back in the repo's skills SSOT",
+		existsSync(join(dirname(realpathSync(linked)), "..", "skills", "semantic-memory", "semantic-memory")),
+	);
+	check(
+		"and the un-resolved path does NOT — this is what broke",
+		!existsSync(join(dirname(linked), "..", "skills", "semantic-memory", "semantic-memory")),
+	);
+} else {
+	console.log("  skip symlink hop — extension is not linked into ~/.pi/agent/extensions on this host");
+}
 
 // argv 어디에도 위험한 동사가 없어야 한다 — 모델이 고르는 것은 인자뿐이다.
 const FORBIDDEN = ["push", "reindex", "curl", "dm.sh", "gh", "sh", "bash", "-c", "|", ";", "&&"];
@@ -107,16 +134,35 @@ console.log("schema — the entry can later answer 'did this help?'");
 check("entry type is stable and namespaced", CONSULT_ENTRY_TYPE === "decision-gate-consult");
 check("an unlabelled answer degrades to inference, not quote", parseVerdict("no fenced block here").kind === "inference");
 check(
-	"a self-reported quote with cited ids survives",
+	"a self-reported quote with cited labels survives",
 	(() => {
-		const v = parseVerdict('blah\n```json\n{"kind":"quote","citedHitIds":["/a/b.jsonl:12"]}\n```');
-		return v.kind === "quote" && v.citedHitIds.length === 1;
+		const v = parseVerdict('blah\n```json\n{"kind":"quote","cited":["sessions#3"]}\n```');
+		return v.kind === "quote" && v.citedLabels.length === 1 && v.citedLabels[0] === "sessions#3";
 	})(),
 );
+check(
+	"a bracketed label is accepted the same as a bare one",
+	parseVerdict('```json\n{"kind":"quote","cited":["[garden#1]"]}\n```').citedLabels[0] === "garden#1",
+);
+// The live run on 2026-09-09 cited two session UUIDs that resolved against nothing,
+// because 100-char paths are not something a model will retype. Labels fixed that;
+// the resolver is what keeps an unresolvable citation from silently becoming a fact.
+const digsFixture = [
+	{ axis: "sessions", query: "q", argv: [], hits: [{ label: "sessions#1", id: "/x/a.jsonl:12" }, { label: "sessions#2", id: "/x/b.jsonl:7" }] },
+	{ axis: "garden", query: "q", argv: [], hits: [{ label: "garden#1", id: "/notes/c.md" }] },
+];
+check("a label resolves to its full hit id", resolveCitedIds(digsFixture, ["sessions#2"])[0] === "/x/b.jsonl:7");
+check("labels resolve across axes", resolveCitedIds(digsFixture, ["sessions#1", "garden#1"]).length === 2);
+check(
+	"an unresolvable citation is dropped from ids, not invented",
+	resolveCitedIds(digsFixture, ["d682d5c4-8579-4433-a598-2d73d8806a7e", "garden#1"]).length === 1,
+);
+check("no hits means no cited ids", resolveCitedIds([], ["sessions#1"]).length === 0);
 check(
 	"malformed json degrades to inference instead of throwing",
 	parseVerdict("```json\n{kind: broken,,}\n```").kind === "inference",
 );
+check("an unlabelled answer cites nothing", parseVerdict("no fenced block").citedLabels.length === 0);
 check(
 	"the last fenced block wins when the model emits several",
 	parseVerdict('```json\n{"kind":"quote"}\n```\ntext\n```json\n{"kind":"inference"}\n```').kind === "inference",

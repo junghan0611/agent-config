@@ -42,7 +42,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -59,6 +59,16 @@ import {
 	type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+
+/**
+ * `DECISION_GATE_DEBUG=1` 이면 진행 지점을 stderr 로 흘린다. 이 확장은 `agent_end`
+ * 안에서 중첩 세션을 돌리므로, 실패는 예외가 아니라 **정지**로 나타난다 — 실측
+ * 2026-09-09: 커밋 직후 첫 실물 시도가 stderr 한 줄 없이 9분을 멈췄다. 어디서
+ * 멈췄는지 말해 주지 않는 코드는 면피와 같은 값이라 추적을 상주시킨다.
+ */
+function trace(step: string): void {
+	if (process.env.DECISION_GATE_DEBUG) console.error(`[decision-gate] ${step}`);
+}
 
 /** 이 확장이 남기는 유일한 커스텀 엔트리. andenken 수확이 이 이름을 잡는다. */
 export const CONSULT_ENTRY_TYPE = "decision-gate-consult";
@@ -99,8 +109,13 @@ export interface DigRecord {
 	query: string;
 	/** 실제로 실행된 argv 전체. 나중에 재현할 수 있어야 한다. */
 	argv: string[];
-	/** `<file>:<line>` 또는 경로 — 축마다 안정적인 식별자 하나. */
-	hits: Array<{ id: string; score?: number; timestamp?: string }>;
+	/**
+	 * `<file>:<line>` 또는 경로 — 축마다 안정적인 식별자 하나. `label` 은 형제가
+	 * 인용할 때 쓰는 짧은 손잡이다(`sessions#3`). 실측 2026-09-09: 100자짜리
+	 * 경로만 주면 형제는 그걸 안 쓰고 파일명 안의 UUID 를 골라 적는다 — 그러면
+	 * `citedHitIds` 가 `hits[].id` 로 안 풀려 되먹임 고리가 끊긴다.
+	 */
+	hits: Array<{ label: string; id: string; score?: number; timestamp?: string; text?: string }>;
 	error?: string;
 }
 
@@ -129,7 +144,9 @@ export interface ConsultDetails {
 	answer: {
 		text: string;
 		kind: "inference" | "quote";
-		/** `digs[].hits[].id` 의 부분집합. 형제가 스스로 신고한 것. */
+		/** 형제가 적은 그대로의 손잡이. 안 풀리는 것도 남긴다 — 그 차이가 신호다. */
+		citedLabels: string[];
+		/** `citedLabels` 중 실제로 `digs[].hits[].label` 로 풀린 것들의 전체 id. */
 		citedHitIds: string[];
 	};
 	usage?: AssistantMessage["usage"];
@@ -145,14 +162,28 @@ export interface ConsultDetails {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * 스킬 CLI 의 자리. 확장은 `~/.pi/agent/extensions/` 에 심링크로 걸리는데
- * (`run.sh:960`), node/bun 이 심링크를 풀어 주므로 `import.meta.url` 은 리포
- * 안의 실경로를 준다. 그래서 `../skills/` 가 이 집의 스킬 SSOT 로 바로 닿는다.
+ * 스킬 CLI 의 자리. 확장은 `~/.pi/agent/extensions/` 에 심링크로 걸린다(`run.sh:960`).
+ *
+ * **실측 2026-09-09 — pi 는 그 심링크를 풀지 않는다.** 첫 실물 시도에서 5번의 dig 이
+ * 전부 `spawnSync /home/junghan/.pi/agent/skills/semantic-memory/semantic-memory
+ * ENOENT` 로 떨어졌다. `import.meta.url` 이 심링크 경로를 그대로 주므로 `../skills/`
+ * 는 리포가 아니라 pi 설정 디렉터리를 가리켰다(거기엔 `pi-skills/` 밖에 없다).
+ * 그래서 `realpathSync` 로 먼저 실경로를 얻는다.
+ *
+ * 그 다음에도 못 찾으면 fail-closed 로 두지 않고 후보를 순서대로 본다 — 없으면
+ * 마지막 후보를 반환하고, dig 은 ENOENT 를 `error` 로 기록한다. 조용한 0건이 아니다.
  */
 function skillsRoot(): string {
 	const override = process.env.AGENT_CONFIG_SKILLS_DIR;
 	if (override) return override;
-	return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "skills");
+	const here = fileURLToPath(import.meta.url);
+	const candidates = [
+		// 심링크를 푼 뒤의 리포 안 자리 — 정상 경로
+		path.resolve(path.dirname(realpathSync(here)), "..", "skills"),
+		// 심링크가 아니거나 realpath 가 안 통할 때
+		path.resolve(path.dirname(here), "..", "skills"),
+	];
+	return candidates.find((c) => existsSync(c)) ?? candidates[0];
 }
 
 /**
@@ -186,7 +217,7 @@ export function buildDigArgv(axis: DigAxis, query: string, limit: number, events
 }
 
 /** 축마다 다른 결과 모양에서 안정적인 식별자 하나씩. */
-function extractHits(axis: DigAxis, stdout: string): DigRecord["hits"] {
+function extractHits(axis: DigAxis, stdout: string, nextLabel: () => string): DigRecord["hits"] {
 	const start = stdout.indexOf("{");
 	if (start < 0) return [];
 	let parsed: unknown;
@@ -220,9 +251,11 @@ function extractHits(axis: DigAxis, stdout: string): DigRecord["hits"] {
 		if (!id) return [];
 		return [
 			{
+				label: nextLabel(),
 				id,
 				score: typeof r.score === "number" ? r.score : undefined,
 				timestamp: typeof r.timestamp === "string" ? r.timestamp : undefined,
+				text: typeof r.text === "string" ? r.text.slice(0, 400) : undefined,
 			},
 		];
 	});
@@ -230,6 +263,7 @@ function extractHits(axis: DigAxis, stdout: string): DigRecord["hits"] {
 
 /** 사이드 세션에 주는 유일한 도구. 캔 것은 `digs` 로 모인다. */
 function createDigTool(digs: DigRecord[], eventsFile?: string): ToolDefinition {
+	let seq = 0;
 	return {
 		name: "dig",
 		label: "Dig",
@@ -258,18 +292,22 @@ function createDigTool(digs: DigRecord[], eventsFile?: string): ToolDefinition {
 			// shell 없음. 접두는 buildDigArgv 가 지었고 모델은 인자만 골랐다.
 			const run = spawnSync(argv[0], argv.slice(1), { encoding: "utf8", timeout: 120_000, maxBuffer: 8 * 1024 * 1024 });
 			const stdout = run.stdout ?? "";
+			const axis = params.axis as DigAxis;
 			const record: DigRecord = {
-				axis: params.axis as DigAxis,
+				axis,
 				query: params.query,
 				argv,
-				hits: extractHits(params.axis as DigAxis, stdout),
+				hits: extractHits(axis, stdout, () => `${axis}#${++seq}`),
 				error: run.error ? String(run.error.message) : run.status !== 0 ? (run.stderr || "").slice(0, 500) : undefined,
 			};
 			digs.push(record);
-			return {
-				content: [{ type: "text", text: stdout.slice(stdout.indexOf("{") >= 0 ? stdout.indexOf("{") : 0) || record.error || "(no output)" }],
-				isError: !!record.error,
-			};
+			// 원문 JSON 을 통째로 돌려주지 않는다. 실측 2026-09-09: 그렇게 하면 21번의
+			// dig 에 입력 16.6K 토큰이 들었고, 형제는 그 안의 UUID 를 손잡이로 착각했다.
+			// 손잡이·경로·발췌만 준다 — 인용할 수 있는 것만 보이게.
+			const digest = record.hits.length
+				? record.hits.map((h) => `[${h.label}] ${h.id}\n${(h.text ?? "").replace(/\s+/gu, " ").slice(0, 300)}`).join("\n\n")
+				: record.error || "(no hits)";
+			return { content: [{ type: "text", text: digest }], isError: !!record.error };
 		},
 	} as ToolDefinition;
 }
@@ -284,9 +322,10 @@ const CONSULT_SYSTEM_PROMPT = [
 	"GLG's memory axis and time axis are both recorded, so his likely position is usually inferable. An inference is welcome; a fabricated quote is not.",
 	"Name the axis every hit came from. sessions, garden and openclaw are different corpora and none is a fallback for another.",
 	"Finish with a fenced ```json block, and nothing after it:",
-	'{"kind":"quote"|"inference","citedHitIds":["<hit id you actually used>", ...]}',
+	'{"kind":"quote"|"inference","cited":["<the [label] of every hit you actually used>", ...]}',
+	'Cite by the bracketed label the dig tool printed (for example "sessions#3"), never by a path, a UUID or a line number.',
 	'Use "quote" only when you are reproducing GLG\'s own words from a hit. Otherwise "inference".',
-	"If you found nothing, say so plainly and return kind=inference with an empty citedHitIds. Not finding is a result, not a failure.",
+	"If you found nothing, say so plainly and return kind=inference with an empty cited list. Not finding is a result, not a failure.",
 ].join("\n");
 
 /**
@@ -319,8 +358,14 @@ export function buildConsultSessionOptions(model: Model<Api>, digTool: ToolDefin
 		sessionManager: SessionManager.inMemory(), // 두 번째 세션 파일 없음 (GLG: "세션 기록은 따로 안남아도 되거든")
 		model,
 		thinkingLevel: "off" as const,
-		noTools: "all" as const, // read/bash/edit/write 전부 꺼진다
-		customTools: [digTool], // 남는 도구는 dig 하나
+		// 실측 2026-09-09: `noTools:"all"` 은 **커스텀 툴까지** 끈다(타입 주석 그대로 —
+		// "all: start with no tools enabled"). 첫 실물 시도에서 형제가 dig 을 못 보고
+		// `{"query":...}` 를 텍스트로 지어냈다. 그래서 기본 억제는 "builtin" 으로 두고,
+		// 허용목록에 dig 하나만 이름으로 올린다 — 허용목록은 빌트인·확장·커스텀 전부에
+		// 걸리므로 read/bash/edit/write 는 이름이 없어 그대로 꺼진다.
+		noTools: "builtin" as const,
+		tools: ["dig"],
+		customTools: [digTool],
 		resourceLoader: createConsultResourceLoader(),
 	};
 }
@@ -342,21 +387,33 @@ function textOf(parts: AssistantMessage["content"]): string {
 }
 
 /** 꼬리의 json 블록에서 형제의 자기신고를 꺼낸다. 없으면 유추·인용 0으로 본다. */
-export function parseVerdict(text: string): { kind: "inference" | "quote"; citedHitIds: string[] } {
+export function parseVerdict(text: string): { kind: "inference" | "quote"; citedLabels: string[] } {
 	const fence = /```json\s*([\s\S]*?)```/g;
 	let last: string | null = null;
 	for (const m of text.matchAll(fence)) last = m[1];
-	if (!last) return { kind: "inference", citedHitIds: [] };
+	if (!last) return { kind: "inference", citedLabels: [] };
 	try {
-		const v = parseJsonWithRepair<{ kind?: unknown; citedHitIds?: unknown }>(last);
+		const v = parseJsonWithRepair<{ kind?: unknown; cited?: unknown; citedHitIds?: unknown }>(last);
+		const raw = Array.isArray(v.cited) ? v.cited : Array.isArray(v.citedHitIds) ? v.citedHitIds : [];
 		return {
 			kind: v.kind === "quote" ? "quote" : "inference",
-			citedHitIds: Array.isArray(v.citedHitIds) ? v.citedHitIds.filter((x): x is string => typeof x === "string") : [],
+			// `[sessions#3]` 로 적어도 `sessions#3` 로 적어도 같은 것으로 받는다.
+			citedLabels: raw.filter((x): x is string => typeof x === "string").map((x) => x.replace(/^\[|\]$/gu, "").trim()),
 		};
 	} catch {
 		// 형제가 형식을 어긴 것뿐이다. 산출을 버리지 않고 유추로 강등한다.
-		return { kind: "inference", citedHitIds: [] };
+		return { kind: "inference", citedLabels: [] };
 	}
+}
+
+/** 손잡이를 실제 히트 id 로 되돌린다. 안 풀리는 손잡이는 조용히 버려지지 않는다 —
+ * `citedLabels` 에 그대로 남아 개수 차이로 드러난다. */
+export function resolveCitedIds(digs: DigRecord[], labels: string[]): string[] {
+	const byLabel = new Map(digs.flatMap((d) => d.hits.map((h) => [h.label, h.id] as const)));
+	return labels.flatMap((l) => {
+		const id = byLabel.get(l);
+		return id ? [id] : [];
+	});
 }
 
 /**
@@ -439,6 +496,7 @@ export default function (pi: ExtensionAPI) {
 		if (running) return; // consult 자체가 도는 동안의 재진입 방지
 		const blocked = findPendingBlocked(ctx.sessionManager.getBranch());
 		if (!blocked) return;
+		trace(`blocked goal ${blocked.id} — selecting a fast model`);
 
 		const model = await selectFastModel(ctx.modelRegistry);
 		if (!model) {
@@ -448,6 +506,7 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 
+		trace(`fast model = ${model.provider}/${model.id} — creating side session`);
 		running = true;
 		const digs: DigRecord[] = [];
 		try {
@@ -461,7 +520,9 @@ export default function (pi: ExtensionAPI) {
 						| undefined
 					)?.content ?? [],
 				);
+				trace("side session up — prompting");
 				await session.prompt(firstUserPrompt(blocked.objective, lastText), { source: "extension" });
+				trace(`prompt returned — ${digs.length} dig(s)`);
 				const response = lastAssistant(session);
 				const text = response ? textOf(response.content) : "";
 				const verdict = parseVerdict(text);
@@ -478,15 +539,21 @@ export default function (pi: ExtensionAPI) {
 					},
 					model: { provider: model.provider, id: model.id },
 					digs,
-					answer: { text, kind: verdict.kind, citedHitIds: verdict.citedHitIds },
+					answer: {
+						text,
+						kind: verdict.kind,
+						citedLabels: verdict.citedLabels,
+						citedHitIds: resolveCitedIds(digs, verdict.citedLabels),
+					},
 					usage: response?.usage,
 					helpful: null,
 				};
 				pi.appendEntry(CONSULT_ENTRY_TYPE, details);
+				trace(`entry written — kind=${verdict.kind} cited=${details.answer.citedHitIds.length}/${verdict.citedLabels.length} resolved`);
 
 				if (ctx.hasUI) {
 					ctx.ui.notify(
-						`decision-gate: ${model.provider}/${model.id} dug ${digs.length} axis call(s), ${verdict.kind}, ${verdict.citedHitIds.length} cited.`,
+						`decision-gate: ${model.provider}/${model.id} dug ${digs.length} axis call(s), ${verdict.kind}, ${details.answer.citedHitIds.length} cited.`,
 						"info",
 					);
 				}
