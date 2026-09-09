@@ -1582,6 +1582,7 @@ Usage: ./run.sh <command> [args]
   test:integration            통합 테스트 (API 필요) — andenken 위임
   test:search "q"             라이브 검색 테스트 — andenken 위임
   test:gate                   decision-gate lint (픽스처 + 있으면 실물; API 불필요)
+  test:decision-gate          decision-gate 익스텐션 회귀 — #24 G2 포함 (API 불필요)
 
 === 인덱싱 ===
   index:sessions [--force]    세션 인덱싱 (OpenRouter 8B / 4096d)
@@ -1691,6 +1692,8 @@ case "${1:-help}" in
   # === this house (not andenken) ===
   test:gate)
     python3 "$SCRIPT_DIR/pi-extensions/decision-gate/test_gate_lint.py" ;;
+  test:decision-gate)
+    bun run "$SCRIPT_DIR/pi-extensions/tests/decision-gate.test.ts" ;;
 
   # === andenken (delegated) ===
   test|test:unit|test:integration|test:search)
