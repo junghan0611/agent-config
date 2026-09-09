@@ -46,11 +46,14 @@ const USAGE = "Usage: /heartbeat [--every <interval>] [--steer|--follow-up] [ins
  * that does less than its name promises, and a clock that dies with the
  * session, are exactly the kind of non-obvious behaviour AGENTS.md says the
  * human must not be left to discover ("Trust Agent Intuition").
+ *
+ * They carry the conclusion only, one line each: the reasoning (why a job
+ * store would be a shackle, why this harness cannot tell streaming from
+ * compaction) lives in README.md § heartbeat. A status panel that wraps to ten
+ * rows stops being read, which loses the fact it was added to preserve.
  */
-const LIFETIME_NOTE =
-	"Lives in this session only: it dies on exit, /new and /resume, and nothing restores it. Chosen, not missing — a job store would be state whose loss erases registered work.";
-const DELIVERY_NOTE =
-	"steer vs follow-up barely differs here: a tick is only ever sent while the session is plainly idle, so the mode decides only the race between that check and the send. This harness cannot tell streaming from compaction, and steering into a compaction is unsafe.";
+const LIFETIME_NOTE = "Session-only — dies on exit, /new and /resume. Chosen, not missing (README § heartbeat).";
+const DELIVERY_NOTE = "steer ≈ follow-up here — a tick is only ever sent while the session is idle.";
 
 type DeliveryMode = "steer" | "follow_up";
 
@@ -286,16 +289,23 @@ export default function (pi: ExtensionAPI) {
 		pi.sendMessage({ customType: UI_MESSAGE_TYPE, content, display: true }, { triggerTurn: false });
 	}
 
+	/**
+	 * Four lines, wrapped or not: one state line, the instruction, and the two
+	 * notes. The instruction is elided rather than allowed to wrap, because an
+	 * operator reading a status panel wants to know which heartbeat is armed,
+	 * not to re-read the text they typed.
+	 */
 	function summary(): string {
 		if (!hb) return `Heartbeat is off.\n\n${USAGE}`;
-		const parts = [
-			`Heartbeat ${hb.status} · ${hb.schedule.expression} · ${hb.deliveryMode}`,
-			`ticks ${hb.ticks} · dropped (session busy) ${hb.dropped}`,
-		];
-		if (hb.nextRunAtMs) parts.push(`next tick in ~${formatMs(Math.max(0, hb.nextRunAtMs - Date.now()))}`);
-		parts.push(hb.instruction ? `instruction: ${hb.instruction}` : "instruction: (standing default — look up grounds, leave them where a reader can find them, take one step)");
-		parts.push("", LIFETIME_NOTE, DELIVERY_NOTE);
-		return parts.join("\n");
+		const next = hb.nextRunAtMs ? ` · next ~${formatMs(Math.max(0, hb.nextRunAtMs - Date.now()))}` : "";
+		const typed = hb.instruction ?? "(standing default — find grounds, leave them findable, take one step)";
+		const instruction = typed.length > 88 ? `${typed.slice(0, 87)}…` : typed;
+		return [
+			`Heartbeat ${hb.status} · ${hb.schedule.expression.replace(/^every /, "")} · ${hb.deliveryMode} · tick ${hb.ticks} · dropped ${hb.dropped}${next}`,
+			`instruction: ${instruction}`,
+			LIFETIME_NOTE,
+			DELIVERY_NOTE,
+		].join("\n");
 	}
 
 	/**
