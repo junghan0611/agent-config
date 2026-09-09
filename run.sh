@@ -1582,7 +1582,7 @@ Usage: ./run.sh <command> [args]
   test:integration            통합 테스트 (API 필요) — andenken 위임
   test:search "q"             라이브 검색 테스트 — andenken 위임
   test:gate                   decision-gate lint (픽스처 + 있으면 실물; API 불필요)
-  test:decision-gate          decision-gate 익스텐션 회귀 — #24 G2 포함 (API 불필요)
+  test:decision-gate          decision-gate 익스텐션 회귀 — #24 G2 + 실물 pi 로드 스모크 (API 불필요)
 
 === 인덱싱 ===
   index:sessions [--force]    세션 인덱싱 (OpenRouter 8B / 4096d)
@@ -1693,7 +1693,11 @@ case "${1:-help}" in
   test:gate)
     python3 "$SCRIPT_DIR/pi-extensions/decision-gate/test_gate_lint.py" ;;
   test:decision-gate)
-    bun run "$SCRIPT_DIR/pi-extensions/tests/decision-gate.test.ts" ;;
+    # 둘 다 돈다. 앞은 스텁 회귀(어디서나 돎), 뒤는 실물 pi 패키지 로드 스모크
+    # (pi 가 안 깔린 기기에서는 이유를 찍고 skip). 계약만 맞고 안 도는 물건이
+    # 통과하던 자리가 2026-09-09 실물에서 셋 나왔다 — #24 코멘트.
+    bun run "$SCRIPT_DIR/pi-extensions/tests/decision-gate.test.ts" &&
+      bun run "$SCRIPT_DIR/pi-extensions/tests/decision-gate.load.test.ts" ;;
 
   # === andenken (delegated) ===
   test|test:unit|test:integration|test:search)
