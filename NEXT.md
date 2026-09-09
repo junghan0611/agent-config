@@ -7,26 +7,48 @@
 
 - [ ] **3. entwurf-peek `trace` 파서 수선** ← PAUSED: `mux-placement` acceptance fixture 대기
 - [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
-- [ ] **8. 예상 답안 게이트 (#24)** ← **GLG 검토 대기**: 계약은 섰고 lint는 돌고, G2(권한 경계)를 (a)기계로 만들지 (b)정책으로 낮출지가 GLG 몫
-- [ ] **10. 다음 텀 — 이슈 넷 검토하고 닫기** ← CURRENT. 오늘 좌표 댓글을 다 달아뒀다: **#24**(게이트 절반 — lint는 `./run.sh test:gate`·캐는 손은 턴 안 또는 형제 둘 다·G2 여전히 정책) · **#23**(시계 채워짐, 세션 밖 상태전이·죽은 세션 깨우기·`LOOP.md` 열림) · **#21**(소비할 물건 생김, 지시문 한 장으로 좁아짐) · **#16**(재측정 결과 **아직 살아 있는 버그**, `run.sh:1775-1776` 한 줄 수정). 나머지 9개(#1·3·5·6·10·13·14·15·17·20)는 GLG 의 *"할일/급한일/안할일/나중에할일"* 분류를 한 판 잡고 해야 한다.
+- [ ] **8. 예상 답안 게이트 (#24)** ← 물건이 섰다. 계약·lint·익스텐션·모델 지정면까지 닫혔고 실물 2판이 돌았다. 남은 것은 **이슈를 닫을지 갈지**(아래 NOW). *(정정: 이 줄은 오래 "G2를 (a)기계/(b)정책 중 GLG가 고른다"로 서 있었는데, 그 갈림은 2026-09-09 GLG 원문 — "알아서 진행해" — 으로 이미 내려온 것이었다. 스레드가 본문을 이겼다.)*
+- [ ] **10. 다음 텀 — 이슈 넷 검토하고 닫기** ← CURRENT. 오늘 좌표 댓글을 다 달아뒀다: **#24**(게이트 전체가 섰다 — lint + 익스텐션 + 모델 지정면, 실물 2판. 닫기/가르기 판정만 남음) · **#23**(시계 채워짐, 세션 밖 상태전이·죽은 세션 깨우기·`LOOP.md` 열림) · **#21**(소비할 물건 생김, 지시문 한 장으로 좁아짐) · **#16**(재측정 결과 **아직 살아 있는 버그**, `run.sh:1775-1776` 한 줄 수정). 나머지 9개(#1·3·5·6·10·13·14·15·17·20)는 GLG 의 *"할일/급한일/안할일/나중에할일"* 분류를 한 판 잡고 해야 한다.
 
 > 닫힌 좌표 1·2·5·6·7·9는 `CHANGELOG.md`로 넘어갔다 (`v2026.9.2` · `v2026.9.4` ·
 > `v2026.9.4-wiring.1` · `v2026.9.9`). 번호는 재사용하지 않는다 — 지난 핸드오프가 부른
 > 이름이 계속 그 자리를 가리켜야 한다.
 
-현재 좌표: **CURRENT 10(이슈 넷 검토·닫기)** · 8은 GLG 답 대기 · 3·4 보류(둘 다 남의 손 대기)
+현재 좌표: **CURRENT 10(이슈 넷 검토·닫기)** · 8은 물건이 서서 닫기 판정만 남음 · 3·4 보류(둘 다 남의 손 대기)
 
 # NOW
 
-- **Hot group: #24 예상 답안 게이트 (2026-09-08, B가 부름).** 담당자 턴이 `blocked`로 끝났을 때
-  **무슨 근거로 계속하는가**에 답하는 계약. GLG 원문: *"무슨 근거로 계속 진행을 한다는 거지? 기억축
-  시간축이 있는가 아닌가거든."* 계약 = [#24](https://github.com/junghan0611/agent-config/issues/24),
-  자리 판정 = [#23 코멘트](https://github.com/junghan0611/agent-config/issues/23#issuecomment-5585516702)(별개 이슈, 겹치는 칸은 `decisions_requested` 하나).
-  시험소 조각 = `pi-extensions/decision-gate/` (lint + 테스트, `2b2c19a`·`3059803`, `v2026.9.9`로 공개).
-  교차검수 한 턴(`openai-codex/gpt-5.6-terra`)이 우회 둘을 재현했고 둘 다 막았다.
-  **GLG가 볼 것: G2(진행 경로에 push·금전·외부 발신 권한 없음)를 (a) 기계로 만들 것인가
-  — 푸시는 `git-hooks/pre-push`로 가능, 외부 발신은 방법을 못 찾았다 — (b) "정책+검수"로 낮추고
-  자동 진행 범위를 줄일 것인가.** 익스텐션 자체는 그 답이 나온 뒤다("코드 넣으면 썩으니까").
+- **Hot group: #24 예상 답안 게이트 — 계약에서 물건까지 왔다 (2026-09-09).**
+  담당자 턴이 `blocked`로 끝났을 때 **무슨 근거로 계속하는가**. GLG 원문: *"무슨 근거로 계속
+  진행을 한다는 거지? 기억축 시간축이 있는가 아닌가거든."* 계약 =
+  [#24](https://github.com/junghan0611/agent-config/issues/24).
+  - **섰다:** lint(`./run.sh test:gate`) · 익스텐션 `pi-extensions/decision-gate.ts` ·
+    회귀 둘(`./run.sh test:decision-gate` → 132 checks, 스텁 + 실물 pi 로드 스모크) ·
+    **모델 지정면**(`/decision-gate model …` / `DECISION_GATE_MODELS` / 기본값 3층).
+  - **실물 2판(oracle, 스크래치 세션 디렉터리):** 상주 `xai/grok-4.6` ← 게이트
+    `openai-codex/gpt-5.6-luna`(env). dig 11–15회·4축, 인용 3/3·2/2 해소, `helpful:null`,
+    **consult 1회 $0.0015–0.0017**. → #24 §못 잰 것의 *"형제 호출 1회당 쿼터"* 가 재졌고,
+    세션당 상한 3회의 실제 비용은 $0.005 남짓이다.
+  - **교차검수 한 판(`openai-codex/gpt-5.6-terra`, `/tmp/dg-review-terra.md` 51줄, sha256
+    `102f166…`)이 구멍 둘을 잡았고 둘 다 고쳤다.** ① **실패한 consult 가 영수증 없이 사라져
+    같은 blocked 전이가 다음 `agent_settled` 에서 다시 유료로 발화했다** — 엔트리가 성공
+    뒤에만 쓰였는데 `findPendingBlocked` 는 그 엔트리로 에지를 판정한다. 이제 결과가 무엇이든
+    `outcome`(ok/no-model/deadline/error)과 사유를 실은 엔트리가 나간다. ② **dig 을 끊어도
+    손자가 살아남았다**(래퍼 셸 → `npx tsx`): 실측 자손 2개 중 직계 kill 생존 2, 그룹 kill
+    생존 0 → `detached` + `process.kill(-pid)`.
+  - **판정: #24 는 아직 닫지 않는다.** 좌표 댓글 =
+    [issuecomment-5601577118](https://github.com/junghan0611/agent-config/issues/24#issuecomment-5601577118).
+    본문의 "안 닫히는 이유 셋" 중 ②캐는 손은 닫혔고, ③G2는 좁은 경로가 기계가 됐고,
+    **①lint 미연결만 열려 있다** — 익스텐션은 캐기만 하고 §1~§6 판단축 `.md` 를 안 쓴다.
+    그런데 이번 consult 자신이 그 질문을 캐서 *"별도 파일 기각, in-file 유지"* 쪽 GLG 발화
+    둘을 물어왔다(`sessions#81`·`sessions#58`, inference) — 그게 맞으면 ①은 "연결"이 아니라
+    **"연결하지 않는다"로 닫히는 항목**이다. **GLG 가 정할 자리 하나.**
+  - **갈 후보:** G2 하드닝(그 CLI 안이 읽기 전용이라는 증명 · provider 별칭이 같은 쿼터인지)은
+    별개 이슈감이다. 안 고치고 적어 둔 한계 셋은 `pi-extensions/decision-gate/README.md
+    § 교차검수가 남긴 한계 셋`.
+  - **아직 못 잰 것:** 자연 발생 `blocked`(두 판 다 `-t create_goal,update_goal` 로 3턴 게이트를
+    우회해 띄웠다) · `openclaw` 축은 oracle 에 없다(exit 4 `state=absent`, authority=thinkpad,
+    andenken#14) · `timeline` 축은 cwd 에 `events.jsonl` 이 있어야 선다.
 - **직전에 닫은 것 (2026-09-09, `v2026.9.9`):** 사람이 앞에 없는 시간을 위한 세 물건이
   한 컷에 들어갔다 — `heartbeat`(스스로 깨는 시계) · `decision-gate` lint(근거 없는 진행 차단,
   G2는 아래 8번) · `dm`(끝난 쪽이 사람을 부른다). 여기에 `raw-paste`(마커 없는 붙여넣기)와
@@ -34,9 +56,9 @@
   `home/AGENTS.md`가 이미 사라진 dm 게이트를 규칙으로 들고 있던 것을 잡았다.
 - **직전 Hot group:** 7이 닫혔다(`v2026.9.9`, CHANGELOG § semantic-memory). `v2026.9.4-wiring.1`로 배선 다섯 자리가
   닫혔고, 3·4는 둘 다 남의 손을 기다린다.
-- **Next:** #24의 G2 갈림길에 GLG 답이 오면 익스텐션 착수. 그 전에는 여는 것이 없다.
-  나머지 두 후보 3(entwurf-peek `trace`)·4(#46)은 **둘 다 여기서 시작할 수 없다** — 각각 entwurf 쪽
-  fixture와 normalize가 선행이다.
+- **Next:** #24 닫기/가르기 판정(교차검수 회신을 받고), 그 다음이 좌표 10의 나머지 세 이슈
+  (#23·#21·#16). 나머지 두 후보 3(entwurf-peek `trace`)·4(#46)은 **둘 다 여기서 시작할 수 없다** —
+  각각 entwurf 쪽 fixture와 normalize가 선행이다.
 - **직전에 닫은 것 (2026-09-04, `v2026.9.4-wiring.1`):** `forge` 스킬 실물을 `forge-config`로
   이관하고 상대 심링크로 연결(`3b9f72e`, 그쪽 `dfe25c8`) + `LINKED_SKILL_NAMES` · `doctor:bins`가
   `stale`/`unprovenanced`/`arch`를 이름으로 부른다(`8ea458d`) — **oracle 첫 실행에서 `bibcli`

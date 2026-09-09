@@ -7,6 +7,102 @@
 
 ## Unreleased
 
+## v2026.9.9-gate.1 — 게이트가 모델을 고르게 됐고, 실패도 영수증을 남긴다
+
+게이트가 계약에서 **물건**이 됐고, 그 물건이 어느 모델로 캐는지를 GLG 가 잡는다.
+
+`v2026.9.9` 는 시계·게이트·dm 셋을 각각 냈지만 서로 모르는 세 꼭짓점이었다. 이 컷이 변을
+그었다 — tick 이 캐는 손을 이름으로 부르고(`47bc90d`), blocked 전이가 실제로 빠른 형제를
+깨우고(`89f8809`), 그 형제가 **어느 레일에서 도는지를 사람이 정한다**. GLG 2026-09-09:
+*"오프스가 돌다가 게이트는 terra 또는 luna로 잡아 놓고 답변 받게 한다든가. 개념상으로 모델을
+다르게 가져가는거야."*
+
+### Added
+
+* **`pi-extensions/decision-gate.ts` — 담당자가 `blocked` 를 선언하면 빠른 형제가 대신 캔다**
+  (`89f8809`). `update_goal(status:"blocked")` 전이 하나에만 발화하고(텍스트 휴리스틱 없음),
+  **다른 모델**로 사이드 세션 한 턴을 돌려 GLG 의 기억축·시간축을 훑고, 결과를 같은 세션
+  JSONL 의 커스텀 엔트리(`decision-gate-consult`) 하나로 남긴다. 본대화에 유입되지 않고,
+  스스로 결정하지 않고, `queueContinuation` 근처에 가지 않는다. GLG 원문이 그 형태를 정했다 —
+  *"main 유입이 아니라 그냥 사이드 jsonl 커스텀엔트리"*. 엔트리는 `digs[].hits` 와
+  `answer.citedHitIds` 를 v0 부터 들고 있는데, 나중에 *"도움이 되었는가"* 를 소급 판정하려면
+  질문+답변만으로는 안 되기 때문이다. `helpful` 은 이 확장이 **안 채운다**(#23 의 자기채점 금지).
+* **모델 지정면 — `/decision-gate` 와 `DECISION_GATE_MODELS`.** 3층 우선순위: 세션 지정
+  (`/decision-gate model openai-codex/gpt-5.6-luna`) → 환경변수(`~/.env.local`) → 기본 후보
+  (codex-terra → copilot-terra → zai → xai, `MODELS.md` 레일 순서). provider 를 생략하면
+  아무 레일이나 그 순서로 고른다(`/decision-gate model luna, terra`). 규칙 둘: **상주와 같은
+  provider+id 는 건너뛴다**(그 레일을 아끼려고 만든 물건이 그 레일을 태우면 존재 이유가 없다),
+  인증된 후보가 없으면 **fail-closed** — 상주 모델로 떨어지지 않는다. 정확한 이름이 맞으면
+  부분일치는 아예 안 본다: 편의가 지정을 넓히면 그건 지정이 아니라 추측이다. 출처는 엔트리
+  `modelSource` 에 남는다. 상태 패널은 `context` 핸들러로 걷혀 **모델에게 가지 않는다**
+  (`heartbeat.ts:372` 선례).
+* **`pi-extensions/tests/decision-gate.load.test.ts` — 스텁 없이 실물 pi 패키지로 여는 로드
+  스모크.** 옆의 계약 테스트는 `@earendil-works/*` 를 스텁으로 바꿔치기해서 로직만 재는데,
+  2026-09-09 실물 실패 셋(`noTools:"all"` 이 커스텀 툴까지 끔 · 확장 심링크 미해소 · 히트 id
+  미해소)이 전부 그 틈에서 나왔다 — **계약은 통과하는데 물건이 안 돌았다.** 그래서 이 파일은
+  `which pi` 에서 실제 패키지 트리를 되짚어 그 트리로 확장을 import 한다. pi 가 없으면
+  **이유를 찍고 skip** 한다. bun 이 PATH 앞에 붙이는 `node_modules/.bin` 을 먼저 씻는데,
+  안 씻으면 이 리포에 남아 있던 2026-03 판 `@mariozechner/pi-coding-agent` 를 집는다.
+* **`skills/harness-bench` — 대문자 하네스 벤치의 상태면** (`7d8052e`). HERMES/OMP/OUROBOROS/
+  HERDR/PRIME/YEGGE 를 세우고 각 하네스가 미는 **강점 하나**와 나중에 돌릴 것을 적는다.
+  라이브 설치 없음. 후보이지 채택이 아니다.
+
+### Changed
+
+* **게이트가 `agent_end` 가 아니라 `agent_settled` 에서 돈다.** `agent_end` 확장 핸들러는
+  에이전트 루프 **안에서** await 되고(설치본 pi 0.85.1 `dist/core/agent-session.js:474`),
+  그 await 가 끝난 다음에야 pi 가 자동 재시도·압축·큐된 continuation 을 정한다(`:776-810`).
+  거기 몇 분짜리 사이드 세션을 달면 **재시도 앞을 막고**, 재시도가 도는 실행에서는 한 턴에 두 번
+  켜질 수 있었다. `agent_settled` 는 *"no automatic retry, compaction, or queued continuation
+  will run"* 뒤에 정확히 한 번 온다(`dist/core/extensions/types.d.ts:559-562,926`) — "담당자
+  턴이 blocked 로 끝났다"는 계약의 문자 그대로의 자리다. `agent_end` 는 마지막 assistant
+  텍스트만 받아 두고 아무것도 결정하지 않는다.
+* **캐는 예산이 코드에 있다.** dig 은 `spawnSync`(Node 이벤트 루프 전체를 세운다) 대신 비동기
+  `spawn` 을 쓰고, dig 하나 60초 · consult 당 dig 24회(넘으면 프로세스를 **안 띄우고** 거절) ·
+  consult 전체 8분 벽시계가 걸린다. 끊겨도 **그때까지 캔 것으로 엔트리를 쓴다.** 잘린 사실은
+  엔트리 `budget{maxDigs,digsSpawned,digsRefused,deadlineMs,deadlineHit}` 에 남는다 — 조용히
+  잘리면 그건 다시 *"밖에서 똑같이 보이는 침묵"* 이다. 상한은 **잘 돈 실물 판(dig 18회) 위에**
+  잡았다: 상한이 성공 사례를 깎으면 그건 안전이 아니다.
+* **`README.md` § Skills 의 살아 있는 숫자를 다시 셌다** — 47/45 → **48/46**, 빠져 있던
+  `butlercli` 에 자리를 줬다(household). `AGENTS.md § Skills` 가 적어 둔 그대로, 숫자는 손으로
+  고치지 않고 `ls -d skills/*/ | wc -l` 로 다시 유도했다.
+
+### Fixed
+
+* **dig 실패 사유가 배너에 먹혀 있었다.** oracle 의 `search-openclaw` 는 exit 4 로 끝나면서 진짜
+  이유를 **stdout 에 구조화해서** 내놓고(`state=absent`, `authority=thinkpad`, `reason`, `next`),
+  stderr 에는 npm 경고와 provider 배너만 남긴다. 앞 500자를 그대로 실으니 영수증에 배너만
+  남았다. 이제 순서가 프로세스 오류 → stdout 의 구조화 설명 → 소음을 걷은 stderr 의 **끝** →
+  종료코드다. 그 문장은 형제도 그대로 받으므로 *"openclaw 축은 이 기기에 없어서 못 봤다"* 를
+  말할 수 있다 — 침묵을 증거로 쓰지 않는 자리가 이걸로 실제로 닫혔다.
+* **실패한 consult 가 영수증 없이 사라졌고, 같은 전이가 다시 유료로 발화했다.** 엔트리는
+  성공 뒤에만 쓰였는데 `findPendingBlocked` 는 그 엔트리 하나로 "이 전이는 이미 캤다"를
+  판정한다. 그래서 deadline·프로바이더 오류·세션 생성 실패는 다음 `agent_settled` 에서
+  **같은 blocked 전이를 처음부터 다시 캤고**, 세션당 3회 상한도 실패를 세지 않았다. 이제
+  결과가 무엇이든 엔트리가 나가고 `outcome`(`ok`/`no-model`/`deadline`/`error`)과 사유를
+  싣는다 — 캔 것도 함께. 교차검수(`openai-codex/gpt-5.6-terra`, 2026-09-09)가 잡았다.
+* **dig 을 끊어도 손자가 살아남았다.** `semantic-memory` 는 래퍼 셸이 `npx tsx` 를 부르는
+  모양이라 직계 pid 만 죽이면 트리가 남는다. 실측(이 CLI 로 직접): 자손 2개 중 직계 kill 은
+  **생존 2**, 프로세스 그룹 kill 은 **생존 0**. `detached` + `process.kill(-pid)` 로 바꿨다 —
+  60초·8분 상한이 실제로 서려면 그룹이어야 한다. 같은 검수가 지적했다.
+* decision-gate 첫 실물이 잡은 결함 셋(`b2e40ce`): `noTools:"all"` 이 커스텀 툴까지 끄는 것 ·
+  pi 가 확장 심링크를 안 푸는 것(`realpathSync`) · 100자짜리 히트 id 를 형제가 안 쓰고 파일명 속
+  UUID 를 골라 적어 인용 고리가 끊기던 것(짧은 손잡이 `sessions#3`).
+
+### 한계 — 고치지 않고 적어 둔 것
+
+교차검수가 남긴 셋을 계약이 주장하지 않도록 문서에 박았다(`pi-extensions/decision-gate/README.md`
+§ 교차검수가 남긴 한계 셋): `agent_settled` 핸들러도 await 되므로 consult 는 **정착 뒤를
+막는다**(`-p` 종료·idle 복귀가 최대 8분 늦다; 실측 두 판은 1분 내) · argv 로 `reindex`·push·
+외부 발신에 못 닿는 것은 회귀로 섰지만 **그 CLI 안이 읽기 전용이라는 것은 증명 안 했다** ·
+다른 provider 의 같은 모델 이름은 일부러 다른 레일로 보는데 둘이 실은 같은 쿼터면 fail-closed
+가 뚫린다.
+
+### Chore
+
+* `skills/openclaw` 를 그 런타임의 담당자에게 넘겼다 — `nixos-config` 로 이관(`362bcce` →
+  `b18890a`). 이 리포에는 남기지 않는다.
+
 ## v2026.9.9 — 사람이 앞에 없는 동안 스스로 깨고, 끝나면 사람을 부른다
 
 이 컷의 세 물건은 같은 문제의 세 면이다 — **사람이 보고 있지 않은 시간**. 시계가 세션을
