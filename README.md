@@ -117,6 +117,7 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 | `background-bash.ts` | `bash_background` — run a slow command without blocking; the agent is re-invoked with its exit code and output when it finishes |
 | `review.ts` | `/review` — review a PR, base branch, commit, uncommitted changes, or a folder |
 | `goal.ts` | `/goal` — long-running objective mode; keeps continuing itself until the objective is met or a budget is hit |
+| `heartbeat.ts` | `/heartbeat 10m` — wake this session on a timer; the tick instruction makes it look up grounds and leave them where a reader can find them before taking one step. Off until a human types it, dies with the session |
 | `continue.ts` | `shift+alt+enter` — send "continue" when the agent has stopped |
 | `env-loader.ts` | Load `~/.env.local` at session start |
 | `hide-providers.ts` | Keep skill-only keys (OpenRouter, HF, Google, Groq) out of pi so their 440 models stay out of the picker — see [MODELS.md](MODELS.md) |
@@ -131,7 +132,19 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 
 **Direction: this surface shrinks.** A pi extension only exists inside pi — Claude Code, Codex, and Antigravity cannot see it. A skill runs everywhere. So capability that agents actually call is migrating extension → skill (semantic memory is the finished case: `skills/semantic-memory/` is a CLI wrapper every harness can invoke, while the pi-side `session_search` / `knowledge_search` registerTool remains a convenience, not the only door). What stays here is pi-local ergonomics — env loading, sound, footer, cost breakdown.
 
-The four extensions added on 2026-08-07 do not contradict that. None of them could be a skill: they hook pi's turn loop, which no CLI can reach from outside. Three (`review`, `goal`, `continue`) are adopted from [earendil-works/agent-stuff](https://github.com/earendil-works/agent-stuff) with local tuning; `background-bash` was written here.
+The four extensions added on 2026-08-07 do not contradict that. None of them could be a skill: they hook pi's turn loop, which no CLI can reach from outside. Three (`review`, `goal`, `continue`) are adopted from [earendil-works/agent-stuff](https://github.com/earendil-works/agent-stuff) with local tuning; `background-bash` was written here. `heartbeat` (2026-09-09) is in the same category for the same reason — a timer that wakes a turn has to live inside the process that owns the turn.
+
+#### `heartbeat` — the clock is the cheap half
+
+`/heartbeat 10m` arms a timer that wakes this session and runs one turn. Every harness has that much; Claude Code and Copilot ship it as "proceed if no answer" / autopilot, and GLG keeps those off for one reason — proceeding with no grounds. The refusal is not of the clock but of the blank: *"왜 내 기억도 안쳐다보고 무슨 근거로 진행을 하냐는거야"* (2026-09-09). We have the memory and time axes, so a woken turn can look, record what it found, and then move.
+
+So the tick prompt is the product, not the timer. Its step order is the contract: look up grounds → leave them where a reader who never opens the session can find them → take exactly one step → if there were no grounds, stop and say where you looked → and only then, if nothing needs attention, `HEARTBEAT_OK`. The silence token comes last on purpose. openclaw measured the inverse: 1330 heartbeats, 529 consecutive `NO_REPLY`, 6-8 tokens a turn — the prompt's own right answer arrived before any judgement did, and designed silence became indistinguishable from reflex silence from outside.
+
+What it deliberately is not: no job store, no scheduler class, no daemon, no residency. prime-agent's heartbeat is daemon-only by construction (`in-process-agent-connection.ts:264` throws `"Heartbeats require daemon mode"`), and its `scheduled-jobs.json` is state whose loss would erase registered work — the shackle test this repo applies elsewhere. We took the syntax (`/heartbeat [--every <interval>] [--steer|--follow-up] [instruction]`, 10s floor) and two policies (busy means **drop** the tick, never stack it; `steer`/`follow_up` as a field), and none of the code.
+
+Two consequences worth knowing before using it. **It is off until a human types it and it dies with the session** — `session_start` disarms on every reason including `resume`, which is the only thing standing between "every pi session on this machine loads this file" and "sessions that wake themselves with nobody asking". And **`--steer` cannot actually interrupt a running turn here**: pi's extension surface exposes `isIdle()` alone, whose expression is `!_isAgentRunActive && !isCompacting` — two states behind one boolean — and steering into a compaction is the unsafe case prime-agent names, so both modes wait for a plainly idle session. Both facts are printed by `/heartbeat status`, not buried in a comment.
+
+Still open, and deliberately not decided in the code: whether the grounds get dug inside the tick's own turn or by a sibling, and where the record lands ([#23](https://github.com/junghan0611/agent-config/issues/23), [#24](https://github.com/junghan0611/agent-config/issues/24)). The prompt names neither, so choosing later does not mean rewriting this.
 
 #### `background-bash` — why it exists
 

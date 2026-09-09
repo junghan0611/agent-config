@@ -7,6 +7,47 @@
 
 ## Unreleased
 
+### Added
+
+* **`pi-extensions/heartbeat.ts` — 시계는 싼 쪽이고, 조건이 물건이다** (`/heartbeat 10m`).
+  유휴 pi 세션을 타이머로 깨워 한 턴을 돌린다. 데몬 없음, 잡 저장 없음, 새 프로세스 없음.
+  다른 하네스에도 시계는 있다(클로드코드·코파일럿의 "답변 안하면 진행"). GLG가 그걸 끄는
+  이유는 시계가 아니라 빈칸이다 — *"왜 내 기억도 안쳐다보고 무슨 근거로 진행을 하냐는거야"*
+  (2026-09-09). 그래서 값은 tick 지시문의 **순서**에 있다: 근거를 찾는다 → 세션 로그를 열지
+  않는 사람도 닿는 자리에 남긴다 → 딱 한 걸음 → 근거가 없으면 어디를 봤는지 적고 멈춘다 →
+  **그 다음에야** `HEARTBEAT_OK`. 침묵 토큰이 맨 끝인 것은 openclaw가 반대 순서를 실측했기
+  때문이다: heartbeat 1330회, `NO_REPLY` 최장 529연속, 산출 턴당 6~8토큰 — 기본 프롬프트의
+  정답이 판단보다 먼저 도착했고, 설계된 침묵과 반사적 침묵이 밖에서 똑같이 보였다.
+
+  **prime-agent에서 코드는 0줄 가져왔다.** 그쪽 heartbeat는 구조상 데몬 전용이고
+  (`in-process-agent-connection.ts:264` 이 `"Heartbeats require daemon mode"` 를 던진다),
+  `scheduled-jobs.json` 은 못 읽으면 등록된 잡이 사라지는 종류의 상태다(족쇄 테스트 탈락).
+  가져온 것은 문법(`[--every <iv>] [--steer|--follow-up] [지시]`, 10초 하한)과 정책 둘
+  — 바쁘면 tick을 **버린다**(큐에 안 쌓는다), `steer`/`follow_up` 을 잡의 필드로 — 뿐이다.
+
+  경계 둘을 코드와 사용자 면에 동시에 박았다. ① **사람이 `/heartbeat` 를 쳐야 시작하고 세션과
+  함께 죽는다** — `session_start` 가 reason 전부(startup/reload/new/resume/fork)에서 disarm
+  한다. `run.sh setup` 이 `pi-extensions/*.ts` 를 전부 링크하므로(run.sh:960) 이 핸들러가
+  "이 기기의 모든 pi 세션이 이 파일을 싣는다"와 "아무도 안 부른 세션이 스스로 깨어난다"
+  사이의 유일한 안전선이다. ② **`--steer` 가 이 집에서는 도는 턴을 못 끊는다** — 익스텐션이
+  볼 수 있는 것은 `isIdle()` 하나이고 그 식은 `!_isAgentRunActive && !isCompacting`,
+  즉 스트리밍과 컴팩션이 한 불리언 뒤에 있다. 컴팩션에 steer로 꽂는 것이 prime-agent가 명시한
+  unsafe 케이스라 양 모드 모두 idle을 기다린다. 둘 다 주석이 아니라 `/heartbeat status`
+  출력에 있다 — 이름이 약속을 어기면 그 부담을 사람이 진다(§Trust Agent Intuition).
+
+  일부러 안 정한 것: 근거를 캐는 손이 tick 자신의 턴인지 형제인지, 그 기록이 어디 사는지
+  ([#23](https://github.com/junghan0611/agent-config/issues/23),
+  [#24](https://github.com/junghan0611/agent-config/issues/24)). tick 지시문이 둘 다 이름으로
+  부르지 않으므로 나중에 정하는 것이 이 파일을 다시 쓰는 일이 되지 않는다. tick 상한도
+  넣지 않았다 — 미정 사항을 코드로 굳히지 않는다. `ticks`/`dropped` 카운터로 보이는 것까지다.
+
+  실측(2026-09-09, `openai-codex` 구독 레일, 유료 API 0원): 익스텐션만 싣고 66초 유휴 —
+  tick 0, 지출 `$0.000`, `/heartbeat` 는 "Heartbeat is off." · `/heartbeat 15s <지시>` —
+  4 tick 이 사람 손 없이 돌았고 상태줄이 `Heartbeat 15s · tick N` 로 살아 움직였다 ·
+  `pause` — 35초 동안 tick 이 4에서 멈춘 채 설정 유지 · `clear` — 상태줄 사라짐.
+  파서·10초 하한·미룸 판정·지시문 순서는 일회용 스크립트로 31건 확인(`/tmp/hb-check.ts`,
+  영구 테스트 파일 아님). pi 0.85.1 실타입으로 `tsc --noEmit` 통과.
+
 ## v2026.9.4-wiring.1 — 선언과 실행이 갈린 자리를 하루에 다섯 번 만났다
 
 이 컷에는 기능이 거의 없다. 전부 **문서가 말한 것과 코드가 하는 것이 갈려 있던 자리**이고,
