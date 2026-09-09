@@ -87,8 +87,11 @@ dm.sh --as <harness>/<model> "무슨 일이 끝났고 GLG가 무엇을 결정하
 `codex/gpt-5.6`, `openclaw/bbot`. Machine and repo fill themselves in. GLG runs
 siblings across several machines, repos and harnesses at once — those three tokens
 are how a message finds its context. It costs no model turn and lands in no bot's
-session; the skill documents that measurement. Gateway host only (today: oracle) —
-elsewhere it exits 3 and says so rather than failing quietly.
+session; the skill documents that measurement. It runs on **any** machine: the send is
+a direct Bot API call from an idle bot with no gateway and no cron in the path, so
+there is no host gate to fail (`skills/dm/scripts/dm.sh` carries no host check; the
+token comes from `~/.env.local`). Exit codes are `0` delivered, `2` argument/config
+error, `5` delivery failed.
 
 ### Session End Protocol — NEXT.md
 
