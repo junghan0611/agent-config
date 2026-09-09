@@ -45,7 +45,7 @@ GLG는 동시에 여러 기기·여러 리포·여러 하네스의 형제들을 
 | `--as <하네스/모델>` | `$DM_AS` | **필수.** 없으면 종료코드 2 |
 | `--machine <name>` | 자동 | 기기 이름 강제 |
 | `--repo <name>` | 자동 | 리포 이름 강제 |
-| `--account <id>` | `mini` | 배달에 쓸 텔레그램 봇 계정 |
+| `--bot <channels\|entwurf>` | `channels` | 발신 봇 전환 |
 | `--stdin` | off | 본문을 stdin에서 (여러 줄·긴 글) |
 | `--dry-run` | off | 보내지 않고 완성된 메시지만 출력 |
 
@@ -53,11 +53,14 @@ GLG는 동시에 여러 기기·여러 리포·여러 하네스의 형제들을 
 # 여러 줄
 printf '%s\n' "빌드 실패" "$(tail -5 build.log)" | {baseDir}/scripts/dm.sh --as pi/gpt-5.6 --stdin
 
+# 발신 봇 전환
+{baseDir}/scripts/dm.sh --as codex/gpt-5.6 --bot entwurf "형제 쪽 라인으로"
+
 # 보내기 전에 양식 확인
 {baseDir}/scripts/dm.sh --as codex/gpt-5.6 --dry-run "테스트"
 ```
 
-종료코드: `0` 전달됨 · `2` 인자 오류 · `3` 이 기기에 게이트웨이 없음 · `4` 잡 생성 실패 · `5` 전달 실패.
+종료코드: `0` 전달됨 · `2` 인자/설정 오류 · `5` 전달 실패.
 
 ## 언제 쓰나 — 그리고 언제 쓰지 마라
 
@@ -68,48 +71,47 @@ printf '%s\n' "빌드 실패" "$(tail -5 build.log)" | {baseDir}/scripts/dm.sh -
 중계(끝났을 때 한 번이면 된다). 한 작업에 여러 번 — **한 사건에 한 통**이 규칙이다.
 텔레그램은 사람의 주의를 직접 가져가는 면이고, 그 예산은 유한하다.
 
-## 이 메시지는 봇 세션에 쌓이지 않는다
+## 어느 봇의 타임라인도 더럽히지 않는다
 
-`--account mini`는 **발신 봇 토큰**일 뿐 화자가 아니다. mini는 이 메시지를 자기
-대화로 기억하지 않고, 답하지도 않고, 컨텍스트도 안 자란다.
+발신에 쓰는 두 봇은 **GLG가 지금 쓰지 않는 유휴 봇**이다. 힣봇 군단(main/glg/gpt/
+gemini/mini/bbot)의 방은 사람과 봇의 대화 기록이고, 기계 알림이 그 사이에 끼면
+나중에 그 방을 읽을 때 대화가 끊긴다.
 
-배관이 그렇게 생겼다. 잡의 payload가 `kind: "command"`(게이트웨이가 `sh -lc`로
-실행)이고 배달이 `mode: "announce"`(그 stdout을 채널로 흘림)라, **모델 호출이 없다.**
+| `--bot` | 봇 | 토큰 키 |
+|---|---|---|
+| `channels` (기본) | `@glg_pi_channels_bot` | `PI_TELEGRAM_BOT_TOKEN` |
+| `entwurf` | `@glg_entwurf_bot` | `PI_ENTWURF_BOT_TOKEN` |
 
-실측 (2026-09-09 12:31, oracle): 메시지 발송 후 `sessions list --agent mini`의
-최신 세션은 여전히 19시간 전 `probe…`, mini의 텔레그램 세션은 9일 전 그대로.
-같은 시각 cli-backend 로그에 항목 없음. 토큰 소모 0.
+두 경로 모두 실측했다 (2026-09-09, oracle: `messageId=204` / `463`).
 
-**진짜로 mini에게 판단을 시키고 싶다면** 이 스킬이 아니라 agentTurn 페이로드
-(`cron add --message` 또는 `openclaw agent --agent mini --deliver`)를 써야 한다.
-그건 sonnet-5 턴을 쓰고 mini 세션에 쌓인다.
-
-## 경계 — 어디서 도는가
-
-**게이트웨이 컨테이너가 사는 기기에서만 동작한다. 현재 `oracle` 하나다.**
-스크립트는 `docker inspect openclaw-gateway`로 먼저 확인하고, 없으면 종료코드 3으로
-그 사실을 말하며 멈춘다 — 조용히 실패하지 않는다.
-
-thinkpad/laptop에서 쓰려면 원격 게이트웨이 경로(`--url wss://… --token …`)가
-필요한데, **그 경로는 아직 측정하지 않았다.** 이 문서에 "된다"고 적혀 있지 않은
-이유가 그것이다. 열게 되면 여기에 실측과 함께 적는다.
-
-## 배관 상세 (고칠 때 볼 것)
+## 배관 — OpenClaw 를 거치지 않는다
 
 ```text
-cron add --command <shell> --command-env DM_BODY=<본문>
-         --announce --channel telegram --account <id> --to <chatId>
-         --at 6h --delete-after-run --best-effort-deliver
-  → cron run <id> --wait          (즉시 발화. --at 은 자동 발화와 경주하지 않으려고 멀리 둔 것)
-  → cron rm <id>                  (trap EXIT — 실패해도 잔여 잡을 남기지 않는다)
+POST https://api.telegram.org/bot<TOKEN>/sendMessage
+     chat_id=<PI_TELEGRAM_CHAT_ID>  text=<본문>
 ```
 
-본문을 셸 인자가 아니라 `--command-env`로 넘긴다. 따옴표·개행·`$`가 들어간 문장이
-`sh -lc` 안에서 재해석되지 않게 하기 위해서다.
+그게 전부다. 게이트웨이도, cron 잡도, 봇 세션도, 모델 턴도 없다. 따라서:
 
-`openclaw message send`를 쓰지 않는 이유: 멀티 에이전트 설정에서 소유자를 못 정해
-거부한다(`Multiple agents are configured, but this operation has no explicit owner`).
-2026.8.2의 `message send`에는 `--agent` 선택자가 없다 — 에러 힌트가 그걸 안내하지만
-그 힌트는 낡았다(실측 2026-09-09).
+- **어느 기기에서든 돈다.** 게이트웨이가 사는 기기(oracle)에 묶이지 않는다.
+- **비용 0.** 모델을 부르지 않는다.
+- **컨텍스트 성장 0.** 어떤 세션에도 안 쌓인다.
 
-전달 확인은 로그의 `telegram outbound send ok accountId=<id> chatId=… messageId=…`.
+토큰과 수신자 id 는 `~/.env.local` 이 SSOT 다 — 공개 리포인 이 스킬에는 값이 없다.
+로그인 이후 그 파일에 추가된 줄은 실행 중인 셸 환경에 없으므로, 스크립트가 파일을
+직접 읽어 보강한다. 토큰은 URL 에만 들어가고 stdout/stderr 로 새지 않는다 — 실패
+응답도 텔레그램의 `description` 만 인쇄한다.
+
+**진짜로 어느 봇에게 판단을 시키고 싶다면** 이 스킬이 아니다. 그건 agentTurn
+(`openclaw agent --agent <id> --deliver` 또는 `cron add --message`)이고, 모델 턴을
+쓰고 그 봇 세션에 쌓인다. 이 스킬은 그 반대편 — **말을 전하는 배관**이다.
+
+## 이전 배관을 왜 버렸나 (2026-09-09)
+
+처음엔 OpenClaw 의 `cron add --command … --announce --account mini` 로 만들었다.
+동작은 했고 모델 턴도 없었지만 두 가지가 걸렸다: **mini 방에 기계 알림이 쌓이고**,
+게이트웨이가 있는 oracle 에서만 돌았다. 유휴 봇 토큰을 쓰면 둘 다 사라진다.
+
+참고로 `openclaw message send` 는 이 용도로 못 쓴다 — 멀티 에이전트 설정에서
+소유자를 못 정해 거부하고(`Multiple agents are configured…`), 2026.8.2 의
+`message send` 에는 에러 힌트가 안내하는 `--agent` 선택자가 실제로 없다(실측).
