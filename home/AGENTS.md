@@ -70,6 +70,26 @@ cat ~/.current-device
 TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S'
 ```
 
+### Reaching GLG — the `dm` skill
+
+GLG is not sitting at the terminal. When work finishes minutes or hours after the
+last human turn — a long build, a scheduled observation, a failure that needs a
+decision — the finishing side calls the person instead of the person polling.
+
+Use the `dm` skill. One event, one message. Never for progress narration, never
+while GLG is watching the session, never twice for the same event.
+
+```bash
+dm.sh --as <harness>/<model> "무슨 일이 끝났고 GLG가 무엇을 결정하면 되는지"
+```
+
+`--as` is mandatory and it is your own identity: `claudecode/opus`, `pi/gpt-5.6-terra`,
+`codex/gpt-5.6`, `openclaw/bbot`. Machine and repo fill themselves in. GLG runs
+siblings across several machines, repos and harnesses at once — those three tokens
+are how a message finds its context. It costs no model turn and lands in no bot's
+session; the skill documents that measurement. Gateway host only (today: oracle) —
+elsewhere it exits 3 and says so rather than failing quietly.
+
 ### Session End Protocol — NEXT.md
 
 NEXT is the disposable handoff: `NEXT.md` for main, `NEXT--<branch>.md` for a branch lane. Before stopping, use `next-handoff` to leave the next concrete move and promote durable facts elsewhere. Delete a branch NEXT before merging; `/recall` restores context while NEXT names where to resume.
