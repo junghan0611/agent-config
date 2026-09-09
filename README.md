@@ -227,7 +227,7 @@ Aside from the hook channel, the two surfaces are interchangeable. This is the r
 
 ### Skills ([`skills/`](skills/))
 
-47 skills (recounted 2026-09-09 against `skills/`; the list below names 45 — `voscli` and `incidentcli` are linked from work repos and stay out of a public list). The previous line read "45 … names 43": `dm` had landed without being seated here, and the named count was already one short before that. Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query, timeline), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (dm, slack-latest, jiracli, telegram), code surface (forge — linked, owned by forge-config), work workbench (plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli), entwurf (entwurf-peek), cross-repo care (sorge — linked, owned by its own repo), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), tools (emacs, tmux, diskspace, cloudflare, quota, butlercli).
+47 skills (recounted 2026-09-09 against `skills/`; the list below names 45 — `voscli` and `incidentcli` are linked from work repos and stay out of a public list). Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query, timeline), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (dm, slack-latest, jiracli, telegram), code surface (forge — linked, owned by forge-config), work workbench (plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli), entwurf (entwurf-peek), cross-repo care (sorge — linked, owned by its own repo), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), harness bench (harness-bench), tools (emacs, tmux, diskspace, cloudflare, quota).
 
 **Linked skills: one repo owns it, this one only connects.** `skills/sorge` is a *relative symlink* into [`sorge`](https://github.com/junghan0611/sorge)`/.claude/skills/sorge` — the SKILL.md exists exactly once, in the repo whose facts it depends on, and editing it there reaches every harness at once. agent-config keeps no copy and has nothing to re-sync. `run.sh` clones such repos (`LINKED_SKILL_REPOS`) so the link is never dangling, and **`update` pulls them too** — a stale clone would freeze that one skill while every other repo moves, which is precisely the failure the design exists to prevent. Portability is structural rather than lucky: the link is *relative* (`../../sorge/…`), and `ensure_repo` clones into `~/repos/gh`, so it resolves identically on every machine. A missing target degrades safely — a dangling symlink does not match bash's `*/` glob, so pi's per-skill loop skips it instead of erroring (measured 2026-09-04). `skills/forge` is the same shape, into [`forge-config`](https://github.com/junghan0611/forge-config)`/.claude/skills/forge`. It was this repo's own counter-example until 2026-09-04: documented as a thin pointer to `forge-config` while 361 lines actually lived here, so nobody could tell which side was true. What made the split visible was the commit log — every one of the five dates that touched `bin/forge` touched `SKILL.md` too, one change costing two commits in two repos. Repo name and skill name need not match (`forge-config` owns `forge`); `LINKED_SKILL_NAMES` carries that mapping. Do not re-open the shape that was closed.
 
@@ -315,13 +315,15 @@ What `setup` deliberately does **not** do: install entwurf (that is entwurf's ow
 
 Some questions cannot be answered by reading a project's README. *Does a runtime that generates its own skills from experience beat a human-authored skill set?* You only find out by standing both up on the same machine, giving them the same repeated task, and looking at what each wrote down afterwards.
 
-Three subjects sit on this bench, and they ask three different questions:
+Five subjects sit on this bench, and they ask different questions:
 
 | Subject | Question | Standing |
 |---|---|---|
 | [Hermes Agent](https://github.com/NousResearch/hermes-agent) | Does a self-learning runtime out-write a hand-authored skill set? | candidate, pinned, not adopted |
 | [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) | Can one visible parent call an in-process team while reducing GLG's inspection hops? | **GLG's working submarine** — admitted as a sibling (entwurf 0.16.0); custom agents active |
-| [prime-agent](https://github.com/junghan0611/prime-agent) (fork) | Can a Lisp workspace stand up the RLM loop a Python REPL carries today? | **built here**, not installed — Clojure is already the default kernel |
+| [prime-agent](https://github.com/junghan0611/prime-agent) (fork) | Can a Lisp workspace stand up the RLM loop a Python REPL carries today? | **built here**, not installed — matrix in [PRIME.md](PRIME.md) |
+| [Ouroboros](https://github.com/Q00/ouroboros) | Besides entwurf, how does a popular Agent OS carry task-memory across harnesses, and how does it run long? | candidate, **not pinned, not installed** — matrix in [OUROBOROS.md](OUROBOROS.md) |
+| [herdr](https://github.com/herdrdev/herdr) | Besides our tmux/entwurf floor, how does a popular agent-terminal runtime show stuck panes and survive detach? | candidate, **not cloned, not installed** — matrix in [HERDR.md](HERDR.md) |
 
 
 This comparison belongs here, not in entwurf. **entwurf guarantees its own garden-id,
@@ -330,6 +332,15 @@ not rank other harnesses.** agent-config is the operator-side proving ground, so
 whether an external runtime actually reduces GLG's inspection points without weakening
 identity, memory, or alignment. This is not a tournament and it is not a reason to grow
 entwurf into a planner.
+
+The fifth subject is [herdr](https://github.com/herdrdev/herdr) — "the runtime your coding agents live on." It does not wrap agents; it owns their terminals. The bench asks how pane working/blocked/idle and detach-without-dying compare with entwurf liveness and tmux, not whether to replace tmux. **Not adopted, not installed.** Matrix: [HERDR.md](HERDR.md). DHH-uses-it is inherited from GLG and unverified here.
+
+The fourth subject is [Ouroboros](https://github.com/Q00/ouroboros) — a popular Agent OS
+(Seed · Ledger · multi-runtime adapters). entwurf stays the floor; this bench asks how
+they carry a *task* ledger across harnesses and how they run long, against our *life*
+memory axis and `/goal`·`/heartbeat`. It is **not adopted and not installed**: no
+`setup:ouroboros`, no skill link, no live `ouroboros setup` (that command writes MCP into
+host settings this repo co-owns with entwurf). The matrix is [OUROBOROS.md](OUROBOROS.md).
 
 The first subject is [Hermes Agent](https://github.com/NousResearch/hermes-agent) — an independent runtime with its own gateway, state tree, cron, memory and skill generation. It is a **candidate under evaluation, not adopted infrastructure**: nothing about it is declared in `nixos-config`, and `setup:hermes` is not part of `setup`.
 
