@@ -1577,10 +1577,11 @@ Usage: ./run.sh <command> [args]
                               → nix GC 가 동적 링크 인터프리터를 지운 경우 등
 
 === 테스트 ===
-  test                        모든 테스트 (unit + integration)
-  test:unit                   유닛 테스트 (API 불필요)
-  test:integration            통합 테스트 (API 필요)
-  test:search "q"             라이브 검색 테스트
+  test                        모든 테스트 (unit + integration) — andenken 위임
+  test:unit                   유닛 테스트 (API 불필요) — andenken 위임
+  test:integration            통합 테스트 (API 필요) — andenken 위임
+  test:search "q"             라이브 검색 테스트 — andenken 위임
+  test:gate                   decision-gate lint (픽스처 + 있으면 실물; API 불필요)
 
 === 인덱싱 ===
   index:sessions [--force]    세션 인덱싱 (OpenRouter 8B / 4096d)
@@ -1686,6 +1687,10 @@ case "${1:-help}" in
     setup_hermes ;;
   update)
     update_repos ;;
+
+  # === this house (not andenken) ===
+  test:gate)
+    python3 "$SCRIPT_DIR/pi-extensions/decision-gate/test_gate_lint.py" ;;
 
   # === andenken (delegated) ===
   test|test:unit|test:integration|test:search)

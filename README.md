@@ -137,6 +137,8 @@ The four extensions added on 2026-08-07 do not contradict that. None of them cou
 
 #### `heartbeat` — the clock is the cheap half
 
+이 시계는 게이트(`decision-gate`)·`dm`과 한 세트다. 목적: **판단 근거를 찍지 말고 뒤져보게 하는 것.** 깨어난 턴이 기억축·시간축을 본인이 찾든 형제를 부르든 뒤지고, 근거가 있으면 한 걸음, 없으면 DM 한 통. 그게 힣의 자율주행 루프다.
+
 `/heartbeat 10m` arms a timer that wakes this session and runs one turn. Every harness has that much; Claude Code and Copilot ship it as "proceed if no answer" / autopilot, and GLG keeps those off for one reason — proceeding with no grounds. The refusal is not of the clock but of the blank: *"왜 내 기억도 안쳐다보고 무슨 근거로 진행을 하냐는거야"* (2026-09-09). We have the memory and time axes, so a woken turn can look, record what it found, and then move.
 
 So the tick prompt is the product, not the timer. Its step order is the contract: look up grounds → leave them where a reader who never opens the session can find them → take exactly one step → if there were no grounds, stop and say where you looked → and only then, if nothing needs attention, `HEARTBEAT_OK`. The silence token comes last on purpose. openclaw measured the inverse: 1330 heartbeats, 529 consecutive `NO_REPLY`, 6-8 tokens a turn — the prompt's own right answer arrived before any judgement did, and designed silence became indistinguishable from reflex silence from outside.
@@ -147,7 +149,7 @@ Two consequences worth knowing before using it. **It is off until a human types 
 
 `/heartbeat status` states both in one line each, and this section is where their reasoning lives. That split is deliberate: the panel is four lines total (state, instruction, the two facts) because a status view that wraps to ten rows stops being read, which would lose the very facts it was widened to carry.
 
-Still open, and deliberately not decided in the code: whether the grounds get dug inside the tick's own turn or by a sibling, and where the record lands ([#23](https://github.com/junghan0611/agent-config/issues/23), [#24](https://github.com/junghan0611/agent-config/issues/24)). The prompt names neither, so choosing later does not mean rewriting this.
+Who digs is closed (2026-09-09): this turn *or* a sibling — both allowed. The tick prompt names three hands: `semantic-memory` (memory), `timeline` (time), `entwurf_fresh_call` / `entwurf_v2` (sibling). How to narrow each axis lives in that skill's own doc. A miss pages GLG once via skill `dm` for this armed heartbeat, not every tick. That one-DM budget assumes earlier ticks (and that DM) are still in the session context; if compaction drops that span, the same miss can fire twice. Still open, and still not decided in the code: where the record lands ([#24](https://github.com/junghan0611/agent-config/issues/24) 열린 결정 2). The prompt requires the property, not the path.
 
 #### `background-bash` — why it exists
 

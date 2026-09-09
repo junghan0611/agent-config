@@ -6,6 +6,8 @@
  * memory and time axes for grounds, record them, take one step — and only then,
  * if there is nothing to do, go quiet.
  *
+ * 목적과 세트 관계(시계·게이트·dm)는 README.md § heartbeat.
+ *
  * That order is the whole point. The clock is the cheap half; every harness has
  * one. What GLG refuses in the autopilot/"proceed if no answer" features of
  * other harnesses is not the clock but proceeding with no grounds — "왜 내 기억도
@@ -184,18 +186,19 @@ export function shouldDropTick(ctx: Pick<ExtensionContext, "isIdle" | "hasPendin
  * contract out of a file and into `cron scratch` this week, which is evidence
  * that the seat moves. So require the property, not the location.
  *
- * It deliberately does not name *who* digs either. Whether the grounds are
- * fetched inside this turn or by a sibling is GLG's call, still open (#24).
+ * Who digs is closed (2026-09-09): this turn or a sibling — both allowed.
+ * Step 1 names three hands. Step 4 names dm, with a one-event budget so a miss
+ * does not page GLG on every tick.
  */
 export function tickPrompt(hb: Heartbeat, tick: number): string {
 	const lines = [
 		`Heartbeat tick #${tick} (${hb.schedule.expression}). The clock sent this, not the operator.`,
 		"",
 		"Follow these in order. Do not skip ahead to step 5.",
-		"1. Look up the memory and time axes for grounds bearing on the work in front of you. Recollection and assumption do not count as grounds.",
-		"2. Leave the grounds where a reader who never opens this session can find them — a commit, an issue comment, a note, whichever this repo already uses. Each one carries its source and its evidence state (measured / read at / inherited), and what it decides.",
+		"1. Look up grounds on the memory axis (skill semantic-memory) and the time axis (skill timeline). Recollection and assumption do not count. Dig in this turn, or ask a sibling (entwurf_fresh_call / entwurf_v2) — both are allowed. How to narrow each axis is in that skill's own doc.",
+		"2. Leave the grounds where a reader who never opens this session can find them — a commit, an issue comment, a note, whichever this repo already uses. A blocked decision uses the 판단축 frame §1–§6 (agent-config#24; lint: pi-extensions/decision-gate/gate_lint.py). Each ground carries source + evidence state (measured / read at / inherited) and what it decides.",
 		"3. Take exactly one step those grounds support. Then stop — do not chain a second step.",
-		"4. If you found no grounds, do not proceed. State what you looked for, where you looked, and stop there.",
+		"4. If you found no grounds, do not proceed. State what you looked for, where you looked, and stop. First miss for this armed heartbeat: one DM via skill dm (dm.sh --as <harness/model>) — one event, one message, never progress narration. Same miss already DMed this session: do not send another.",
 		"5. Only after 1-4: if nothing needs attention, reply exactly HEARTBEAT_OK and nothing else.",
 	];
 	if (hb.instruction) lines.push("", `Operator instruction for this heartbeat: ${hb.instruction}`);

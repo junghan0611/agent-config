@@ -252,6 +252,8 @@ Both are binary-hardcoded in Claude Code; `permissions.allow` cannot override ei
 
 ### Skills
 
+**Adding or removing a skill directory also edits `README.md`.** The § Skills paragraph carries a live count — *"N skills … the list below names M"* — and the category list names every skill individually. `M` = `ls -d skills/*/ | wc -l` (symlinked skills count; the glob matches them), and `N` = `M + 2` for `voscli` and `incidentcli`, which are linked from work repos and stay out of a public list. **Recompute; do not adjust the number by hand** — the count and the named list drift apart independently, and a number that still looks plausible is the failure mode. On 2026-09-09 that line went stale twice within hours: once when `dm` landed without being seated in the list, once when a sibling added and removed `skills/openclaw/` across two pushed commits (`362bcce`, `b18890a`). Neither author noticed; both were found by a later reader re-deriving the arithmetic.
+
 `./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, Codex, Antigravity, Copilot CLI (`~/.copilot/skills`), Kiro CLI (`~/.kiro/skills`, only when `kiro-cli` is installed), and the entwurf Claude plugin farm. Kiro is a skill-only surface, not an entwurf citizen. (The Gemini CLI legacy surface was retired 2026-08-06 — the binary is gone. `~/.gemini/` still belongs to Antigravity.) See [README § What's Here](README.md#whats-here) for categories.
 
 **Cortex Code is not in that list, and its paths are its own (2026-07-31).** It loads global skills from `$SNOWFLAKE_HOME/cortex/skills/` and project skills from `<cwd>/.claude/skills/` (Claude-compatible), plus bundled ones from inside the binary. Three facts an agent will otherwise misdiagnose:

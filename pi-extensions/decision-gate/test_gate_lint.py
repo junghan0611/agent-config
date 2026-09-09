@@ -79,6 +79,7 @@ expect("the good file is still reported ok", "ok   " in out, out)
 code, out = run()
 expect("no argument is a usage error, not a pass", code == 2, f"exit={code}")
 
+real_note = None
 if os.path.isdir(REAL):
 	real_files = [
 		os.path.join(REAL, "20260908-glg-loop-wording.md"),
@@ -98,12 +99,17 @@ if os.path.isdir(REAL):
 			out,
 		)
 	else:
-		print("skip real artifacts — files absent on this host")
+		real_note = "SKIP real artifacts — files absent on this host"
 else:
-	print("skip real artifacts — sibling repo absent on this host")
+	real_note = "SKIP real artifacts — sibling repo absent on this host"
 
 print()
+if real_note:
+	print(real_note)
 if failures:
 	print(f"{len(failures)} failed: {', '.join(failures)}")
 	sys.exit(1)
-print("all green")
+if real_note:
+	print("all green (fixtures only; real artifacts not checked)")
+else:
+	print("all green")
