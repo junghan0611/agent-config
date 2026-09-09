@@ -12,6 +12,13 @@
  * (Claude Code shape, e.g. 235.6K/1M 23%). Upstream footer.ts renders
  * "pct%/window" and shows no absolute figure at all. Keep this on re-sync.
  *
+ * Second deliberate divergence: the model id also sits on line 1, right after
+ * the git branch, and line 1 degrades from the left so it survives. Upstream
+ * keeps the model on the right of line 2 only, where a narrow pane truncates it
+ * away — under i3wm a tiled pi loses the one field that says which model is
+ * answering. Keep this on re-sync; it is a superset of upstream, so the right
+ * side of line 2 is untouched and the two can still be diffed line by line.
+ *
  * ACP accounting invariants:
  * - Keep this footer on ACP: pi's default footer aggregates only usage.input/output/
  *   cacheRead/cacheWrite, which ACP deliberately leaves at zero. Its blank cells would
@@ -37,7 +44,8 @@ const FLAGS = {
 	cost: true,               // $0.045 (sub)
 	contextPct: true,         // 235.6K/1M 23%  (used/window pct)
 	rightModel: true,         // model name + thinking level (+ provider) on the right
-	sessionName: true,        // • <session-name> after pwd/branch
+	pwdModel: true,           // model id on line 1, right after (branch)
+	sessionName: true,        // • <session-name> after pwd/branch/model
 	extensionStatuses: true,  // third line listing active extension statuses
 };
 
@@ -145,16 +153,47 @@ export default function (pi: ExtensionAPI) {
 					const home = process.env.HOME || process.env.USERPROFILE;
 					if (home && pwd.startsWith(home)) pwd = `~${pwd.slice(home.length)}`;
 					const [pwdHead, pwdTail] = splitCwd(pwd);
-					const litTail = `${HIGHLIGHT_ON}${pwdTail}${HIGHLIGHT_OFF}`;
-					let pwdLine = theme.fg("dim", `${device} ${pwdHead}`) + litTail;
 
 					const branch = footerData.getGitBranch();
-					if (branch) pwdLine += theme.fg("dim", ` (${branch})`);
-
+					const branchSeg = branch ? ` (${branch})` : "";
+					const modelSeg = FLAGS.pwdModel ? ` · ${ctx.model?.id || "no-model"}` : "";
+					let sessionSeg = "";
 					if (FLAGS.sessionName) {
 						const sessionName = ctx.sessionManager.getSessionName();
-						if (sessionName) pwdLine += theme.fg("dim", ` • ${sessionName}`);
+						if (sessionName) sessionSeg = ` • ${sessionName}`;
 					}
+
+					// The model id is the whole reason this line changed: i3wm tiles panes
+					// narrow, and truncateToWidth() cuts from the end, so appending the model
+					// last would delete exactly the field it was moved here to protect. So
+					// yield from the left instead — session name first (it is decoration),
+					// then the leading path, then the device name, and only then the
+					// highlighted tail. Branch survives because GLG's request puts the model
+					// beside it; model survives whenever branch+model themselves fit.
+					const keepWidth = visibleWidth(branchSeg) + visibleWidth(modelSeg);
+					const candidates: [string, string, string][] = [
+						[`${device} ${pwdHead}`, pwdTail, sessionSeg],
+						[`${device} ${pwdHead}`, pwdTail, ""],
+						[`${device} `, pwdTail, ""],
+						["", pwdTail, ""],
+					];
+					let [head, tail, session] = candidates[candidates.length - 1]!;
+					for (const candidate of candidates) {
+						if (visibleWidth(candidate[0]) + visibleWidth(candidate[1]) + visibleWidth(candidate[2]) + keepWidth <= width) {
+							[head, tail, session] = candidate;
+							break;
+						}
+					}
+					if (visibleWidth(head) + visibleWidth(tail) + keepWidth > width) {
+						tail = truncateToWidth(tail, Math.max(0, width - visibleWidth(head) - keepWidth), "…");
+					}
+
+					const pwdLine =
+						theme.fg("dim", head) +
+						`${HIGHLIGHT_ON}${tail}${HIGHLIGHT_OFF}` +
+						theme.fg("dim", branchSeg) +
+						(modelSeg ? theme.bold(theme.fg("text", modelSeg)) : "") +
+						theme.fg("dim", session);
 
 					const statsParts: string[] = [];
 					if (FLAGS.turnTimes) {

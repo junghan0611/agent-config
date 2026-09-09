@@ -123,7 +123,7 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 | `hide-providers.ts` | Keep skill-only keys (OpenRouter, HF, Google, Groq) out of pi so their 440 models stay out of the picker — see [MODELS.md](MODELS.md) |
 | `upstage-provider.ts` | Register Upstage Solar as an OpenAI-compatible provider |
 | `context.ts` | `/context` — show loaded extensions, skills, context usage |
-| `glg-footer.ts` | Footer signature |
+| `glg-footer.ts` | Footer signature — device + cwd + branch + **model id** on line 1, which degrades from the left so a narrow i3wm tile keeps the model name |
 | ~~`go-to-bed.ts`~~ | **Disabled 2026-09-08** — blocked every tool 00:00-04:59, so autonomous sessions and entwurf's overnight tests stalled. Kept as `go-to-bed.ts.disabled` |
 | `peon-ping.ts` | Sound notifications |
 | `gemini-image-gen.ts` | Gemini image generation (nanobanana) |
