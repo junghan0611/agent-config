@@ -7,6 +7,20 @@
 
 ## Unreleased
 
+## v2026.9.9 — 사람이 앞에 없는 동안 스스로 깨고, 끝나면 사람을 부른다
+
+이 컷의 세 물건은 같은 문제의 세 면이다 — **사람이 보고 있지 않은 시간**. 시계가 세션을
+깨우고(`heartbeat`), 게이트가 근거 없는 진행을 막고(`decision-gate`), 끝난 쪽이 사람을
+부른다(`dm`). 나머지는 사람이 다시 앉았을 때의 면이다 — footer가 어느 모델인지 말하고,
+`raw-paste`가 붙여넣기를 줄마다 제출하지 않는다.
+
+그리고 이 컷은 **자르기 전에 문서를 먼저 검수했다.** `dm`은 오늘 두 커밋으로 들어왔는데
+README·CHANGELOG·NEXT 어디에도 앉지 않았고, `home/AGENTS.md`는 c493395가 없애버린
+게이트를 여전히 규칙으로 들고 있었다. 교차검수 한 판(`openai-codex/gpt-5.6-terra`,
+2026-09-09)이 뒤의 것을 잡았다 — 목록 누락은 "안 적혔다"지만 그쪽은 **모든 하네스가 로드하는
+파일이 없는 관문을 있다고 말하는 것**이었다.
+
+
 ### Added
 
 * **`pi-extensions/heartbeat.ts` — 시계는 싼 쪽이고, 조건이 물건이다** (`/heartbeat 10m`).
@@ -47,6 +61,93 @@
   `pause` — 35초 동안 tick 이 4에서 멈춘 채 설정 유지 · `clear` — 상태줄 사라짐.
   파서·10초 하한·미룸 판정·지시문 순서는 일회용 스크립트로 31건 확인(`/tmp/hb-check.ts`,
   영구 테스트 파일 아님). pi 0.85.1 실타입으로 `tsc --noEmit` 통과.
+
+* **`skills/dm/` — 끝난 쪽이 사람을 부른다** (`ed52195`, `c493395`).
+  긴 일은 사람의 턴이 끝난 한참 뒤에 끝난다. 알릴 길이 없으면 방향이 뒤집혀서, 사람이 주기적으로
+  돌아와 확인해야 한다. 양식은 `DM <기기> <리포> <하네스/모델>` 다음 줄부터 본문이고 `--as`는
+  필수다 — GLG가 기기·리포·하네스 셋을 동시에 돌리므로 본문만 도착하면 **누가 말하는지 몰라서
+  답을 못 한다.** 그 셋이 좌표다.
+
+  배관은 하루 안에 한 번 갈아끼웠다. 첫 컷(`ed52195`)은 OpenClaw cron announce였다 — 모델 턴 0은
+  맞았지만 mini 방에 기계 알림이 사람 대화 사이에 쌓였고, 게이트웨이가 사는 기기에서만 돌았다.
+  `c493395`가 **GLG가 지금 안 쓰는 유휴 봇의 Bot API 직송**으로 바꿔 둘 다 없앴다: 어느 봇의
+  타임라인도 건드리지 않고, 어느 기기에서든 돈다. 토큰은 요청 URL에만 들어가고 stdout/stderr로
+  새지 않는다. 실측(oracle 2026-09-09): 두 봇 경로 `messageId=204`/`463`, 이 컷 작업 중 실사용
+  `messageId=206`.
+
+* **`pi-extensions/raw-paste.ts` — 마커 없는 붙여넣기를 줄마다 제출하지 않는다.**
+  Termux(폰) → ssh → tmux → pi 에서 여러 줄을 붙여넣으면 한 덩어리가 아니라 **줄마다 따로
+  제출됐다.** pi 설정 누락도 tmux 설정 누락도 아니었다 — pi 0.85.1
+  `packages/tui/src/stdin-buffer.ts`(444줄)는 bracketed paste 마커가 붙은 입력만 paste로
+  인정하고, 마커가 오지 않는 경로에는 대비책이 **없다**(`grep -rn 'rawPaste|unmarked'
+  packages/tui/src/` → 0 hit). 같은 pi 계열인 oh-my-pi는 같은 자리에 분류기를 갖고 있고
+  (L81 `RAW_PASTE_CLASSIFICATION_TIMEOUT_MS`, L91 `isRawMultilineBurst`, L478–505 후보 버퍼링),
+  그 커밋 `e6b3e1acf0`이 이 증상을 **"the original per-line submit bug"** 라 부르며 고쳤다(#5841).
+  그래서 같은 폰에서 omp만 멀쩡했다. prime-agent 0.8.1(385줄)에도 없다 — pi보다 오래된 파서다.
+
+  포크하지 않고 확장으로 막았다. pi 번들 안에 확장용 모듈 맵이 있고
+  (`"@earendil-works/pi-tui": dist_exports`) 그 exports에 `StdinBuffer`가 들어 있다 — 확장이
+  import 하는 클래스가 **러닝 TUI가 실제로 쓰는 그 클래스**라, 인스턴스가 이미 만들어진 뒤라도
+  프로토타입을 감싸면 그대로 먹는다. 막은 구멍 둘: ① ESC 없고 완결 줄바꿈이 2개 이상인 stdin
+  읽기를 paste로 승격, 한 붙여넣기가 여러 read로 쪼개지는 경우를 위해 첫 조각을 10ms 붙잡아
+  합친다(평범한 Enter는 창 만료 시 원래 경로로 그대로 재생 — 10ms 지연뿐). ② tmux가 paste 안
+  개행을 키 이벤트로 재인코딩하는 xterm 형식(`ESC[27;5;109~`) 복원 — pi는 csi-u 짝만 복원한다.
+  **코드포인트는 제어바이트가 아니라 글자다: CR은 13이 아니라 Ctrl+M = 109로 온다.**
+
+  검증은 스텁이 아니다. `pi-extensions/tests/raw-paste.test.ts` 8건을 **pi 실소스의 `StdinBuffer`
+  클래스**에 대고 돌려 ALL PASS(`bun run`). 라이브 pi에서 `send-keys -l $'first\rsecond\rthird'`
+  = 마커 없는 붙여넣기 그 자체 → 세 줄이 에디터에 **한 덩어리로 들어갔고 제출 0회, `$0.000`**
+  (패치가 없으면 여기서 모델 턴 둘이 나간다). `/rawpaste`가 A(마커 미도달)와 B(재인코딩) 중
+  어느 쪽이 발화했는지 카운터로 답한다. 상류가 이 구멍을 막으면 이 파일은 지운다 — PR은 내지 않는다.
+
+* **`pi-extensions/decision-gate/` — 근거 없이 계속하지 않기 (#24)** (`2b2c19a`, `3059803`).
+  담당자 턴이 `blocked`로 끝났을 때 계속 진행할 근거를 **기계로** 확인하는 조각. 여기 있는 것은
+  lint 하나와 그 테스트뿐이다 — 엔진도 시계도 원장도 없다. G1(항목마다 인용, 없으면 불명-블로킹)과
+  G3(§6이 §1의 날짜를 인용)을 검사하고 2026-09-08 실물 두 산출물을 픽스처로 같이 돌린다.
+  교차검수(`openai-codex/gpt-5.6-terra`, 2026-09-08)가 lint를 통과하면서 "근거 없이 계속"이
+  가능한 구멍 둘을 실제로 재현했고 둘 다 막았다. **G2(진행 경로에 push·금전·외부 발신 권한이
+  없을 것)는 아직 GLG 결정 대기**라 익스텐션은 시작하지 않았다 — NEXT RAIL 8이 그래서 열려 있다.
+
+* **omp task-agent 카탈로그를 이 집이 소유한다** (`3b089f7`, `52ba56f`).
+  entwurf가 OMP를 다섯 번째 garden backend로 받아들인 것은 GLG에게 **보이는 잠수함 하나**를
+  주기 위해서였다. 그런데 entwurf가 갖는 것은 주소·브리지·MCP·수신 확장이지 팀이 아니다. 아무도
+  팀을 안 가져서 팀이 없었다 — 정찰 셋을 동시에 던지면 같은 모델의 사본 셋이었다.
+
+### Changed
+
+* **footer 두 자리.** ① 절대 컨텍스트 토큰(`8320dee`): `9.2%/1.0M`은 퍼센트가 먼저 오고 절대값이
+  아예 없어서 거꾸로 읽힌다 → `235.6K/1M 23%`(쓴 값·창·퍼센트). `usage.tokens`가 이미 절대값을
+  주므로 퍼센트에서 유도하는 것이 없고 해상도가 온전하다. ② model id를 1줄로(`6ccceb7`): i3wm
+  타일이 좁아지면 `render()`가 오른쪽부터 자르는데 model id가 2줄 오른쪽에만 있어서 **어느 모델이
+  답하고 있는지가 제일 먼저 사라졌다** — GLG가 실제로 일하는 레이아웃에서.
+
+* **`pi/keybindings.json` — `alt+enter`를 줄바꿈으로.** `tui.input.newLine`에 추가하고, 그 자리
+  기본값이던 `app.message.followUp`은 `ctrl+q`(pi의 Windows 기본값)로 비켰다. 폰 터미널이
+  `shift+enter`를 못 보내기 때문이다. kitty 프로토콜이 꺼진 tmux에서 `alt+enter`는 `\x1b\r`로
+  도착하고 pi가 그것을 `alt+enter`로 읽는다(`keys.ts:1289`) — tmux `extended-keys` 설정 없이 된다.
+
+* **semantic-memory의 absent 게이트를 andenken에 돌려줬다** (`ad347ef` → `db33bd2`).
+  읽기 호출이 데이터셋을 만들던 문제 — 쓰기 가능한 디렉토리에서는 빈 `openclaw.lance`를 조용히
+  만들고 `count:0` + `exit 0`을 돌려줬다. 그건 밖에서 **"봇들이 아무 말도 안 했다"** 와 구별되지
+  않는다. 래퍼에 게이트를 세웠다가, andenken이 네 축 전부에 대해 소스에서 고치자(`1e61698`)
+  게이트를 넓히지 않고 **지웠다.** 계약 하나를 두 리포가 구현하면 어느 쪽이 참인지 아무도 모른다.
+
+* **`home/AGENTS.md`의 dm 규칙이 배관을 따라잡았다.** `c493395` 이후에도 "Gateway host only
+  (today: oracle) — elsewhere it exits 3"이 남아 있었다. 재측정: `dm.sh`에 host check는 **0건**
+  (`--machine` 라벨 기본값뿐), 종료코드는 `2`/`0`/`5`뿐이다(`skills/dm/scripts/dm.sh:61,83,111`).
+  없는 관문을 있다고 말하는 동안 오라클이 아닌 기기의 에이전트는 시도 자체를 하지 않았을 것이다.
+
+### Fixed
+
+* **`entwurf-peek`가 OMP 시민을 인정한다** (`13246f2`).
+* **transcript 출력 경로를 `~/org/transcript`로 옮겼다** (`b54ecc3`).
+* **`go-to-bed` 야간 가드를 껐다** (`4987c32`). `tool_call` 훅이 00:00–04:59에 `block:true`로
+  **모든 도구**를 막고 bash 확인 문구를 한 번 실행해야만 풀렸다. 사람이 앉아 있는 세션용 물건인데
+  시각만 보고 막아서, 새벽에 알아서 도는 작업이 시간 이야기만 하다 멈췄고 entwurf 테스트에서 새로
+  깨어난 pi 형제들이 서로 자라고만 하고 도구를 못 썼다. `go-to-bed.ts.disabled`로 이름만 바꿔
+  남긴다 — `run.sh`의 `pi-extensions/*.ts` 글롭에 안 걸린다.
+* **Claude Code 설정 churn 정리.** fullscreen tui / Scroll 키바인딩을 넣었다가 되돌렸고
+  (`3b84ae3` → `1418876`), artifact off · duration on 만 남겼다(`e1d8856`).
 
 ## v2026.9.4-wiring.1 — 선언과 실행이 갈린 자리를 하루에 다섯 번 만났다
 

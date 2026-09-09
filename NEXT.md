@@ -5,18 +5,16 @@
 
 # RAIL — 현재 좌표
 
-- [x] **1. 세션 코퍼스 읽기면 착지** — 두 스킬이 device-merged 코퍼스를 읽는다 (`0b01f00`, `v2026.9.2`)
-- [x] **2. 그 변경의 검수** — fixture(`01d518e`) · 실검수(`15e2385`) · 골든 반영(`df49e79`). 형제 공지는 GLG가 직접 부를 몫이라 여기서 닫는다
-- [x] **5. 대문·릴리즈 면 정렬** — README 읽기 가이드 + 담당자 문서 링크, compaction 키 제거, OMP 형제 정정, prime-agent 벤치 편입, `tag-release`가 실제 GitHub Release를 만든다 (`v2026.9.4`)
-- [x] **6. 배선이 갈린 자리 다섯** — forge 실물 이관 · `doctor:bins` provenance/stale · `CLAUDE.md` 배선 · emacs/denotecli 스킬 문서 · 임베딩 자리 명시 (`v2026.9.4-wiring.1`)
 - [ ] **3. entwurf-peek `trace` 파서 수선** ← PAUSED: `mux-placement` acceptance fixture 대기
 - [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
-- [x] **7. openclaw absent 계약 — wrapper 게이트 은퇴 (sorge#1 완료조건 9)** — 계약이 `andenken`으로 내려갔고 wrapper는 다시 얇아졌다
-- [ ] **8. 예상 답안 게이트 (#24)** ← CURRENT, **GLG 검토 대기**: 계약은 섰고 lint는 돌고, G2(권한 경계)를 (a)기계로 만들지 (b)정책으로 낮출지가 GLG 몫
-- [x] **9. 자기 깨우는 익스텐션 — 물건이 섰다 (#23+#24)** — `pi-extensions/heartbeat.ts` 446줄, `origin/main`(`9a3034e`·`c9f62af`·`6ccceb7`). `/heartbeat 10m <지시>` prime-agent 문법, 데몬·잡저장·새프로세스 0, **기본값 꺼짐**(`session_start` 가 disarm). 구현 omp 형제, 코디네이션·검수 여기. **G1 이 실환경에서 발화했다** — tick 이 기억축을 뒤진 뒤 *"확인 불가로 중단합니다"* + 어디를 봤는지 네 줄을 남기고 멈췄다(원문 #24 코멘트).
+- [ ] **8. 예상 답안 게이트 (#24)** ← **GLG 검토 대기**: 계약은 섰고 lint는 돌고, G2(권한 경계)를 (a)기계로 만들지 (b)정책으로 낮출지가 GLG 몫
 - [ ] **10. 다음 텀 — 이슈 넷 검토하고 닫기** ← CURRENT. 오늘 좌표 댓글을 다 달아뒀다: **#24**(게이트 절반 — `decision-gate` lint 미연결·캐는 손 미정·G2 여전히 정책) · **#23**(시계 채워짐, 세션 밖 상태전이·죽은 세션 깨우기·`LOOP.md` 열림) · **#21**(소비할 물건 생김, 지시문 한 장으로 좁아짐) · **#16**(재측정 결과 **아직 살아 있는 버그**, `run.sh:1775-1776` 한 줄 수정). 나머지 9개(#1·3·5·6·10·13·14·15·17·20)는 GLG 의 *"할일/급한일/안할일/나중에할일"* 분류를 한 판 잡고 해야 한다.
 
-현재 좌표: 1·2·5·6·7·9 완료 → **CURRENT 10(이슈 넷 검토·닫기)** → 3·4 보류(둘 다 남의 손 대기)
+> 닫힌 좌표 1·2·5·6·7·9는 `CHANGELOG.md`로 넘어갔다 (`v2026.9.2` · `v2026.9.4` ·
+> `v2026.9.4-wiring.1` · `v2026.9.9`). 번호는 재사용하지 않는다 — 지난 핸드오프가 부른
+> 이름이 계속 그 자리를 가리켜야 한다.
+
+현재 좌표: **CURRENT 10(이슈 넷 검토·닫기)** · 8은 GLG 답 대기 · 3·4 보류(둘 다 남의 손 대기)
 
 # NOW
 
@@ -24,12 +22,17 @@
   **무슨 근거로 계속하는가**에 답하는 계약. GLG 원문: *"무슨 근거로 계속 진행을 한다는 거지? 기억축
   시간축이 있는가 아닌가거든."* 계약 = [#24](https://github.com/junghan0611/agent-config/issues/24),
   자리 판정 = [#23 코멘트](https://github.com/junghan0611/agent-config/issues/23#issuecomment-5585516702)(별개 이슈, 겹치는 칸은 `decisions_requested` 하나).
-  시험소 조각 = `pi-extensions/decision-gate/` (lint + 테스트, `2b2c19a`·`3059803`, **푸시 없음**).
+  시험소 조각 = `pi-extensions/decision-gate/` (lint + 테스트, `2b2c19a`·`3059803`, `v2026.9.9`로 공개).
   교차검수 한 턴(`openai-codex/gpt-5.6-terra`)이 우회 둘을 재현했고 둘 다 막았다.
   **GLG가 볼 것: G2(진행 경로에 push·금전·외부 발신 권한 없음)를 (a) 기계로 만들 것인가
   — 푸시는 `git-hooks/pre-push`로 가능, 외부 발신은 방법을 못 찾았다 — (b) "정책+검수"로 낮추고
   자동 진행 범위를 줄일 것인가.** 익스텐션 자체는 그 답이 나온 뒤다("코드 넣으면 썩으니까").
-- **직전 Hot group:** 7이 닫혔다(아래 ACTIVE 첫 절). `v2026.9.4-wiring.1`로 배선 다섯 자리가
+- **직전에 닫은 것 (2026-09-09, `v2026.9.9`):** 사람이 앞에 없는 시간을 위한 세 물건이
+  한 컷에 들어갔다 — `heartbeat`(스스로 깨는 시계) · `decision-gate` lint(근거 없는 진행 차단,
+  G2는 아래 8번) · `dm`(끝난 쪽이 사람을 부른다). 여기에 `raw-paste`(마커 없는 붙여넣기)와
+  footer 두 자리. **자르기 전에 문서를 먼저 검수했고** 교차검수 한 판(`gpt-5.6-terra`)이
+  `home/AGENTS.md`가 이미 사라진 dm 게이트를 규칙으로 들고 있던 것을 잡았다.
+- **직전 Hot group:** 7이 닫혔다(`v2026.9.9`, CHANGELOG § semantic-memory). `v2026.9.4-wiring.1`로 배선 다섯 자리가
   닫혔고, 3·4는 둘 다 남의 손을 기다린다.
 - **Next:** #24의 G2 갈림길에 GLG 답이 오면 익스텐션 착수. 그 전에는 여는 것이 없다.
   나머지 두 후보 3(entwurf-peek `trace`)·4(#46)은 **둘 다 여기서 시작할 수 없다** — 각각 entwurf 쪽
@@ -60,29 +63,6 @@
   `git-hooks/gitleaks.toml`의 접두 룰은 **미결로 기록만** 했다 — 고치라는 지시가 없었다.
 
 # ACTIVE
-
-## [2026-09-06] openclaw absent 계약 — 하루 만에 세우고 지웠다 (sorge#1). CLOSED
-- **닫힘.** 아침에 wrapper preflight를 넣었고(`ad347ef`) 저녁에 지웠다 — 계약이 `andenken`
-  라이브러리로 내려갔기 때문이다. 이 집이 답을 소유하지 않고 **계약을 서술만** 한다.
-- **왜 지운 게 맞았나 (내가 실측):** 내 게이트는 `[[ ! -d … ]]` 하나뿐이라 **잔여물 케이스**
-  (디렉터리는 있고 테이블이 없음 — create-on-read가 남기는 모양)를 통과시켰다. andenken의
-  `describeAxisAbsence()`는 `hasDir && hasTable`을 본다. 한 계약을 두 리포에서 구현하면 갈리고,
-  **이미 갈려 있었고 내 쪽이 약한 쪽이었다.** 성능 논거도 죽었다(absent 경로 `0.438s`, 임베딩
-  호출도 라이브러리가 그 앞에서 막는다).
-- **전제였던 것 둘, 다 섰었다:** andenken
-  [`1e61698`](https://github.com/junghan0611/andenken/commit/1e61698) `fix(store): refuse to
-  create an axis on a read call` · nixos-config
-  [`55ef65d`](https://github.com/junghan0611/nixos-config/commit/55ef65d) 오라클 receipt.
-- **은퇴 후 실측 4케이스 (thinkpad, 2026-09-06):** absent openclaw · **잔여물(내 게이트가 놓쳤던
-  그 케이스)** · absent sessions → 셋 다 `state:"absent"` exit 4 · 아무것도 생성 안 됨. present
-  openclaw → `count:1` exit 0, 무변화.
-- **내 Q2 권고가 그쪽에 실렸다:** `state`는 단일값으로 두고 `host === authority`로 remedy를
-  가른다. 실측에서 확인 — thinkpad(=authority)에서는 *"this host is the openclaw authority but
-  has not harvested yet"* + `./run.sh sync:openclaw`, 소비자 호스트에서는 *"ask the authority"*.
-  같은 축, 다른 remedy. `state`는 앞으로 올 `stale`(완료조건 4)을 위해 비워뒀다.
-- **증거:** sorge#1 —
-  [반환](https://github.com/junghan0611/sorge/issues/1#issuecomment-5557358786) ·
-  [보강 §0-c](https://github.com/junghan0611/sorge/issues/1#issuecomment-5557476296).
 
 ## 남의 집 것 — 배정 전에는 건드리지 않는다
 - **sorge#1 완료조건 10 (C-15)** — 09-03 임베딩 제공자 오류의 원인·복구. 담당 미정. 단서는
