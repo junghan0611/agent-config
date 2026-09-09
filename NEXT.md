@@ -13,9 +13,9 @@
 - [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
 - [x] **7. openclaw absent 계약 — wrapper 게이트 은퇴 (sorge#1 완료조건 9)** — 계약이 `andenken`으로 내려갔고 wrapper는 다시 얇아졌다
 - [ ] **8. 예상 답안 게이트 (#24)** ← CURRENT, **GLG 검토 대기**: 계약은 섰고 lint는 돌고, G2(권한 경계)를 (a)기계로 만들지 (b)정책으로 낮출지가 GLG 몫
-- [ ] **9. 시계 판정 (#23)** ← **GLG 검토 대기**: prime-agent heartbeat는 daemon 전용이라 이식하지 않는다. 대신 **pi 익스텐션 하나가 유휴 세션을 스스로 깨워 턴을 돌리는 것을 실측했다**(2026-09-08 22:46 oracle, pi 0.85.1, 로그 `/tmp/hb-probe-receipt.log`). 빌리는 것은 정책 넷(defer·delivery mode·claim·소유권선), 켤지는 GLG 몫 — 켜면 이 집이 한 번도 안 한 "사람 없이 턴이 도는" 판이 열린다. [#23 코멘트](https://github.com/junghan0611/agent-config/issues/23#issuecomment-5586196721)
+- [ ] **9. 자기 깨우는 익스텐션 — 시계+게이트 한 물건 (#23+#24)** ← CURRENT. **2026-09-09 GLG가 자리를 정했다**: *"그 도구의 기본을 entwurf할게 아니라 우리 agent-config에서 해야하는거야"* · *"목적은 openclaw에 허트비트 같은거야"* · 조건은 *"내 기억을 아니까 찾아보고 선택 근거를 판단해서 남기고 진행"*. 세 출처를 합친다 — pi(세션 안 시계 실측 + `deliverAs`) · prime-agent(정책 넷) · openclaw(`HEARTBEAT.md` 한 장 + 빈 파일이면 호출 skip). **GLG 자리에 남은 것은 하나: 실제로 켜는 순간.** 나머지 세부는 21:44 *"알아서 진행해"* 로 담당자 몫. [#23](https://github.com/junghan0611/agent-config/issues/23#issuecomment-5595068041) · [#24](https://github.com/junghan0611/agent-config/issues/24#issuecomment-5595060600)
 
-현재 좌표: 1·2·5·6·7 완료 → **CURRENT 8(#24)·9(#23) 둘 다 GLG 검토 대기** → 3·4 보류(둘 다 남의 손 대기)
+현재 좌표: 1·2·5·6·7 완료 → **CURRENT 9(#23+#24 한 물건, 설계 착수 가능)**, 8은 9에 흡수 → 3·4 보류(둘 다 남의 손 대기)
 
 # NOW
 
