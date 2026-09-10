@@ -1,6 +1,6 @@
 ---
 name: semantic-memory
-description: "Meaning search over three separate axes — own pi/Claude sessions, the public garden, and OpenClaw bot memory — always naming which axis a hit came from. Use for past decisions, concept discovery, cross-lingual retrieval, and time/project session slices. Start with 5, choose, then open. Exact title/person → denotecli; whole-day truth → timeline/day-query. Triggers: semantic memory, session search, knowledge search, 의미 검색, 과거 결정."
+description: "Meaning search over three separate axes — own pi/Claude sessions, the public garden, and OpenClaw bot memory — always naming which axis a hit came from. For OpenClaw this is the sole semantic-query door, replacing native memory_search. Use for past decisions, concept discovery, cross-lingual retrieval, and time/project slices. Start with 5, choose, then open. Exact title/person → denotecli; whole-day truth → timeline/day-query. Triggers: semantic memory, session search, knowledge search, bot memory, memory_search, what did the bot remember, 의미 검색, 과거 결정."
 ---
 
 # semantic-memory
@@ -21,10 +21,35 @@ Calling one as a subcommand returns `{"error":"Unknown command"}`
 | Known time/project | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode recent` | Caller supplies a half-open ISO window; no embed/BM25/dictcli. |
 | Meaning in known slice | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode hybrid --limit 5` | Structured filters first, semantic rank second. |
 | Public-garden concept | `search-md "query" --limit 5` | Choose a document and open its path; `--full` widens snippets. |
-| What a bot said/remembers | `search-openclaw "query" --limit 5` · `--full` widens snippets · from the repo: `./run.sh search:openclaw "query"` | Name the axis and the hit's `agent` when you quote it. No dictcli expansion on this axis by design (andenken#12 open). ⚠️ Off thinkpad this returns `state:"absent"` with exit 4 — see § Absent axis. |
+| What a bot said/remembers | `search-openclaw "query" --limit 5` · `--full` widens snippets · from the repo: `./run.sh search:openclaw "query"` | Name the axis and the hit's `agent` when you quote it. No dictcli expansion on this axis by design (andenken#12 open). Check `updated_at`: a supplied reader copy can be stale; no copy returns `state:"absent"` with exit 4 — see § Absent axis. |
 | Exact title/tag/person | `denotecli search "name" --max 5` | Semantic neighbors never prove exact existence. |
 | Chosen session context | `search-sessions "query" --with-excerpt --excerpt-limit 1` | Surrounding turns; raise to at most 3. Whole session: `session-recap --session-file <file>` — the `file` is a corpus path and joins as-is. |
 | Health / maintenance | `status` (CLI) · then the `memory-sync` / `andenken-embed` **skills** | Check freshness; full maintenance is human-gated. |
+
+## OpenClaw bot policy — one semantic-query interface
+
+For OpenClaw bots, this skill is the **only** semantic-query interface across all
+three axes: choose `search-sessions`, `search-md`, or `search-openclaw` from the
+corpus the question asks for. `search-openclaw` is the harvested bot-memory and
+bot-session axis. The runtime's native `memory_search` tool is denied by OpenClaw
+tool policy, so a bot cannot enter its slow SQLite query path. This does **not**
+disable `memory.search`: OpenClaw continues embedding `memory` and `sessions`, and
+Andenken harvests those existing 4096d vectors without re-embedding.
+
+OpenClaw's workspace-skill registry and Claude's native-skill registry discover
+separate mounts. Whichever registry a bot's runtime uses must resolve this same
+skill directory. Its front-matter names `bot memory` and `memory_search` so a bot
+can select `semantic-memory` when asked what it or another bot remembers. If it is
+absent from that applicable registry, it is a deployment defect — not permission
+to call `memory_search` or to run harvest/index commands.
+
+The OpenClaw axis is a harvest, not live recall. Before relying on it for recent
+work, check result `updated_at`; when it is stale, directly search the current
+workspace files, e.g. `grep -Rni --include='*.md' -- "<terms>" memory/`. Label
+that evidence as a current workspace-file read, not as an OpenClaw harvest hit.
+Bots must not run harvest or index commands: those are authority-host operations.
+Carry `axis`, `agent`, `source`, `path`, and `updated_at` whenever a harvest result
+crosses a boundary.
 
 ## Three axes — say which one you searched
 
@@ -52,19 +77,11 @@ Rules that follow:
   Quote it as what the bot *keeps*, `source=sessions` as what was *said*.
 - Chunking differs (OpenClaw `chunkTokens:400`), so rule 8's "count documents"
   applies per axis with a different density.
-- **The openclaw track is local only — there is no push step — and never mixes
-  with the garden (md) axis by any path.** The harvest pulls to the authority
-  (thinkpad), imports, and stops: `openclaw.lance` exists **on the authority
-  host, thinkpad, and nowhere else** (andenken `INVARIANT.md` §7.2, "The OpenClaw harvest travels the
-  other way"; the only rsync in `scripts/export-openclaw.sh` pulls the export
-  *from* the bot host, and `scripts/sync-sessions.sh`'s publish moves
-  `sessions.lance` and the manifest only — read 2026-09-03). That is today's
-  fact, not a rule: if a replica ever needs this axis, the push has to be added
-  deliberately. **Until then, never describe this track as replicated** — a
-  sibling on oracle who reads "replica" will believe it has an index it does
-  not have. **Nor host-relatively**: this file is symlinked identically onto
-  every host, including into the OpenClaw container on oracle, so a phrase like
-  "on this machine" resolves to whoever is reading. Name thinkpad. md is the exported, public axis. The bot index holds GLG's whole
+- **The OpenClaw harvest never mixes with the garden (md) axis.** Thinkpad is
+  the harvest authority. An Oracle bot may read only a deliberately supplied
+  copy; it must never run `sync:openclaw` or claim the copy is current without
+  its `updated_at` receipt. If no copy is present, `state:"absent"` is the
+  answer — not an invitation to build one. The bot index holds GLG's whole
   world — family, health, money, code, in one place (measured 2026-09-03 by the
   andenken steward on a sample). GLG's ruling, same day:
   "가족은 하나야. 그러려고 합친 거야" — that is the point of harvesting it, not a
@@ -104,8 +121,7 @@ that receive it, or do not have it at all. An axis this host has no copy of is
 Exit code **4** — neither success (`0`) nor refusal (`1`), so it can never be
 confused with `{"count":0}`. Read it as *"this host has no copy"*, never as
 *"the bots never said that"*, and never as a permission problem to widen a mount
-for (sorge#1 boundary; oracle's `~/repos/gh` bind has been read-only since
-2026-08-12, `nixos-config` `ORACLE.md`).
+for (sorge#1 boundary).
 
 **andenken owns this, for all four axes** — `sessions`, `md`, `org`, `openclaw`
 (`store.ts` `describeAxisAbsence` / `EXIT_AXIS_ABSENT`, reached from `cli.ts`
@@ -143,8 +159,9 @@ one axis.
    kept, keyed by agent.
 2. **Freshness first.** Invoke the `memory-sync` **skill** (not
    `semantic-memory memory-sync` — that is not a subcommand) before recent-work
-   retrieval when the transcript may have grown. A stale absence is not a
-   ranking miss.
+   session retrieval when the transcript may have grown. OpenClaw bots do not
+   sync the harvest: they inspect `updated_at` and use current `memory/` files
+   when it is stale. A stale absence is not a ranking miss.
 3. **Start at 5.** MD keeps the same 40-candidate pool for limits up to 10, so 5
    lowers reading cost without shrinking findability. Widen only after reading
    the first screen and refining concrete names or terms.

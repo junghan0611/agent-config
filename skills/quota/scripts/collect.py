@@ -149,6 +149,13 @@ def collect_zai():
     return {"plan": data.get("level"), "gauges": gauges}
 
 
+CODEX_PLAN_LABELS = {
+    # WHAM's plan_type is an internal identifier, not the product name shown to GLG.
+    "prolite": "ChatGPT Pro (prolite)",
+    "plus": "ChatGPT Plus",
+}
+
+
 def collect_codex():
     oc = _q._load_json(_q.PI_AUTH)["openai-codex"]
     _, body = _q._get(
@@ -174,7 +181,8 @@ def collect_codex():
             window=window, window_seconds=secs or None, basis="rolling",
             active=(key == "primary_window"),
         ))
-    return {"plan": d.get("plan_type"), "gauges": gauges}
+    plan_type = d.get("plan_type")
+    return {"plan": CODEX_PLAN_LABELS.get(plan_type, plan_type), "gauges": gauges}
 
 
 def collect_claude():

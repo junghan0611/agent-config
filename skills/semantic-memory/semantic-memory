@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # andenken CLI — semantic memory for humans and AI agents
-# Calls the andenken repo's CLI via npx tsx.
+# Calls andenken's installed local tsx runner directly: npx adds package-manager
+# startup latency and can hit the container's corepack/cache permission boundary.
+# `andenken/run.sh setup` installs this pinned runner; do not replace it with npx.
 #
 # Deliberately thin. An absent axis is answered by andenken itself
 # (`store.ts` describeAxisAbsence -> cli.ts openAxisForRead, exit 4); this
@@ -12,5 +14,12 @@ set -euo pipefail
 [[ -f "${HOME}/.env.local" ]] && source "${HOME}/.env.local"
 
 ANDENKEN_DIR="${HOME}/repos/gh/andenken"
+TSX_CLI="${ANDENKEN_DIR}/node_modules/tsx/dist/cli.mjs"
 
-exec npx tsx "${ANDENKEN_DIR}/cli.ts" "$@"
+if [[ ! -f "$TSX_CLI" ]]; then
+  printf 'semantic-memory: andenken local runner is missing: %s\n' "$TSX_CLI" >&2
+  printf 'Run %s/run.sh setup, then retry.\n' "$ANDENKEN_DIR" >&2
+  exit 1
+fi
+
+exec node "$TSX_CLI" "${ANDENKEN_DIR}/cli.ts" "$@"

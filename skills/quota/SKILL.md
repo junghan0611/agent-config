@@ -1,6 +1,6 @@
 ---
 name: quota
-description: "다섯 개 모델 구독(rail)의 남은 쿼터를 한 번에 조회 — Copilot 프리미엄 요청 잔량, Z.AI GLM 5시간/주간 크레딧, Codex 5h/weekly 윈도우, Claude 5h/7d 윈도우, Grok SuperGrok weekly credit usage. GLG가 다음 분신을 어느 rail로 보낼지 결정할 때 쓴다. Use when: '쿼터', '얼마 남았', '남은 크레딧', '어디로 보낼까', 'quota', 'usage', 'how much is left', 'which rail', 'rate limit check'."
+description: "다섯 개 모델 구독(rail)의 남은 쿼터를 한 번에 조회 — Copilot 프리미엄 요청 잔량, Z.AI GLM 5시간/주간 크레딧, ChatGPT Pro/Codex의 plan-provided 윈도우, Claude 5h/7d 윈도우, Grok SuperGrok weekly credit usage. GLG가 다음 분신을 어느 rail로 보낼지 결정할 때 쓴다. Use when: '쿼터', '얼마 남았', '남은 크레딧', '어디로 보낼까', 'quota', 'usage', 'how much is left', 'which rail', 'rate limit check'."
 user_invocable: true
 ---
 
@@ -65,7 +65,7 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 | rail | 창 | 다음 리셋 (KST) | basis | 근거 |
 |---|---|---|---|---|
 | claude | 7d | 월 06:59:59 | `anchor` | 절대 시각만 옴. 5h/7d/7d-scoped 셋이 같은 경계 |
-| codex | 7d | 월 09:42 | `rolling` | `reset_after_seconds`가 계속 줄어듦 |
+| codex | plan-provided (현재 Pro: 7d primary) | 응답 `reset_at` | `rolling` | product tier가 아니라 응답 window이 정본 |
 | zai | 7d | 목 14:36 | `anchor` | `nextResetTime` 절대 시각 |
 | grok | 7d | 금 18:11 | `period` | `currentPeriod.start/end` 명시 |
 | copilot | 1mo | 매월 1일 09:00 | `calendar` | `quota_reset_date_utc` |
@@ -126,7 +126,7 @@ copilot은 **결제일이 아니라 달력 1일 00:00 UTC**(= KST 09:00)에 리�
 |---|---|---|
 | copilot | 프리미엄 요청 잔량/한도/리셋일 | `GET api.github.com/copilot_internal/user` |
 | zai | GLM Coding Plan Lite — 5시간 윈도우 + 주간 크레딧 풀 | `GET api.z.ai/api/monitor/usage/quota/limit` |
-| codex | ChatGPT plan — 5h/weekly(현재 7d) 사용률 | `GET chatgpt.com/backend-api/wham/usage` |
+| codex | ChatGPT Pro / Codex — endpoint가 준 primary·secondary window 사용률 | `GET chatgpt.com/backend-api/wham/usage` |
 | claude | Claude Code 구독 — `limits[]` (5h 세션 · 7d 전체 · 7d 모델별) | `GET api.anthropic.com/api/oauth/usage` |
 | grok | SuperGrok **주간** credit 사용률 (`creditUsagePercent`) | `GET cli-chat-proxy.grok.com/v1/billing?format=credits` |
 
@@ -174,8 +174,11 @@ access token 이 만료됐거나 401 이면 스크립트가 `https://auth.x.ai/o
      표시해 계속 보여준다** — 4분 지난 18%가 빈칸보다 낫다 (6시간 넘으면 버린다)
   응답의 `limits[]`가 정본이다 — `five_hour`/`seven_day`보다 넓고(모델별 scoped 창),
   `is_active`로 지금 물리는 창을 알려준다. 둘 다 없는 옛 응답용 폴백이 collect.py에 있다.
-- **codex**: `wham/usage` — codex CLI 자체의 60초 폴러가 때리는 것과 같은 엔드포인트라, 이게
-  깨지면 공식 CLI의 상태 표시도 같이 깨진다(카나리아 겸용).
+- **codex**: `wham/usage` — Codex CLI 자체의 60초 폴러가 때리는 것과 같은 엔드포인트라, 이게
+  깨지면 공식 CLI의 상태 표시도 같이 깨진다(카나리아 겸용). **창 길이는 요금제마다 달라질 수
+  있으므로 `plan_type`과 primary/secondary window를 응답 그대로 읽는다.** GLG의 ChatGPT Pro
+  승격(2026-09-10) 직후 receipt는 `plan_type:"prolite"`, `7d primary`, 0%였다; 화면은 이
+  내부 식별자를 `ChatGPT Pro (prolite)`로 보인다.
 - **zai**: 응답 필드(`unit`/`number`가 윈도우 길이를 인코딩하는 방식, `percentage`가 잔량이
   아니라 소진율이라는 것)는 Z.AI 문서 어디에도 없다 — 실제 응답과 벽시계를 대조해서 역추론한 것.
   앱 화면 리셋 시각은 베이징시(UTC+8) — quota.py KST가 정확한 한국 시각이고 앱보다 1시간 늦게 보인다(크레딧 숫자는 일치).
