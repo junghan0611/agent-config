@@ -12,7 +12,7 @@ theme:
   dark: dark-catppuccin
 setupVersion: 2
 statusLine:
-  preset: nerd
+  preset: default
   separator: slash
   contextLine: embedded
   transparent: true
@@ -29,3 +29,9 @@ tui:
 display:
   cacheMissMarker: true
   showTokenUsage: true
+  shimmer: classic
+  showTurnTime: true
+dev:
+  autoqaConsent: denied
+task:
+  showResolvedModelBadge: false
