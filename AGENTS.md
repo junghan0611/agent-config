@@ -222,8 +222,13 @@ Multi-source session indexing: `~/.pi/agent/sessions/` (`source: "pi"`) + `~/.cl
 비용은 위 § Cross-Repo Work Loop대로 여기가 진다. 부를 때는 그 SKILL.md를 **먼저 읽고** 라우팅
 표대로 간다. 명령만 베껴 치면 안 된다 — 티어 2와 3은 소스를 나르는 방식이 다르고(sessions는 corpus를
 `--global` 안에 싣고, md는 오라클에서 `git -C ~/repos/gh/notes pull`을 따로 해야 한다), 그 차이를
-모르면 replica에 orphan이 남는다. 전체 재구축은 대화형 `yes` 게이트라 에이전트가 넘지 못한다 —
-₩100K 사건의 잔여 안전장치이고, 넘으려 하지 마라.
+모르면 replica에 orphan이 남는다.
+
+**GLG가 노트북에서 “전체 임베딩”이라고 하면 full rebuild가 아니다.** 이는 현재 살아 있는 세 축을
+맞추는 명시 요청이다: sessions global + garden md + OpenClaw harvest, 그리고 각각의 Oracle publish.
+추측으로 명령을 조립하지 말고 `andenken-embed`의 **“usual ask”** 블록(현행 2 + 3 + 4)을 authority에서
+그 순서 그대로 실행하고, 각 축의 verify/publish receipt를 함께 보고한다. “full rebuild”를 명시한
+경우만 대화형 `yes` 비용 게이트로 간다 — 에이전트는 그 게이트를 넘지 못한다.
 
 Knowledge indexing: md direct embedding over `~/repos/gh/notes/content` → `~/repos/gh/andenken/data/md.lance` + `md-manifest.json`. Agents should treat this as the semantic knowledge surface; use `denotecli` for exact/raw `~/org` Denote access.
 

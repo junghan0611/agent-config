@@ -21,7 +21,7 @@ Calling one as a subcommand returns `{"error":"Unknown command"}`
 | Known time/project | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode recent` | Caller supplies a half-open ISO window; no embed/BM25/dictcli. |
 | Meaning in known slice | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode hybrid --limit 5` | Structured filters first, semantic rank second. |
 | Public-garden concept | `search-md "query" --limit 5` | Choose a document and open its path; `--full` widens snippets. |
-| What a bot said/remembers | `search-openclaw "query" --limit 5` · `--full` widens snippets · from the repo: `./run.sh search:openclaw "query"` | Name the axis and the hit's `agent` when you quote it. No dictcli expansion on this axis by design (andenken#12 open). Check `updated_at`: a supplied reader copy can be stale; no copy returns `state:"absent"` with exit 4 — see § Absent axis. |
+| What a bot said/remembers | `search-openclaw "query" --limit 5` · `--full` widens snippets | Invoke through this skill's `{baseDir}/semantic-memory`, not Andenken's `run.sh` alias. Name the axis and the hit's `agent` when you quote it. No dictcli expansion on this axis by design (andenken#12 open). Check `updated_at`: a supplied reader copy can be stale; no copy returns `state:"absent"` with exit 4 — see § Absent axis. |
 | Exact title/tag/person | `denotecli search "name" --max 5` | Semantic neighbors never prove exact existence. |
 | Chosen session context | `search-sessions "query" --with-excerpt --excerpt-limit 1` | Surrounding turns; raise to at most 3. Whole session: `session-recap --session-file <file>` — the `file` is a corpus path and joins as-is. |
 | Health / maintenance | `status` (CLI) · then the `memory-sync` / `andenken-embed` **skills** | Check freshness; full maintenance is human-gated. |
@@ -34,7 +34,10 @@ corpus the question asks for. `search-openclaw` is the harvested bot-memory and
 bot-session axis. The runtime's native `memory_search` tool is denied by OpenClaw
 tool policy, so a bot cannot enter its slow SQLite query path. This does **not**
 disable `memory.search`: OpenClaw continues embedding `memory` and `sessions`, and
-Andenken harvests those existing 4096d vectors without re-embedding.
+Andenken harvests those existing 4096d vectors without re-embedding. Credentials
+may come from `~/.env.local` or the process environment; the OpenClaw container
+uses its compose-injected process environment, so a missing `~/.env.local` is not
+a configuration failure.
 
 OpenClaw's workspace-skill registry and Claude's native-skill registry discover
 separate mounts. Whichever registry a bot's runtime uses must resolve this same
