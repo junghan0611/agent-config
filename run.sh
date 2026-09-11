@@ -160,6 +160,45 @@ ensure_link() {
   ok "$(basename "$link") → $target"
 }
 
+# Materialize an agent-config default as a regular file. Codex's config.toml is
+# shared at the file boundary: agent-config supplies only the initial non-Entwurf
+# defaults, while entwurf later adds/removes its own MCP/env + thread-title atoms.
+# A legacy link makes either writer's atomic replacement mutate the repo; break it
+# by copying its dereferenced bytes exactly. Once regular, leave it untouched so
+# both operator edits and entwurf-owned atoms survive future agent-config setup.
+materialize_codex_config() {
+  local source=$1 dest=$2
+  local parent
+  parent=$(dirname "$dest")
+  mkdir -p "$parent"
+
+  if [ -L "$dest" ]; then
+    local target bytes digest tmp
+    target=$(readlink "$dest")
+    bytes=$(wc -c < "$dest")
+    digest=$(sha256sum "$dest" | awk '{print $1}')
+    tmp=$(mktemp "$parent/.config.toml.materialize.XXXXXX") || {
+      fail "config.toml: mktemp failed"
+      return 1
+    }
+    cat "$dest" > "$tmp" || { rm -f "$tmp"; fail "config.toml: cannot read legacy symlink"; return 1; }
+    cmp -s "$dest" "$tmp" || { rm -f "$tmp"; fail "config.toml: legacy copy verification failed"; return 1; }
+    rm "$dest"
+    mv "$tmp" "$dest"
+    chmod 600 "$dest"
+    if [ "$(sha256sum "$dest" | awk '{print $1}')" != "$digest" ]; then
+      fail "config.toml: materialization digest changed"
+      return 1
+    fi
+    ok "config.toml: materialized legacy symlink ($target → regular; $bytes bytes, sha256 $digest preserved)"
+  elif [ ! -e "$dest" ]; then
+    install -m 600 "$source" "$dest"
+    ok "config.toml: materialized agent-config defaults (regular file)"
+  else
+    log "config.toml: existing regular file preserved (operator + entwurf co-owned)"
+  fi
+}
+
 # Merge a JSON keyset fragment into a destination settings file WITHOUT owning
 # the whole file. Used where another writer co-owns the same file by a disjoint
 # keyset — entwurf meta-bridge (Claude settings.json) or the pi runtime
@@ -1185,7 +1224,10 @@ setup_links() {
     [ -L "$HOME/.codex/skills/$old" ] && rm "$HOME/.codex/skills/$old"
     [ -d "$HOME/.codex/skills/$old" ] && rm -rf "$HOME/.codex/skills/$old"
   done
-  ensure_link "$SCRIPT_DIR/codex/config.toml" "$HOME/.codex/config.toml"
+  # Codex config is a regular file, not a symlink. The source contains only
+  # agent-config defaults; entwurf's setup later owns its MCP/env boundary and
+  # thread-title atom in this same file. Do not merge or rewrite an existing file.
+  materialize_codex_config "$SCRIPT_DIR/codex/config.toml" "$HOME/.codex/config.toml"
 
   # Gemini CLI (legacy) surface removed 2026-08-06 — the `gemini` binary is gone
   # from this machine. ~/.gemini/ itself STAYS: Antigravity lives there
@@ -1533,7 +1575,7 @@ setup_all() {
   echo "  Pi ext:   $(ls -d "$HOME/.pi/agent/extensions"/*.ts 2>/dev/null | wc -l) extensions"
   echo "  Pi skill: $(ls -d "$HOME/.pi/agent/skills/pi-skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged (keyset, not linked)' || echo 'absent'; })"
-  echo "  Codex:    $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo 'config not linked') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
+  echo "  Codex:    $([ -f "$HOME/.codex/config.toml" ] && { [ -L "$HOME/.codex/config.toml" ] && echo 'legacy symlink (run setup:links)' || echo 'regular config'; } || echo 'config absent') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
   echo "  Antigrav: $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo 'skills not linked') (settings + mcp: entwurf-owned)"
   echo "  Copilot:  $(readlink "$HOME/.copilot/skills" 2>/dev/null || echo 'skills not linked') (settings/plugins: entwurf-owned)"
   echo "  Kiro:     $(readlink "$HOME/.kiro/skills" 2>/dev/null || echo 'skills not linked') (optional; Kiro-owned settings/agents/sessions)"
@@ -1790,7 +1832,7 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Claude conf:  $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged keyset (real file, co-owned w/ entwurf)' || echo '❌ absent'; })"
     echo "  Claude skills:$(readlink "$HOME/.claude/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Claude status:  entwurf-owned (meta-bridge statusLine; no repo copy since 2026-09-01)"
-    echo "  Codex conf:   $(readlink "$HOME/.codex/config.toml" 2>/dev/null || echo '❌ not linked')"
+    echo "  Codex conf:   $([ -f "$HOME/.codex/config.toml" ] && { [ -L "$HOME/.codex/config.toml" ] && echo '⚠ legacy symlink (run setup:links)' || echo 'regular file (agent-config defaults; entwurf atoms preserved)'; } || echo '❌ absent')"
     echo "  Codex skills: $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) linked"
     echo "  Antigrav skills: $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Antigrav conf:   entwurf-owned (install-agy-statusline / doctor-agy-statusline)"

@@ -32,6 +32,16 @@ the source and `./run.sh setup:links` links each file into `~/.omp/agent/agents/
   co-owned live `~/.omp/agent/config.yml`; no agent-config installer links or writes it.
   `omp/config.yml` is a known-good repository reference snapshot for manual copy/paste.
 
+## [2026-09-11] Automatic role agents stay off
+
+OMP's built-in role set is not a hidden team for the visible parent. The measured live
+`~/.omp/agent/config.yml` and repository reference both set
+`task.disabledAgents = [reviewer, scout, security-reviewer, sonic, task]`; the installed
+configuration exposes no `researcher` role. These are upstream automatic roles and remain
+**off**: they can spend calls without a GLG-requested sibling. The named model profiles above
+are a separate, explicit catalog, not a default role set. This is the same admission rule for a
+new harness: disable any built-in reviewer/researcher-style role unless GLG asks for it.
+
 ---
 
 ## [2026-09-04] 정정 — C축은 이미 닫혔다. D축만 열려 있다
