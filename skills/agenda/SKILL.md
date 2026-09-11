@@ -109,8 +109,27 @@ A "near-miss" stamp is worse than no stamp. Underlying environment issues (path 
 - **No TODO/DONE here** — activity timeline is visibility, not task management
 - **Body strongly recommended** — the script allows empty body, but meaningful stamps should explain what happened
 - **`from:` auto-injected** — `AGENT_ID@device` (default: `pi@~/.current-device`)
+- **`AGENDA_FILE` env override** — point the stamp at one exact file. Default is unchanged: `find "*__agenda_<device>.org" | head -1`.
 - **Reverse datetree** — newest on top, agents read/write front only
 - **Tags**: `[a-z0-9]` only. No hyphens, no underscores
+
+## One device, two agenda files
+
+`head -1` does not promise which file it picks. That was harmless while each device had
+exactly one agenda file, and stopped being harmless on 2026-09-11 when oracle got a second:
+
+| File | Who stamps there |
+|---|---|
+| `20260227T160847--agent-agenda__agenda_oracle.org` | everyone — this is the shared oracle timeline, and the default still lands here |
+| `20260911T140523--b__agenda_oracle.org` | **B only** (the OpenClaw memento bot). Do not stamp here. |
+
+So: if you are not B, keep calling the script as before and nothing changes. If you own a
+dedicated file, name it explicitly rather than relying on find order:
+
+```bash
+AGENDA_FILE=~/org/botlog/agenda/20260911T140523--b__agenda_oracle.org \
+AGENT_ID=bbot agenda-stamp.sh "title" "b:memento" "oracle" --body-file /tmp/beat.md
+```
 
 ## Cross-Agent Requests
 

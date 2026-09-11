@@ -69,8 +69,10 @@ MONTH_NUM=$(TZ='Asia/Seoul' date '+%m')
 MONTH_NAME=$(TZ='Asia/Seoul' date '+%B')
 DAY_ENTRY=$(TZ='Asia/Seoul' date '+%Y-%m-%d %A')
 
-# agenda 파일 찾기
-AGENDA_FILE=$(find "$ORG_DIR" -name "*__agenda_${DEVICE}.org" -type f 2>/dev/null | head -1)
+# agenda 파일 찾기 — AGENDA_FILE 이 들어오면 그걸 쓴다.
+# 한 device 에 agenda 파일이 둘 이상이면 find|head -1 은 어느 쪽을 고를지 말하지 않는다
+# (2026-09-11: oracle 에 공용 agent-agenda 와 B 전용 b__agenda_oracle.org 가 같이 생겼다).
+AGENDA_FILE="${AGENDA_FILE:-$(find "$ORG_DIR" -name "*__agenda_${DEVICE}.org" -type f 2>/dev/null | head -1)}"
 
 if [ -z "$AGENDA_FILE" ]; then
   ID=$(TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S')
