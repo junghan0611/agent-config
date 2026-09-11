@@ -47,16 +47,6 @@ interface PersistedGoalState {
 	goal: Goal | null;
 }
 
-const CreateGoalParams = Type.Object({
-	objective: Type.String({
-		description:
-			"Required. The concrete objective to start pursuing. This starts a new active goal when no unfinished goal exists. If the previous goal is complete, it is replaced.",
-	}),
-	token_budget: Type.Optional(
-		Type.Number({ description: "Optional positive integer token budget for the new goal. Omit unless explicitly requested." }),
-	),
-});
-
 const UpdateGoalParams = Type.Object({
 	status: StringEnum(["complete", "blocked"] as const),
 });
@@ -540,7 +530,12 @@ export default function goalExtension(pi: ExtensionAPI) {
 	function queueContinuation(ctx: ExtensionContext): void {
 		const snapshot = currentGoalSnapshot();
 		if (!snapshot || snapshot.status !== "active") return;
-		if (continuationQueued || ctx.hasPendingMessages()) return;
+		if (continuationQueued) return;
+
+		// A message can arrive after the agent loop has observed an empty queue but
+		// before it emits agent_end. It is then pending here, yet this agent_end is
+		// the only opportunity to schedule the active goal's next turn. Queue after
+		// that message rather than silently abandoning the goal.
 
 		continuationQueued = true;
 		const message = {
@@ -790,35 +785,6 @@ export default function goalExtension(pi: ExtensionAPI) {
 		async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
 			const snapshot = currentGoalSnapshot();
 			const response = goalResponse(snapshot, ctx.sessionManager.getSessionId());
-			return {
-				content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
-				details: response,
-			};
-		},
-	});
-
-	pi.registerTool({
-		name: "create_goal",
-		label: "Create Goal",
-		description:
-			"Create a goal only when explicitly requested by the user or system/developer instructions; do not infer goals from ordinary tasks. Set token_budget only when an explicit token budget is requested. Fails if an unfinished goal exists; if the previous goal is complete, it is replaced.",
-		promptSnippet: "Create a new active long-running thread goal when explicitly requested",
-		promptGuidelines: [
-			"Use create_goal only when the user explicitly asks to create a long-running goal; do not infer goals from ordinary tasks.",
-			"Use update_goal with status complete only when the active goal is actually achieved and no required work remains.",
-			"Use update_goal with status blocked only when the strict blocked audit is satisfied.",
-		],
-		parameters: CreateGoalParams,
-		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-			if (goal && isUnfinishedGoal(goal)) {
-				throw new Error(
-					"cannot create a new goal because this thread already has an unfinished goal; complete it with update_goal or ask the user to clear or replace it",
-				);
-			}
-			setGoal(params.objective, params.token_budget);
-			persist("set");
-			updateStatus(ctx);
-			const response = goalResponse(currentGoalSnapshot(), ctx.sessionManager.getSessionId());
 			return {
 				content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
 				details: response,

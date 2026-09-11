@@ -1625,6 +1625,7 @@ Usage: ./run.sh <command> [args]
   test:search "q"             라이브 검색 테스트 — andenken 위임
   test:gate                   decision-gate lint (픽스처 + 있으면 실물; API 불필요)
   test:decision-gate          decision-gate 익스텐션 회귀 — #24 G2 + 실물 pi 로드 스모크 (API 불필요)
+  test:goal                   goal continuation lifecycle 회귀 (API 불필요)
 
 === 인덱싱 ===
   index:sessions [--force]    세션 인덱싱 (OpenRouter 8B / 4096d)
@@ -1740,6 +1741,8 @@ case "${1:-help}" in
     # 통과하던 자리가 2026-09-09 실물에서 셋 나왔다 — #24 코멘트.
     bun run "$SCRIPT_DIR/pi-extensions/tests/decision-gate.test.ts" &&
       bun run "$SCRIPT_DIR/pi-extensions/tests/decision-gate.load.test.ts" ;;
+  test:goal)
+    bun run "$SCRIPT_DIR/pi-extensions/tests/goal.test.ts" ;;
 
   # === andenken (delegated) ===
   test|test:unit|test:integration|test:search)
