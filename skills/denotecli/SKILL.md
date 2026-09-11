@@ -16,8 +16,9 @@ Binary: `{baseDir}/denotecli`. All output is JSON. Default --dirs: ~/org.
 | `search-headings` | QUERY [--level N] [--tags T] [--max N] | Find org headings across all files |
 | `read` | ID [--offset N --limit N] | Read note content + frontmatter + links |
 | `read --outline` | ID [--level N] | Heading structure with line numbers → use for offset/limit |
-| `day` | DATE [--years-ago N] [--days-ago N] | Journal/diary/notes for a date (`notes_created` + `notes_modified`) |
-| `timeline-journal` | --month YYYY-MM | Monthly journal activity overview |
+| `day` | DATE [--years-ago N] [--days-ago N] | Legacy date projection: journal/diary/notes (`notes_created` + `notes_modified`) |
+| `agenda` | [DATE] [--week] \| --from YYYY-MM-DD --to YYYY-MM-DD | Detailed day/week journal body + agent stamps; `--from`/`--to` are paired and selectors are exclusive |
+| `timeline-journal` | --month YYYY-MM | Monthly journal activity overview (count projection) |
 | `graph` | ID | Outgoing + incoming links (backlinks) |
 | `tags` | [--top N] [--pattern PAT] [--suggest] | Tag stats, duplicate detection |
 | `keyword-map` | [QUERY] | Korean↔English keyword mapping |
@@ -33,6 +34,9 @@ Binary: `{baseDir}/denotecli`. All output is JSON. Default --dirs: ~/org.
 {baseDir}/denotecli read 20250314T152111 --outline --level 2
 {baseDir}/denotecli read 20250314T152111 --offset 40 --limit 30
 {baseDir}/denotecli day --years-ago 3
+{baseDir}/denotecli agenda 2026-09-11
+{baseDir}/denotecli agenda 2026-09-11 --week
+{baseDir}/denotecli agenda --from 2026-09-07 --to 2026-09-13
 {baseDir}/denotecli graph 20250314T125213
 {baseDir}/denotecli tags --suggest
 {baseDir}/denotecli keyword-map "이맥스"
@@ -67,8 +71,16 @@ For date queries: `day` + gitcli + lifetract = full daily view (see day-query sk
 ## Output Contract
 
 - **Empty result = `[]`** (JSON array), never `null`. Applies to all search-like commands (`search`, `search-content`, `search-headings`, `tags`, `keyword-map`, `graph` outgoing/incoming, `read --outline`, `rename-tag`, `day` entries). Safe to call `len(json.load(...))` directly. New in `e0a6c52` (2026-05-12).
-- **Unknown flag = fatal.** `error: unknown flag: --X` → exit 1. No silent ignore. Typos like `--tag` (vs `--tags`) or `--limit` (vs `--max`) are caught immediately. Applies to all 11 commands. New in `e0a6c52`.
+- **Unknown flag = fatal.** `error: unknown flag: --X` → exit 1. No silent ignore. Typos like `--tag` (vs `--tags`) or `--limit` (vs `--max`) are caught immediately. Applies to all 12 commands. New in `e0a6c52`.
 - **Header-aware indexing.** `search` and `--tags` index `#+title:` and `#+filetags:` headers (top 30 frontmatter lines) **in union with** the filename slots. Previously filename-only — 6.4% of corpus (192/3,505 notes) had header-only words that silently missed. Each result carries `header_title` field when present. Added 2026-05-12.
+
+### Agenda / `day` compatibility
+
+`agenda` returns `{from, to, days}`. The inclusive `days` range is date-ascending and retains empty days as `journal: null`, `stamps: []`; agent stamps live only in `days[].stamps`.
+
+`day.journal.entries[]` keeps `time`/`text` and additively carries `todo`, `body`, and `blocks`; `day.datetree` remains one legacy `{source, entries}` object or `null` (never an array). Do not merge stamp data into `day` or change `timeline-journal`.
+
+The canonical public schema, source selection, and exclusions live in denotecli [`README.md` § `denotecli agenda`](https://github.com/junghan0611/denotecli#denotecli-agenda--하루주간-본문-payload); implementation invariants live in its [`AGENTS.md` § `agenda`](https://github.com/junghan0611/denotecli/blob/main/AGENTS.md#agenda--하루주간-본문-문-sorge20). Link there rather than copying field-level schema here.
 
 ### Modification time — `date` is not it
 
