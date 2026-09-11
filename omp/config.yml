@@ -35,3 +35,12 @@ dev:
   autoqaConsent: denied
 task:
   showResolvedModelBadge: false
+  # OMP's role agents spend calls without an explicit sibling-to-sibling request.
+  disabledAgents:
+    - reviewer
+    - scout
+    - security-reviewer
+    - sonic
+    - task
+browser:
+  headless: true
