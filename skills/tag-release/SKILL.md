@@ -43,7 +43,7 @@ Rules:
    - Base `TAG=vYYYY.M.D`; for “앗차”/same-day follow-up use `vYYYY.M.D-fix.1`, `vYYYY.M.D-cleanup.1`, etc.
 2. **Find baseline**
    - `BASELINE=$(git describe --tags --abbrev=0 2>/dev/null || true)`.
-   - If listing tags, use `git tag --sort=-version:refname` (never lexical `sort`).
+   - If listing tags, use `git tag --sort=-version:refname` (never lexical `sort`) to avoid numeric-date misordering. With multiple free-form same-day suffixes, this is not publication order or stable release chronology; consumers needing a total order must carry an explicit ordered identifier.
 3. **Collect changes**
    - Exact: `git log ${BASELINE:+$BASELINE..}HEAD --oneline`.
    - Optional: `gitcli log` from the baseline date for human timeline only.
