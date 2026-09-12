@@ -1,6 +1,6 @@
 ---
 name: harness-bench
-description: "agent-config 루트의 대문자 하네스 벤치(HERMES / OMP / OUROBOROS / HERDR / PRIME / YEGGE) 상태를 보고, 리서치 뒤 그 문서를 갱신한다. 채택이 아니다. 스킬 주입·라이브 setup 금지. 트리거: '하네스 리서치', 'HERMES', 'OMP.md', 'OUROBOROS', 'HERDR', 'PRIME', 'prime-agent', 'YEGGE', '벤치', '대문자 문서', 'harness bench', 'harness research'."
+description: "하네스 리서치 장기 관측소 — agent-config 루트의 대문자 하네스 문서(HERMES / OMP / OUROBOROS / HERDR / PRIME / YEGGE)를 상태·증거로 갱신한다. 채택·성능·좋고 나쁨 판정이 아니다. RLM 기억, native 형제 delivery/UX 대칭성, 역할이 아닌 다른 학교 모델과의 협업, 스펙 전 탐색 대화를 본다. 스킬 주입·라이브 setup 금지. 트리거: '하네스 리서치', 'HERMES', 'OMP.md', 'OUROBOROS', 'HERDR', 'PRIME', 'prime-agent', 'YEGGE', '벤치', '대문자 문서', 'harness bench', 'harness research'."
 user_invocable: true
 ---
 
@@ -15,6 +15,32 @@ Repo: `~/repos/gh/agent-config`. The files are the subjects. This skill does not
 | update | after research | append a dated `## [YYYY-MM-DD]` heading to that `NAME.md`. Do not rewrite |
 
 `status` lists every root `ALLCAPS.md` bench/observation file with its kind and latest 상태 date. `show` prints the `## 상태` (or first dated) section.
+
+## Research center (GLG)
+
+This is a living, periodic observation loop, not a one-off introduction scrape or a
+procurement scorecard. Preserve prior receipts, upstream responses, rejected routes,
+and unresolved questions so the next research turn resumes the inquiry rather than
+reconstructing it.
+
+Do **not** ask whether a harness is good/bad, superior/inferior, or the one to select.
+That verdict is not the research question. Vendor surfaces can differ, and a missing
+first route may have a supported alternative or an unsafe workaround; record the
+boundary and evidence before drawing any capability conclusion.
+
+Keep these four lenses together:
+
+1. **RLM / long-lived memory.** How does the harness preserve, retrieve, and renew
+   context across long-running loops and runtime boundaries?
+2. **Delivery and symmetric UX.** Can a native, already-born peer be addressed as a
+   sibling without depending on GUI/web control, while preserving equivalent calling
+   experience across harnesses? This is not a performance benchmark.
+3. **Calling a peer.** Do not reduce a sibling to a named internal role such as
+   `reviewer` or `tasker`. Keep the other model/school visible and ask it to help the
+   sibling that called it; creation and addressing are different capabilities.
+4. **Discovery-first dialogue.** Do not demand an early specification, interrogate
+   GLG for choices, or turn an unknown into a menu. Investigate with GLG, bring back
+   measured/read evidence and newly visible possibilities, and let the shape emerge.
 
 ## Viewpoint (GLG)
 
