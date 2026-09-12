@@ -423,3 +423,65 @@ omp worktree                   # 격리 워크트리 목록 (~/.omp/wt)
 ```
 
 세션 원본은 `~/.omp/agent/sessions/*.jsonl`.
+
+---
+
+## [2026-09-12] GitHub issue wake — RobOMP는 입구이고, Codex가 아니다
+
+`sorge#22`의 OMP 관측. 소스는 `~/repos/3rd/pi/oh-my-pi`의 고정 checkout이며,
+이 turn에는 설치·기동·설정 변경을 하지 않았다.
+
+RobOMP에는 이미 GitHub 사건의 앞면이 있다:
+
+```text
+GitHub webhook → HMAC verify → repo allowlist → SQLite delivery dedup
+→ issue별 직렬 queue/worktree → omp --mode rpc
+```
+
+근거: `python/robomp/AGENTS.md:9-17` — `/webhook/github` HMAC, `X-GitHub-Delivery`
+dedup, issue-key 직렬화, `omp --mode rpc`; `docs/user-facing-packages.md:14-23`.
+
+그러나 이것을 `sorge#22`의 Codex 사건 memento와 같다고 읽으면 안 된다.
+
+- `issues.opened|reopened`만 `triage_issue`로 넣고 `edited|labeled`는 skip한다
+  (`python/robomp/src/github_events.py:322-341`).
+- per-issue JSONL이 있으면 `--continue`로 같은 OMP reasoning을 잇는다
+  (`python/robomp/src/worker.py:442-448,592-593`). 매 사건 fresh가 아니다.
+- 기본 계약은 label-only가 아니라 comment/PR/auto-close까지 갈 수 있다
+  (`python/robomp/AGENTS.md:5-7`).
+- Oracle의 OMP 관측 자체가 인증 없음이다 (`OMP.md ## 상태`, 2026-08-23).
+
+따라서 이 실측은 "새 GitHub receiver를 곧바로 세우라"도, "RobOMP를 채택하라"도
+아니다. **이미 있는 ingress를 그대로 쓸지, Codex가 자기 사건면을 낼지는 별도의
+하네스 경계 결정**이다. RobOMP를 Codex wake에 쓰려면 OMP triage 물건을 그대로
+기동하는 것이 아니라, fresh·label-only·`edited|labeled`·Codex subprocess라는 다른
+계약으로 명시적으로 바꾸어야 한다.
+
+## [2026-09-12] RobOMP 도입 — OMP의 물건, 이 집의 운영면
+
+GLG 판정: GitHub 사건을 받는 새 Codex adapter를 만들지 않는다. **RobOMP를
+신뢰할 입구로 쓰고**, 우리 운영 방식은 그 위의 좁은 profile/task-kind로 만든다.
+HMAC·allowlist·durable queue·issue 직렬화·worktree·OMP RPC를 다시 만들지 않는다.
+
+`RobOMP` 구현은 **OMP 전용**이다. `omp --mode rpc`, OMP runner image, OMP host tool
+binding을 직접 든다. 반면 webhook 검증·allowlist·delivery dedup·per-issue
+serialization이라는 모양 자체는 일반적이다. 그러므로 sorge의 범용 루프나
+agent-config의 두 번째 하네스로 복제하지 않는다.
+
+| 자리 | 소유 |
+|---|---|
+| `oh-my-pi/python/robomp`와 그 테스트 | OMP 코드. 우리 변경은 이후 개인 fork에서 upstream과 갈라지는 최소 diff로 든다 |
+| `agent-config` | 도입 profile, 모델·권한·secret activation 조건, 운영 receipt. **RobOMP 소스 사본은 두지 않는다** |
+| `sorge` | `LEDGER.md` 대상 join, board vocabulary, lifecycle 판단. GitHub receiver·queue를 소유하지 않는다 |
+
+현재 RobOMP의 triage 계약은 그대로 sorge profile이 될 수 없다. 후속 사건의
+`--continue`, comment/PR/auto-close host tools, additive-only labels, `labeled` wake
+부재와 delivery-id dedup은 각각 판단해야 할 운영 경계다. profile은 이들을
+independent patch가 아니라 한 안전문으로 다룬다.
+
+activation 전제도 코드와 섞지 않는다: target allowlist와 LEDGER join, GitHub webhook
+HMAC secret, bot PAT의 최소 권한과 gh-proxy 격리, model gateway, fixture delivery
+증거. PAT는 password store에만 두며 문서·repo·agent transcript에 넣지 않는다.
+
+이 기록은 RobOMP를 설치했다는 뜻이 아니다. 도입의 정본은 OMP 코드/테스트와 이
+운영 계약의 짝이며, 실제 기동은 GLG가 activation 전제를 확인한 뒤에만 한다.
