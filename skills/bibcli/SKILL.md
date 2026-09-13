@@ -76,6 +76,14 @@ cd ~/repos/gh/zotero-config
 {baseDir}/bibcli show "UNIQUE-KEY" --dir ~/sync/org/resources/bib
 ```
 
+**컨테이너(OpenClaw gateway)에서:** `ZOTERO_TRANSLATION_SERVER`(호스트 TS)와
+`ZOTERO_BIB_DIR`(/home/junghan/org/resources/bib)가 환경에 이미 박혀 있다 —
+`cd ~/repos/gh/zotero-config && ./run.sh save/pin` 그대로 쓰면 된다.
+`server start/stop/restart`는 원격 모드에서 정직하게 거부된다: Translation Server는
+호스트 자산(oracle: systemd unit `translation-server.service`, 부팅 시 자동)이며
+컨테이너가 중복 실행하면 안 된다. `bib sync`의 flock(.sync/.lock)은 호스트와 같은
+inode를 공유하므로 상호배제가 그대로 성립한다.
+
 **금지:** `save`만 하고 키·분류를 다음 세션으로 미루기.  
 **금지:** 책 최종 키를 `book-…` 폴백으로 남기기.
 
