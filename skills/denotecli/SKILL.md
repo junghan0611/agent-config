@@ -82,6 +82,45 @@ For date queries: `day` + gitcli + lifetract = full daily view (see day-query sk
 
 The canonical public schema, source selection, and exclusions live in denotecli [`README.md` § `denotecli agenda`](https://github.com/junghan0611/denotecli#denotecli-agenda--하루주간-본문-payload); implementation invariants live in its [`AGENTS.md` § `agenda`](https://github.com/junghan0611/denotecli/blob/main/AGENTS.md#agenda--하루주간-본문-문-sorge20). Link there rather than copying field-level schema here.
 
+### Empty day vs unopened root — ask a control day, never the target day
+
+`agenda` returns `journal: null, stamps: []` for **two different situations**, and the JSON
+looks identical:
+
+1. **The day really is empty.** The weekly journal is **not generated** — GLG opens each week
+   by hand (his ruling, 2026-09-14). So a Monday before he starts the week has no journal at
+   all, and that is the normal state, not a fault. Never report it as an anomaly.
+2. **The root was never reached.** With `HOME` unset, `denotecli agenda 2026-09-13` cannot
+   resolve the org root and still **exits 0 with a well-formed empty day** — on a date that
+   actually carries 21 stamps (measured 2026-09-14 01:4x).
+
+So **never infer tool health from the day you are asking about.** Before you write "there is
+nothing on that day", send one control query at a pinned past date that is known to carry rows:
+
+```bash
+denotecli agenda 2026-09-11 | jq '.days[0].stamps | length'   # 34 normally, 0 if the root is unreachable
+```
+
+Measured 2026-09-14 06:5x: `34` with `HOME` set, `0` under `env -u HOME`. Rule:
+
+| control | target day | read it as |
+|---|---|---|
+| rows | rows | the day's real content |
+| rows | empty | the day **is** empty — say so plainly |
+| empty | anything | **UNKNOWN** — the tool did not open; do not report absence |
+
+This is the same discipline as the unknown-flag rule above, one level up: there the risk was a
+typo'd flag returning empty output, here it is an unreachable root. A false UNKNOWN costs a
+sentence; a false "nothing there" becomes the next agent's premise.
+
+**The HTTP door has a window; the CLI does not.** `agenda.junghanacs.com/api/agenda?date=` is the
+same board pre-merged (Human · B · Agent rows on one time axis, `source` / `time` / `tags` /
+`text`; ~109ms from a container) but it carries a **rolling window of about two weeks** and
+answers anything older with `entries: []` — not an error (measured 2026-09-14 07:1x: `2026-08-30`
+→ 0, `2026-08-31` → 44, while the local org holds both). A control day inside the window proves
+the door opened; it does **not** prove the door can see the date you asked for. For anything
+older than ~2 weeks, use the CLI, or only believe a zero when both doors agree on it.
+
 ### Modification time — `date` is not it
 
 `date` is the note's **creation** stamp (from its Denote id), so comparing it against a commit
