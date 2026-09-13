@@ -84,7 +84,7 @@ cd ~/repos/gh/zotero-config
 | URL / 유형 | 스타일 포인트 | citationKey | pin 자동 컬렉션 (Unfiled 탈출) | 로컬 bib |
 |---|---|---|---|---|
 | **책** yes24 등 | 제목 파이프 제거, `저`/`역` creators, date·ISBN·publisher·abstract | KDC 감각 `001.3-김74ㅁ` (동저자 `search` 참고, **유일**) | `Book` + `000-정보`…`900-역사` (키 앞자리) | `Book.bib` |
-| **유튜브 / 영상** | 제목 정리, 채널→author, date | `…` 기존 영상 패턴 또는 save 직후 키 개선 | `Category → Video` (itemType) | `Video.bib` |
+| **유튜브 / 영상** | 제목 정리, 채널→author, date | `…` 기존 영상 패턴 또는 save 직후 키 개선 | **`fileUnder: "Video"` 명시** | 보통 `Online.bib`* |
 | **블로그** | 제목·author·date | `blog-…` 또는 개선 키 | `Category → BlogPost` | `Online.bib` |
 | **일반 웹** | 제목 정리 (사이트 접미 제거) | `web-…` 또는 개선 키 | `Category → @Web` | `Online.bib` |
 | **위키** | 표제어 정리 | `wiki-…` | `Category → Wikipedia` | `Reference.bib` |
@@ -92,9 +92,27 @@ cd ~/repos/gh/zotero-config
 
 컬렉션은 `pin`이 **자동**으로 넣는다 (로컬 type-split bib의 역방향).
 
-- 책: citationKey가 `0`–`9`로 시작 → Book + N00  
-- 비책: Cloud `itemType` → Category 리프  
-- 덮어쓰기: `fileUnder: "Video"` / `collections: ["…"]` / `noCollections: true`
+- 책: **KDC 모양** `DDD(.D…)-저자기호` citationKey만 → Book + N00. 숫자 접두사만인 키는 책이 아니다.
+- 비책: Cloud `itemType` → Category 리프
+- YouTube는 Translation Server가 `youtu.be`와 canonical URL 모두 `webpage`로 낼 수 있다.
+  그러므로 payload에 **`fileUnder: "Video"`를 명시**해 Cloud 컬렉션을 Video로 넣는다.
+  렌더러는 itemType 기준이므로 webpage는 정직하게 `Online.bib`에 남는다; `Video.bib`는
+  `videoRecording`/film/tvBroadcast만이다.
+- 덮어쓰기/수선: `fileUnder: "Video"` / `collections: ["…"]` /
+  `removeCollections: ["…"]` (지정한 기존 컬렉션만 제거) / `noCollections: true`
+
+*YouTube의 Cloud 컬렉션 Video와 로컬 `Video.bib`는 같은 분류 축이 아니다. 전자는
+`fileUnder`가 정하는 사람용 정리이고, 후자는 Zotero `itemType` 기반 렌더 결과다.
+
+YouTube pin 예시:
+
+```bash
+./run.sh pin --sync --json '{
+  "zoteroKey": "FROM_SAVE",
+  "citationKey": "VIDEO-KEY",
+  "fileUnder": "Video"
+}'
+```
 
 ### 2b) 책 스타일 (yes24)
 
