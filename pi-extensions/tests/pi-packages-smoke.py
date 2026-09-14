@@ -54,6 +54,8 @@ def package_root(entry: object) -> Path:
     source = package_source(entry)
     if source.startswith("npm:"):
         return HOME / ".pi/agent/npm/node_modules" / source.removeprefix("npm:")
+    if source.startswith("git:"):
+        return HOME / ".pi/agent/git" / source.removeprefix("git:")
     path = Path(source).expanduser()
     return path if path.is_absolute() else SETTINGS.parent / path
 
