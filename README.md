@@ -323,7 +323,7 @@ Five subjects sit on this bench, and they ask different questions:
 | [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) | Can one visible parent call an in-process team while reducing GLG's inspection hops? | **GLG's working submarine** — admitted as a sibling (entwurf 0.16.0); custom agents active |
 | [prime-agent](https://github.com/junghan0611/prime-agent) (fork) | Can a Lisp workspace stand up the RLM loop a Python REPL carries today? | **built here**, not installed — matrix in [PRIME.md](PRIME.md) |
 | [Ouroboros](https://github.com/Q00/ouroboros) | Besides entwurf, how does a popular Agent OS carry task-memory across harnesses, and how does it run long? | candidate, **not pinned, not installed** — matrix in [OUROBOROS.md](OUROBOROS.md) |
-| [herdr](https://github.com/herdrdev/herdr) | Besides our tmux/entwurf floor, how does a popular agent-terminal runtime show stuck panes and survive detach? | candidate, **not cloned, not installed** — matrix in [HERDR.md](HERDR.md) |
+| [herdr](https://github.com/herdrdev/herdr) | Besides our tmux/entwurf floor, how does a popular agent-terminal runtime show stuck panes and survive detach? | **installed and running (0.9.0), not declared in nixos-config** — matrix in [HERDR.md](HERDR.md) |
 
 
 This comparison belongs here, not in entwurf. **entwurf guarantees its own garden-id,
@@ -333,7 +333,7 @@ whether an external runtime actually reduces GLG's inspection points without wea
 identity, memory, or alignment. This is not a tournament and it is not a reason to grow
 entwurf into a planner.
 
-The fifth subject is [herdr](https://github.com/herdrdev/herdr) — "the runtime your coding agents live on." It does not wrap agents; it owns their terminals. The bench asks how pane working/blocked/idle and detach-without-dying compare with entwurf liveness and tmux, not whether to replace tmux. **Not adopted, not installed.** Matrix: [HERDR.md](HERDR.md). DHH-uses-it is inherited from GLG and unverified here.
+The fifth subject is [herdr](https://github.com/herdrdev/herdr) — "the runtime your coding agents live on." It does not wrap agents; it owns their terminals. The bench asks how pane working/blocked/idle and detach-without-dying compare with entwurf liveness and tmux, not whether to replace tmux. **The isolation premise broke on 2026-09-14**: herdr 0.9.0 is installed at `~/.local/bin/herdr` with a running server, it is absent from `nixos-config`, and its agent-state integrations are already installed into the pi, omp, claude, codex, copilot, antigravity-cli, and grok trees that entwurf co-owns. Replacing tmux is still **안 함**. Matrix and the measured delta: [HERDR.md](HERDR.md). DHH-uses-it is inherited from GLG and unverified here.
 
 The fourth subject is [Ouroboros](https://github.com/Q00/ouroboros) — a popular Agent OS
 (Seed · Ledger · multi-runtime adapters). entwurf stays the floor; this bench asks how
