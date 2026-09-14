@@ -1,0 +1,10 @@
+{
+  "_purpose": "Pi-only lifecycle/provider extensions that agent-config supports across devices. These are intentionally unpinned: setup receives upstream extension updates through Pi's installer. The list is separate from pi/settings.json because `packages[]` is written by Pi and may be co-owned by self-registering packages such as entwurf.",
+  "packages": [
+    "npm:@ogulcancelik/pi-codex-compaction",
+    {
+      "source": "npm:@ogulcancelik/pi-session-recall",
+      "extensions": []
+    }
+  ]
+}

@@ -69,7 +69,7 @@ agent-config attacks this with three layers:
 
 2. **Shared skill set** — the same capabilities (search notes, read bibliography, check git history, write to journal) available identically whether you're in pi, Claude Code, Codex, Antigravity, Copilot CLI, Kiro, or OpenClaw. One rail is held out on purpose: OMP gets no skills from here, because it is the subject of a measurement (below), and a subject you have already furnished is no longer a subject.
 
-3. **Session continuity protocol** — `/new` + recap + semantic search instead of expensive compact. Start a new session, recover full context in seconds for ~2K tokens instead of re-reading 50K.
+3. **Session continuity protocol** — `/new` + recap + semantic search when a new session is the right move; normal in-session compaction is also allowed to preserve a long Pi/Codex run.
 
 Claude, GPT, and Gemini are "graduates from different schools" — trained on different data with different philosophies. Trying to control them means writing hundreds of lines of system prompts per model. Instead, **throw one being-profile at all of them equally.** They keep their unique lenses while aligning around a single universe — this is the [Profile Harness](https://notes.junghanacs.com/botlog/20260228T075300/). Multi-harness support is a means, not the goal. The goal is **a single 1KB being-profile that exerts the same gravitational pull across any harness**.
 
@@ -115,6 +115,8 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 | Extension | Purpose |
 |-----------|---------|
 | `background-bash.ts` | `bash_background` — run a slow command without blocking; the agent is re-invoked with its exit code and output when it finishes |
+| `@ogulcancelik/pi-codex-compaction` | Pi's Codex lifecycle → OpenAI native opaque checkpoint; same-model long-session continuity |
+| `@ogulcancelik/pi-session-recall` | Pi-local past-session literal search + focused session question; lightweight complement to cross-harness skills |
 | `review.ts` | `/review` — review a PR, base branch, commit, uncommitted changes, or a folder |
 | `goal.ts` | `/goal` — long-running objective mode; keeps continuing itself until the objective is met or a budget is hit |
 | `decision-gate.ts` | When a `goal` turn declares itself `blocked`, run **one turn on a fast model** so the slow resident does not spend its own quota digging, and leave the result as a single custom JSONL entry — not conversation inflow. The entry carries which axes were searched, which hits came back, and which the sibling actually cited, so "did this help?" stays answerable later ([#24](https://github.com/junghan0611/agent-config/issues/24)). Which model digs is the operator's call — `/decision-gate model <provider/id>` for this session, `DECISION_GATE_MODELS` in `~/.env.local` to make it stick; the resident's own rail is always skipped. It digs; it does not open the gate |
@@ -132,9 +134,9 @@ Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and 
 | `session-breakdown.ts` | Session cost breakdown |
 | `whimsical.ts` | Personality touches |
 
-**Direction: this surface shrinks.** A pi extension only exists inside pi — Claude Code, Codex, and Antigravity cannot see it. A skill runs everywhere. So capability that agents actually call is migrating extension → skill (semantic memory is the finished case: `skills/semantic-memory/` is a CLI wrapper every harness can invoke, while the pi-side `session_search` / `knowledge_search` registerTool remains a convenience, not the only door). What stays here is pi-local ergonomics — env loading, sound, footer, cost breakdown.
+**Boundary, not shrinkage.** A skill is the cross-harness door; a Pi extension is the local lifecycle/provider/TUI hand. Do not duplicate ordinary capability into a Pi-only extension when the skill can travel, but do support an extension when it can touch a Pi turn in a way a CLI cannot. `semantic-memory` remains the canonical example of the former: its skill works everywhere, while Pi-native `session_search` / `knowledge_search` are convenience. Native Codex compaction and Pi-local session recall are the latter: their value is precisely inside Pi's session and provider lifecycle.
 
-The four extensions added on 2026-08-07 do not contradict that. None of them could be a skill: they hook pi's turn loop, which no CLI can reach from outside. Three (`review`, `goal`, `continue`) are adopted from [earendil-works/agent-stuff](https://github.com/earendil-works/agent-stuff) with local tuning; `background-bash` was written here. `heartbeat` (2026-09-09) is in the same category for the same reason — a timer that wakes a turn has to live inside the process that owns the turn. `raw-paste` (2026-09-09) is the ergonomics half of the same rule: it wraps pi's own stdin parser in-process, which is a place no CLI has.
+Supported third-party Pi packages are tracked in [`pi/packages.json`](pi/packages.json). `./run.sh setup:pi-packages` installs a missing package or runs Pi's extension-only update for an installed one; it deliberately does not merge a `packages[]` array into settings because Pi and entwurf co-own that live surface. One package filter is deliberate: andenken owns semantic `session_search`, while upstream session-recall also names its literal `rg` tool `session_search`. The manifest loads its package code but filters that raw extension; [`session-recall-compat.ts`](pi-extensions/session-recall-compat.ts) loads it as `session_literal_search` and preserves `session_query`. Local extensions follow the same boundary: `review`, `goal`, and `continue` hook Pi's turn loop; `background-bash` receives process completion; `heartbeat` owns an in-process timer; `raw-paste` owns stdin parsing.
 
 #### `heartbeat` — the clock is the cheap half
 
@@ -160,7 +162,7 @@ pi has no completion hook — but it does not need one. `pi.sendMessage(..., { t
 
 Two things learned the hard way, recorded so they are not re-derived: spawn through pi's own `getShellConfig()` (it returns `bash -c`, and a login shell sources a profile that injects OSC escape bytes into model context), and `detached: true` + `process.kill(-pgid, …)` (signalling only the bash pid leaves a pipeline's descendants running).
 
-The external pi packages that remain live are semantic-memory ([andenken](https://github.com/junghan0611/andenken)) and entwurf's self-registered install — neither is declared from here; see [§ -config Ecosystem](#the--config-ecosystem).
+External Pi packages have two ownership paths: andenken remains the cross-harness `semantic-memory` skill and entwurf self-registers its citizen surface; supported Pi-only packages are tracked in [`pi/packages.json`](pi/packages.json), installed or updated through `setup:pi-packages`. None are merged directly into this repo's settings reference.
 
 ### entwurf Surface Reference
 
@@ -397,13 +399,13 @@ no implementation lane.
 
 ## Session Management — `/new` + recall
 
-The working method is unchanged and simple: when a conversation gets long, start a new one and rebuild context from the memory axes instead of paying a model to re-read and summarize itself.
+`/new` + recall is the explicit cross-harness recovery path when a new session is the right boundary. It is not an alternative policy that suppresses in-session compaction.
 
-1. When conversation gets long, `/new` to start fresh
+1. When a fresh session is preferable, `/new` to start fresh
 2. Run `memory-sync` / `/memory reindex` explicitly when recent sessions need fresh indexing (no hidden paid auto-indexing)
 3. In the new session, recover context with `/recall`
 
-**What changed is that this is a habit, not a config lock — and this section used to claim otherwise.** It was titled *No Compact* and read as though the harness were pinned against compaction. It is not, on any surface the operator runs today:
+Compaction is an allowed lifecycle on every harness; agent-config and entwurf do not write a suppress/enable policy. The current surfaces are:
 
 | Surface | Compaction key | Measured |
 |---|---|---|
@@ -411,11 +413,9 @@ The working method is unchanged and simple: when a conversation gets long, start
 | `~/.pi/agent/settings.json` (live) | `compaction.enabled: true` | oracle, 2026-09-04 |
 | `pi/settings.json` (this repo's reference) | **removed 2026-09-04** — was `enabled: false` | this release |
 
-entwurf gave the switch back on 2026-09-03: `autoCompactEnabled` and `env.DISABLE_AUTOCOMPACT` moved from `MANAGED_SETTINGS_SCALARS` to `RETIRED_SETTINGS_SCALARS` (entwurf 0.17.2, #94). Retirement moved **ownership, not state** — nobody's compaction was switched on by that release — and the record carries its own correction: `env.DISABLE_AUTOCOMPACT` was a no-op at Claude Code 2.1.259, so the only key that ever suppressed compaction was `autoCompactEnabled`. The operator declines to declare it either way, and this repo's reference file now says nothing about it either.
+entwurf retired `autoCompactEnabled` and `env.DISABLE_AUTOCOMPACT` from its managed settings in 0.17.2 (#94). That retirement leaves timing and enablement to the harness that owns them; it does not prescribe a state. `pi/settings.json` likewise carries no compaction key, so a fresh machine receives Pi defaults rather than a stale policy.
 
-Dropping that key was not tidying. Because `merge_settings` is EXISTING-WINS, the `false` never reached a running machine — it only provisioned *fresh* ones with an intention the operator had abandoned, which is precisely the drift shape this repo elsewhere calls a bomb. The reason is kept where the key used to be, as `_no_compaction` in `pi/settings.json`, so nobody re-adds it from memory.
-
-The lesson is worth keeping separately from the setting: **a habit that only works when a config enforces it was never a habit.** `/new` + `/recall` costs ~2K tokens and is chosen every time, which is why removing the lock changed nothing about how sessions are actually run.
+For Pi's `openai-codex` same-model sessions, `@ogulcancelik/pi-codex-compaction` strengthens the lifecycle: at Pi's normal compact boundary it requests Codex `remote_compaction_v2`, persists the returned opaque checkpoint in the Pi compaction entry, and rebuilds later Codex requests from that checkpoint plus the active tail. A malformed checkpoint, model-id mismatch, or failed native request fails closed rather than sending Pi's local marker or silently substituting text summarization. This is a Pi-only provider concern; `/recall` continues to serve the distinct job of crossing sessions and harnesses.
 
 `/recall` is the **multi-axis context hydration** protocol owned by agent-config — not a per-session recap, not a entwurf bridge contract. It starts with `session-recap -p <repo> -m 15` but does not stop at one repo transcript. When the work crossed projects or days, it combines:
 

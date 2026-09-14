@@ -365,6 +365,68 @@ declare -A CLI_REPOS=(
 # Reason: pause the Claude Code-style compatibility patch path until account-risk is clearer.
 declare -A THIRD_PARTY_PACKAGE_REPOS=()
 
+# Pi's own installer owns ~/.pi/agent/settings.json packages[].  Keep the
+# supported, Pi-only package set in a separate manifest: merge_settings treats
+# arrays atomically, and entwurf self-registers independently.
+PI_EXTENSION_PACKAGES_FILE="$SCRIPT_DIR/pi/packages.json"
+
+reconcile_supported_pi_package_entry() {
+  local desired=$1 spec=$2 settings="$HOME/.pi/agent/settings.json" tmp
+  tmp=$(mktemp "$(dirname "$settings")/.settings.pi-package.XXXXXX") || {
+    fail "pi package: settings mktemp failed"
+    return 1
+  }
+  if ! jq --arg spec "$spec" --argjson desired "$desired" '
+    .packages = ((.packages // []) | map(
+      if (type == "string" and . == $spec) or (type == "object" and .source? == $spec)
+      then $desired else . end
+    ))
+  ' "$settings" > "$tmp"; then
+    rm -f "$tmp"
+    fail "pi package: cannot reconcile $spec filter"
+    return 1
+  fi
+  chmod --reference="$settings" "$tmp"
+  mv "$tmp" "$settings"
+}
+
+install_supported_pi_packages() {
+  [ -f "$PI_EXTENSION_PACKAGES_FILE" ] || { warn "pi/packages.json: absent"; return 0; }
+  command -v pi >/dev/null 2>&1 || { fail "pi packages: pi not in PATH"; return 1; }
+  jq -e '
+    .packages | type == "array" and length > 0 and all(.[];
+      if type == "string" then length > 0
+      elif type == "object" then (.source | type == "string" and length > 0) and
+        ((has("extensions") | not) or (.extensions | type == "array"))
+      else false end
+    )
+  ' "$PI_EXTENSION_PACKAGES_FILE" >/dev/null || {
+      fail "pi/packages.json: packages must be non-empty sources or filtered package objects"
+      return 1
+    }
+
+  local entry spec
+  while IFS= read -r entry; do
+    spec=$(jq -r 'if type == "string" then . else .source end' <<<"$entry")
+    if jq -e --arg spec "$spec" '
+      (.packages // []) | any(
+        if type == "string" then . == $spec
+        elif type == "object" then (.source? == $spec)
+        else false end
+      )
+    ' "$HOME/.pi/agent/settings.json" >/dev/null 2>&1; then
+      reconcile_supported_pi_package_entry "$entry" "$spec"
+      log "pi package: updating $spec"
+      pi update --extension "$spec"
+    else
+      log "pi package: installing $spec"
+      pi install "$spec"
+      reconcile_supported_pi_package_entry "$entry" "$spec"
+    fi
+    ok "pi package: $spec"
+  done < <(jq -c '.packages[]' "$PI_EXTENSION_PACKAGES_FILE")
+}
+
 # Local provider/package repos cloned as SOURCE for dev dogfooding.
 # entwurf is the current Claude path in pi via ACP. agent-config clones it as
 # source only — install/auth/setup belong to entwurf's own `./run.sh setup`.
@@ -1291,9 +1353,12 @@ setup_links() {
 }
 
 
-# --- setup:npm — pnpm install for extensions/skills ---
+# --- setup:npm — Pi packages + pnpm install for extensions/skills ---
 
 setup_npm() {
+  section "Pi package install"
+  install_supported_pi_packages
+
   section "pnpm install"
 
   # andenken
@@ -1606,6 +1671,7 @@ Usage: ./run.sh <command> [args]
                               → 어떤 디바이스든 이것 하나로 재현
 
   setup:preflight|repos|build|links|pnpm 개별 단계 (디버깅용, 보통 불필요)
+  setup:pi-packages           pi/packages.json의 지원 Pi 패키지 설치/검증
   setup:git-hooks             글로벌 git 안전망 설치 (core.hooksPath)
                               → 공개 repo에 민감 단어/시크릿 commit/push 차단
                               → 정식 경로는 nixos-config rebuild. 이건 즉시 활성화용
@@ -1626,6 +1692,7 @@ Usage: ./run.sh <command> [args]
   test:gate                   decision-gate lint (픽스처 + 있으면 실물; API 불필요)
   test:decision-gate          decision-gate 익스텐션 회귀 — #24 G2 + 실물 pi 로드 스모크 (API 불필요)
   test:goal                   goal continuation lifecycle 회귀 (API 불필요)
+  test:pi-packages            지원 Pi 패키지 로드 + recall tool 충돌 회귀 (API/LLM 호출 없음)
 
 === 인덱싱 ===
   index:sessions [--force]    세션 인덱싱 (OpenRouter 8B / 4096d)
@@ -1725,6 +1792,8 @@ case "${1:-help}" in
     setup_links ;;
   setup:pnpm|setup:npm)
     setup_npm ;;
+  setup:pi-packages)
+    install_supported_pi_packages ;;
   setup:git-hooks|setup:hooks)
     setup_git_hooks ;;
   setup:hermes)
@@ -1743,6 +1812,8 @@ case "${1:-help}" in
       bun run "$SCRIPT_DIR/pi-extensions/tests/decision-gate.load.test.ts" ;;
   test:goal)
     bun run "$SCRIPT_DIR/pi-extensions/tests/goal.test.ts" ;;
+  test:pi-packages)
+    python3 "$SCRIPT_DIR/pi-extensions/tests/pi-packages-smoke.py" ;;
 
   # === andenken (delegated) ===
   test|test:unit|test:integration|test:search)
