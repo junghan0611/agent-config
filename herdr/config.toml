@@ -1,0 +1,23 @@
+# Herdr regular-file snapshot. It is deliberately not symlinked or installed by run.sh:
+# Herdr's Settings UI owns ~/.config/herdr/config.toml. When that live configuration
+# changes, copy the reviewed result here so this repository retains the known setup.
+onboarding = false
+
+[ui]
+status_indicators = "symbols"
+tab_bar_position = "bottom"
+tab_bar_right = [
+  { type = "command", command = "cat ~/.current-device 2>/dev/null || hostname -s", interval_seconds = 60 },
+  { type = "datetime", format = "%Y-%m-%d %H:%M" },
+]
+tab_bar_right_separator = " · "
+
+[theme]
+name = "dracula"
+auto_switch = false
+
+[ui.toast]
+delivery = "terminal"
+
+[keys]
+prefix = "alt+c"

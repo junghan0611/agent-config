@@ -268,3 +268,18 @@ herdr 훅(matcher `"*"`, timeout 10)이 **나란히 등록돼 공존 중**이다
 
 여전히 없다. `run.sh setup:herdr`를 만들지 않는다 — 이미 선언 밖에서 돌고 있어서
 setup 타깃이 격리를 주지도 못한다.
+
+---
+
+## [2026-09-15] 상태바 설정은 저장하되 설치면은 열지 않는다
+
+`~/.config/herdr/config.toml`의 현행 UI 설정을 `herdr/config.toml`에 **regular-file
+snapshot**으로 보관했다 (`[측정]` Python `tomllib` 구조 비교: live와 동등). 이 파일은
+심볼릭 링크도 `run.sh` 설치 대상도 아니다. Herdr Settings UI와 실제 config가 계속
+`~/.config/herdr/config.toml`을 소유한다. 다음에 그 live 설정을 바꾸면 검토한 뒤 snapshot을
+동기화한다.
+
+snapshot에는 하단 tab row와 우측 `~/.current-device`(fallback hostname) · 서버-로컬
+`%Y-%m-%d %H:%M` 시계가 들어 있다. 따라서 SSH/원격 client에서도 그 패인이 실제로 도는
+서버의 위치와 시간이 보인다 (`herdr server reload-config` 적용 receipt: `status: applied`,
+diagnostics 없음).
