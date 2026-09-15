@@ -485,3 +485,90 @@ HMAC secret, bot PAT의 최소 권한과 gh-proxy 격리, model gateway, fixture
 
 이 기록은 RobOMP를 설치했다는 뜻이 아니다. 도입의 정본은 OMP 코드/테스트와 이
 운영 계약의 짝이며, 실제 기동은 GLG가 activation 전제를 확인한 뒤에만 한다.
+
+## [2026-09-15] RobOMP 실기동 — sorge-label 프로파일의 운영면
+
+2026-09-12 기록은 "activation 전제를 확인한 뒤에만 기동한다"로 닫아뒀다. 그 전제의
+첫 조각, **전 구간이 실제로 도는가**를 시험 리포에서 닫았다.
+
+**측정된 것 (2026-09-15, `junghan0611/robomp-lab` private, stock RobOMP —
+fork `junghan0611/oh-my-pi` main `6519adb`):**
+
+```text
+issues.reopened → gh webhook forward → POST /webhook/github 202 (HMAC 검증)
+→ SQLite delivery dedup → issue별 직렬 queue → git worktree farm/37ab7b4a/…
+→ fresh omp --mode rpc 턴 → gh_search_issues → classify_issue
+→ 라벨(documentation, triaged) → gh_post_comment → gh_push_branch
+→ gh_open_pr (PR #2) → event state=done
+```
+
+봇이 붙인 라벨이 웹훅으로 되돌아왔을 때 `skip reason=issues.labeled ignored`로
+버려졌다. stock의 라벨 경로에서 자기재기동은 이미 막혀 있다 — 댓글 경로는 아니다(아래).
+
+### 기동에서 드러난 배치 제약 넷
+
+코드 읽기가 아니라 기동으로 얻은 것이다.
+
+1. **`serve`는 PAT 직결을 거부한다.** env에 `GITHUB_TOKEN`이 보이면 `SystemExit`
+   (`python/robomp/src/server.py:261`). gh-proxy 사이드카가 필수라 배치는 최소
+   2프로세스다.
+2. **경로 env는 전부 절대경로여야 한다.** `ROBOMP_WORKSPACE_ROOT` · `SQLITE_PATH` ·
+   `LOG_DIR` · `NATIVES_CACHE_ROOT`를 상대경로로 주면 `git worktree add`가 pool cwd
+   기준으로 풀려 `fatal: already exists`로 죽는다. 도커 전용 가정이 호스트 배치에서
+   드러난 자리다.
+3. **자식 omp는 호스트 자격증명을 못 본다.** workspace별 격리 XDG(`.omp-xdg`)로 뜨기
+   때문이다. `PI_CODING_AGENT_DIR`에 `~/.omp/agent`를 주면 호스트 `agent.db`를 그대로
+   써서 `anthropic/claude-sonnet-4-6`이 응답했다(실측).
+4. **`pass api/anthropic/junghanacs` 키는 죽어 있다(401).** 그래서 (3)이 현재 유일한
+   sonnet 경로다.
+
+### 봇 정체성은 미해결 전제다
+
+PAT가 사람 계정(`junghan0611`)이라 봇 댓글이 GLG 이름으로 달렸고, 그 댓글 사건이
+큐에 다시 앉았다. 라벨은 막혔지만 댓글은 막히지 않은 것이다. 반대로
+`ROBOMP_BOT_LOGIN`을 사람 계정으로 두면 GLG가 연 이슈 전부가 `bot/self issue`로
+skip된다. **사람과 봇이 같은 계정이면 어느 쪽으로 맞춰도 하나가 깨진다.**
+
+RobOMP는 PAT만 받는다(`python/robomp/src/config.py:34`, `github_client.py:233`의
+Bearer 고정). GitHub App은 코드 없이는 불가능하고, 머신 유저 + fine-grained
+PAT(Issues:write + Metadata:read)가 현재 맞는 형태다. 이것을 활성화 전제로 명시한다.
+
+### 소유 경계 — 재확인
+
+| 자리 | 소유 |
+|---|---|
+| `agent-config` | 도입 profile, 권한·secret activation 조건, 운영 receipt |
+| `sorge` | 대장(`LEDGER.md`) join, 판정 vocabulary, ON 스위치 |
+| `oh-my-pi` fork | RobOMP 소스와 그 테스트 — profile 변경도 여기 든다 |
+
+**RobOMP 소스 사본을 이 집에 두지 않는다**는 2026-09-12 판정을 그대로 못박는다.
+
+### `sorge-label` 프로파일이 끄는 것
+
+stock triage 계약을 sorge 판정 턴으로 좁히는 안전문이다. 전부 env 게이트 뒤에
+있고, 게이트 off면 stock 동작과 완전히 같다.
+
+- 매 사건 fresh 세션 — per-issue JSONL이 있어도 `--continue`로 잇지 않는다
+  (`python/robomp/src/worker.py:442-448,592-593`의 stock 경로를 끄는 것).
+- host tool은 `set_issue_labels` · `gh_fetch_thread` · `gh_search_issues` ·
+  `abort_task` 넷뿐. 댓글·PR·push·close·`classify_issue`는 노출하지 않는다.
+- `issues.edited|labeled`도 깨운다(stock은 `opened|reopened`만).
+- `ROBOMP_SELF_LOGINS`에 들은 계정이 만든 라벨·댓글 사건은 모델 턴을 열지 않는다.
+- 같은 `repo#issue`의 미처리 queued 이벤트는 최신 delivery 하나로 합친다(이전 것은
+  superseded).
+- 대장 밖 리포 차단은 기존 allowlist에 그대로 맡긴다. 대장→allowlist 변환은
+  `sorge` 소유다.
+
+env 키 셋: `ROBOMP_TASK_PROFILE=sorge-label` · `ROBOMP_SELF_LOGINS` ·
+`ROBOMP_AGENT_DIR`(절대경로, 자식 omp에 `PI_CODING_AGENT_DIR`로 전달).
+
+### 아직 열지 않은 것
+
+- 공개 webhook ingress — 배달은 `gh webhook forward` 개발 경로뿐이다. 이 확장의
+  `admin:repo_hook` 권한은 classic PAT에만 있어 배달용 토큰과 운영용(fine-grained)이
+  갈라져 있다.
+- 봇 계정과 그 PAT — 위 정체성 전제가 닫혀야 한다.
+- 대상 리포 확대 — 시험 리포에서 대장 리포로.
+
+PAT는 password store에만 둔다. 문서·repo·agent transcript에 넣지 않는다는
+2026-09-12 조건은 그대로 산다.
