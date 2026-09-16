@@ -1692,6 +1692,7 @@ Usage: ./run.sh <command> [args]
   test:gate                   decision-gate lint (픽스처 + 있으면 실물; API 불필요)
   test:decision-gate          decision-gate 익스텐션 회귀 — #24 G2 + 실물 pi 로드 스모크 (API 불필요)
   test:goal                   goal continuation lifecycle 회귀 (API 불필요)
+  test:session-memory-warm    세션 기억 warm-on-demand seam 회귀 (API/임베딩 호출 없음)
   test:pi-packages            지원 Pi 패키지 로드 + recall tool 충돌 회귀 (API/LLM 호출 없음)
 
 === 인덱싱 ===
@@ -1812,6 +1813,9 @@ case "${1:-help}" in
       bun run "$SCRIPT_DIR/pi-extensions/tests/decision-gate.load.test.ts" ;;
   test:goal)
     bun run "$SCRIPT_DIR/pi-extensions/tests/goal.test.ts" ;;
+  test:session-memory-warm)
+    bun run "$SCRIPT_DIR/pi-extensions/tests/session-memory-warm.test.ts" &&
+      bash "$SCRIPT_DIR/pi-extensions/tests/session-memory-warm-launcher.test.sh" ;;
   test:pi-packages)
     python3 "$SCRIPT_DIR/pi-extensions/tests/pi-packages-smoke.py" ;;
 

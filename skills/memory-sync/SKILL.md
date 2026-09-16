@@ -160,14 +160,19 @@ Sessions fresh now → `/memory-sync`. Oracle's bots must see today → `/memory
 
 ## Notes
 
-- **Explicit call only** from an agent. Local mode is the shape the timer takes:
-  andenken ships `scripts/systemd/andenken-sync-sessions.{service,timer}` (30
-  min, `ExecStart` with no arguments = local). It is **not installed** on
-  thinkpad (`systemctl --user is-enabled andenken-sync-sessions.timer` →
-  not-found, measured by the andenken steward 2026-09-03); installing it is
-  GLG's choice, and that infra is separate from this skill.
-- When to call local: before a new session, right after `/new`, before a search
-  that needs the latest turns.
+- **No timer or cron.** On the index-authority Pi host, the consumer-side
+  `session-memory-warm` extension requests this local path detached at
+  `session_start`, then occasionally before native `session_search`. It shares
+  `warm-local.sh`'s 10-minute request debounce, never waits or publishes, and
+  can leave a current result one sync behind. The gathered local corpus includes
+  both Pi and Claude Code transcripts, so that one Pi pulse refreshes the shared
+  sessions index Claude Code later queries; only Pi receives the freshness line.
+  Other harnesses remain explicit. The existing andenken systemd timer is **not
+  installed** on thinkpad
+  (`systemctl --user is-enabled andenken-sync-sessions.timer` → not-found,
+  measured 2026-09-03), and this feature does not install it.
+- Call local explicitly when fresh-now is required: before a handoff, after a
+  long session, or when the displayed freshness receipt is too old.
 - When to call global: before asking an oracle-side bot about recent work, at
   end of day, after a long oracle session.
 - `SKIP_GATHER=1` is a debugging escape (index whatever snapshot is on disk),

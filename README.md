@@ -404,7 +404,7 @@ no implementation lane.
 `/new` + recall is the explicit cross-harness recovery path when a new session is the right boundary. It is not an alternative policy that suppresses in-session compaction.
 
 1. When a fresh session is preferable, `/new` to start fresh
-2. Run `memory-sync` / `/memory reindex` explicitly when recent sessions need fresh indexing (no hidden paid auto-indexing)
+2. The index-authority Pi host requests one detached local session refresh at session start / native session search; it never waits, uses a timer, or publishes to Oracle. Run `memory-sync` explicitly only when fresh-now is required.
 3. In the new session, recover context with `/recall`
 
 Compaction is an allowed lifecycle on every harness; agent-config and entwurf do not write a suppress/enable policy. The current surfaces are:

@@ -17,7 +17,7 @@ Calling one as a subcommand returns `{"error":"Unknown command"}`
 
 | Intent | Call | Next move |
 |---|---|---|
-| Past decision/conversation | `search-sessions "query" --limit 5` | Inspect top 3–5; choose one session. |
+| Past decision/conversation | `search-sessions "query" --limit 5` | Inspect top 3–5; Pi native callers also receive a local freshness receipt. |
 | Known time/project | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode recent` | Caller supplies a half-open ISO window; no embed/BM25/dictcli. |
 | Meaning in known slice | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode hybrid --limit 5` | Structured filters first, semantic rank second. |
 | Public-garden concept | `search-md "query" --limit 5` | Choose a document and open its path; `--full` widens snippets. |
@@ -160,11 +160,14 @@ one axis.
    time/project signals. MD recovers durable public interpretation; it has no
    production time/project query axis. OpenClaw recovers what the bots said and
    kept, keyed by agent.
-2. **Freshness first.** Invoke the `memory-sync` **skill** (not
-   `semantic-memory memory-sync` — that is not a subcommand) before recent-work
-   session retrieval when the transcript may have grown. OpenClaw bots do not
-   sync the harvest: they inspect `updated_at` and use current `memory/` files
-   when it is stale. A stale absence is not a ranking miss.
+2. **Pi freshness is warm-on-demand.** On the index-authority Pi host,
+   `session_start` requests one detached **local** refresh and native
+   `session_search` can top it up; a result can be one sync behind and carries
+   the freshness line. It never waits, starts a timer, or publishes to Oracle.
+   Other harnesses keep explicit `memory-sync` when fresh-now is required (not
+   `semantic-memory memory-sync` — that is not a subcommand). OpenClaw bots do
+   not sync the harvest: they inspect `updated_at` and use current `memory/`
+   files when it is stale. A stale absence is not a ranking miss.
 3. **Start at 5.** MD keeps the same 40-candidate pool for limits up to 10, so 5
    lowers reading cost without shrinking findability. Widen only after reading
    the first screen and refining concrete names or terms.
