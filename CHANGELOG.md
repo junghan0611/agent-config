@@ -7,6 +7,38 @@
 
 ## Unreleased
 
+## v2026.9.16 — 기억축을 기다림 없이 데운다
+
+### Added
+
+* **Pi session-memory warm-on-demand.** Index-authority Pi가 session start와 native
+  `session_search`에서만 detached local sessions sync를 요청한다. timer·cron·Oracle
+  publish·검색 대기는 없고, 10분 debounce와 writer flock이 여러 프로젝트의 요청을 하나로
+  합친다. 결과에는 manifest 기준 index time과 한 sync 뒤처질 수 있음을 함께 보인다.
+  Claude Code 전사본도 같은 gathered corpus와 sessions index를 공유하므로, Pi가 깨운
+  인덱스를 다음 검색에서 함께 받는다. (`5645fd2`)
+* **`subtract` skill.** 바꿔 달라고 묻기 전에 vendor 원형을 먼저 읽는 손을 모든 harness에
+  펼쳤다. (`6548399`)
+* **Weekly punchout**과 device-specific agenda stamp filename을 더했다. (`65912b7`,
+  `04dc5bf`)
+* **Pi native Codex extension surface**와 native-compaction ordering regression을 세웠다.
+  (`f2ee15f`, `1b3936c`)
+
+### Changed
+
+* **sorge board consumer surface**가 교차-filed 일을 포함해 담당자의 몫을 보이고,
+  `house:` label이 이사가 아니라 덧셈임을 문서화했다. (`b5d8722`, `b5136df`, `8de8c01`)
+* OMP/RobOMP·HERDR·harness-bench 관측과 설정을 현재 실행면에 맞췄고, 자동 role task
+  agent는 껐다. (`ecf2a73`, `e0f0a89`, `cbb8e7f`, `6914286`, `aef35ea`, `8918eae`)
+* Denote, BibTeX, OpenClaw search, quota, delivery research, tag chronology의 소비자
+  문서를 실제 계약에 맞췄다. (`d850050`, `6eb9c2d`, `2e1a955`, `5ebe9dd`, `58b135a`,
+  `8032575`, `cc52950`)
+
+### Fixed
+
+* Pi package check·session-recall tool ownership·Entwurf config ownership을 수선했고,
+  goal은 사용자 command만 새 goal을 열게 했다. (`36049b7`, `ee79c55`, `1ea1726`)
+
 ## v2026.9.9-gate.1 — 게이트가 모델을 고르게 됐고, 실패도 영수증을 남긴다
 
 게이트가 계약에서 **물건**이 됐고, 그 물건이 어느 모델로 캐는지를 GLG 가 잡는다.
