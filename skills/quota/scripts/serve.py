@@ -105,22 +105,16 @@ overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rst b{color:var(--fg);font-weight:400}
 .bad{color:var(--crit);font-size:12px}
 .stale{color:var(--warn) !important;font-size:12px}
-table{width:100%;border-collapse:collapse;font-size:12px}
-td{padding:3px 0;color:var(--dim)}td:first-child{color:var(--fg);width:150px}
-td:nth-child(2){width:140px}
 /* Narrow: the reset clock must never be the thing that gets clipped --
    it is the whole point of the page. Stack it under the bar instead. */
 @media(max-width:860px){
 .g{grid-template-columns:minmax(90px,1fr) minmax(50px,1.4fr) 44px 52px;
 grid-template-areas:"lbl track pct pace" "rst rst amt amt";padding:6px 0}
-.amt{text-align:right}.rst{white-space:nowrap}
-td:first-child{width:auto}}
+.amt{text-align:right}.rst{white-space:nowrap}}
 </style></head><body><div class="wrap">
 <h1>quota</h1><div class="sub" id="sub">loading…</div>
 <div class="sub" style="margin-top:-14px">│ = elapsed point in window · pace = used% / elapsed% (1.0x = on track)</div>
 <div id="rails"></div>
-<div class="card"><div class="rail"><b>resets</b><span>soonest first</span></div>
-<table id="sched"></table></div>
 </div><script>
 const WD=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const pad=n=>String(n).padStart(2,"0");
@@ -173,12 +167,7 @@ function draw(){if(!snap)return;const now=new Date();
       :(g.note||"")}</div></div>`}).join("");
   return `<div class="card"><div class="rail"><b>${r.rail}</b>
    <span>${r.plan||""}</span>${tag}</div>${rows}</div>`}).join("");
- const seen=new Set(),sch=[];
- snap.rails.forEach(r=>r.gauges.forEach(g=>{if(!g.resets_at)return;
-  const k=r.rail+g.resets_at;if(seen.has(k))return;seen.add(k);
-  sch.push([g.resets_at,r.rail,g.label])}));
- sched.innerHTML=sch.sort().map(([iso,rail,label])=>
-  `<tr><td>${when(iso,now)}</td><td>${left(iso,now)}</td><td>${rail} · ${label}</td></tr>`).join("");}
+}
 async function load(){try{snap=await (await fetch("/api/snapshot.json")).json();draw();}
  catch(e){sub.textContent="collection failed — check the terminal";}}
 load();setInterval(load,60000);setInterval(draw,30000);

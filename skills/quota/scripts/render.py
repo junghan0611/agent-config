@@ -38,8 +38,8 @@ def parse(iso):
 def fmt_when(iso, now=None):
     """Absolute reset instant in KST, with the weekday spelled out.
 
-    The weekday matters: the five rails reset on Mon/Mon/Thu/Fri/1st, so
-    "7 days" alone tells GLG nothing about which day the wall runs out.
+    The active rails reset on different weekdays, so "7 days" alone tells
+    GLG nothing about which day the wall runs out.
     Same-day resets drop the date and show clock time only.
     """
     dt = parse(iso)
@@ -163,25 +163,6 @@ def fmt_amount(g):
     return f"{g['used']:,.0f}/{g['limit']:,.0f} {g.get('unit') or ''}".strip()
 
 
-def resets_sorted(snap):
-    """Every gauge that has a reset instant, soonest first.
-
-    Deduplicated per rail+instant so claude's three windows sharing one
-    Monday boundary print as one line, not three.
-    """
-    seen, out = set(), []
-    for rail in snap["rails"]:
-        for g in rail["gauges"]:
-            if not g.get("resets_at"):
-                continue
-            k = (rail["rail"], g["resets_at"])
-            if k in seen:
-                continue
-            seen.add(k)
-            out.append((g["resets_at"], rail["rail"], g["label"]))
-    return sorted(out)
-
-
 def render_text(snap, color=True, barw=20):
     """The one text layout, used for plain output and for --watch."""
     now = datetime.datetime.now(KST)
@@ -225,9 +206,4 @@ def render_text(snap, color=True, barw=20):
         lines.append("")
 
     lines.append(c("┃ = elapsed point in window · pace = used% / elapsed% (1.0x = on track)", DIM))
-    lines.append("")
-    lines.append(c("resets — soonest first", BOLD))
-    for iso, rail, label in resets_sorted(snap):
-        lines.append(f"  {pad(fmt_when(iso, now), 18)}{pad(fmt_left(iso, now), 13)}"
-                     f"{c(rail + ' · ' + label, DIM)}")
     return "\n".join(lines)

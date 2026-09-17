@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect the five model rails into one normalized snapshot.
+"""Collect the four active model rails into one normalized snapshot.
 
 This is the single source of truth: quota.py (text), --watch (TUI) and
 serve.py (web) all render *this* dict and never call a vendor endpoint
@@ -25,7 +25,6 @@ we derive it as resets_at - window_seconds.
 the display never overstates it:
     rolling  -- vendor returns a relative countdown (codex)
     period   -- vendor returns explicit start/end (grok)
-    calendar -- calendar boundary (copilot, 1st of month)
     anchor   -- absolute reset instant only; period length inferred (claude, zai)
 
 Never prints a raw token. Credentials are read from local files straight
@@ -61,13 +60,6 @@ H, D = 3600, 86400
 WINDOW_SECONDS = {"5h": 5 * H, "7d": 7 * D}
 
 
-def _month_before(iso):
-    """Start of the calendar month that ends at `iso` (copilot's 1st-of-month)."""
-    dt = datetime.datetime.fromisoformat(iso)
-    year, month = (dt.year - 1, 12) if dt.month == 1 else (dt.year, dt.month - 1)
-    return _iso(dt.replace(year=year, month=month))
-
-
 def gauge(key, label, used_pct, resets_at=None, used=None, limit=None,
           unit=None, window=None, basis="anchor", active=False, note=None,
           period_start=None, window_seconds=None):
@@ -87,32 +79,6 @@ def gauge(key, label, used_pct, resets_at=None, used=None, limit=None,
         "resets_at": resets_at, "period_start": period_start,
         "window_seconds": window_seconds, "window": window, "basis": basis,
         "active": active, "note": note,
-    }
-
-
-def collect_copilot():
-    tok = _q._load_json(_q.PI_AUTH)["github-copilot"]["refresh"]
-    _, body = _q._get(
-        "https://api.github.com/copilot_internal/user",
-        headers={"Authorization": f"token {tok}",
-                 "User-Agent": "GithubCopilot/1.0",
-                 "Accept": "application/json"},
-    )
-    d = json.loads(body)
-    q = d["quota_snapshots"]["premium_interactions"]
-    # quota_reset_date_utc carries the instant; quota_reset_date is date-only.
-    reset = d.get("quota_reset_date_utc")
-    if reset:
-        reset = _iso(datetime.datetime.fromisoformat(reset.replace("Z", "+00:00")))
-    return {
-        "plan": d.get("copilot_plan"),
-        "gauges": [gauge(
-            "premium", "premium requests",
-            100.0 - float(q["percent_remaining"]),
-            resets_at=reset, used=q.get("credits_used"), limit=q["entitlement"],
-            unit="req", window="1mo", basis="calendar", active=True,
-            period_start=_month_before(reset) if reset else None,
-        )],
     }
 
 
@@ -307,7 +273,6 @@ RAILS = [
     ("codex", collect_codex),
     ("zai", collect_zai),
     ("grok", collect_grok),
-    ("copilot", collect_copilot),
 ]
 
 

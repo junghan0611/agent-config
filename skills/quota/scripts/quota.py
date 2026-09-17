@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Remaining quota across the five model rails GLG routes siblings onto.
+"""Remaining quota across the four active model rails GLG routes siblings onto.
 
     quota.py                one shot, plain text
     quota.py --watch [SEC]  TUI: full-screen, refreshes in place (default 120s)
