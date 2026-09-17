@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -190,6 +191,32 @@ def main() -> None:
         for record in records
     ):
         fail("RPC state response missing")
+
+    # Entwurf keeps the real agent directory for package/auth state while isolating HOME.
+    # Run the actual compat extension under that topology: the prior HOME-derived lookup
+    # exited before a fresh sibling could make its callback.
+    with tempfile.TemporaryDirectory(prefix="pi-package-sandbox-") as sandbox_dir:
+        sandbox_home = Path(sandbox_dir) / "home"
+        sandbox_home.mkdir()
+        sandbox_probe = Path(sandbox_dir) / "probe.ts"
+        sandbox_probe.write_text(PROBE)
+        sandbox_env = os.environ | {
+            "HOME": str(sandbox_home),
+            "PI_CODING_AGENT_DIR": str(HOME / ".pi" / "agent"),
+        }
+        sandbox = subprocess.run(
+            ["pi", "--mode", "rpc", "--no-session", "-e", str(sandbox_probe)],
+            input='{"id":"state","type":"get_state"}\n',
+            capture_output=True,
+            text=True,
+            timeout=20,
+            check=False,
+            env=sandbox_env,
+        )
+    if sandbox.returncode != 0:
+        fail(f"sandbox HOME / real agent-dir load exited {sandbox.returncode}: {sandbox.stderr}")
+    if "Failed to load extension" in sandbox.stderr or "Cannot find module" in sandbox.stderr:
+        fail(sandbox.stderr)
 
     print("PASS: supported Pi packages load; compaction ordering and recall seam hold")
 
