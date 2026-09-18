@@ -1,6 +1,6 @@
 ---
 name: bibcli
-description: "로컬 BibTeX SSOT 검색/조회 + URL 원샷 입수. 유튜브·책·블로그·웹 URL을 에이전트에게 주면 save→스타일·키 판단→pin --sync 로 같은 세션에 Zotero 적소 분류 + 인용 키 확정(시점 분리 금지). 폰 캡처 후엔 bib sync. orphan #+print_bibliography: 금지."
+description: "로컬 BibTeX SSOT 검색/조회 + URL 원샷 입수. 유튜브·X(트위터)·책·블로그·웹 URL을 에이전트에게 주면 save→스타일·키 판단→pin --sync 로 같은 세션에 Zotero 적소 분류 + 인용 키 확정(시점 분리 금지). X는 수동 메타데이터 보정, YouTube는 무의미한 플랫폼 안내문을 abstract로 남기지 않는다. 폰 캡처 후엔 bib sync. orphan #+print_bibliography: 금지."
 ---
 
 # bibcli — meta-bib SSOT + URL 입수 (org 에이전트 기본)
@@ -92,7 +92,8 @@ inode를 공유하므로 상호배제가 그대로 성립한다.
 | URL / 유형 | 스타일 포인트 | citationKey | pin 자동 컬렉션 (Unfiled 탈출) | 로컬 bib |
 |---|---|---|---|---|
 | **책** yes24 등 | 제목 파이프 제거, `저`/`역` creators, date·ISBN·publisher·abstract | KDC 감각 `001.3-김74ㅁ` (동저자 `search` 참고, **유일**) | `Book` + `000-정보`…`900-역사` (키 앞자리) | `Book.bib` |
-| **유튜브 / 영상** | 제목 정리, 채널→author, date | `…` 기존 영상 패턴 또는 save 직후 키 개선 | **`fileUnder: "Video"` 명시** | 보통 `Online.bib`* |
+| **유튜브 / 영상** | 제목 정리, 채널→author, date, **의미 있는 abstractNote** | `…` 기존 영상 패턴 또는 save 직후 키 개선 | **`fileUnder: "Video"` 명시** | 보통 `Online.bib`* |
+| **X (Twitter)** | **포스트 원문을 직접 읽어** 제목·작성자(handle)·date·본문 요약 수동 보정 | `web-…` 또는 개선 키 | `Category → @Web` | `Online.bib` |
 | **블로그** | 제목·author·date | `blog-…` 또는 개선 키 | `Category → BlogPost` | `Online.bib` |
 | **일반 웹** | 제목 정리 (사이트 접미 제거) | `web-…` 또는 개선 키 | `Category → @Web` | `Online.bib` |
 | **위키** | 표제어 정리 | `wiki-…` | `Category → Wikipedia` | `Reference.bib` |
@@ -118,11 +119,25 @@ YouTube pin 예시:
 ./run.sh pin --sync --json '{
   "zoteroKey": "FROM_SAVE",
   "citationKey": "VIDEO-KEY",
-  "fileUnder": "Video"
+  "fileUnder": "Video",
+  "abstractNote": "영상 설명에서 회수한 핵심 내용 또는 제목·채널·공개 메타데이터에 근거한 짧은 요약"
 }'
 ```
 
-### 2b) 책 스타일 (yes24)
+### 2b) X와 YouTube — 저장은 자동이어도 내용은 확인한다
+
+Translation Server의 `save` 결과는 **캡처 초안**이다. 다음 경우에는 자동 메타데이터를
+그대로 `pin`하지 말고, 링크의 실제 내용을 확인해 payload로 덮어쓴다.
+
+| 링크 | 버려야 할 초안 | pin 전에 할 일 |
+|---|---|---|
+| **X (Twitter)** | `x.com` 제목, `session not provided`/HTTP 400, X의 일반 소개문 | 포스트 원문을 직접 읽어 제목(짧은 내용 요약 가능)·작성자 이름과 `@handle`·게시일·본문의 짧은 abstractNote를 채운다. 원문을 읽을 수 없으면 추측으로 만들지 말고 GLG에게 내용/스크린샷을 요청한다. |
+| **YouTube** | “YouTube에서 마음에 드는 동영상과 음악을 감상하고…” 같은 플랫폼 소개문 | 영상 설명(description)을 먼저 회수해 `abstractNote`로 넣는다. 설명이 없거나 무의미하면 제목·채널·페이지에서 읽힌 정보에 근거한 1–2문장 요약을 직접 쓴다. 영상을 보았다고 꾸미지 않으며, 내용 요약을 요청받았거나 공개 정보가 부족하면 `youtube-transcript`로 자막 정본을 회수한다. |
+
+즉, URL을 받으면 **제목·저자·날짜뿐 아니라 abstractNote가 그 링크 자체를 식별하는 정보를
+갖는지** 마지막으로 확인한다. 일반 플랫폼 안내문·로그인 유도문·빈 abstract는 정보가 아니다.
+
+### 2c) 책 스타일 (yes24)
 
 | Raw | Styled |
 |---|---|
@@ -134,14 +149,14 @@ YouTube pin 예시:
 KDC는 **완벽할 필요 없음**. 분류 축 + SSOT 유일성이 핵심.  
 `lookup`/도서관 API는 선택; 실패해도 판단으로 진행.
 
-### 2c) 키 유일성
+### 2d) 키 유일성
 
 ```bash
 {baseDir}/bibcli show "후보키" --dir ~/sync/org/resources/bib
 # entry not found 여야 신규 핀 가능 (같은 항목 재핀은 예외)
 ```
 
-### 2d) 이미 금고에만 있음 (폰/브라우저 Connector)
+### 2e) 이미 금고에만 있음 (폰/브라우저 Connector)
 
 ```bash
 cd ~/repos/gh/zotero-config && ./run.sh bib sync
@@ -150,7 +165,7 @@ cd ~/repos/gh/zotero-config && ./run.sh bib sync
 
 미분류·키 부실이면 `zoteroKey` 확보 후 **2) pin --sync**로 수선 (같은 세션).
 
-### 2e) 빠른 웹만 (예외)
+### 2f) 빠른 웹만 (예외)
 
 메타가 깨끗하고 Unfiled여도 당장은 키만 필요할 때:
 
@@ -167,7 +182,9 @@ cd ~/repos/gh/zotero-config && ./run.sh bib sync
 | 키 있음 | `show` |
 | 로컬에 있을 듯 | `search` (방금 폰 저장 → 먼저 `bib sync`) |
 | URL = 책/yes24 | save → style+KDC → **pin --sync** |
-| URL = 유튜브·블로그·웹 | save → 가벼운 스타일+키 → **pin --sync** |
+| URL = X (Twitter) | 원문 확인 → 수동 메타데이터·abstractNote → **pin --sync** |
+| URL = YouTube | 설명/공개 정보 확인 → 의미 있는 abstractNote + `fileUnder: Video` → **pin --sync** |
+| URL = 블로그·웹 | save → 가벼운 스타일+키 → **pin --sync** |
 | “서지 없어요” + 스레드에 URL | **지금 2)** — 보고만 하고 끝 금지 |
 | org 노트 인용 | `#+reference:` + `#+print_bibliography:` (orphan 금지) |
 
