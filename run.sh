@@ -1466,8 +1466,21 @@ setup_git_hooks() {
   # - Pinning the target with --file (and GIT_CONFIG_GLOBAL for the
   #   verification read) avoids that trap and is harmless on devices
   #   where ~/.gitconfig is already the default location.
+  #
+  # Do NOT write user.name / user.email here. ~/.gitconfig is read AFTER
+  # home-manager's ~/.config/git/config, so a mailbox in this file steals
+  # commit attribution from hosts/*/vars.nix gitEmail (junghan0611 noreply).
+  # Measured 2026-09-18 on oracle: one leftover user.email made GitHub
+  # attach commits to the other account. Warn only — do not unset for the
+  # operator.
   local gitconfig="$HOME/.gitconfig"
   [ -e "$gitconfig" ] || touch "$gitconfig"
+  local overlay_email
+  overlay_email=$(git config --file "$gitconfig" --get user.email 2>/dev/null || echo "")
+  if [ -n "$overlay_email" ]; then
+    warn "user.email in $gitconfig overrides home-manager ($overlay_email)"
+    warn "  git config --file $gitconfig --unset user.email"
+  fi
   local current
   current=$(GIT_CONFIG_GLOBAL="$gitconfig" git config --global --get core.hooksPath 2>/dev/null || echo "")
   if [ "$current" = "$hooks_dir" ]; then
