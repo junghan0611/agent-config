@@ -231,7 +231,7 @@ Aside from the hook channel, the two surfaces are interchangeable. This is the r
 
 ### Skills ([`skills/`](skills/))
 
-48 skills (recounted 2026-09-09 against `skills/`; the list below names 46 — `voscli` and `incidentcli` are linked from work repos and stay out of a public list). Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query, timeline), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (dm, slack-latest, jiracli, telegram), code surface (forge — linked, owned by forge-config), work workbench (plane), household (butlercli), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli), entwurf (entwurf-peek), cross-repo care (sorge — linked, owned by its own repo), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), harness bench (harness-bench), tools (emacs, tmux, diskspace, cloudflare, quota).
+48 skills (recounted 2026-09-18 against `skills/`; the list below names 46 — `voscli` and `incidentcli` are linked from work repos and stay out of a public list). Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query, timeline), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (dm, slack-latest, jiracli, telegram), code surface (forge — linked, owned by forge-config), work workbench (plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli, subtract), entwurf (entwurf-peek), cross-repo care (sorge — linked, owned by its own repo), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), harness bench (harness-bench), tools (emacs, tmux, diskspace, cloudflare, quota).
 
 **Linked skills: one repo owns it, this one only connects.** `skills/sorge` is a *relative symlink* into [`sorge`](https://github.com/junghan0611/sorge)`/.claude/skills/sorge` — the SKILL.md exists exactly once, in the repo whose facts it depends on, and editing it there reaches every harness at once. agent-config keeps no copy and has nothing to re-sync. `run.sh` clones such repos (`LINKED_SKILL_REPOS`) so the link is never dangling, and **`update` pulls them too** — a stale clone would freeze that one skill while every other repo moves, which is precisely the failure the design exists to prevent. Portability is structural rather than lucky: the link is *relative* (`../../sorge/…`), and `ensure_repo` clones into `~/repos/gh`, so it resolves identically on every machine. A missing target degrades safely — a dangling symlink does not match bash's `*/` glob, so pi's per-skill loop skips it instead of erroring (measured 2026-09-04). `skills/forge` is the same shape, into [`forge-config`](https://github.com/junghan0611/forge-config)`/.claude/skills/forge`. It was this repo's own counter-example until 2026-09-04: documented as a thin pointer to `forge-config` while 361 lines actually lived here, so nobody could tell which side was true. What made the split visible was the commit log — every one of the five dates that touched `bin/forge` touched `SKILL.md` too, one change costing two commits in two repos. Repo name and skill name need not match (`forge-config` owns `forge`); `LINKED_SKILL_NAMES` carries that mapping. Do not re-open the shape that was closed.
 
@@ -319,7 +319,7 @@ What `setup` deliberately does **not** do: install entwurf (that is entwurf's ow
 
 Some questions cannot be answered by reading a project's README. *Does a runtime that generates its own skills from experience beat a human-authored skill set?* You only find out by standing both up on the same machine, giving them the same repeated task, and looking at what each wrote down afterwards.
 
-Five subjects sit on this bench, and they ask different questions:
+Six subjects sit on this bench, and they ask different questions:
 
 | Subject | Question | Standing |
 |---|---|---|
@@ -328,6 +328,7 @@ Five subjects sit on this bench, and they ask different questions:
 | [prime-agent](https://github.com/junghan0611/prime-agent) (fork) | Can a Lisp workspace stand up the RLM loop a Python REPL carries today? | **built here**, not installed — matrix in [PRIME.md](PRIME.md) |
 | [Ouroboros](https://github.com/Q00/ouroboros) | Besides entwurf, how does a popular Agent OS carry task-memory across harnesses, and how does it run long? | candidate, **not pinned, not installed** — matrix in [OUROBOROS.md](OUROBOROS.md) |
 | [herdr](https://github.com/herdrdev/herdr) | Besides our tmux/entwurf floor, how does a popular agent-terminal runtime show stuck panes and survive detach? | **installed and running (0.9.0), not declared in nixos-config** — matrix in [HERDR.md](HERDR.md) |
+| [Xirp](https://backstage.spotify.com/docs/xirp) (Spotify) | When one product owns the whole factory — sessions, worktrees, workflow status, institutional memory — what does it get that a three-part workshop does not? | **cannot be installed: macOS-only** — observation in [XIRP.md](XIRP.md) |
 
 
 This comparison belongs here, not in entwurf. **entwurf guarantees its own garden-id,
@@ -398,6 +399,39 @@ candidate: it is an occasional external sighting used to separate durable runtim
 from cockpit fashion. Its current entry records one useful confirmation only — tmux can
 own session lifetime while Emacs remains a replaceable projection — and explicitly opens
 no implementation lane.
+
+[XIRP.md](XIRP.md) is the sixth subject and the only one this machine **cannot** run: Xirp is
+macOS-only, so the question is never whether to adopt it but how far a product that owns the
+*whole* factory has actually gone. Spotify calls it a **vendor-neutral agentic development
+environment** and states that as an architectural requirement — *context is decoupled from any
+single agent or harness; switch tools mid-project, and the full working state carries over* —
+built to coordinate 50+ parallel sessions, each in its own worktree. That last phrase names the
+same problem garden-id solves, with the opposite answer: **Xirp holds the context and swaps the
+harness; entwurf holds only the address and leaves context with each citizen.** The memory axis
+diverges further — Portal accumulates institutional memory as a substrate it owns, while
+`/recall` deliberately refuses to become a memory emperor. One caution is written large in that
+file: the claim that **Pi became a first-class Xirp harness is inherited from a ChatGPT analysis
+and could not be confirmed here** — Spotify's own docs still list Claude Code, Codex and Gemini,
+and the changelog names Cursor but not Pi. Verifying or retiring that one sentence is the file's
+first open item.
+
+[UNCLEBOB.md](UNCLEBOB.md) sits beside it but looks at a different surface: **what a harness
+uses to prove itself.** Robert C. Martin spent 2026 building SwarmForge — 331 commits, git
+worktrees, a babashka handoff daemon, a constitution, nine pack/forge branches — and then on
+2026-09-12 wrote that the need for it was obviated. What he *kept* is the finding: CRAP,
+mutation, coverage, DRY, all as external deterministic tools, with a 6-line `AGENTS.md` whose
+only rule is *do not pin prompt prose with automated tests*. Constraint by prose went down;
+judgement by measurement did not. Measured the same day, `pi-mono` (TS, tests at 77% of
+source, per-package `test/`) and `herdr` (Rust, `#[cfg(test)]` in 186 of 378 files, plus
+python `maintenance-test` modules that gate CHANGELOG, config-reference and docs-translation
+parity) reach the same shape in different languages — and **none of the three gates on a
+coverage percentage.** That convergence is now lens 5 of `harness-bench`.
+
+This file is the one bench document that **deliberately crosses the no-verdict line**, at
+GLG's explicit request, because entwurf 0.23.0 and the herdr plugin 0.2.0 were shipping and
+the standard had to exist before the user base widened. Its §D is material prepared for
+entwurf 담당자 — coordinates and precedent, never an instruction — and it opens by naming the
+line it crosses. No other `NAME.md` inherits that license.
 
 ## Session Management — `/new` + recall
 
