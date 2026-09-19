@@ -283,3 +283,61 @@ snapshot에는 하단 tab row와 우측 `~/.current-device`(fallback hostname) �
 `%Y-%m-%d %H:%M` 시계가 들어 있다. 따라서 SSH/원격 client에서도 그 패인이 실제로 도는
 서버의 위치와 시간이 보인다 (`herdr server reload-config` 적용 receipt: `status: applied`,
 diagnostics 없음).
+
+---
+
+## [2026-09-19] Marketplace는 리포 카드이지만 root-only registry가 아니다
+
+관측 자리: `entwurf` 0.23.0 / Herdr plugin 0.2.0을 낸 뒤, 플러그인을
+`entwurf/plugins/herdr`에 계속 둘지 별도 `herdr-entwurf` 리포로 나눌지 조사했다.
+이것은 채택 판정이나 설치 실험이 아니다. upstream marketplace와 현재 공개 인덱스를
+읽고, Entwurf의 실제 배포·검증 의존성을 대조한 관측이다.
+
+### A. 목록의 단위와 하위 디렉터리
+
+`[읽음 upstream, herdr master docs/next/website/src/content/docs/marketplace.mdx,
+2026-09-19]` marketplace는 public GitHub repository 중 `herdr-plugin` topic을 단 것을
+찾고, default branch의 **어느 경로에나** 있는 parseable `herdr-plugin.toml`을 찾는다.
+카드는 repository 하나당 하나이고, 그 안의 유효 manifest는 각각 installable row가 된다.
+공식 install 문법도 `owner/repo[/subdir...]`이며, docs는 root와 subdirectory manifest를
+동등하게 명시한다. 따라서 `junghan0611/entwurf/plugins/herdr`는 목록의 비정상 경로가
+아니다. 공개 snapshot에도 `openclaw/crabbox`의 `plugins/herdr/herdr-plugin.toml` 및
+`alexarthurs/herdr-sidebar`의 `plugins/herdr-sidebar/herdr-plugin.toml` 행이 실제로 있다
+(`[측정 HTTPS] https://herdr.dev/plugins/, generatedAt 2026-09-18T09:30:52.432Z`).
+
+### B. 지금 Entwurf가 안 보이는 이유는 리포 모양으로 설명되지 않는다
+
+`[측정 GitHub REST, 2026-09-19]` `repos/junghan0611/entwurf/topics`와 `gh repo view`는
+`herdr-plugin` topic을 보이고, default branch에는 plugin 0.2.0의
+`plugins/herdr/herdr-plugin.toml`이 있다. 반면 같은 시점 GitHub search
+`topic:herdr-plugin user:junghan0611`은 `total_count: 0`을 돌렸다. Herdr marketplace가
+쓰는 upstream query도 정확히 `topic:herdr-plugin is:public`이다. 공개 snapshot 역시
+Entwurf row가 없으며, 그 `generatedAt`은 Entwurf NEXT가 기록한 topic 추가
+2026-09-18 22:24 KST보다 앞선다.
+
+여기서 말할 수 있는 것은 **topic-search/index 지연이 현재 관측되었다**는 것뿐이다.
+다음 갱신이 언제 Entwurf를 보일지는 아직 미측정이다. docs의 “30분마다 refresh, default
+branch head가 바뀌면 rescan”은 정상 경로의 설명이지 이 지연의 보장은 아니다. 리포를
+분리해도 새 리포도 같은 GitHub topic search를 통과해야 하므로 이 사실의 해결책은 아니다.
+
+### C. 소유 경계에 대한 현재 결론
+
+`[읽음 entwurf file:line]` plugin build는 checkout에서
+`../../../scripts/herdr-runtime.mjs`와 `../../../scripts/herdr-activation.mjs`를 import한다
+(`plugins/herdr/lib/runtime-bootstrap.mjs:15`, `plugins/herdr/lib/build.mjs:52-61`). 그것은
+실수로 섞인 것이 아니다. checkout이 uninstall 때 지워진 뒤에도 runtime journal·activation
+ledger·deactivate verb를 읽어야 해서, 지속해야 할 owner는 install된
+`@junghanacs/entwurf@0.23.0` artifact에 남도록 만든 계약이다. root의 deterministic gates와
+mutants도 plugin manifest, bootstrap, activation, supply, fresh-call rail을 함께 증명한다.
+
+그래서 **지금은 분리하지 않는 편을 권한다.** 별도 리포가 주는 것은 marketplace 카드의
+repository 이름을 `herdr-entwurf`로 바꾸는 발견성/심미성이고, 검색 등록의 자격은 이미
+현재 구조가 가진다. 반대로 지금 옮기면 checkout-time imports, exact npm runtime lock,
+install 이후 self-removing checkout, activation/deactivation과 그 proof들을 새로운 public
+package 또는 별도 versioned artifact 경계로 다시 설계하고 두 release cadence를 동기화해야
+한다. 그것은 이름 정리가 아니라 lifecycle authority 이동이다.
+
+현재의 작은 다음 수는 리포 분할이 아니라 marketplace search 결과가 Entwurf를 실제로
+보이는지 재측정하고, 이미 NEXT에 적힌 다음 plugin minor에서 display name만 **Herdr
+Entwurf**로 고쳐 row의 뜻을 선명하게 하는 것이다. 별도 리포는 plugin이 Entwurf core와
+독립된 release cadence·runtime artifact·issue queue를 실제로 갖게 될 때 다시 검토한다.
