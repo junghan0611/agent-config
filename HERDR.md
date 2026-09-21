@@ -341,3 +341,165 @@ package 또는 별도 versioned artifact 경계로 다시 설계하고 두 relea
 보이는지 재측정하고, 이미 NEXT에 적힌 다음 plugin minor에서 display name만 **Herdr
 Entwurf**로 고쳐 row의 뜻을 선명하게 하는 것이다. 별도 리포는 plugin이 Entwurf core와
 독립된 release cadence·runtime artifact·issue queue를 실제로 갖게 될 때 다시 검토한다.
+
+---
+
+## [2026-09-21] herdr 쪽에서 본 entwurf — 장르는 붐비고, 축은 비어 있다
+
+관측 자리: oracle, Claude Opus 5 (claudecode). 계기는 awesome-herdr 등재
+(`[측정 gh pr view]` `yigitkonur/awesome-herdr#24`, **merged 2026-09-20T09:31:23Z**,
+`README.md` +5/-4, 작성 `gpt-5.6-terra (pi/oracle)`). 이번 턴은 설치도 실행도 하지
+않았다 — **공개 인덱스와 이웃 프로젝트의 자기 문서만 읽었다.** 묻는 것은 하나다:
+*herdr 생태계의 좌표계 위에서 entwurf는 무슨 칸에 서 있고, 그 칸에 뭐가 비어 있는가.*
+
+### A. 2026-09-19의 미해결 두 개가 닫혔다
+
+| 그때 | 지금 | 증거 |
+|---|---|---|
+| GitHub `topic:herdr-plugin user:junghan0611` → `total_count: 0` | **1** | `[측정 gh api search/repositories, 2026-09-21]` |
+| 공개 snapshot에 Entwurf row 없음 (`generatedAt 2026-09-18T09:30:52Z`) | **있음** (`generatedAt 2026-09-20T21:30:40Z`) | `[측정 HTTPS https://herdr.dev/plugins/]` |
+
+그리고 그 row가 **09-19 판정을 한 군데 정정한다**: `firstSeenAt`이
+**2026-09-18T13:31:04.247Z** 다 — NEXT가 기록한 topic 추가(2026-09-18 22:24 KST =
+13:24Z)로부터 **약 7분**. 즉 marketplace의 rescan은 지연되지 않았다. 지연된 것은
+그때 읽은 **published snapshot**(추가보다 앞선 시각에 생성됨)과 그 시점의 **GitHub
+search API 응답**이었다. "topic-search/index 지연이 관측되었다"는 관측 자체는 유효하되,
+그것을 marketplace 등재의 지연으로 읽으면 틀린다.
+
+카드에 실제로 실린 것: `Herdr Entwurf` 0.4.0 · `minHerdrVersion 0.9.0` ·
+`platforms ["linux"]` · manifest 경로 `plugins/herdr/herdr-plugin.toml` ·
+★28 fork 4. **subdir manifest가 root-only registry가 아니라는 09-19 결론도 라이브로 확인됐다.**
+
+### B. 장르 실측 — 2089행 중 20여 개, 그런데 17개 섹션에 흩어져 있다
+
+`[측정 python3, awesome-herdr README.md 2026-09-21 사본, 2558행]` 전체 프로젝트 행
+**2089**개. 그중 cross-agent 주소/메시지 장르로 읽히는 행은 **약 20개**(키워드
+`agent-to-agent|cross-agent|peer|call-sign|mailbox|letterbox|group chat|messag`).
+
+그 20여 개가 앉은 섹션: Multi-agent fleets and supervisors(2) · Claude Code
+multi-agent teams(10) · Pi supervisor workflows(5) · Subagent launchers(3) ·
+Swarm(1) · REPL and code dispatchers(1) · Plugins and supporting utilities(1) ·
+Persistence(1) … **17개 섹션.**
+
+읽히는 사실: **이 목록에는 그 장르의 칸이 없다.** entwurf가 "Multi-agent fleets and
+supervisors"에 앉은 것은 우리가 잘못 신청한 것이 아니라 taxonomy에 집이 없어서
+가장 가까운 방에 들어간 것이다. 같은 방의 나머지 106개는 티켓 디스패처·worktree
+스워머·approval 게이트이고, entwurf는 그 일을 하지 않는다. **fleet supervisor가
+아니다 — 이 방에서 이웃이라고 부를 수 있는 것은 `herdr-agent-messenger` 하나뿐이다.**
+
+### C. 이웃 넷의 배달 기제 — 다 읽었다, 그리고 다 같은 바닥으로 내려간다
+
+`[읽음 각 리포 README/PROTOCOL, 2026-09-21]`
+
+| 프로젝트 | 주소 | 배달 | 스스로 쓴 한계 |
+|---|---|---|---|
+| `aashishd/herdr-agent-messenger` | two-word call-sign | *"delivery is typed text"* — 한 줄 + Enter를 패인에 주입 | **"Lifetime = pane lifetime.** 재시작한 패인은 새 에이전트이고 새 이름을 받는다" |
+| `barkerja/herdr-msg` | pane id `w4:p2` | 메시지는 디스크, *"uses herdr only as a doorbell"* | 스스로 진단: 현행 방식은 *"lossy, racy, and wiped out by pane churn or an agent restart"* |
+| `dcadenas/kelpie` | pane 세션 | `<kelpie from=… re=…>` 태그로 감싼 **텍스트** | *"Herdr can deliver text to an agent"* 가 전제. alpha, herdr protocol 한 버전만 |
+| `LZHcode1986/herdr-link` | live named agent | **pi native extension + MCP 툴** (`herdr_link_send/peers/start/close`) | 신원을 *"re-resolves … via Herdr"*, **same-workspace guard**. `done`은 *"not an acknowledgement, task state, or delivery receipt"* |
+
+넷 중 셋이 결국 **패인에 글자를 넣는다.** 그것은 `entwurf/DELIVERY.md:18`이 qualifying
+delivery 자격 밖으로 명시한 바로 그 항목이고, 2026-09-14에 herdr 자신의 `--skill`에서
+읽은 `agent prompt`(키 주입) / `agent read`(화면 스크랩)의 직계다. 내구성을 더한
+프로젝트들(`herdr-msg`, `herdr-mail`, `kelpie`)도 **저장소를 옆에 붙였을 뿐 도착면은
+그대로**다. 이건 결함이 아니라 herdr가 준 것으로 지을 수 있는 최선이다.
+
+예외는 `herdr-link` 하나다 — 공식 수신면(extension/MCP)으로 내려갔다는 점에서 구조가
+entwurf와 가장 가깝다. 다른 점은 두 가지이고, 둘 다 그쪽이 스스로 적었다: **신원을
+herdr에서 다시 끌어오고(workspace 밖으로 못 나간다), 영수증 층을 의도적으로 두지 않는다.**
+
+### D. 그래서 entwurf의 자리 — 비어 있는 축은 "패인보다 오래 사는 이름"이다
+
+herdr는 자기 문서에서 두 번 선을 그었다 `[읽음 herdr --skill 0.9.0, 2026-09-14 기록]`:
+주소는 **한 서버 스코프**이고 패인이 옮겨지면 새 id, 에이전트가 끝나면 이름이 풀린다.
+상태 `unknown`은 *"does not prove completion"*. 즉 **herdr는 지속하는 신원을 팔 생각이
+없다** — 그것은 workbench의 일이 아니다.
+
+`[읽음 entwurf/AGENTS.md:70]` `entwurf_resume_call {target}`은 **같은 dormant id를
+다시 보이게 연다** — 턴을 돌리지 않고, 기록에서만 transcript/model/provider/cwd를 받는다.
+이 장르의 어떤 이웃도 이 문장을 쓰지 못한다(위 표의 "스스로 쓴 한계" 열이 그 자리다).
+
+그래서 herdr 쪽 좌표로 옮겨 적으면 entwurf의 역할은 **fleet supervisor도 messenger도
+아니고, 이 두 줄이다**:
+
+1. **패인보다 오래 사는 주소.** garden id는 herdr 서버·패인·프로세스 밖에서 유지되고,
+   죽은 뒤에도 같은 이름으로 다시 열린다. herdr의 pane id / call-sign은 정의상 못 한다.
+2. **공식 수신면으로만 배달.** 타이핑도 스크랩도 아니며, 능력을 `D0–D8`로, 실패를
+   이름으로 말한다(`peer-facts-failed`, `entwurf-bin-not-executable` …). 장르의 기본값은
+   그 반대다.
+
+그리고 셋째가 관계다 — **entwurf는 herdr의 경쟁자가 아니라 herdr를 선택적으로 쓴다.**
+`[읽음 entwurf/plugins/herdr/README.md]` 플러그인은 herdr에게서 **배치(placement)만**
+빌리고, 조인은 `paneId` 문자열 하나의 동등비교다. 패인은 **아무것도 쓰지 않고 배달도
+하지 않는다.** tmux에서도, herdr 없이도 같은 garden id가 선다. 09-14에 "양쪽이 협상 없이
+같은 이음매를 팠다"고 적은 그 이음매가, 지금은 공개 marketplace에 올라간 계약이다.
+
+### E. 우리가 만든 문서 재검토 — 세 가지가 걸린다
+
+1. **awesome 엔트리의 마지막 문장.** 실린 문구는 *"Includes a Herdr integration for pi
+   and Claude Code."* 인데, herdr 어휘에서 **integration은 herdr 자신의 것**이다
+   (`herdr integration install pi`, 09-14에 7개 하네스로 측정). 플러그인이 하는 일은
+   *herdr가 이미 integrate한* pi/claude를 **활성화(activate)** 하는 것이다
+   (`A = E ∩ H ∩ P`, `[읽음 herdr-plugin.toml 주석]`). 읽는 herdr 사용자에게 이 두 단어는
+   다른 것을 약속한다. 후속 PR 한 줄로 고칠 수 있는 크기다. **GLG 판정 사항.**
+2. **카테고리.** §B대로 taxonomy에 칸이 없다. 옮길 방이 없으니 지금 자리는 최선이지만,
+   상위 설명("Higher-level systems that coordinate several agents, roles, tasks, or
+   repositories")은 entwurf를 orchestrator로 읽게 한다. 엔트리 본문이 그 오독을 막고
+   있는지가 실질 — 현재 문구는 "address, message, and open visible siblings"로 시작하므로
+   버틴다고 본다.
+3. **플러그인 README는 herdr 사용자에게 *읽기 전용*으로 보인다.** "What the pane will not
+   do"가 정직하게 적힌 대신, 처음 온 사람이 받는 인상은 *"상태 하나 보여주는 오버레이"*다.
+   실제 능력(부름·배달·재개)은 **하네스 툴 쪽에만** 있고 herdr 면에는 없다. 이것을 넓힐지는
+   **entwurf 담당자의 판단 재료이지 이 문서의 지시가 아니다** — manifest 주석이 `[[actions]]`
+   부재를 이미 이유와 함께 적어두었으므로(stdout이 64KiB 로그로 감), 되묻는다면 "herdr 면에서
+   garden id로 보내는 손이 필요한가"가 그 질문이다.
+
+### 매트릭스 델타 — 이번 턴 증거만
+
+| # | 항목 | 이전 | 지금 | 판정 |
+|---|---|---|---|---|
+| F1 | marketplace 등재 | 미측정(09-19 부재) | **측정됨(등재)** | `firstSeenAt 2026-09-18T13:31:04Z`, rescan 지연 아님 |
+| F2 | topic search | 막힘(0건) | **측정됨(1건)** | `gh api search/repositories` |
+| F3 | 장르 규모·분포 | 없던 항목 | **측정됨** | 2089행 중 ~20, 17개 섹션 |
+| F4 | 이웃 배달 기제 | 없던 항목 | **읽음** | 4개 중 3개 typed text, 1개(herdr-link) 공식 수신면 |
+| F5 | 지속 신원을 가진 이웃 | 없던 항목 | **측정됨(0건)** | call-sign=pane lifetime, pane id, workspace guard |
+| B1/B2 | detach·재시작 실측 | 미측정 | 미측정 | 여전히 안 끊고 안 재웠다 |
+| D1 | tmux를 herdr로 교체 | 안 함 | **안 함** | 유지 |
+
+### 미해결 — 갱신
+
+1. **엔트리 문구 `integration → activation`.** 후속 PR 여부는 GLG 판정.
+2. **herdr 면의 쓰기 손.** 열지 말지는 entwurf 담당자 몫. 이 문서는 질문만 둔다.
+3. `herdr-link`를 한 번 더 읽을 값어치가 있다 — 공식 수신면으로 내려간 **유일한** 이웃이고,
+   pi extension + MCP 이중 어댑터 모양이 우리와 겹친다. 이번 턴은 README만 읽었고 소스는
+   미측정.
+4. B1/B2(detach·재시작), session-state/socket-api 본문 — 변동 없음.
+5. DHH 사용 여부 — 변동 없음.
+
+### [정정 2026-09-21 오후] F5("지속 신원을 가진 이웃 0건")는 반례가 있다
+
+같은 날 소넷 형제 둘이 이웃 13종을 읽고 돌아왔다(A조 6종 · B조 7종, 보고
+`.agent-reports/20260921-herdr-genre-{A,B}.md`, 보존본은 llmlog `20260914T161103`).
+
+**위 F5는 틀렸다.** 아침 판정의 근거는 `kelpie` README 앞부분 35줄이었고, 같은 리포의
+`SPEC.md` / `docs/herdr-outcomes.md`가 반례다 `[읽음 2026-09-21]`: `dcadenas/kelpie`는
+**logical agent**(이름·히스토리·의무를 가진 영속 엔티티)와 **incarnation**(pane+terminal
+바인딩 하나)을 명시적으로 분리하고 — *"A lost Herdr binding MUST NOT delete the logical agent
+or its history."* — `kelpie adopt`로 같은 logical agent에 새 runtime을 재결속한다. 패인이
+없는 주소축(`waiter.register`)도 있고, herdr가 보고하는 backend-native 세션 참조는 *"not
+runtime identity and is not part of a binding"* 으로 우리가 `nativeSessionId`를 다루는 것과
+같은 결이다.
+
+**정확한 문장은 "유일하다"가 아니라 "무동작 복귀는 아직 우리 쪽"이다.** kelpie의 재결속은
+`adopt`라는 명시적 동작을 누군가 걸어야 하고, `entwurf_resume_call`은 같은 이름을 다시 부르는
+것 자체가 복귀다. §D의 두 줄 중 **첫 줄(패인보다 오래 사는 주소)은 이 좁은 형태로 수정**되고,
+둘째 줄(공식 수신면으로만 배달)은 13종 실측으로 오히려 강해졌다 — herdr 배달을 아예 쓰지 않는
+이웃은 `sting8k/pi-peer` 하나뿐이고, 그것은 우리 OMP 레일과 같은 `pi.sendUserMessage` /
+`deliverAs:"steer"`를 쓰되 **pi 단일 하네스**다.
+
+| # | 항목 | 아침 | 정정 |
+|---|---|---|---|
+| F5 | 지속 신원을 가진 이웃 | 측정됨(0건) | **측정됨(1건 — kelpie).** 차이는 신원 지속이 아니라 복귀에 동작이 필요한가 |
+| F6 | herdr 배달을 안 쓰는 이웃 | 없던 항목 | **측정됨(1/13 — pi-peer, pi 전용)** |
+| F7 | 스크래핑을 완료 권위로 채택한 이웃 | 없던 항목 | **측정됨(1건 — tuanhung303/herdr-swarm)** *"Spawn's verified exit is the single delivery authority."* |
+| F8 | `[[build]]`+`[[panes]]` 매니페스트 이웃 | 없던 항목 | **측정됨(0건)** — 우리 0.4.0이 이 장르에서 가장 좁은 매니페스트 |
