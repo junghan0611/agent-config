@@ -526,7 +526,7 @@ pia() { _pi_garden_pi --entwurf-control --emacs-agent-socket server "$@"; }
 - [NEXT.md](NEXT.md) — volatile next-step anchor for the next session
 - [ROADMAP.md](ROADMAP.md) — medium-horizon tracks and direction
 - [CHANGELOG.md](CHANGELOG.md) — closed history
-- [MODELS.md](MODELS.md) — which model rails exist and on what contract terms (rolling quota → Copilot credits → metered API), plus a regenerable `pi --list-models` snapshot (`./run.sh models`)
+- [MODELS.md](MODELS.md) — the manually curated sibling-launch roster: active rails, spending order, and exact model selectors (`./run.sh models` checks it against pi's live catalog)
 
 ## Changelog
 

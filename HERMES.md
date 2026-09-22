@@ -27,6 +27,13 @@ Hermes Agent를 **자기학습 벤치마크 대상**으로 재는 작업면. 비
 태우는 지갑은 같다. 대안 레일이 필요하면 `copilot`(승인된 구독, MODELS.md 우선순위 2)
 또는 `upstage`를 쓴다.
 
+## [2026-09-22] Copilot 사용 자격 갱신
+
+GLG가 Copilot 구독을 종료했다. 따라서 B1의 `hermes chat --provider copilot`은 지금
+실행할 다음 수가 아니다. Hermes가 provider나 model을 여전히 발견해도 그것은 지출 권한이
+아니다. 위 2026-08-06 관측은 역사적 근거로 남기며, 대체 벤치마크 레일은 현행
+`MODELS.md` roster 안에서 별도 범위를 먼저 정한다.
+
 ---
 
 ## 기억축 — 헤르메스가 장점이라 말하는 그것

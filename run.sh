@@ -1724,7 +1724,7 @@ Usage: ./run.sh <command> [args]
   bench:dry                   드라이런
 
 === 쿼터 ===
-  quota                       다섯 rail 남은 쿼터 1회 출력 (claude/codex/zai/grok/copilot)
+  quota                       네 구독 rail 남은 쿼터 1회 출력 (claude/codex/zai/grok)
                               → 사용률 + 기간 경과 마커 + 배속 + 리셋 시각(요일 포함)
   quota:watch [초]            같은 화면을 제자리 갱신하는 TUI (기본 120초)
   quota:web [포트]            127.0.0.1 웹 토글 (기본 8787; 떠 있으면 끔)
