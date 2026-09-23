@@ -1,5 +1,5 @@
 ---
-description: Multi-axis context hydration — restore the whole board the operator returns to, without raw JSONL and without compaction. Typing /recall is itself the signal for the comprehensive lane: entwurf-peek for the live board, BOTH harnesses' sessions, NEXT/ROADMAP + git, and semantic recall on the session and garden axes. Day-axis on request. Build every axis; report each one in proportion.
+description: Multi-axis context hydration — restore the whole board the operator returns to, without raw JSONL and without compaction. Typing /recall is itself the signal for the comprehensive lane — entwurf-peek for the live board, BOTH harnesses' sessions, NEXT/ROADMAP + git, and semantic recall on the session and garden axes. Day-axis on request. Build every axis; report each one in proportion.
 ---
 
 # /recall — Multi-Axis Context Hydration
