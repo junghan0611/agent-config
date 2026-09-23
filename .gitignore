@@ -46,6 +46,11 @@ __pycache__/
 skills/butlercli
 skills/incidentcli
 skills/voscli
+
+# Claude Code account-synced skills (anthropic-skills:*) — written through the
+# ~/.claude/skills -> ./skills link; machine-local, owned by Claude Code
+skills/synced/
+
 .tmp-confluence-md/
 skills/.provenance.json
 
