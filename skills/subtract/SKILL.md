@@ -17,6 +17,10 @@ GLG의 말: 뺄셈은 코드 양이 아니라 **해결하는 방식**을 말한�
 
 PR은 가장 쉬운 답이라서 가장 늦게 내는 답이다. GLG의 규칙은 **2주 숙고 뒤**다.
 
+## 짝 — `evidence-closure`
+
+뺄셈은 문제를 **여는** 쪽이고, 닫는 쪽은 `evidence-closure`다(GLG 2026-09-23). 결함 신고에서 출발했다면 여기서 나온 뺄셈 목록과 기각 영수증이 그 폐루프 3단계(해결안·기각 근거)의 options가 되고, 고른 해법은 red → fix → green → 원 신고 조건 재검증으로 닫는다.
+
 ## 선례 — 이 스킬이 태어난 사건
 
 entwurf #95: "Codex threadId → 그 thread를 띄운 TUI의 pane" 매핑. 두 감사가 `rust-v0.153.4`의 프로토콜 타입 표면 여섯 항목(ConnectionId, clientInfo, turn metadata, UDS acceptor, fanout, dynamic MCP)을 읽고 "벤더 소유 carrier 없음"으로 접었고, 업스트림 이슈 openai/codex#44774를 열었다.
