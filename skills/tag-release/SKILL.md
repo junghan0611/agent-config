@@ -33,6 +33,7 @@ Rules:
 - Do not create a `docs/archive` graveyard just to hide closed NEXT items. Detailed docs are fine if reachable from `AGENTS.md`, `README.md`, `NEXT.md`, or workspace SSOT pointers.
 - **A tag without a GitHub Release is an unfinished cut, not a style choice.** GLG reads release notes on github.com — that page, not `CHANGELOG.md`, is where a cut becomes visible. `git push origin "$TAG"` creates no release; `gh release create` does. If a previous tag has no release, backfill it in the same session and say so.
 - Release notes are the CHANGELOG section for that tag, verbatim. Do not re-summarize — the section was already written once and a second summary drifts from it.
+- For new CHANGELOG/release prose, prefer one source line per paragraph or list item, without column-based hard wrapping. Preserve intentional Markdown structure and repository-specific style. The release copies the CHANGELOG section verbatim, including its source newlines.
 - **Attaching build artifacts is optional and off by default.** Source tarballs are auto-attached by GitHub. Add `--attach` only for a binary a user cannot produce themselves; never attach gitignored build output as if it were reviewed.
 - Boundary truth is `git log <baseline>..HEAD`; date-based `gitcli log` is only a readable timeline aid.
 - Agent edits only `CHANGELOG.md` + `NEXT.md`. No automatic `ROADMAP.md` / `AGENTS.md` edits. No unsolicited tag-release; Make runs only on an explicit GLG request/approval. Never `--no-verify`.
@@ -50,6 +51,7 @@ Rules:
 4. **Update `## Unreleased`**
    - Sources: notable commits + closed `NEXT.md` items.
    - Past tense; breaking -> features -> fixes, or domain groups for meta repos.
+   - Review the actual Markdown source before publishing; do not reflow older sections merely for style.
    - Append; do not rewrite old sections. Create `CHANGELOG.md` if absent.
 5. **Promote**
    - Rename filled `## Unreleased` to `## $TAG`; create a fresh empty `## Unreleased` above.
