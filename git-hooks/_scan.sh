@@ -63,7 +63,7 @@ detect_mode() {
   #                     nixos-config ORACLE.md "Bot workspace git".
   # Do NOT flip these public. Hook cannot see GitHub visibility.
   case "$remote_bare" in
-    *github.com[:/]junghan0611/openclaw-config|*github.com[:/]junghan0611/apply|*github.com[:/]junghan0611/workspace-bbot|*github.com[:/]junghan0611/workspace-glg|*github.com[:/]junghan0611/workspace-gpt)
+    *github.com[:/]junghan0611/openclaw-config|*github.com[:/]junghan0611/apply|*github.com[:/]junghan0611/workspace-bbot|*github.com[:/]junghan0611/workspace-glg|*github.com[:/]junghan0611/workspace-gpt|*github.com[:/]junghan0611/workspace-mini)
       echo "loose"
       return
       ;;
