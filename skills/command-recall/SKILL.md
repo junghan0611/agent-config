@@ -76,8 +76,14 @@ git -C <PROJECT_PATH> log --since="yesterday" --oneline
 
 Run **both**, with concrete proper nouns drawn from §1–§2, not abstract restatements:
 
-- `semantic-memory search-sessions` — the work lineage
-- `semantic-memory search-md` — the garden's concept and principle
+- Session axis: call the native `session_search` tool when visible; otherwise load the
+  `semantic-memory` skill and follow its direct-executable example for `search-sessions`.
+- Garden axis: call the native `knowledge_search` tool when visible; otherwise load the
+  same skill and follow its direct-executable example for `search-md`.
+
+Use a native tool when it is in the current schema; do not turn it into a shell call. On
+the fallback path, copy the skill's invocation form exactly — its extensionless
+executable owns the interpreter through its shebang.
 
 Do not lean on the session search's automatic garden fallback; it fires only when session
 results are thin, so the garden axis vanishes exactly when sessions look healthy.

@@ -5,13 +5,24 @@ description: "Meaning search over three separate axes — own pi/Claude sessions
 
 # semantic-memory
 
-Search, choose, then open. CLI: `{baseDir}/semantic-memory`;
-the table omits this prefix. **The CLI surface is exactly
-`search-sessions | search-md | search-openclaw | search-knowledge | status |
-reindex`** — anything else named here is a *sibling skill*, invoked on its own,
-not a subcommand.
-Calling one as a subcommand returns `{"error":"Unknown command"}`
-(reproduced at the bot 2026-09-03, reported by the GPT bot on andenken#10).
+Search, choose, then open. If the tool schema already shows `session_search` or
+`knowledge_search`, call that native tool first for its axis. Otherwise invoke this
+skill's executable **directly**, exactly like this:
+
+```bash
+{baseDir}/semantic-memory search-sessions "query" --limit 5
+{baseDir}/semantic-memory search-md "query" --limit 5
+```
+
+The executable is a Bash wrapper and its shebang selects the interpreter. Prepending
+`python3` makes Python parse Bash and fail at `set -euo pipefail`; do not infer an
+interpreter that the API did not name. The table below omits the executable prefix.
+
+**The CLI surface is exactly `search-sessions | search-md | search-openclaw |
+search-knowledge | status | reindex`** — anything else named here is a *sibling skill*,
+invoked on its own, not a subcommand. Calling one as a subcommand returns
+`{"error":"Unknown command"}` (reproduced at the bot 2026-09-03, reported by the GPT
+bot on andenken#10).
 
 ## API
 

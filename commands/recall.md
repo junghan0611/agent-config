@@ -161,10 +161,14 @@ Near-zero cost and higher signal than session chatter (see §5). Never skip thes
 Run **both**. They are different axes by construction, so this is not the old "pick a
 different angle" judgment call — it is two fixed passes:
 
-| Pass | Call | Looks for |
-|---|---|---|
-| 1. Session axis | `semantic-memory search-sessions "<terms>"` | the work lineage — where this was done before, what was decided |
-| 2. Garden axis | `semantic-memory search-md "<terms>"` | the concept and principle — what the garden already says about it |
+| Pass | Call when the native tool is visible | Skill fallback | Looks for |
+|---|---|---|---|
+| 1. Session axis | `session_search` | load `semantic-memory`, then follow its direct-executable example for `search-sessions` | the work lineage — where this was done before, what was decided |
+| 2. Garden axis | `knowledge_search` | load `semantic-memory`, then follow its direct-executable example for `search-md` | the concept and principle — what the garden already says about it |
+
+Use the native tool when it is in the current schema; do not turn a visible tool into a
+shell call. On the fallback path, copy the skill's invocation form exactly — the
+extensionless executable owns its interpreter through its shebang.
 
 Do **not** rely on `search-sessions`' automatic garden fallback to cover pass 2. It fires
 only when session results are thin, so the garden axis silently disappears exactly when
@@ -193,11 +197,11 @@ to have skipped the call.
 
 `semantic-memory` is exposed identically on every backend (pi native / ACP Claude / Codex / Gemini / Claude Code / Antigravity). Use whichever surface your own tool schema shows first.
 
-| Backend | Primary call (skill) | Extra surface |
-|---------|---------------------|---------------|
-| pi native | `semantic-memory` skill (SKILL.md) | andenken extension's `session_search` / `knowledge_search` registerTool |
+| Backend | First visible surface | Fallback |
+|---------|-----------------------|----------|
+| pi native | andenken extension's `session_search` / `knowledge_search` registerTool, when present | `semantic-memory` skill (SKILL.md) |
 | ACP Claude (via entwurf) | `agent-config-skills:semantic-memory` Skill (plugin namespace) | — |
-| ACP Codex / Gemini | `semantic-memory` skill (SKILL.md) | direct binary path |
+| ACP Codex / Gemini | `semantic-memory` skill (SKILL.md) | direct executable documented by that skill |
 | Claude Code (direct) | `semantic-memory` skill (`~/.claude/skills/`) | — |
 
 All surfaces hit the same andenken CLI and return the same results. Do not detour to "unify" surfaces — call the one you see first.
