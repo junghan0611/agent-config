@@ -516,8 +516,16 @@ check("the panel is display-only — it never triggers a turn", shown[0].trigger
 check("the panel names the resident it will skip", shown[0].content.includes("anthropic/claude-opus-5"));
 check("the panel says where the candidates came from", shown[0].content.includes("(default)"));
 
+await cmd("last", cmdCtx);
+check("last reports no consult when the branch has no receipt", shown[1].content.includes("No decision-gate consult"));
+blockedBranch.push({ type: "custom", customType: CONSULT_ENTRY_TYPE, data: entries[0].data });
+await cmd("last", cmdCtx);
+check("last shows the consult answer and its evidence label", shown[2].content.includes("GLG said X") && shown[2].content.includes("sessions#1"));
+check("last states that evidence grants no authority", shown[2].content.includes("not current user authorization"));
+check("last is display-only and never continues", shown[2].triggerTurn === false);
+
 await cmd("model luna", cmdCtx);
-check("naming a model reports back", shown[1].content.includes("(session)") && shown[1].content.includes("*/luna"));
+check("naming a model reports back", shown[3].content.includes("(session)") && shown[3].content.includes("*/luna"));
 
 // 그 지정이 실제 consult 에 걸리는가 — 두 번째 blocked 전이를 태워 본다.
 blockedBranch.push({ type: "custom", customType: "goal", data: { goal: { id: "g10", status: "blocked", objective: "pick a rail", updatedAt: 43 } } });
@@ -602,9 +610,9 @@ check("the entry carries no model, and says how to set one", nm.model === null &
 
 // ── 엔트리 빌더: 세션 없이도 스키마를 잰다 ─────────────────────────────────
 console.log("entry builder — schema without a session");
+// 2026-09-28: 빌더는 이제 트리거 객체를 받는다 — goal 전이와 autopilot 침묵이 같은 엔트리 모양을 쓴다.
 const built = buildConsultDetails({
-	blocked: { id: "g1", objective: "obj", updatedAt: 7 },
-	sessionId: "s",
+	trigger: { kind: "goal-blocked" as const, goalId: "g1", goalStatus: "blocked" as const, goalUpdatedAt: 7, objective: "obj", sessionId: "s" },
 	model: { provider: "zai", id: "glm-5.3" },
 	outcome: "deadline" as const,
 	error: "consult was cut at the 8min wall clock",
@@ -623,6 +631,36 @@ check("a truncated consult says so in the entry", built.budget.digsRefused === 4
 check("and the outcome names it, with a reason a human can read", built.outcome === "deadline" && built.error?.includes("wall clock"));
 check("cited labels are kept verbatim, ids only when they resolve", built.answer.citedLabels.length === 2 && built.answer.citedHitIds.length === 1);
 check("helpful is null in the builder too", built.helpful === null);
+check("the goal trigger is carried through as given", built.trigger.kind === "goal-blocked" && built.trigger.goalId === "g1" && built.trigger.sessionId === "s");
+const auto = buildConsultDetails({
+	trigger: { kind: "autopilot" as const, question: "push now or wait?", objective: "GLG asked: push now or wait?", sessionId: "s2", askedAt: 5 },
+	model: null,
+	outcome: "no-model" as const,
+	error: "no fast model",
+	resident: null,
+	modelSource: "default" as const,
+	digs: [],
+	budget: { max: 24, spawned: 0, refused: 0 },
+	deadlineMs: 480_000,
+	deadlineHit: false,
+	text: "",
+	verdict: { kind: "inference", citedLabels: [] },
+	now: 2,
+});
+check("an autopilot trigger is a first-class entry too", auto.trigger.kind === "autopilot" && auto.trigger.question === "push now or wait?");
+check(
+	"a consult from either trigger counts against the same session cap",
+	findPendingBlocked([
+		{ type: "custom", customType: CONSULT_ENTRY_TYPE, data: auto },
+		{ type: "custom", customType: CONSULT_ENTRY_TYPE, data: auto },
+		{ type: "custom", customType: CONSULT_ENTRY_TYPE, data: auto },
+		goalEntry("blocked", 99),
+	]) === null,
+);
+check(
+	"but an autopilot receipt does not consume a goal transition's edge",
+	findPendingBlocked([{ type: "custom", customType: CONSULT_ENTRY_TYPE, data: auto }, goalEntry("blocked", 99)])?.updatedAt === 99,
+);
 
 console.log(failures === 0 ? "\nall green" : `\n${failures} failure(s)`);
 process.exit(failures === 0 ? 0 : 1);

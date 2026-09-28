@@ -44,9 +44,9 @@ G2(그 경로에 push·금전·외부 발신 권한이 없다)는 **여기 없�
 ## 익스텐션은 섰다 — 그리고 그 자리는 `goal.ts:655` 가 아니다
 
 `pi-extensions/decision-gate.ts` (`89f8809`·`b2e40ce`). 회귀는 `./run.sh test:decision-gate`
-이고 #24 의 G2 done_when 이 거기 있다.
+이고 #24 의 G2 done_when 이 거기 있다. `/decision-gate last` 는 현재 브랜치의 최신 consult 영수증을 **사람에게만** 보여준다. 자동 재개나 권한 부여 없이, 묻혀 있던 결과를 읽고 다음 판단에 쓸 수 있는 작은 사용면이다. consult 트리거는 둘이다(2026-09-28): `update_goal(blocked)` 전이, 그리고 `/autopilot` 이 무장된 세션에서 `waiting_for(kind:"glg")` 뒤 GLG 침묵(README § autopilot). 캐는 손·예산·세션당 3회 상한·영수증은 같고, 엔트리 `trigger.kind` 가 둘을 가른다.
 
-트리거는 여전히 `update_goal(status:"blocked")` 전이지만, **다는 자리는 `agent_settled`**
+기존 goal 경로의 트리거는 `update_goal(status:"blocked")` 전이이고, **다는 자리는 `agent_settled`**
 이다(2026-09-09 정정). `agent_end` 확장 핸들러는 에이전트 루프 안에서 await 되고
 [읽음, 설치본 pi 0.85.1 `dist/core/agent-session.js:474`], 그 await 가 끝난 다음에야 pi 가
 자동 재시도·압축·큐된 continuation 을 정한다 [같은 파일 `:776-810`]. 몇 분짜리 사이드

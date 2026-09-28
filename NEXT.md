@@ -125,6 +125,19 @@
     `outcome`(ok/no-model/deadline/error)과 사유를 실은 엔트리가 나간다. ② **dig 을 끊어도
     손자가 살아남았다**(래퍼 셸 → `npx tsx`): 실측 자손 2개 중 직계 kill 생존 2, 그룹 kill
     생존 0 → `detached` + `process.kill(-pid)`.
+  - **두 번째 트리거 — `/autopilot` 파일럿 (2026-09-28).** GLG 저널 week39 원문: 질문에 답이 없으면
+    DM → 그래도 없으면 decision-gate 가 기억축으로 잠정 판단 → DM. 목표 없는 평범한 YOLO 세션용이라
+    트리거는 `update_goal(blocked)` 가 아니라 코디네이터의 명시 선언 `waiting_for(kind:"glg")` 다
+    (멈춤 ≠ GLG 질문 — `peer`/`local` 이 따로 있다). `pi-extensions/autopilot.ts` + `decision-gate.ts`
+    의 `runConsult` 추출. 10m DM → 20m consult → DM#2 + 패널, **진행 없음·도구 권한 없음**,
+    예산 세션당 DM 4 · consult 3(공유). 회귀 `./run.sh test:autopilot`(스텁 + 실물 로드).
+    **눈으로 보기:** `./run.sh demo:autopilot` — [DEMO] 판(실물 runConsult + 스텁 형제 → 정직한 hold, `dm.sh --dry-run`)과
+    설치된 pi 격리 RPC 판(`/autopilot` 등록·on/status/off). 둘 다 **다리·로더가 실제로 돈다는 측정 증거**이고,
+    GLG 판단·실물 DM·유료 consult 의 증거는 **아니다** — 텔레그램·모델·세션 파일 0.
+    **이 기기(thinkpad)에 좁게 설치됨 (2026-09-28 17:50 KST):** `~/.pi/agent/extensions/autopilot.ts` → 리포 파일 심링크
+    한 줄(옆 `decision-gate.ts` 링크와 나란히 — 하나만 있으면 로드 실패). 새 pi 프로세스부터 실리고 기본 OFF.
+    되돌리기 `rm ~/.pi/agent/extensions/autopilot.ts`. 다른 기기는 `run.sh setup` 의 `*.ts` glob 이 같은 모양을 만든다.
+    **다음:** GLG 승인 받은 실물 DM/consult 한 판, 그리고 "진행" 경계 모델 판정(README § autopilot).
   - **#24 는 닫혔다** (2026-09-09, GLG 지시 "일단 닫아"). 권고는 반대였고 그대로 남겼다. 좌표 댓글 =
     [issuecomment-5601577118](https://github.com/junghan0611/agent-config/issues/24#issuecomment-5601577118).
     본문의 "안 닫히는 이유 셋" 중 ②캐는 손은 닫혔고, ③G2는 좁은 경로가 기계가 됐고,

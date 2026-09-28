@@ -287,18 +287,42 @@ export interface DigRecord {
  */
 export type ConsultOutcome = "ok" | "no-model" | "deadline" | "error";
 
+/**
+ * 무엇이 consult 를 불렀는가. 2026-09-09 의 v0 는 `update_goal(blocked)` 하나였고
+ * `kind` 필드가 없었다 — 그래서 `kind` 가 없는 엔트리는 `goal-blocked` 로 읽는다.
+ *
+ * `autopilot` 은 2026-09-28 에 들어왔다(GLG 원문, 저널 week39.org:81-115): 목표를 선언한
+ * 적도 없는 평범한 YOLO 세션이 "GLG 판단 좀" 하고 멈춘 뒤 답이 없을 때, 침묵을 트리거로
+ * 같은 consult 를 부른다. 캐는 손·예산·엔트리 스키마는 같고 **트리거만 다르다.** 그
+ * 트리거 자체(타이머·DM·잠정 권한)는 `autopilot.ts` 가 들고 있고 이 파일은 consult 를
+ * 함수로 빌려줄 뿐이다.
+ */
+export type ConsultTrigger =
+	| {
+			kind?: "goal-blocked";
+			goalId: string;
+			/** 항상 "blocked". 이 경로로는 다른 전이에 켜지지 않는다. */
+			goalStatus: "blocked";
+			/** 같은 전이에 두 번 붙지 않게 하는 에지 검출 키. */
+			goalUpdatedAt: number;
+			objective: string;
+			sessionId: string;
+	  }
+	| {
+			kind: "autopilot";
+			/** 담당자가 GLG 에게 남긴 질문 — 마지막 assistant 메시지의 묻는 꼬리. */
+			question: string;
+			/** 사람이 읽을 한 줄. 패널과 `/decision-gate last` 가 쓴다. */
+			objective: string;
+			sessionId: string;
+			/** 담당자 턴이 정착한 시각(ms). 침묵을 여기서부터 잰다. */
+			askedAt: number;
+	  };
+
 export interface ConsultDetails {
 	version: 1;
 	timestamp: number;
-	trigger: {
-		goalId: string;
-		/** 항상 "blocked". 다른 경로로 이 확장은 켜지지 않는다. */
-		goalStatus: "blocked";
-		/** 같은 전이에 두 번 붙지 않게 하는 에지 검출 키. */
-		goalUpdatedAt: number;
-		objective: string;
-		sessionId: string;
-	};
+	trigger: ConsultTrigger;
 	/** 실제로 캔 모델. `outcome:"no-model"` 이면 아무도 안 섰다는 뜻으로 null 이다. */
 	model: { provider: string; id: string } | null;
 	/** 이 판의 결말. `ok` 가 아니면 `error` 에 이유가 있다. */
@@ -356,7 +380,7 @@ export interface ConsultDetails {
  * 그 다음에도 못 찾으면 fail-closed 로 두지 않고 후보를 순서대로 본다 — 없으면
  * 마지막 후보를 반환하고, dig 은 ENOENT 를 `error` 로 기록한다. 조용한 0건이 아니다.
  */
-function skillsRoot(): string {
+export function skillsRoot(): string {
 	const override = process.env.AGENT_CONFIG_SKILLS_DIR;
 	if (override) return override;
 	const here = fileURLToPath(import.meta.url);
@@ -811,9 +835,11 @@ export function findPendingBlocked(entries: ReadonlyArray<unknown>): BlockedGoal
 						}
 					: null;
 		} else if (e.customType === CONSULT_ENTRY_TYPE) {
+			// 세션당 상한은 **트리거를 가리지 않고** 센다 — autopilot 이 부른 consult 도
+			// 같은 쿼터를 쓴다. 에지 키는 goal 전이에만 있다.
 			consulted++;
 			const t = (e.data as ConsultDetails | undefined)?.trigger;
-			if (t) seen.add(`${t.goalId}@${t.goalUpdatedAt}`);
+			if (t && (t.kind === undefined || t.kind === "goal-blocked")) seen.add(`${t.goalId}@${t.goalUpdatedAt}`);
 		}
 	}
 
@@ -842,8 +868,7 @@ function firstUserPrompt(objective: string, lastAssistantText: string): string {
  * `budget` 이 실제로 실린다는 것과 `helpful` 이 null 로 남는다는 것이 계약이다.
  */
 export function buildConsultDetails(args: {
-	blocked: BlockedGoal;
-	sessionId: string;
+	trigger: ConsultTrigger;
 	model: { provider: string; id: string } | null;
 	outcome: ConsultOutcome;
 	error?: string;
@@ -861,13 +886,7 @@ export function buildConsultDetails(args: {
 	return {
 		version: 1,
 		timestamp: args.now ?? Date.now(),
-		trigger: {
-			goalId: args.blocked.id,
-			goalStatus: "blocked",
-			goalUpdatedAt: args.blocked.updatedAt,
-			objective: args.blocked.objective,
-			sessionId: args.sessionId,
-		},
+		trigger: args.trigger,
 		model: args.model,
 		outcome: args.outcome,
 		...(args.error ? { error: args.error } : {}),
@@ -892,11 +911,162 @@ export function buildConsultDetails(args: {
 	};
 }
 
+/** 사람이 읽을 후보 표기. `openai-codex/gpt-6-luna`, provider 를 생략했으면 별표 슬래시 뒤에 모델명. */
+export function describeCandidate(c: FastCandidate): string {
+	return c.provider ? `${c.provider}/${c.model}` : `*/${c.model}`;
+}
+
+/** consult 한 판에 필요한 것 전부. 두 트리거(goal 전이 / autopilot 침묵)가 같은 모양으로 부른다. */
+export interface ConsultRequest {
+	trigger: ConsultTrigger;
+	/** 사이드 세션의 첫 사용자 프롬프트. 트리거가 짓는다 — 여기서 문구를 만들지 않는다. */
+	prompt: string;
+	candidates: ReadonlyArray<FastCandidate>;
+	source: CandidateSource;
+	/**
+	 * 밖에서 끊는 손. autopilot 은 consult 가 도는 동안 GLG 가 입력하면 여기로 끊는다 —
+	 * 그때의 결과는 `outcome:"error"` + `error:"cancelled …"` 로 남고, 부른 쪽이 stale
+	 * 로 판정한다. 없으면 벽시계만 끊는다.
+	 */
+	signal?: AbortSignal;
+}
+
+/**
+ * consult 한 판 — 모델 고르기 → 사이드 세션 → **결과가 무엇이든 엔트리**. 2026-09-28 에
+ * `agent_settled` 핸들러에서 그대로 떼어냈다(동작 변화 0). 떼어낸 이유는 autopilot 이
+ * 같은 판을 **타이머 콜백에서** 부르기 위해서다 — 그 자리는 settle 을 막지 않는다.
+ *
+ * 부른 쪽 책임: 재진입 방지, 트리거 판정, 결과를 어디에 보일지. 이 함수는 사이드 세션을
+ * 돌리고 영수증을 남기는 것까지만 한다. `pi.sendMessage` 근처에 가지 않는 것은 그대로다.
+ */
+export async function runConsult(
+	pi: Pick<ExtensionAPI, "appendEntry">,
+	ctx: Pick<ExtensionContext, "model" | "modelRegistry" | "hasUI" | "ui">,
+	req: ConsultRequest,
+): Promise<ConsultDetails> {
+	const { trigger, candidates, source } = req;
+	const resident = ctx.model ? { provider: ctx.model.provider, id: ctx.model.id } : null;
+	const digs: DigRecord[] = [];
+	const { tool, budget } = createDigTool(digs);
+	let model: Model<Api> | null = null;
+	let outcome: ConsultOutcome = "error";
+	let failure: string | undefined;
+	let deadlineHit = false;
+	let cancelled = false;
+	let text = "";
+	let verdict: { kind: "inference" | "quote"; citedLabels: string[] } = { kind: "inference", citedLabels: [] };
+	let usage: AssistantMessage["usage"] | undefined;
+
+	try {
+		if (req.signal?.aborted) throw new Error("cancelled before the consult started — GLG spoke");
+		model = await selectFastModel(ctx.modelRegistry, resident, candidates);
+		if (!model) {
+			// fail-closed. 상주 모델로 떨어지지 않는다 — 그러면 이 확장이 없는 것만 못하다.
+			outcome = "no-model";
+			failure = `no fast model available from the ${source} candidates (${candidates.map(describeCandidate).join(", ")})${
+				resident ? `, resident ${resident.provider}/${resident.id} excluded` : ""
+			}. Set one with /decision-gate model <provider/id>`;
+			if (ctx.hasUI) ctx.ui.notify(`decision-gate: ${failure}`, "warning");
+			else console.error(`[decision-gate] ${failure}`);
+		} else {
+			trace(`fast model = ${model.provider}/${model.id} (${source}) — creating side session`);
+			const { session } = await createAgentSession(
+				buildConsultSessionOptions(model, tool) as Parameters<typeof createAgentSession>[0],
+			);
+			// 벽시계. 끊더라도 캔 것은 아래에서 그대로 엔트리로 나간다.
+			const deadline = setTimeout(() => {
+				deadlineHit = true;
+				trace(`deadline ${CONSULT_DEADLINE_MS}ms reached — aborting the side session`);
+				void session.abort();
+			}, CONSULT_DEADLINE_MS);
+			const onCancel = (): void => {
+				cancelled = true;
+				trace("external cancel — aborting the side session");
+				void session.abort();
+			};
+			req.signal?.addEventListener("abort", onCancel, { once: true });
+			try {
+				trace("side session up — prompting");
+				await session.prompt(req.prompt, { source: "extension" });
+				trace(`prompt returned — ${digs.length} dig record(s), ${budget.spawned} spawned, ${budget.refused} refused`);
+				const response = lastAssistant(session);
+				text = response ? textOf(response.content) : "";
+				verdict = parseVerdict(text);
+				usage = response?.usage;
+				if (cancelled) {
+					outcome = "error";
+					failure = "cancelled — GLG spoke while the consult was running";
+				} else {
+					outcome = deadlineHit ? "deadline" : "ok";
+					if (deadlineHit) failure = `consult was cut at the ${CONSULT_DEADLINE_MS / 60_000}min wall clock`;
+				}
+			} finally {
+				clearTimeout(deadline);
+				req.signal?.removeEventListener("abort", onCancel);
+				try {
+					await session.abort();
+				} catch {
+					// 임시 세션 teardown. 외부 상태 경계라 면피가 아니다.
+				}
+				session.dispose();
+			}
+		}
+	} catch (err) {
+		// abort 로 끊긴 판도 여기로 온다 — 그래서 deadlineHit / cancelled 를 먼저 본다.
+		outcome = deadlineHit ? "deadline" : "error";
+		failure = cancelled ? "cancelled — GLG spoke while the consult was running" : err instanceof Error ? err.message : String(err);
+		if (ctx.hasUI) ctx.ui.notify(`decision-gate consult ${outcome}: ${failure}`, "error");
+		else console.error(`[decision-gate] consult ${outcome}: ${failure}`);
+	}
+
+	/**
+	 * **결과가 무엇이든 엔트리는 나간다.** 성공만 남기면 실패한 전이에 표식이 없어
+	 * 다음 `agent_settled` 가 같은 전이를 다시 유료로 캔다 — `findPendingBlocked` 가
+	 * 이 엔트리 하나로 에지를 판정하기 때문이다. 세션당 상한 3회도 이 엔트리를 세므로,
+	 * 실패가 기록되어야 반복 실패가 상한에 걸린다. (교차검수 2026-09-09)
+	 */
+	const details = buildConsultDetails({
+		trigger,
+		model: model ? { provider: model.provider, id: model.id } : null,
+		outcome,
+		error: failure,
+		resident,
+		modelSource: source,
+		digs,
+		budget,
+		deadlineMs: CONSULT_DEADLINE_MS,
+		deadlineHit,
+		text,
+		verdict,
+		usage,
+	});
+	pi.appendEntry(CONSULT_ENTRY_TYPE, details);
+	trace(
+		`entry written — outcome=${outcome} kind=${verdict.kind} cited=${details.answer.citedHitIds.length}/${verdict.citedLabels.length} resolved`,
+	);
+	if (outcome === "ok" && ctx.hasUI) {
+		const cut = budget.refused ? `, ${budget.refused} dig(s) refused by budget` : "";
+		ctx.ui.notify(
+			`decision-gate: ${model?.provider}/${model?.id} dug ${budget.spawned} axis call(s), ${verdict.kind}, ${details.answer.citedHitIds.length} cited${cut}.`,
+			budget.refused ? "warning" : "info",
+		);
+	}
+	return details;
+}
+
+/** 세션 지정 → 환경변수 → 기본값. autopilot 도 같은 층을 읽는다(세션 지정은 그 확장이 넘긴다). */
+export function resolveCandidateSource(sessionCandidates: FastCandidate[] | null): { candidates: ReadonlyArray<FastCandidate>; source: CandidateSource } {
+	if (sessionCandidates?.length) return { candidates: sessionCandidates, source: "session" };
+	const fromEnv = candidatesFromEnv(process.env);
+	if (fromEnv) return { candidates: fromEnv, source: "env" };
+	return { candidates: FAST_MODEL_CANDIDATES, source: "default" };
+}
+
 /** `/decision-gate` 가 찍는 패널. 이 타입은 컨텍스트에서 빠진다(아래 `context` 핸들러). */
 const UI_MESSAGE_TYPE = "decision-gate-ui";
 
 const USAGE = [
-	"Usage: /decision-gate [status]",
+	"Usage: /decision-gate [status | last]",
 	"       /decision-gate model <provider/id>[, <provider/id> ...]",
 	"       /decision-gate model reset",
 	"",
@@ -922,18 +1092,11 @@ export default function (pi: ExtensionAPI) {
 
 	/** 지금 이 세션이 쓰는 후보와 그 출처. 세션 지정 → 환경변수 → 기본값. */
 	function currentCandidates(): { candidates: ReadonlyArray<FastCandidate>; source: CandidateSource } {
-		if (sessionCandidates?.length) return { candidates: sessionCandidates, source: "session" };
-		const fromEnv = candidatesFromEnv(process.env);
-		if (fromEnv) return { candidates: fromEnv, source: "env" };
-		return { candidates: FAST_MODEL_CANDIDATES, source: "default" };
+		return resolveCandidateSource(sessionCandidates);
 	}
 
 	function show(content: string): void {
 		pi.sendMessage({ customType: UI_MESSAGE_TYPE, content, display: true }, { triggerTurn: false });
-	}
-
-	function describe(c: FastCandidate): string {
-		return c.provider ? `${c.provider}/${c.model}` : `*/${c.model}`;
 	}
 
 	/**
@@ -948,7 +1111,7 @@ export default function (pi: ExtensionAPI) {
 		const resolved = resolveCandidates(available, candidates);
 		const lines = [
 			`decision-gate — consult model`,
-			`  candidates (${source}): ${candidates.map(describe).join(", ")}`,
+			`  candidates (${source}): ${candidates.map(describeCandidate).join(", ")}`,
 			`  resident (skipped):     ${resident}`,
 		];
 		if (resolved.length === 0) {
@@ -972,8 +1135,35 @@ export default function (pi: ExtensionAPI) {
 			`  consults this session:  ${consults}/${MAX_CONSULTS_PER_SESSION}`,
 			`  per consult:            ${MAX_DIGS_PER_CONSULT} digs max, ${DIG_TIMEOUT_MS / 1000}s each, ${CONSULT_DEADLINE_MS / 60_000}min wall clock`,
 			`  fires on:               update_goal(blocked), once per transition, at agent_settled`,
+			`                          or /autopilot silence (autopilot.ts) — same budget, same receipt`,
 		);
 		return lines.join("\n");
+	}
+
+	/**
+	 * 기록된 consult를 사람에게 꺼내 보여준다. 답은 승인도 자동 진행도 아니다.
+	 * 트리거가 둘이 됐으므로(2026-09-28) 어느 쪽이 불렀는지를 첫 줄에 적는다 —
+	 * goal 전이면 goal id, autopilot 이면 GLG 에게 남겼던 질문.
+	 */
+	function lastConsult(ctx: ExtensionContext): string {
+		const entry = [...ctx.sessionManager.getBranch()].reverse().find(
+			(e) => (e as { type?: string; customType?: string }).type === "custom" &&
+				(e as { customType?: string }).customType === CONSULT_ENTRY_TYPE,
+		) as { data?: ConsultDetails } | undefined;
+		if (!entry?.data) return "No decision-gate consult on this branch yet. It runs after update_goal(blocked), or when /autopilot is armed and GLG stays silent.";
+		const { trigger, outcome, error, answer, model } = entry.data;
+		const origin =
+			trigger.kind === "autopilot"
+				? `asked GLG (autopilot): ${trigger.question.slice(0, 300)}`
+				: `goal: ${trigger.objective} (${trigger.goalId})`;
+		return [
+			`decision-gate consult — ${outcome} (${model ? `${model.provider}/${model.id}` : "no model"})`,
+			origin,
+			...(error ? [`error: ${error}`] : []),
+			`evidence: ${answer.kind}; cited hits: ${answer.citedHitIds.join(", ") || "none"}`,
+			`answer:\n${answer.text || "(none)"}`,
+			"Advisory only — not current user authorization or permission to continue.",
+		].join("\n");
 	}
 
 	pi.on("agent_end", async (event, _ctx) => {
@@ -999,6 +1189,7 @@ export default function (pi: ExtensionAPI) {
 		getArgumentCompletions: (prefix: string) => {
 			const items = [
 				{ value: "status", label: "status", description: "show candidates, auth and budget" },
+				{ value: "last", label: "last", description: "read the latest consult receipt (no continuation)" },
 				{ value: "model ", label: "model <provider/id>", description: "set the consult model for this session" },
 				{ value: "model reset", label: "model reset", description: "back to DECISION_GATE_MODELS / built-in order" },
 			];
@@ -1009,6 +1200,10 @@ export default function (pi: ExtensionAPI) {
 			const text = (args ?? "").trim();
 			if (!text || text === "status") {
 				show(status(ctx));
+				return;
+			}
+			if (text === "last") {
+				show(lastConsult(ctx));
 				return;
 			}
 			if (!text.startsWith("model")) {
@@ -1030,7 +1225,7 @@ export default function (pi: ExtensionAPI) {
 			const resolved = resolveCandidates(ctx.modelRegistry.getAvailable(), parsed);
 			if (resolved.length === 0) {
 				// 지정은 받되 안 서는 것을 조용히 받아 두지 않는다.
-				show(`No model in this registry matches: ${parsed.map(describe).join(", ")}\n\n${status(ctx)}`);
+				show(`No model in this registry matches: ${parsed.map(describeCandidate).join(", ")}\n\n${status(ctx)}`);
 				return;
 			}
 			sessionCandidates = parsed;
@@ -1045,99 +1240,22 @@ export default function (pi: ExtensionAPI) {
 		trace(`blocked goal ${blocked.id} — selecting a fast model`);
 
 		running = true;
-		const resident = ctx.model ? { provider: ctx.model.provider, id: ctx.model.id } : null;
-		const { candidates, source } = currentCandidates();
-		const digs: DigRecord[] = [];
-		const { tool, budget } = createDigTool(digs);
-		let model: Model<Api> | null = null;
-		let outcome: ConsultOutcome = "error";
-		let failure: string | undefined;
-		let deadlineHit = false;
-		let text = "";
-		let verdict: { kind: "inference" | "quote"; citedLabels: string[] } = { kind: "inference", citedLabels: [] };
-		let usage: AssistantMessage["usage"] | undefined;
-
 		try {
-			model = await selectFastModel(ctx.modelRegistry, resident, candidates);
-			if (!model) {
-				// fail-closed. 상주 모델로 떨어지지 않는다 — 그러면 이 확장이 없는 것만 못하다.
-				outcome = "no-model";
-				failure = `no fast model available from the ${source} candidates (${candidates.map(describe).join(", ")})${
-					resident ? `, resident ${resident.provider}/${resident.id} excluded` : ""
-				}. Set one with /decision-gate model <provider/id>`;
-				if (ctx.hasUI) ctx.ui.notify(`decision-gate: ${failure}`, "warning");
-				else console.error(`[decision-gate] ${failure}`);
-			} else {
-				trace(`fast model = ${model.provider}/${model.id} (${source}) — creating side session`);
-				const { session } = await createAgentSession(
-					buildConsultSessionOptions(model, tool) as Parameters<typeof createAgentSession>[0],
-				);
-				// 벽시계. 끊더라도 캔 것은 아래에서 그대로 엔트리로 나간다.
-				const deadline = setTimeout(() => {
-					deadlineHit = true;
-					trace(`deadline ${CONSULT_DEADLINE_MS}ms reached — aborting the side session`);
-					void session.abort();
-				}, CONSULT_DEADLINE_MS);
-				try {
-					trace("side session up — prompting");
-					await session.prompt(firstUserPrompt(blocked.objective, lastAssistantText), { source: "extension" });
-					trace(`prompt returned — ${digs.length} dig record(s), ${budget.spawned} spawned, ${budget.refused} refused`);
-					const response = lastAssistant(session);
-					text = response ? textOf(response.content) : "";
-					verdict = parseVerdict(text);
-					usage = response?.usage;
-					outcome = deadlineHit ? "deadline" : "ok";
-					if (deadlineHit) failure = `consult was cut at the ${CONSULT_DEADLINE_MS / 60_000}min wall clock`;
-				} finally {
-					clearTimeout(deadline);
-					try {
-						await session.abort();
-					} catch {
-						// 임시 세션 teardown. 외부 상태 경계라 면피가 아니다.
-					}
-					session.dispose();
-				}
-			}
-		} catch (err) {
-			// abort 로 끊긴 판도 여기로 온다 — 그래서 deadlineHit 을 먼저 본다.
-			outcome = deadlineHit ? "deadline" : "error";
-			failure = err instanceof Error ? err.message : String(err);
-			if (ctx.hasUI) ctx.ui.notify(`decision-gate consult ${outcome}: ${failure}`, "error");
-			else console.error(`[decision-gate] consult ${outcome}: ${failure}`);
-		} finally {
-			/**
-			 * **결과가 무엇이든 엔트리는 나간다.** 성공만 남기면 실패한 전이에 표식이 없어
-			 * 다음 `agent_settled` 가 같은 전이를 다시 유료로 캔다 — `findPendingBlocked` 가
-			 * 이 엔트리 하나로 에지를 판정하기 때문이다. 세션당 상한 3회도 이 엔트리를 세므로,
-			 * 실패가 기록되어야 반복 실패가 상한에 걸린다. (교차검수 2026-09-09)
-			 */
-			const details = buildConsultDetails({
-				blocked,
-				sessionId: ctx.sessionManager.getSessionId(),
-				model: model ? { provider: model.provider, id: model.id } : null,
-				outcome,
-				error: failure,
-				resident,
-				modelSource: source,
-				digs,
-				budget,
-				deadlineMs: CONSULT_DEADLINE_MS,
-				deadlineHit,
-				text,
-				verdict,
-				usage,
+			const { candidates, source } = currentCandidates();
+			await runConsult(pi, ctx, {
+				trigger: {
+					kind: "goal-blocked",
+					goalId: blocked.id,
+					goalStatus: "blocked",
+					goalUpdatedAt: blocked.updatedAt,
+					objective: blocked.objective,
+					sessionId: ctx.sessionManager.getSessionId(),
+				},
+				prompt: firstUserPrompt(blocked.objective, lastAssistantText),
+				candidates,
+				source,
 			});
-			pi.appendEntry(CONSULT_ENTRY_TYPE, details);
-			trace(
-				`entry written — outcome=${outcome} kind=${verdict.kind} cited=${details.answer.citedHitIds.length}/${verdict.citedLabels.length} resolved`,
-			);
-			if (outcome === "ok" && ctx.hasUI) {
-				const cut = budget.refused ? `, ${budget.refused} dig(s) refused by budget` : "";
-				ctx.ui.notify(
-					`decision-gate: ${model?.provider}/${model?.id} dug ${budget.spawned} axis call(s), ${verdict.kind}, ${details.answer.citedHitIds.length} cited${cut}.`,
-					budget.refused ? "warning" : "info",
-				);
-			}
+		} finally {
 			running = false;
 		}
 	});
