@@ -162,11 +162,14 @@ function harness(opts: { entries?: Entry[]; consult?: (pi: unknown, ctx: unknown
 	let clock = 1_000_000;
 	const state = { idle: true, pending: false };
 	const statusLine: { text?: string } = {};
+	let activeTools = ["read", "waiting_for", "bash"];
 
 	const pi = {
 		on: (e: string, h: Function) => handlers.set(e, h),
 		registerTool: (t: { name: string; execute: Function }) => tools.set(t.name, t),
 		registerCommand: (n: string, c: { handler: Function }) => commands.set(n, c),
+		getActiveTools: () => [...activeTools],
+		setActiveTools: (names: string[]) => { activeTools = [...names]; },
 		appendEntry: (customType: string, data: Record<string, unknown>) => entries.push({ type: "custom", customType, data }),
 		sendMessage: (msg: Record<string, unknown>, o: Record<string, unknown>) => sent.push({ msg, opts: o }),
 	};
@@ -203,6 +206,8 @@ function harness(opts: { entries?: Entry[]; consult?: (pi: unknown, ctx: unknown
 	const live = (): Timer[] => timers.filter((t) => !t.cancelled);
 	const h = {
 		handlers, tools, commands, entries, sent, timers, dms, consults, state, ctx, statusLine,
+		activeTools: () => [...activeTools],
+		restoreTools: (names: string[]) => { activeTools = [...names]; },
 		advance: (ms: number) => (clock += ms),
 		events: () => entries.filter((e) => e.customType === AUTOPILOT_ENTRY_TYPE).map((e) => e.data.event),
 		live,
@@ -238,6 +243,7 @@ console.log("default off — every pi session loads this file");
 {
 	const h = harness();
 	await h.start();
+	check("off hides waiting_for while preserving unrelated tools", h.activeTools().join() === "read,bash");
 	const r = await h.declare("glg", "q?");
 	check("waiting_for while off says so and records nothing", String(r.content[0].text).includes("autopilot is off") && h.entries.length === 0);
 	await h.settle("Should I push?");
@@ -252,6 +258,10 @@ console.log("declaration arms the clock; a question shape does not");
 {
 	const h = harness();
 	await h.start();
+	await h.cmd("on");
+	check("on exposes waiting_for without changing unrelated tools", h.activeTools().join() === "read,bash,waiting_for");
+	await h.cmd("off");
+	check("off hides waiting_for again", h.activeTools().join() === "read,bash");
 	await h.cmd("on");
 	check("arming records the intervals", h.events().includes("armed"));
 	check("armed sessions get the declaration paragraph", ((await h.handlers.get("before_agent_start")!({ systemPrompt: "S" })) as { systemPrompt: string }).systemPrompt === `S\n\n${ARMED_PROMPT}`);
@@ -545,6 +555,25 @@ console.log("session boundary — default off again; an old in-flight consult wr
 	check("the new session starts disarmed", (await h.handlers.get("before_agent_start")!({ systemPrompt: "S" })) === undefined);
 }
 
+// ── 트리 이동: Pi 가 도구를 transcript 에서 복원한 뒤 session_tree 를 낸다 ────
+console.log("tree navigation — restored waiting_for is hidden and an old clock is dropped");
+{
+	const h = harness();
+	await h.start();
+	await h.cmd("on");
+	await h.declare("glg", "old branch?");
+	await h.settle();
+	const clock = h.live()[0];
+	h.restoreTools(["read", "waiting_for", "bash"]); // Pi _restoreToolsFromTranscript
+	await h.handlers.get("session_tree")!({ type: "session_tree" }, h.ctx);
+	check("tree navigation disarms autopilot", (await h.handlers.get("before_agent_start")!({ systemPrompt: "S" })) === undefined);
+	check("tree navigation hides a restored waiting_for", h.activeTools().join() === "read,bash");
+	check("tree navigation cancels the old clock", clock.cancelled);
+	clock.fn();
+	await flush();
+	check("old branch sends no DM after navigation", h.dms.length === 0);
+}
+
 // ── 판정 뒤의 GLG ─────────────────────────────────────────────────────────
 console.log("after the verdict — GLG's reply sees the panel labeled historical");
 {
@@ -594,6 +623,8 @@ console.log("real runConsult — stub side session, abort wired, receipt shape")
 		on: (e: string, fn: Function) => handlers.set(e, fn),
 		registerTool: (t: { name: string; execute: Function }) => tools.set(t.name, t),
 		registerCommand: (n: string, c: { handler: Function }) => commands.set(n, c),
+		getActiveTools: () => ["read", "waiting_for"],
+		setActiveTools: () => {},
 		appendEntry: (customType: string, data: Record<string, unknown>) => entries.push({ type: "custom", customType, data }),
 		sendMessage: () => {},
 	};

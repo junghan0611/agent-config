@@ -528,10 +528,17 @@ export default function (pi: ExtensionAPI, deps: AutopilotDeps = {}) {
 		auto!.cycle = null;
 	}
 
+	/** 모델에게 보이는 도구 집합만 조정한다. 실행 권한 경계는 아래 execute 의 auto 검사다. */
+	function setWaitingTool(enabled: boolean): void {
+		const active = pi.getActiveTools().filter((name) => name !== "waiting_for");
+		pi.setActiveTools(enabled ? [...active, "waiting_for"] : active);
+	}
+
 	/** 완전 OFF — `/autopilot off`. 장부는 남는다. */
 	function off(reason: string): void {
 		dropCycle("cancelled", { reason });
 		auto = null;
+		setWaitingTool(false);
 	}
 
 	/** 세션 경계 — 무장·사이클을 버리고, 이 세션의 것이던 in-flight 는 새 세션에 쓰지 못하게 한다. */
@@ -754,6 +761,14 @@ export default function (pi: ExtensionAPI, deps: AutopilotDeps = {}) {
 		boundary("session_before_switch");
 		return {};
 	});
+	// Pi 가 트리 이동 때 transcript 의 도구를 복원한 다음 이 이벤트를 낸다.
+	// 예전 가지의 질문·시계를 새 가지로 가져가지 않고, off 도구 노출도 다시 숨긴다.
+	pi.on("session_tree", async (_event, ctx) => {
+		latest = ctx;
+		boundary("session_tree");
+		ledger = { dmsSent: countSentDms(ctx.sessionManager.getEntries()), dropped: 0, cancelled: 0 };
+		status(ctx);
+	});
 	pi.on("session_shutdown", async () => {
 		boundary("session_shutdown");
 	});
@@ -911,6 +926,7 @@ export default function (pi: ExtensionAPI, deps: AutopilotDeps = {}) {
 					// 다시 무장하면 진행 중이던 사이클은 접힌다(도는 consult 도 끊는다). 장부는 그대로다.
 					if (auto) dropCycle("cancelled", { reason: "/autopilot on (re-armed)" });
 					auto = { askMs: command.askMs, gateMs: command.gateMs, cycle: null, declared: null };
+					setWaitingTool(true);
 					record("armed", { askMs: auto.askMs, gateMs: auto.gateMs });
 					show(summary());
 					status(ctx);

@@ -68,15 +68,16 @@ GLG 2026-09-09: *"오프스가 돌다가 게이트는 terra 또는 luna로 잡�
 
 ```
 /decision-gate                                   # 지금 후보·인증·예산 패널
-/decision-gate model openai-codex/gpt-5.6-luna   # 이 세션만
-/decision-gate model luna, terra                 # provider 생략 = 아무 레일, MODELS.md 순서
+/decision-gate model openai-codex/gpt-6-sol     # 이 세션만 (Sol consult = medium)
+/decision-gate model glm-5.3                    # provider 생략 = 사용 가능한 활성 레일 순서
 /decision-gate model reset                       # 환경변수/기본값으로
 ```
 
 우선순위는 **세션 지정 → `DECISION_GATE_MODELS`(`~/.env.local`, env-loader 가 싣는다) →
-기본 후보**(codex-terra → copilot-terra → zai → xai). 어디서 왔는지는 엔트리 `modelSource` 에
-남는다. 규칙 둘은 그대로다: **상주와 같은 provider+id 는 건너뛴다**(그 레일을 아끼려고 만든
-물건이므로), 그리고 인증된 후보가 없으면 **fail-closed** — 상주 모델로 떨어지지 않는다.
+기본 후보**(`openai-codex/gpt-6-sol`, medium 단일 후보). 어디서 왔는지는 엔트리 `modelSource` 에
+남는다. Copilot 구독은 종료됐으므로 명시해도 후보에서 제외한다. 기본 Sol 은 상주와 동일해도
+별도의 in-memory medium consult 로 허용한다. 그 외 모델은 상주와 같은 provider+id 를 건너뛴다.
+인증된 후보가 없으면 **fail-closed** — 임의 모델로 떨어지지 않는다.
 정확한 이름이 맞으면 부분일치는 아예 안 본다 — 편의가 지정을 넓히면 그건 지정이 아니다.
 
 실물 2026-09-09 (oracle): 상주 `xai/grok-4.6`, 게이트 `openai-codex/gpt-5.6-luna`(env),
@@ -91,11 +92,11 @@ dig 11회·4축, 인용 3/3 해소, consult 1회 **$0.0015**. 판 앞의 판은 
 |---|---|
 | `agent_settled` 대기 비용 | 그 핸들러도 await 된다. consult 는 재시도 앞을 막지 않는 대신 **정착 뒤를 막는다** — `-p` 종료와 idle 복귀가 최대 8분 늦다. 실측 두 판은 1분 안에 끝났다 |
 | CLI 내부의 읽기 전용성 | argv 로 `reindex`·push·curl·dm 에 못 닿는 것은 회귀로 섰다. 그 CLI **안이** 읽기만 한다는 것은 andenken 소스를 따라가야 하는 별개의 일이고, 여기서 증명 안 했다 |
-| provider 별칭 쿼터 | 다른 provider 의 같은 모델 이름은 일부러 다른 레일로 본다(`MODELS.md` 가 별도 계약으로 둔다). 둘이 실은 같은 쿼터면 fail-closed 가 뚫리고, 그걸 확인하는 코드는 없다 |
+| provider 별칭 쿼터 | 명시적 후보에 다른 provider 의 같은 모델이 있다면 쿼터 공유 여부는 여기서 확인하지 않는다. 기본 후보는 Codex Sol 하나뿐이고 Copilot 은 제외된다 |
 
-`/decision-gate model luna` 처럼 provider 를 생략하면 고르는 것은 **레일**이다 — 상주와 모델
-이름이 같아도 provider 가 다르면 선다. "모델을 다르게"가 아니라 "레일을 다르게"가 필요하면
-provider 를 적어라.
+provider 를 생략하면 남아 있는 활성 레일에서 후보를 찾는다. 특정 레일을 원하면
+`/decision-gate model <provider/id>` 로 명시한다. Sol medium 이 상주 Sol 과 같아도 consult 는
+별도 in-memory 세션이며, 상주의 다음 작업 턴을 열지는 않는다.
 
 ## 아직 안 된 것
 

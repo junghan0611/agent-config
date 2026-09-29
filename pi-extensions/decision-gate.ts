@@ -154,29 +154,27 @@ export interface FastCandidate {
 }
 
 /**
- * 레일 소비 순서. `MODELS.md`(rolling quota → Copilot credits → metered) 를 따른다.
+ * 레일 소비 순서. 구독이 끝난 Copilot 은 후보에 올리지 않는다.
  * provider 를 안 적은 후보를 풀 때, 그리고 기본 후보 순서를 정할 때 둘 다 쓴다.
  */
-const RAIL_ORDER = ["openai-codex", "github-copilot", "zai", "xai"] as const;
+const RAIL_ORDER = ["openai-codex", "zai", "xai"] as const;
 
 /**
- * 빠른 모델 기본 후보 — 순서가 계약이다. 쿼터로 고르고 이름으로 고르지 않는다(#24).
- * GLG 예시가 terra 라 terra 를 앞에 둔다. 모델 id 는 `MODELS.md` 스냅샷에서 읽었다.
+ * 기본 consult 후보 — GLG 가 Sol medium 한 모델로 지정했다(2026-09-29).
+ * 기본은 Codex 구독의 gpt-6-sol. consult 는 별도 in-memory 세션에서 medium 으로 돈다.
  *
  * **이건 기본값일 뿐이고, GLG 가 그때그때 지정할 수 있다** (2026-09-09 요청:
  * *"오프스가 돌다가 게이트는 terra 또는 luna로 잡아 놓고 답변 받게 한다든가"*).
  * 우선순위는 세션 지정(`/decision-gate model …`) → 환경변수 `DECISION_GATE_MODELS`
  * (`~/.env.local`, env-loader 가 싣는다) → 이 배열.
  *
+ * Copilot 구독 종료로 github-copilot 은 지정해도 후보에서 빠진다.
  * OpenRouter 는 여기 없고 앞으로도 없다. 지정해도 안 걸린다 —
  * `hide-providers.ts:58` 이 provider discovery 전에 `OPENROUTER_API_KEY` 를
  * `process.env` 에서 지우므로 auth 프로브가 구조적으로 실패한다.
  */
 const FAST_MODEL_CANDIDATES: ReadonlyArray<FastCandidate> = [
-	{ provider: "openai-codex", model: "gpt-5.6-terra" },
-	{ provider: "github-copilot", model: "gpt-5.6-terra" },
-	{ provider: "zai", model: "glm-5.3" },
-	{ provider: "xai", model: "grok-4.6" },
+	{ provider: "openai-codex", model: "gpt-6-sol" },
 ];
 
 /** 환경변수로 지정할 때 읽는 키. 복수형이 정본이고 단수형도 받는다. */
@@ -230,7 +228,7 @@ export function resolveCandidates(available: ReadonlyArray<Model<Api>>, candidat
 	const out: Model<Api>[] = [];
 	const seen = new Set<string>();
 	for (const want of candidates) {
-		const pool = available.filter((m) => (want.provider ? m.provider === want.provider : true));
+		const pool = available.filter((m) => m.provider !== "github-copilot" && (want.provider ? m.provider === want.provider : true));
 		const byRail = (a: Model<Api>, b: Model<Api>): number => {
 			const rail = railIndex(a.provider) - railIndex(b.provider);
 			return rail !== 0 ? rail : a.provider.localeCompare(b.provider);
@@ -709,7 +707,7 @@ export function buildConsultSessionOptions(model: Model<Api>, digTool: ToolDefin
 	return {
 		sessionManager: SessionManager.inMemory(), // 두 번째 세션 파일 없음 (GLG: "세션 기록은 따로 안남아도 되거든")
 		model,
-		thinkingLevel: "off" as const,
+		thinkingLevel: model.provider === "openai-codex" && model.id === "gpt-6-sol" ? "medium" as const : "off" as const,
 		// 실측 2026-09-09: `noTools:"all"` 은 **커스텀 툴까지** 끈다(타입 주석 그대로 —
 		// "all: start with no tools enabled"). 첫 실물 시도에서 형제가 dig 을 못 보고
 		// `{"query":...}` 를 텍스트로 지어냈다. 그래서 기본 억제는 "builtin" 으로 두고,
@@ -778,18 +776,20 @@ export function resolveCitedIds(digs: DigRecord[], labels: string[]): string[] {
  * 이미 그 후보일 때 — 이 집에서 terra 는 흔한 상주다 — consult 가 아끼려던 바로
  * 그 레일을 한 번 더 태운다. GLG 가 말한 자리는 *"답변도 느리고 쿼터를 많이
  * 차지하는 모델이 고민하는 중에 … 빠른 형제에게 얼른 물어보는거야"* 이므로,
- * 같은 provider+id 는 형제가 아니라 자기 자신이다. 건너뛴다.
+ * 같은 provider+id 를 기본적으로 건너뛰던 규칙은 아래 Sol 예외를 제외하고 유지한다.
  *
- * **같은 provider+id 만 건너뛴다.** 다른 provider 의 같은 이름(`github-copilot/gpt-5.6-terra`
- * vs `openai-codex/gpt-5.6-terra`)은 `MODELS.md` 가 별도 계약·별도 레일로 두므로 일부러 허용한다.
- * 두 이름이 실은 같은 쿼터를 공유하는 숨은 별칭이라면 이 fail-closed 는 뚫린다 — 그걸 확인하는
- * 코드도 테스트도 여기 없다(교차검수 2026-09-09).
+ * 예외: GLG 가 지정한 gpt-6-sol 은 상주가 Sol 이어도 medium 의 별도
+ * in-memory consult 로 허용한다. 동일 모델 배제는 이 기본값을 무력화하므로 적용하지 않는다.
  *
  * 실제 잔량(쿼터)은 **여기서 안 잰다.** `skills/quota` 는 벤더 엔드포인트를 때리는
  * 별도 프로세스라 blocked 전이 경로에 네트워크 대기를 하나 더 다는 셈이고, 그
- * 결정은 이 패스의 몫이 아니다. 지금 계약은 "지정된 후보 중 상주가 아니면서 인증된
- * 첫 번째"이고, 그 이상을 주장하지 않는다.
+ * 결정은 이 패스의 몫이 아니다. 지금 계약은 "지정된 후보 중 인증된 첫 번째
+ * (상주와 같은 모델은 Sol medium 만 예외)"이고, 그 이상을 주장하지 않는다.
  */
+function skipResident(model: { provider: string; id: string }, resident?: { provider: string; id: string } | null): boolean {
+	return !!resident && resident.provider === model.provider && resident.id === model.id && !(model.provider === "openai-codex" && model.id === "gpt-6-sol");
+}
+
 export async function selectFastModel(
 	registry: ModelRegistry,
 	resident?: { provider: string; id: string } | null,
@@ -797,7 +797,7 @@ export async function selectFastModel(
 ): Promise<Model<Api> | null> {
 	const available = registry.getAvailable();
 	for (const model of resolveCandidates(available, candidates)) {
-		if (resident && resident.provider === model.provider && resident.id === model.id) continue;
+		if (skipResident(model, resident)) continue;
 		const auth = await registry.getApiKeyAndHeaders(model);
 		if (auth.ok) return model;
 	}
@@ -964,7 +964,7 @@ export async function runConsult(
 			// fail-closed. 상주 모델로 떨어지지 않는다 — 그러면 이 확장이 없는 것만 못하다.
 			outcome = "no-model";
 			failure = `no fast model available from the ${source} candidates (${candidates.map(describeCandidate).join(", ")})${
-				resident ? `, resident ${resident.provider}/${resident.id} excluded` : ""
+				resident ? `, resident ${resident.provider}/${resident.id}${resident.provider === "openai-codex" && resident.id === "gpt-6-sol" ? " (Sol consult allowed)" : " excluded"}` : ""
 			}. Set one with /decision-gate model <provider/id>`;
 			if (ctx.hasUI) ctx.ui.notify(`decision-gate: ${failure}`, "warning");
 			else console.error(`[decision-gate] ${failure}`);
@@ -1070,8 +1070,8 @@ const USAGE = [
 	"       /decision-gate model <provider/id>[, <provider/id> ...]",
 	"       /decision-gate model reset",
 	"",
-	"Examples: /decision-gate model openai-codex/gpt-5.6-terra",
-	"          /decision-gate model luna, terra      (provider omitted → any rail, in MODELS.md order)",
+	"Examples: /decision-gate model openai-codex/gpt-6-sol",
+	"          /decision-gate model glm-5.3          (provider omitted → active rail order)",
 ].join("\n");
 
 export default function (pi: ExtensionAPI) {
@@ -1112,7 +1112,7 @@ export default function (pi: ExtensionAPI) {
 		const lines = [
 			`decision-gate — consult model`,
 			`  candidates (${source}): ${candidates.map(describeCandidate).join(", ")}`,
-			`  resident (skipped):     ${resident}`,
+			`  resident:               ${resident}`,
 		];
 		if (resolved.length === 0) {
 			lines.push("  resolves to:            (nothing in this registry — consult will be skipped)");
@@ -1120,10 +1120,10 @@ export default function (pi: ExtensionAPI) {
 			for (const m of resolved) {
 				const id = `${m.provider}/${m.id}`;
 				const why =
-					ctx.model && m.provider === ctx.model.provider && m.id === ctx.model.id
+					skipResident(m, ctx.model)
 						? "skipped — this is the resident"
 						: ctx.modelRegistry.hasConfiguredAuth(m)
-							? "authed"
+							? m.provider === "openai-codex" && m.id === "gpt-6-sol" ? "authed — medium, resident allowed" : "authed"
 							: "no auth configured";
 				lines.push(`  ${resolved.indexOf(m) === 0 ? "→" : " "} ${id.padEnd(34)} ${why}`);
 			}

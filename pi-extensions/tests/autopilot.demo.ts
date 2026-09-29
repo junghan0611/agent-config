@@ -114,6 +114,8 @@ const pi = {
 	on: (e: string, h: Function) => handlers.set(e, h),
 	registerTool: (t: { name: string; execute: Function }) => tools.set(t.name, t),
 	registerCommand: (n: string, c: { handler: Function }) => commands.set(n, c),
+	getActiveTools: () => ["read", "waiting_for"],
+	setActiveTools: () => {},
 	appendEntry: (customType: string, data: Record<string, unknown>) => entries.push({ type: "custom", customType, data }),
 	sendMessage: (msg: Record<string, unknown>, opts: Record<string, unknown>) => sent.push({ msg, opts }),
 };

@@ -90,7 +90,7 @@ const fakePi = new Proxy(
 );
 mod.default(fakePi);
 
-const expected = ["session_start", "session_before_switch", "session_shutdown", "agent_start", "agent_end", "agent_settled", "before_agent_start", "input", "context"];
+const expected = ["session_start", "session_before_switch", "session_tree", "session_shutdown", "agent_start", "agent_end", "agent_settled", "before_agent_start", "input", "context"];
 check("the extension loads against the installed pi, sibling import included", typeof mod.default === "function" && typeof mod.filterContext === "function");
 check("exactly the expected events are wired", [...handlers.keys()].sort().join() === [...expected].sort().join(), [...handlers.keys()].join(","));
 check("no tool_call hook — nothing is gated or executed", !handlers.has("tool_call"));

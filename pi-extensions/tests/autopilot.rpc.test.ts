@@ -18,7 +18,7 @@
  * 여기서도 둘을 나란히 링크하고, 하나만 링크한 판이 실패한다는 것도 같이 잰다.
  */
 
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -47,6 +47,8 @@ async function runRpc(links: string[], commands: Json[]): Promise<{ lines: Json[
 	const agentDir = mkdtempSync(join(tmpdir(), "autopilot-rpc-"));
 	mkdirSync(join(agentDir, "extensions"));
 	for (const f of links) symlinkSync(join(EXT_DIR, f), join(agentDir, "extensions", f));
+	// Real-runtime active-tool observation without an LLM turn or operator config.
+	writeFileSync(join(agentDir, "extensions", "probe.ts"), `export default function (pi) { pi.registerCommand("tools-probe", { handler: async () => pi.sendMessage({ customType: "tools-probe", content: JSON.stringify(pi.getActiveTools()), display: true }, { triggerTurn: false }) }); }\n`);
 	const proc = Bun.spawn([piBin!, "--mode", "rpc", "--no-session"], {
 		cwd: agentDir,
 		env: { ...process.env, PATH: cleanPath, PI_CODING_AGENT_DIR: agentDir },
@@ -102,7 +104,7 @@ console.log(`rpc smoke — ${piBin} with an isolated PI_CODING_AGENT_DIR`);
 {
 	const { lines, stderr } = await runRpc(
 		["autopilot.ts", "decision-gate.ts"],
-		[{ id: "c", type: "get_commands" }, prompt("on", "/autopilot on 10m 20m"), prompt("st", "/autopilot status"), prompt("off", "/autopilot off")],
+		[{ id: "c", type: "get_commands" }, prompt("before", "/tools-probe"), prompt("on", "/autopilot on 10m 20m"), prompt("armed", "/tools-probe"), prompt("st", "/autopilot status"), prompt("off", "/autopilot off"), prompt("after", "/tools-probe")],
 	);
 	const cmds = ((response(lines, "c")?.data as { commands?: Array<{ name: string; source: string }> })?.commands ?? []).filter((c) => c.source === "extension").map((c) => c.name);
 	check("the installed pi registers /autopilot", cmds.includes("autopilot"), cmds.join(","));
@@ -113,7 +115,10 @@ console.log(`rpc smoke — ${piBin} with an isolated PI_CODING_AGENT_DIR`);
 	const panels = lines.filter((l) => l.type === "message_end" && (l.message as Json)?.customType === "autopilot-ui").map((l) => String((l.message as Json).content));
 	check("/autopilot status reports the session budget", panels.some((p) => p.includes("DMs 0/4 this session")));
 	check("/autopilot off disarms", panels.some((p) => p === "Autopilot off."));
-	check("every command was accepted", ["on", "st", "off"].every((id) => response(lines, id)?.success === true));
+	const loadouts = lines.filter((l) => l.type === "message_end" && (l.message as Json)?.customType === "tools-probe").map((l) => JSON.parse(String((l.message as Json).content)) as string[]);
+	check("real Pi hides waiting_for off and exposes it only on", loadouts.length === 3 && !loadouts[0].includes("waiting_for") && loadouts[1].includes("waiting_for") && !loadouts[2].includes("waiting_for"), JSON.stringify(loadouts));
+	check("unrelated tools survive both toggles", loadouts.length === 3 && loadouts[0].filter((x) => x !== "waiting_for").join() === loadouts[1].filter((x) => x !== "waiting_for").join() && loadouts[0].join() === loadouts[2].join());
+	check("every command was accepted", ["before", "on", "armed", "st", "off", "after"].every((id) => response(lines, id)?.success === true));
 	check("no assistant turn ran — zero model calls", !lines.some((l) => l.type === "message_end" && (l.message as Json)?.role === "assistant"));
 }
 

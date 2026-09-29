@@ -10,19 +10,30 @@
 - [ ] **10. 다음 텀 — 이슈 넷 검토하고 닫기** ← 좌표 11·12로 흡수됐다(라벨 판이 답한다). 오늘 좌표 댓글을 다 달아뒀다: **#24**(게이트 전체가 섰다 — lint + 익스텐션 + 모델 지정면, 실물 2판. 닫기/가르기 판정만 남음) · **#23**(시계 채워짐, 세션 밖 상태전이·죽은 세션 깨우기·`LOOP.md` 열림) · **#21**(소비할 물건 생김, 지시문 한 장으로 좁아짐) · **#16**(재측정 결과 **아직 살아 있는 버그**, `run.sh:1775-1776` 한 줄 수정). 나머지 9개(#1·3·5·6·10·13·14·15·17·20)는 GLG 의 *"할일/급한일/안할일/나중에할일"* 분류를 한 판 잡고 해야 한다. → **그 분류 판이 2026-09-10 에 라벨로 섰다. 좌표 11 을 보라** — 이제 `board.py --mine` 이 답한다.
 - [ ] **12. 판보기 2차 — 사용자 자리에서 검수했고, 판정 여섯이 GLG 앞에 있다** ← PAUSED: GLG 판정 여섯 대기 (2026-09-10). GLG 가 경계를 정했다: *"agent-config는 사용자야 우리 입장에서. 스킬만드는게 우리니까."* 그래서 이 집은 코드가 아니라 **「담당자가 이걸로 자기 몫을 볼 수 있는가」**를 봤다. 아래 NOW 참조. **이 집 코드 변경 0** — 수선은 전부 `sorge` 집에서 났다.
 
-- [ ] **13. 하네스 관측소에 검증면 축이 섰다 — 두 대문자 문서 신규** ← CURRENT (2026-09-18). `UNCLEBOB.md`(밥 마틴, 게이트 관측) · `XIRP.md`(Spotify, macOS 전용이라 설치 불가) · `harness-bench` **렌즈 5 = 검증면**. **본작업(entwurf 검증면)은 0.23.0 릴리즈가 끝난 뒤 GLG가 다시 연다** — 그때까지 이 좌표는 문서만 서 있는 상태다. 아래 NOW.
+- [ ] **13. 하네스 관측소에 검증면 축이 섰다 — 두 대문자 문서 신규** ← PAUSED: 본작업 재개는 GLG 판정 뒤 (2026-09-18). `UNCLEBOB.md`(밥 마틴, 게이트 관측) · `XIRP.md`(Spotify, macOS 전용이라 설치 불가) · `harness-bench` **렌즈 5 = 검증면**. **본작업(entwurf 검증면)은 0.23.0 릴리즈가 끝난 뒤 GLG가 다시 연다** — 그때까지 이 좌표는 문서만 서 있는 상태다. 아래 NOW.
 
-- [ ] **14. herdr 재조사 — 조사는 닫혔고, 대장 결함 하나가 열려 있다** ← CURRENT (2026-09-21). `HERDR.md` 09-21 절 + 오후 정정, 이웃 13종 실측(소넷 형제 둘), entwurf 담당자 답 다섯 — 전부 llmlog `20260914T161103`에 보존(`.agent-reports/`는 gitignore). **남은 한 줄: `harness-bench status`가 `## 상태` 헤딩을 먼저 찾고 뒤의 날짜 절을 안 본다** — `status.py:52-60`. 그래서 HERDR.md가 09-21까지 갱신됐는데 대장은 09-09로 보고한다. HERMES·OMP·OUROBOROS·PRIME도 같은 구조면 전부 과소보고다. 고치는 방향 둘 중 GLG 결정 대기: `max(상태, 마지막 dated 절)`을 쓰거나, 매트릭스 문서의 `## 상태` 헤딩을 갱신 대상으로 삼거나.
+- [ ] **14. herdr 재조사 — 조사는 닫혔고, 대장 결함 하나가 열려 있다** ← PAUSED: status.py 방향 GLG 결정 대기 (2026-09-21). `HERDR.md` 09-21 절 + 오후 정정, 이웃 13종 실측(소넷 형제 둘), entwurf 담당자 답 다섯 — 전부 llmlog `20260914T161103`에 보존(`.agent-reports/`는 gitignore). **남은 한 줄: `harness-bench status`가 `## 상태` 헤딩을 먼저 찾고 뒤의 날짜 절을 안 본다** — `status.py:52-60`. 그래서 HERDR.md가 09-21까지 갱신됐는데 대장은 09-09로 보고한다. HERMES·OMP·OUROBOROS·PRIME도 같은 구조면 전부 과소보고다. 고치는 방향 둘 중 GLG 결정 대기: `max(상태, 마지막 dated 절)`을 쓰거나, 매트릭스 문서의 `## 상태` 헤딩을 갱신 대상으로 삼거나.
 - [ ] **15. 기억축 성장·검색 효용 정기 판독** ← PAUSED: 다음 전체 동기화/월간 점검 때 관측값 축적 후 GLG가 andenken 담당자와 조율 요청. 아래 NOW의 측정 좌표.
+- [x] **16. Autopilot 운행 로직·off/on·모델 경로 검수** — DM/consult/패널 advisory-only, 새 기본값과 Pi 실물 도구 가시성 회귀를 확인. 자동 재개 없음.
+- [ ] **17. 판단 근거 적합성·재개 범위** ← CURRENT: GLG가 별도 세션에서 열 때만. 오늘은 의미 판정기·continuation 설계에 착수하지 않는다.
 
 > 닫힌 좌표 1·2·5·6·7·8·9·11은 `CHANGELOG.md`로 넘어갔다 (`v2026.9.2` · `v2026.9.4` ·
 > `v2026.9.4-wiring.1` · `v2026.9.9` · **8·11은 `v2026.9.21`에 늦게 갈무리**). 번호는
 > 재사용하지 않는다 — 지난 핸드오프가 부른 이름이 계속 그 자리를 가리켜야 한다. 좌표 10이
 > 가리키는 11의 내용은 이제 `v2026.9.21` 절에 있다.
 
-현재 좌표: **CURRENT 14(herdr 재조사 — 닫혔고, 대장 결함 하나가 남았다)** — 15 기억축 점검은 다음 동기화/월간 판독 대기 · 13 문서 서고(본작업은 entwurf 0.23.0 이후) · 12 보류(GLG 판정 여섯) · `state:ready` 넷 착수 대기 · 3·4 보류(남의 손 대기)
+현재 좌표: **16 운행 로직 검수 완료 → CURRENT 17(판단 근거·재개는 후일 GLG 재개 요청 대기)** — 14 herdr 판정 대기 · 15 기억축 월간 판독 대기 · 13 본작업 보류 · 12 GLG 판정 대기 · 3·4 남의 손 대기
 
 # NOW
+
+- **Autopilot — 타이머·DM·consult 경로는 실물 관측, 판단의 적합성과 자동 재개는 미검증/미구현 (2026-09-29).** GLG가 새 Pi `20260929T135109-f43ba7`에서 `/autopilot on 1m 1m`으로 시험했다. 13:55 질문 DM, 13:56 두 번째 DM·잠정 패널. `decision-gate`가 `openai-codex/gpt-5.6-terra`로 축 호출 4회를 수행해 세션 인용 2건을 해소하고 `PROVISIONAL: 다음 세션에서도 한 판 시험해봐`를 남겼다(이 대화에 GLG가 붙인 DM·Pi 패널 전문). **이것은 GLG의 승인도 다음 턴도 아니다.** 현행 `autopilot.ts:728-736`은 `triggerTurn:false`로 패널만 남기며 실행 0; `decision-gate.ts:1028-1054`는 영수증만 남긴다. §1~§6 lint는 별도 파일 규칙이고 consult 결과를 검증/진행 조건으로 쓰지 않는다.
+  - **독립 판독(2026-09-29 Grok Pi, 이 대화의 검수 원문 + 이 집 session_query/검색 재확인): 잠정 답의 인용은 이 질문을 지지하지 않는다.** `sessions#13`은 GLG의 승인 발화가 아니라 *어시스턴트가 작성한 첫 시험 대본*이다. GLG가 곧이어 말한 것은 “응 이거 적어놨다. 이따가 해볼게” — 이번 실물 1판이다. `sessions#20`의 “일단 여기까지 하고 이후 다음 세션 이어갈게”는 2026-05-13 andenken 작업의 후속 세션이지 autopilot이 아니다. consult 가 `#13`을 GLG 지시로 뒤집고 `#20`을 일반화했다. `ok + PROVISIONAL + resolved citation ≥1`은 *참조 해소*만 판정하고 화자·주제·시점·추론 적합은 판정하지 않는다. **현 실물 판은 자동 재개 문턱에서 FAIL이어야 한다.**
+  - **다음 세션의 첫 1보(오늘 범위 밖):** GLG가 다시 열면 이번 인용 오류를 대조 fixture로 삼아 '인용 ID 해소 ≠ 현재 질문을 지지함'의 판정 계약부터 토론한다. 의미 판정기·자동 continuation·DM #3·형제 파견은 이번 커밋에 넣지 않는다. 평상시 Pi는 YOLO, `goal(blocked)` 강제 없음.
+  - **닫을 계약(오늘):** 사람이 `/autopilot on` 할 때만 `waiting_for`가 보이고, off/트리 이동/세션 경계는 질문 시계와 도구 노출을 접는다. settled glg 선언에서만 DM#1→consult→DM#2·advisory panel; 답변·취소·바쁜 상태·실패·예산은 발신/consult를 중복하지 않는다. consult는 in-memory(별도 JSONL 0), Sol medium 기본·Copilot 후보 제외, `triggerTurn:false`(자동 실행 0). 결론의 내용이 옳다고 보증하지 않는다.
+  - **검수(2026-09-29):** 미커밋 변경은 off 도구 숨김·트리 이동 시 해제, Sol medium 단일 기본 후보·Copilot 제외와 회귀 테스트다. `bg04` — 기존 `test:autopilot`·`test:decision-gate`·`test:pi-packages` 통과. Grok Pi 독립 리뷰는 스텁 둘 green, 트리 도구 복원 결함을 제시했고 이를 `session_tree` 회귀로 수선했다. 최종 영수증은 `./run.sh test:autopilot`(스텁·로드) · `./run.sh demo:autopilot`(격리 RPC의 실물 Pi off/on/off 활성 도구 측정 + DM dry-run) · `test:decision-gate` · `test:pi-packages` · `git diff --check`. 새 기본 모델의 유료 consult는 안 쟀다. 이미 뜬 Pi는 이전 확장이므로 새 프로세스/`/reload` 필요; reload 시 시계가 죽는다.
+  - **도구 경계:** Pi 트리 이동은 transcript 도구 복원 뒤 `session_tree`를 낸다(설치 Pi 0.87.1 `agent-session.js:3003-3011`). 여기서 무장/시계를 접고 `waiting_for`를 다시 숨기도록 수선. `setActiveTools`는 전역 활성 목록 교체라 다른 확장과의 경쟁 가능성은 남는다. **숨김은 UX이지 권한 경계가 아니다** — off 실행 함수도 DM/기록을 거절한다. 설치되지 않은 타 확장의 임의 복원까지 보증하지 않는다.
+  - **남은 모델 관측 공백(후일):** `/decision-gate model` 세션 지정은 autopilot의 `resolveCandidateSource(null)`에 전달되지 않는다(autopilot은 env/default만 사용). 영수증에 `thinkingLevel`이 없어 medium 실제 실행을 사후 증명하지 못한다. Sol 기본은 goal blocked도 바꾼다. 오늘은 후보·SDK 옵션을 로직 테스트로만 확인한다.
+  - **Read:** `README.md § autopilot`, `pi-extensions/{autopilot,decision-gate}.ts`, `pi-extensions/decision-gate/README.md`; 이 대화의 DM·패널. **Do not:** 잠정 답을 승인·explicit_intent·자동 형제 호출로 승격하지 않는다. GLG는 오늘 로직 검수 후 커밋·푸시를 명시 요청했다.
 
 - **기억축 운영 관측 — [2026-09-27] 전체 동기화 완료, 다음 판독은 이 집에서.** 실측: `andenken`의 `sync:sessions --global`은 95,789행·5조각을 검증하고 인덱스·매니페스트·코퍼스를 Oracle에 발행했다(완료 영수증 `1790494635586-bg06.log`: `No duplicate IDs (95,789 unique)` / `5 fragments, 4.0G` / `replicate corpus → oracle` / `done`). compact 직전 23조각·4.0G → 직후 4조각·4.0G, 이후 세션 4건 증분으로 5조각: **조각 수는 줄었으나 디스크 크기 절감은 확인되지 않았다.** md는 10,938행·51조각·534M → compact 후 2조각·374M, 로컬·Oracle 검증 통과(`1790498217793-bg07.log`: `No duplicate IDs (10,938 unique)` / `2 fragments, 374M` / `md oracle sync done`). OpenClaw는 이미 계산된 벡터 570개를 회수(API 0), 6,458행·11조각·126M 로컬·Oracle 검증 통과(`1790498779818-bg08.log`: `No duplicate IDs (6,458 unique)` / `11 fragments, 126M` / `openclaw oracle sync done`). 원격 md 검증에도 orphan 0. 이 운영 기록은 **우리 리포 소유**; andenken `NEXT.md`는 수정하지 않았다.
   - **Next (다음 전체 동기화 또는 월간 점검을 GLG가 열 때):** 세 축의 행·파일·조각·디스크 용량·증분량·API 비용·검증 결과를 전회와 나란히 기록하고, 대표 질의의 검색 적중/누락·응답시간을 같은 질의 세트로 비교한다. `status:json`은 전체 corpus 탐색(10분+)이므로 상시 호출하지 않는다. compact 전후 **조각과 용량을 별개로** 측정하고, 20조각 이상이면 해당 축만 정리→검증→발행(권한 호스트 thinkpad). 이 주기는 자동화/삭제 정책이 아니라 **검토 제안**이다.
@@ -137,7 +148,7 @@
     **이 기기(thinkpad)에 좁게 설치됨 (2026-09-28 17:50 KST):** `~/.pi/agent/extensions/autopilot.ts` → 리포 파일 심링크
     한 줄(옆 `decision-gate.ts` 링크와 나란히 — 하나만 있으면 로드 실패). 새 pi 프로세스부터 실리고 기본 OFF.
     되돌리기 `rm ~/.pi/agent/extensions/autopilot.ts`. 다른 기기는 `run.sh setup` 의 `*.ts` glob 이 같은 모양을 만든다.
-    **다음:** GLG 승인 받은 실물 DM/consult 한 판, 그리고 "진행" 경계 모델 판정(README § autopilot).
+    **다음:** 실물 DM/consult 한 판은 2026-09-29에 수행했다(상단 좌표 16). 남은 것은 인용 적합성 판독과 "진행" 경계 모델에 대한 GLG 판정.
   - **#24 는 닫혔다** (2026-09-09, GLG 지시 "일단 닫아"). 권고는 반대였고 그대로 남겼다. 좌표 댓글 =
     [issuecomment-5601577118](https://github.com/junghan0611/agent-config/issues/24#issuecomment-5601577118).
     본문의 "안 닫히는 이유 셋" 중 ②캐는 손은 닫혔고, ③G2는 좁은 경로가 기계가 됐고,

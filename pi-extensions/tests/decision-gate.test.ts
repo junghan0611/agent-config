@@ -82,7 +82,8 @@ function check(name: string, ok: boolean, detail = ""): void {
 // ── G2: 사이드 세션에 push·유료·외부 발신 권한이 없다 ────────────────────────
 console.log("G2 — the consult path has no push / paid-spend / outbound authority");
 
-const opts = buildConsultSessionOptions({ provider: "openai-codex", id: "gpt-5.6-terra" }, { name: "dig" });
+const opts = buildConsultSessionOptions({ provider: "openai-codex", id: "gpt-6-sol" }, { name: "dig" });
+check("Sol consult uses medium reasoning", opts.thinkingLevel === "medium");
 
 // `noTools:"all"` would also kill the custom tool — measured 2026-09-09, the sibling
 // then invented a call shape in prose. So the contract is "builtin" + a one-name allowlist.
@@ -304,6 +305,7 @@ check("no env key at all means no override", candidatesFromEnv({}) === null);
 
 const M = (provider: string, id: string) => ({ provider, id });
 const CATALOGUE = [
+	M("openai-codex", "gpt-6-sol"),
 	M("openai-codex", "gpt-5.6-terra"),
 	M("openai-codex", "gpt-5.6-luna"),
 	M("openai-codex", "gpt-5.6-terra-preview"),
@@ -317,11 +319,11 @@ const id = (m: { provider: string; id: string } | undefined) => (m ? `${m.provid
 
 check(
 	"an exact provider/id resolves to exactly that",
-	id(resolveCandidates(CATALOGUE, parseModelSpec("github-copilot/gpt-5.6-luna"))[0]) === "github-copilot/gpt-5.6-luna",
+	resolveCandidates(CATALOGUE, parseModelSpec("github-copilot/gpt-5.6-luna")).length === 0,
 );
 check(
 	"a bare name resolves across rails in MODELS.md order",
-	resolveCandidates(CATALOGUE, parseModelSpec("gpt-5.6-luna")).map(id).join(" ") === "openai-codex/gpt-5.6-luna github-copilot/gpt-5.6-luna",
+	resolveCandidates(CATALOGUE, parseModelSpec("gpt-5.6-luna")).map(id).join(" ") === "openai-codex/gpt-5.6-luna",
 );
 // 부분일치는 편의이지 우선권이 아니다 — 정확히 적은 이름을 앞지르면 안 된다.
 check(
@@ -342,7 +344,7 @@ check("a candidate list is de-duplicated across entries", resolveCandidates(CATA
 // ── 레일: consult 는 상주의 모델이면 안 된다 ────────────────────────────────
 // GLG 의 자리 그대로다 — "답변도 느리고 쿼터를 많이 차지하는 모델이 고민하는 중에
 // … 빠른 형제에게 얼른 물어보는거야." 같은 provider+id 는 형제가 아니라 자기다.
-console.log("rail — the consult never lands on the resident's own model");
+console.log("rail — Sol medium is allowed; other resident models are skipped");
 
 const registryOf = (models: Array<{ provider: string; id: string }>, authed: (m: { provider: string }) => boolean = () => true) => ({
 	getAvailable: () => models,
@@ -351,20 +353,21 @@ const registryOf = (models: Array<{ provider: string; id: string }>, authed: (m:
 });
 const anyRegistry = registryOf(CATALOGUE);
 
-check("with no resident named, the built-in candidate order decides", id(await selectFastModel(anyRegistry)) === "openai-codex/gpt-5.6-terra");
+check("with no resident named, Sol is the only default candidate", id(await selectFastModel(anyRegistry)) === "openai-codex/gpt-6-sol");
+check("Sol consult may use the resident's model in a separate medium session", id(await selectFastModel(anyRegistry, { provider: "openai-codex", id: "gpt-6-sol" })) === "openai-codex/gpt-6-sol");
 check(
 	"the resident's exact rail is skipped",
 	id(await selectFastModel(anyRegistry, { provider: "openai-codex", id: "gpt-5.6-terra" })) !== "openai-codex/gpt-5.6-terra",
 );
 check(
 	"the skip moves to the next candidate, it does not give up",
-	id(await selectFastModel(anyRegistry, { provider: "openai-codex", id: "gpt-5.6-terra" })) === "github-copilot/gpt-5.6-terra",
+	id(await selectFastModel(anyRegistry, { provider: "openai-codex", id: "gpt-5.6-terra" })) === "openai-codex/gpt-6-sol",
 );
 check(
-	"the same model name on another provider is a different rail, so it is not skipped",
-	id(await selectFastModel(anyRegistry, { provider: "github-copilot", id: "gpt-5.6-terra" })) === "openai-codex/gpt-5.6-terra",
+	"the resident on an excluded provider does not block the Sol candidate",
+	id(await selectFastModel(anyRegistry, { provider: "github-copilot", id: "gpt-5.6-terra" })) === "openai-codex/gpt-6-sol",
 );
-check("a resident outside the candidate list changes nothing", id(await selectFastModel(anyRegistry, { provider: "anthropic", id: "claude-opus-5" })) === "openai-codex/gpt-5.6-terra");
+check("a resident outside the candidate list changes nothing", id(await selectFastModel(anyRegistry, { provider: "anthropic", id: "claude-opus-5" })) === "openai-codex/gpt-6-sol");
 // 이게 GLG 가 요청한 판이다: 오푸스가 상주, 게이트는 luna.
 check(
 	"an operator-named model is what runs the consult",
@@ -376,7 +379,7 @@ check(
 );
 check(
 	"an unauthed named model is skipped, not forced",
-	id(await selectFastModel(registryOf(CATALOGUE, (m) => m.provider !== "openai-codex"), null, parseModelSpec("gpt-5.6-luna"))) === "github-copilot/gpt-5.6-luna",
+	(await selectFastModel(registryOf(CATALOGUE, (m) => m.provider !== "openai-codex"), null, parseModelSpec("gpt-5.6-luna"))) === null,
 );
 check(
 	"when the only authed rail is the resident's, it fails closed instead of doubling up",
@@ -492,7 +495,7 @@ const entry = entries[0]?.data as {
 	trigger: { goalId: string; goalStatus: string; goalUpdatedAt: number; sessionId: string };
 };
 check("a good consult is recorded as ok", (entry as unknown as { outcome: string }).outcome === "ok");
-check("the entry names the resident rail it spared", entry.resident?.provider === "anthropic");
+check("the entry names the resident rail for this consult", entry.resident?.provider === "anthropic");
 check("and the fast rail it used instead", entry.model.provider === "openai-codex");
 check("and where that choice came from", entry.modelSource === "default", entry.modelSource);
 check("the trigger is the blocked transition it read out of goal.ts", entry.trigger.goalId === "g9" && entry.trigger.goalStatus === "blocked" && entry.trigger.goalUpdatedAt === 42);
@@ -513,7 +516,7 @@ const cmdCtx = { ...fakeCtx, modelRegistry: registryOf(CATALOGUE) };
 await cmd("status", cmdCtx);
 check("status prints a panel", shown.length === 1 && shown[0].content.includes("decision-gate — consult model"));
 check("the panel is display-only — it never triggers a turn", shown[0].triggerTurn === false);
-check("the panel names the resident it will skip", shown[0].content.includes("anthropic/claude-opus-5"));
+check("the panel names the resident and Sol medium candidate", shown[0].content.includes("anthropic/claude-opus-5") && shown[0].content.includes("authed — medium, resident allowed"));
 check("the panel says where the candidates came from", shown[0].content.includes("(default)"));
 
 await cmd("last", cmdCtx);
@@ -589,7 +592,7 @@ await failHandlers.get("agent_settled")!({}, failCtx);
 check("a consult that threw still writes an entry", failEntries.length === 1);
 const failed = failEntries[0]?.data as { outcome: string; error: string; model: unknown; digs: unknown[] };
 check("and the entry says it failed, with the reason", failed.outcome === "error" && failed.error.includes("provider exploded"));
-check("the model it tried is still named", (failed.model as { id: string }).id === "gpt-5.6-terra");
+check("the model it tried is still named", (failed.model as { id: string }).id === "gpt-6-sol");
 // 이게 구멍의 본체였다: 표식이 없으면 같은 전이가 다음 settled 에서 다시 돈다.
 await failHandlers.get("agent_settled")!({}, failCtx);
 check("the failed transition is consumed — it does not fire again and pay again", failEntries.length === 1);
