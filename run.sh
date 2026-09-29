@@ -1704,7 +1704,7 @@ Usage: ./run.sh <command> [args]
   test:search "q"             라이브 검색 테스트 — andenken 위임
   test:gate                   decision-gate lint (픽스처 + 있으면 실물; API 불필요)
   test:decision-gate          decision-gate 익스텐션 회귀 — #24 G2 + 실물 pi 로드 스모크 (API 불필요)
-  test:goal                   goal continuation lifecycle 회귀 (API 불필요)
+  test:goal                   goal continuation·도구 노출 회귀 + 격리 실물 pi RPC (API 불필요)
   test:autopilot              autopilot 확장 회귀 — 침묵→DM→consult 스캐폴드, 실행 0 계약 + [DEMO] 판 (API 불필요)
   demo:autopilot              [DEMO] autopilot→decision-gate 다리를 눈으로 — 실물 runConsult(스텁 형제)·dm.sh --dry-run + 설치된 pi 격리 RPC (텔레그램·모델 0)
   test:session-memory-warm    세션 기억 warm-on-demand seam 회귀 (API/임베딩 호출 없음)
@@ -1827,7 +1827,9 @@ case "${1:-help}" in
     bun run "$SCRIPT_DIR/pi-extensions/tests/decision-gate.test.ts" &&
       bun run "$SCRIPT_DIR/pi-extensions/tests/decision-gate.load.test.ts" ;;
   test:goal)
-    bun run "$SCRIPT_DIR/pi-extensions/tests/goal.test.ts" ;;
+    # 스텁 회귀 + 설치된 pi 의 격리 RPC(off/on/off 도구 목록, 모델 턴 0 — pi 가 없으면 skip).
+    bun run "$SCRIPT_DIR/pi-extensions/tests/goal.test.ts" &&
+      bun run "$SCRIPT_DIR/pi-extensions/tests/goal.rpc.test.ts" ;;
   test:autopilot)
     # 스텁 회귀 + 실물 pi 로드 스모크(자매 파일 import 가 심링크 디렉터리에서 풀리는지까지).
     bun run "$SCRIPT_DIR/pi-extensions/tests/autopilot.test.ts" &&

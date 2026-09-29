@@ -15,6 +15,9 @@
  * GLG tuning, 2026-08-07:
  * - queueContinuation() error path now guards ctx.hasUI before notifying, so a
  *   headless entwurf session fails loudly in the log instead of throwing.
+ * GLG tuning, 2026-09-29:
+ * - get_goal / update_goal follow the goal state (visibleGoalTools) instead of
+ *   staying in every request, and update_goal refuses a goal that is not active.
  */
 
 import { randomUUID } from "node:crypto";
@@ -27,6 +30,7 @@ const STATE_TYPE = "goal";
 const UI_MESSAGE_TYPE = "goal-ui";
 const CONTINUATION_MESSAGE_TYPE = "goal-continuation";
 const MAX_OBJECTIVE_CHARS = 4_000;
+const GOAL_TOOL_NAMES = ["get_goal", "update_goal"];
 
 type GoalStatus = "active" | "paused" | "blocked" | "usageLimited" | "budgetLimited" | "complete";
 
@@ -355,6 +359,18 @@ function statusAfterObjectiveEdit(status: GoalStatus): GoalStatus {
 	}
 }
 
+/**
+ * Model-visible goal tools per state. Visibility is UX only; the authority
+ * boundary is the status check inside each execute().
+ * - no goal: nothing to read or update.
+ * - active: read, and mark complete/blocked.
+ * - any other status: read only; the human moves it with /goal resume|clear.
+ */
+function visibleGoalTools(goal: Goal | null): string[] {
+	if (!goal) return [];
+	return goal.status === "active" ? ["get_goal", "update_goal"] : ["get_goal"];
+}
+
 function lastAssistantMessage(messages: Array<{ role?: string; stopReason?: string; errorMessage?: string }>) {
 	for (let i = messages.length - 1; i >= 0; i--) {
 		const message = messages[i];
@@ -405,7 +421,26 @@ export default function goalExtension(pi: ExtensionAPI) {
 		} satisfies PersistedGoalState);
 	}
 
+	/**
+	 * Pi's active tool set is one global list shared by every extension, and
+	 * startup, reload and tree navigation reset it (all extension tools on, or the
+	 * transcript's loadout) before session_start/session_tree. So recompute only
+	 * our two names from the current goal, keep every other tool in place, and
+	 * skip the call when nothing changes so no empty tool delta is recorded.
+	 */
+	function syncGoalTools(): void {
+		const wanted = visibleGoalTools(goal);
+		const active = pi.getActiveTools();
+		const next = active.filter((name) => !GOAL_TOOL_NAMES.includes(name) || wanted.includes(name));
+		for (const name of wanted) if (!next.includes(name)) next.push(name);
+		if (next.length === active.length && next.every((name, i) => name === active[i])) return;
+		pi.setActiveTools(next);
+	}
+
 	function updateStatus(ctx: ExtensionContext): void {
+		// Every state transition lands here, so tool exposure follows the same edge
+		// as the footer — including headless sessions, which have no footer.
+		syncGoalTools();
 		if (!ctx.hasUI) return;
 		if (!goal) {
 			ctx.ui.setStatus("goal", undefined);
@@ -806,6 +841,13 @@ export default function goalExtension(pi: ExtensionAPI) {
 			if (params.status !== "complete" && params.status !== "blocked") {
 				throw new Error(
 					"update_goal can only mark the existing goal complete or blocked; pause, resume, budget-limited, and usage-limited status changes are controlled by the user or system",
+				);
+			}
+			// Hiding the tool is not the boundary: a call from an earlier loadout or a
+			// stale branch still reaches here, and a non-active goal belongs to the user.
+			if (!goal || goal.status !== "active") {
+				throw new Error(
+					`update_goal only applies to an active goal; current goal: ${goal ? statusLabel(goal.status) : "none"}. The user changes it with /goal resume or /goal clear.`,
 				);
 			}
 			setGoalStatus(params.status);
