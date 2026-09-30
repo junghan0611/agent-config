@@ -68,13 +68,13 @@ GLG 2026-09-09: *"오프스가 돌다가 게이트는 terra 또는 luna로 잡�
 
 ```
 /decision-gate                                   # 지금 후보·인증·예산 패널
-/decision-gate model openai-codex/gpt-6-sol     # 이 세션만 (Sol consult = medium)
+/decision-gate model openai-codex/gpt-6.1-sol     # 이 세션만 (Sol consult = medium)
 /decision-gate model glm-5.3                    # provider 생략 = 사용 가능한 활성 레일 순서
 /decision-gate model reset                       # 환경변수/기본값으로
 ```
 
 우선순위는 **세션 지정 → `DECISION_GATE_MODELS`(`~/.env.local`, env-loader 가 싣는다) →
-기본 후보**(`openai-codex/gpt-6-sol`, medium 단일 후보). 어디서 왔는지는 엔트리 `modelSource` 에
+기본 후보**(`openai-codex/gpt-6.1-sol`, medium 단일 후보). 어디서 왔는지는 엔트리 `modelSource` 에
 남는다. Copilot 구독은 종료됐으므로 명시해도 후보에서 제외한다. 기본 Sol 은 상주와 동일해도
 별도의 in-memory medium consult 로 허용한다. 그 외 모델은 상주와 같은 provider+id 를 건너뛴다.
 인증된 후보가 없으면 **fail-closed** — 임의 모델로 떨어지지 않는다.

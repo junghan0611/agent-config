@@ -161,7 +161,7 @@ const RAIL_ORDER = ["openai-codex", "zai", "xai"] as const;
 
 /**
  * 기본 consult 후보 — GLG 가 Sol medium 한 모델로 지정했다(2026-09-29).
- * 기본은 Codex 구독의 gpt-6-sol. consult 는 별도 in-memory 세션에서 medium 으로 돈다.
+ * 기본은 Codex 구독의 gpt-6.1-sol. consult 는 별도 in-memory 세션에서 medium 으로 돈다.
  *
  * **이건 기본값일 뿐이고, GLG 가 그때그때 지정할 수 있다** (2026-09-09 요청:
  * *"오프스가 돌다가 게이트는 terra 또는 luna로 잡아 놓고 답변 받게 한다든가"*).
@@ -174,7 +174,7 @@ const RAIL_ORDER = ["openai-codex", "zai", "xai"] as const;
  * `process.env` 에서 지우므로 auth 프로브가 구조적으로 실패한다.
  */
 const FAST_MODEL_CANDIDATES: ReadonlyArray<FastCandidate> = [
-	{ provider: "openai-codex", model: "gpt-6-sol" },
+	{ provider: "openai-codex", model: "gpt-6.1-sol" },
 ];
 
 /** 환경변수로 지정할 때 읽는 키. 복수형이 정본이고 단수형도 받는다. */
@@ -707,7 +707,7 @@ export function buildConsultSessionOptions(model: Model<Api>, digTool: ToolDefin
 	return {
 		sessionManager: SessionManager.inMemory(), // 두 번째 세션 파일 없음 (GLG: "세션 기록은 따로 안남아도 되거든")
 		model,
-		thinkingLevel: model.provider === "openai-codex" && model.id === "gpt-6-sol" ? "medium" as const : "off" as const,
+		thinkingLevel: model.provider === "openai-codex" && model.id === "gpt-6.1-sol" ? "medium" as const : "off" as const,
 		// 실측 2026-09-09: `noTools:"all"` 은 **커스텀 툴까지** 끈다(타입 주석 그대로 —
 		// "all: start with no tools enabled"). 첫 실물 시도에서 형제가 dig 을 못 보고
 		// `{"query":...}` 를 텍스트로 지어냈다. 그래서 기본 억제는 "builtin" 으로 두고,
@@ -778,7 +778,7 @@ export function resolveCitedIds(digs: DigRecord[], labels: string[]): string[] {
  * 차지하는 모델이 고민하는 중에 … 빠른 형제에게 얼른 물어보는거야"* 이므로,
  * 같은 provider+id 를 기본적으로 건너뛰던 규칙은 아래 Sol 예외를 제외하고 유지한다.
  *
- * 예외: GLG 가 지정한 gpt-6-sol 은 상주가 Sol 이어도 medium 의 별도
+ * 예외: GLG 가 지정한 gpt-6.1-sol 은 상주가 Sol 이어도 medium 의 별도
  * in-memory consult 로 허용한다. 동일 모델 배제는 이 기본값을 무력화하므로 적용하지 않는다.
  *
  * 실제 잔량(쿼터)은 **여기서 안 잰다.** `skills/quota` 는 벤더 엔드포인트를 때리는
@@ -787,7 +787,7 @@ export function resolveCitedIds(digs: DigRecord[], labels: string[]): string[] {
  * (상주와 같은 모델은 Sol medium 만 예외)"이고, 그 이상을 주장하지 않는다.
  */
 function skipResident(model: { provider: string; id: string }, resident?: { provider: string; id: string } | null): boolean {
-	return !!resident && resident.provider === model.provider && resident.id === model.id && !(model.provider === "openai-codex" && model.id === "gpt-6-sol");
+	return !!resident && resident.provider === model.provider && resident.id === model.id && !(model.provider === "openai-codex" && model.id === "gpt-6.1-sol");
 }
 
 export async function selectFastModel(
@@ -964,7 +964,7 @@ export async function runConsult(
 			// fail-closed. 상주 모델로 떨어지지 않는다 — 그러면 이 확장이 없는 것만 못하다.
 			outcome = "no-model";
 			failure = `no fast model available from the ${source} candidates (${candidates.map(describeCandidate).join(", ")})${
-				resident ? `, resident ${resident.provider}/${resident.id}${resident.provider === "openai-codex" && resident.id === "gpt-6-sol" ? " (Sol consult allowed)" : " excluded"}` : ""
+				resident ? `, resident ${resident.provider}/${resident.id}${resident.provider === "openai-codex" && resident.id === "gpt-6.1-sol" ? " (Sol consult allowed)" : " excluded"}` : ""
 			}. Set one with /decision-gate model <provider/id>`;
 			if (ctx.hasUI) ctx.ui.notify(`decision-gate: ${failure}`, "warning");
 			else console.error(`[decision-gate] ${failure}`);
@@ -1070,7 +1070,7 @@ const USAGE = [
 	"       /decision-gate model <provider/id>[, <provider/id> ...]",
 	"       /decision-gate model reset",
 	"",
-	"Examples: /decision-gate model openai-codex/gpt-6-sol",
+	"Examples: /decision-gate model openai-codex/gpt-6.1-sol",
 	"          /decision-gate model glm-5.3          (provider omitted → active rail order)",
 ].join("\n");
 
@@ -1123,7 +1123,7 @@ export default function (pi: ExtensionAPI) {
 					skipResident(m, ctx.model)
 						? "skipped — this is the resident"
 						: ctx.modelRegistry.hasConfiguredAuth(m)
-							? m.provider === "openai-codex" && m.id === "gpt-6-sol" ? "authed — medium, resident allowed" : "authed"
+							? m.provider === "openai-codex" && m.id === "gpt-6.1-sol" ? "authed — medium, resident allowed" : "authed"
 							: "no auth configured";
 				lines.push(`  ${resolved.indexOf(m) === 0 ? "→" : " "} ${id.padEnd(34)} ${why}`);
 			}

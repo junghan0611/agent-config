@@ -82,7 +82,7 @@ function check(name: string, ok: boolean, detail = ""): void {
 // ── G2: 사이드 세션에 push·유료·외부 발신 권한이 없다 ────────────────────────
 console.log("G2 — the consult path has no push / paid-spend / outbound authority");
 
-const opts = buildConsultSessionOptions({ provider: "openai-codex", id: "gpt-6-sol" }, { name: "dig" });
+const opts = buildConsultSessionOptions({ provider: "openai-codex", id: "gpt-6.1-sol" }, { name: "dig" });
 check("Sol consult uses medium reasoning", opts.thinkingLevel === "medium");
 
 // `noTools:"all"` would also kill the custom tool — measured 2026-09-09, the sibling
@@ -305,7 +305,7 @@ check("no env key at all means no override", candidatesFromEnv({}) === null);
 
 const M = (provider: string, id: string) => ({ provider, id });
 const CATALOGUE = [
-	M("openai-codex", "gpt-6-sol"),
+	M("openai-codex", "gpt-6.1-sol"),
 	M("openai-codex", "gpt-5.6-terra"),
 	M("openai-codex", "gpt-5.6-luna"),
 	M("openai-codex", "gpt-5.6-terra-preview"),
@@ -353,21 +353,21 @@ const registryOf = (models: Array<{ provider: string; id: string }>, authed: (m:
 });
 const anyRegistry = registryOf(CATALOGUE);
 
-check("with no resident named, Sol is the only default candidate", id(await selectFastModel(anyRegistry)) === "openai-codex/gpt-6-sol");
-check("Sol consult may use the resident's model in a separate medium session", id(await selectFastModel(anyRegistry, { provider: "openai-codex", id: "gpt-6-sol" })) === "openai-codex/gpt-6-sol");
+check("with no resident named, Sol is the only default candidate", id(await selectFastModel(anyRegistry)) === "openai-codex/gpt-6.1-sol");
+check("Sol consult may use the resident's model in a separate medium session", id(await selectFastModel(anyRegistry, { provider: "openai-codex", id: "gpt-6.1-sol" })) === "openai-codex/gpt-6.1-sol");
 check(
 	"the resident's exact rail is skipped",
 	id(await selectFastModel(anyRegistry, { provider: "openai-codex", id: "gpt-5.6-terra" })) !== "openai-codex/gpt-5.6-terra",
 );
 check(
 	"the skip moves to the next candidate, it does not give up",
-	id(await selectFastModel(anyRegistry, { provider: "openai-codex", id: "gpt-5.6-terra" })) === "openai-codex/gpt-6-sol",
+	id(await selectFastModel(anyRegistry, { provider: "openai-codex", id: "gpt-5.6-terra" })) === "openai-codex/gpt-6.1-sol",
 );
 check(
 	"the resident on an excluded provider does not block the Sol candidate",
-	id(await selectFastModel(anyRegistry, { provider: "github-copilot", id: "gpt-5.6-terra" })) === "openai-codex/gpt-6-sol",
+	id(await selectFastModel(anyRegistry, { provider: "github-copilot", id: "gpt-5.6-terra" })) === "openai-codex/gpt-6.1-sol",
 );
-check("a resident outside the candidate list changes nothing", id(await selectFastModel(anyRegistry, { provider: "anthropic", id: "claude-opus-5" })) === "openai-codex/gpt-6-sol");
+check("a resident outside the candidate list changes nothing", id(await selectFastModel(anyRegistry, { provider: "anthropic", id: "claude-opus-5" })) === "openai-codex/gpt-6.1-sol");
 // 이게 GLG 가 요청한 판이다: 오푸스가 상주, 게이트는 luna.
 check(
 	"an operator-named model is what runs the consult",
@@ -592,7 +592,7 @@ await failHandlers.get("agent_settled")!({}, failCtx);
 check("a consult that threw still writes an entry", failEntries.length === 1);
 const failed = failEntries[0]?.data as { outcome: string; error: string; model: unknown; digs: unknown[] };
 check("and the entry says it failed, with the reason", failed.outcome === "error" && failed.error.includes("provider exploded"));
-check("the model it tried is still named", (failed.model as { id: string }).id === "gpt-6-sol");
+check("the model it tried is still named", (failed.model as { id: string }).id === "gpt-6.1-sol");
 // 이게 구멍의 본체였다: 표식이 없으면 같은 전이가 다음 settled 에서 다시 돈다.
 await failHandlers.get("agent_settled")!({}, failCtx);
 check("the failed transition is consumed — it does not fire again and pay again", failEntries.length === 1);

@@ -2,7 +2,7 @@
 name: deepseek-flash
 description: "Assist the GLG-requested sibling."
 model:
-  - "deepseek/deepseek-v4-flash"
+  - "deepseek/deepseek-flash"
 ---
 
 Assist the GLG-requested sibling.
