@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# cf-doctor — how far GLG's personal Cloudflare token reaches, on one screen.
+#
+# Operations go through the installed official tools: `cf` (full API) and `wrangler`
+# (Workers), pnpm globals from nixos-config scripts/external-packages.sh. This script
+# covers the one thing they lack: token coverage. It sends read requests only.
+#
+# Replaces the home-made `cf` (dns/tunnel/redirect/email/access/api/check, 2026-08-12),
+# retired 2026-09-30 once `cf` on PATH became the official CLI that has all of those verbs.
+
+set -euo pipefail
+
+API="https://api.cloudflare.com/client/v4"
+TOKEN_FILE="${CF_TOKEN_FILE:-$HOME/.cf-token-glg}"
+
+die()  { echo "❌ $*" >&2; exit 1; }
+warn() { echo "⚠️  $*" >&2; }
+
+case "${1:-}" in
+	"") ;;
+	-h|--help) echo "usage: cf-doctor   (env CF_TOKEN_FILE, default ~/.cf-token-glg)"; exit 0 ;;
+	*) die "cf-doctor takes no arguments. Operate with cf / wrangler — see SKILL.md." ;;
+esac
+
+# ── token ─────────────────────────────────────────────────────────────────
+[ -r "$TOKEN_FILE" ] || { cat >&2 <<EOF
+❌ no token file: $TOKEN_FILE
+Issuing and scoping the token is nixos-config's job (nixos-config#11 decision 6, token glg-cloudflare). To store it:
+
+  umask 077; echo '<TOKEN>' > ~/.cf-token-glg
+
+  ⚠️ Leave Client IP Filtering empty — otherwise 9109 everywhere.
+  ⚠️ Tokens made on the R2 page are S3 credentials, not API tokens.
+EOF
+exit 1; }
+TOKEN=$(grep -oE '[A-Za-z0-9_-]{35,}' "$TOKEN_FILE" | head -1 || true)
+[ -n "$TOKEN" ] || die "no token-shaped string in $TOKEN_FILE"
+mode=$(stat -c '%a' "$TOKEN_FILE")
+[ "$mode" = "600" ] || warn "$TOKEN_FILE is mode $mode — chmod 600"
+
+get() { curl -sS -w '\n%{http_code}' "$API$1" -H "Authorization: Bearer $TOKEN" 2>/dev/null || printf '{}\n000'; }
+
+v=$(get "/user/tokens/verify"); vb=$(sed '$d' <<<"$v")
+if [ "$(jq -r '.success // false' <<<"$vb")" != "true" ]; then
+	case ",$(jq -r '[.errors[]?.code] | join(",")' <<<"$vb")," in
+		*",10429,"*) die "10429 rate limit — wait minutes; retrying extends it." ;;
+		*",9109,"*)  die "9109 — this host may be blocked by the token's Client IP Filtering." ;;
+	esac
+	echo "$vb" | jq . >&2; die "token verify failed"
+fi
+echo "token  $TOKEN_FILE  ($(jq -r '.result.status' <<<"$vb"))"
+
+# ── tools ─────────────────────────────────────────────────────────────────
+ver() { command -v "$1" >/dev/null || { echo "(missing)"; return; }; "$1" --version 2>/dev/null | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+[^ ]*' | head -1; }
+echo "tools  cf $(CF_SEND_TELEMETRY=false ver cf) · wrangler $(ver wrangler) · cloudflared $(ver cloudflared)"
+
+# ── account: probe by read; 404 = permission passed, resource absent ─────
+probe() {
+	local label="$1" r http body codes
+	r=$(get "$2"); http=$(tail -n1 <<<"$r"); body=$(sed '$d' <<<"$r")
+	if [ "$(jq -r '.success // false' <<<"$body" 2>/dev/null)" = "true" ] || [ "$http" = "404" ]; then
+		printf '  ✅ %s\n' "$label"; return
+	fi
+	codes=$(jq -r '[.errors[]? | "\(.code) \(.message)"] | join("; ")' <<<"$body" 2>/dev/null || true)
+	# 9999 not_enabled = permission passed; the product is simply off in this account
+	if grep -q 'not_enabled' <<<"$codes"; then
+		printf '  ✅ %-22s (permission ok — not enabled in the account yet)\n' "$label"; return
+	fi
+	printf '  ❌ %-22s HTTP %s  %s\n' "$label" "$http" "${codes:-no-response}"
+}
+
+echo
+# /accounts answers success:true with [] when Account Settings:Read is missing — success alone lies
+acc=$(sed '$d' <<<"$(get "/accounts")")
+aid=$(jq -r 'if (.result | length) == 1 then .result[0].id else empty end' <<<"$acc" 2>/dev/null || true)
+if [ -n "$aid" ]; then
+	echo "account  ✅ enumerable"
+else
+	warn "/accounts is empty — no Account Settings:Read; cf and wrangler cannot find the account."
+	aid=$(sed '$d' <<<"$(get "/zones")" | jq -r '[.result[].account.id] | unique | if length == 1 then .[0] else empty end')
+fi
+if [ -n "$aid" ]; then
+	probe "Cloudflare Tunnel"   "/accounts/$aid/cfd_tunnel?is_deleted=false&per_page=1"
+	probe "Workers Scripts"     "/accounts/$aid/workers/scripts"
+	probe "Workers CI (Builds)" "/accounts/$aid/builds/account/limits"
+	probe "Pages"               "/accounts/$aid/pages/projects"
+	probe "Access"              "/accounts/$aid/access/organizations"
+fi
+
+# ── zones: the API states effective permissions directly — better than probing ──
+echo
+sed '$d' <<<"$(get "/zones?per_page=50")" | jq -r '.result[] | "zone \(.name)\n  \(.permissions | join(" "))"'
+
+# ── token policy: the token cannot read itself; a user login (`cf auth login`) can ──
+# Run cf in a scratch dir — it drops .cloudflare/cache/ into the cwd.
+echo
+tid=$(jq -r '.result.id // empty' <<<"$vb")
+pol=""
+if command -v cf >/dev/null && [ -n "$tid" ]; then
+	scratch=$(mktemp -d)
+	pol=$(cd "$scratch" && env -u CLOUDFLARE_API_TOKEN CF_SEND_TELEMETRY=false cf user tokens get "$tid" 2>/dev/null) || pol=""
+	rm -rf "$scratch"
+fi
+if jq -e '.policies' >/dev/null 2>&1 <<<"$pol"; then
+	echo "policy $(jq -r '.name' <<<"$pol")  (read via cf OAuth login; IP condition: $(jq -c '.condition // "none"' <<<"$pol"))"
+	jq -r '.policies[] | "  \(.effect) " + (.resources | to_entries | map((.key | sub("com.cloudflare.api.";"") | sub("\\.[0-9a-f]{32}";""))
+		+ (if (.value | type) == "object" then " → " + (.value | keys | map(sub("com.cloudflare.api.account.";"")) | join(",")) else "" end)) | join(" "))
+		+ "\n    " + (.permission_groups | map(.name) | sort | join(" · "))' <<<"$pol"
+else
+	echo "policy  unreadable — needs a user login (\`cf auth login\`, ThinkPad) or User · API Tokens · Read"
+fi
+
+cat <<'EOF'
+
+10000 = permission missing · 9109 = "Unauthorized to access requested resource" (IP filter,
+or a user-scope endpoint such as /user/tokens = API Tokens Read) · policy above is the source of truth.
+EOF
