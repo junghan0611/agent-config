@@ -7,6 +7,39 @@
 
 ## Unreleased
 
+## v2026.9.30 — 침묵은 방아쇠일 뿐이고, Cloudflare는 공식 손에 넘긴다
+
+### autopilot · goal (pi 익스텐션)
+
+* **`autopilot` — 침묵은 방아쇠이지 허가가 아니다.** `/autopilot on [10m 20m]`로 무장한 조정자 세션에서 턴이 `waiting_for(kind:"glg")`로 끝나면 시계가 돈다: 10분 침묵 → DM 한 통, 20분 더 → decision-gate consult 한 번, 이어서 DM #2와 잠정 판정 패널. 실행은 0이다 — `tool_call` 훅이 없고 모든 메시지가 `triggerTurn:false`다. 「진행」에 필요한 권한 경계 모델은 GLG 판정으로 남겼다. `./run.sh demo:autopilot`이 스텁 consult와 `dm.sh --dry-run`으로 한 바퀴를 보여준다(텔레그램 0, 임베딩 0). (`2fe8e65`)
+* **off면 보이지도 않는다.** `/autopilot off`·트리 이동·세션 경계가 질문 시계와 `waiting_for` 도구 노출을 함께 접는다. consult 기본값은 Codex 구독 Sol medium이고 Copilot은 후보에서 뺐다. 숨김은 UX이지 권한 경계가 아니다 — off에서도 실행 함수가 DM·기록을 거절한다. (`0ddf8cb`)
+* **실물 한 판이 판단의 공백을 보였다 (2026-09-29).** 타이머·DM·consult 경로는 실물로 돌았다. 그러나 잠정 답이 인용한 두 세션은 이 질문을 지지하지 않았다 — 하나는 어시스턴트가 쓴 시험 대본이었고, 하나는 다른 주제의 발화였다. 「인용 ID 해소 ≠ 질문을 지지함」의 판정 계약은 NEXT 좌표 17로 남겼고, 자동 재개는 없다.
+* **`goal` 도구는 목표 상태를 따른다.** 목표가 없으면 `get_goal`·`update_goal`을 둘 다 숨기고, active면 둘 다, 비활성(paused/blocked/complete)이면 읽기만 보인다. `update_goal` 실행도 active에서만 받아서, 비활성 목표의 재상태변경과 blocked 재호출 consult 에지를 막았다. 격리 Pi RPC 13/13. (`1149a1a`)
+
+### Cloudflare 스킬
+
+* **자체 `cf`를 걷어내고 공식 `cf`·wrangler에 넘겼다.** PATH의 `cf`가 공식 CLI(1.0.0-beta.5)가 되면서, 스킬이 `cf dns ls`처럼 설명하던 옛 동사를 에이전트가 공식 cf에 칠 위험이 생겼다(nixos-config 담당자 지적). 옛 동사는 전부 공식 cf에 있었다 — DNS·터널·리다이렉트·Access를 실측으로 대응시켰고, `cf cli search`가 리다이렉트 질의에 1순위로 준 `cf rules lists`는 오답이었다. 토큰은 호출마다 `CLOUDFLARE_API_TOKEN=$(<~/.cf-token-glg)`로 싣고 전역 export하지 않는다. www 301은 규칙 전체를 덮어쓰는 `phases update` 대신 끝에 덧붙이는 `rules create`로 간다. 남은 스크립트는 공식 도구에 대응물이 없는 `bin/cf-doctor`(토큰 커버리지, 읽기만) 하나다. SKILL.md는 영어로 다시 썼다. (`c3ac8ad`)
+* **토큰 정책을 원문으로 읽었다.** 토큰은 자기 정책을 못 읽는다(`/user/tokens/<id>` → 9109). `cf auth login`(OAuth)으로 `cf user tokens get`을 부르면 읽힌다 — `cf-doctor`는 로그인이 있으면 그 목록을 찍는다. `glg-cloudflare`는 nixos-config#11의 필요분(DNS·DNSSEC, www 301, Worker 배포·custom domain·routes·Builds·로그, claw Access, analytics)을 다 갖고 있고 IP 조건이 없다. 400/403 probe로 쓰기 권한을 판정하려던 시도는 증거가 못 됐다 — 부여된 Tunnel Write도 400을 줬다.
+* **고친 결함.** zone이 둘이 된 뒤(junghanacs.com, 09-29) 옛 `cf doctor`는 Zone:Read 줄 뒤에서 조용히 exit 1로 죽었다 — 서브셸 안 `die`를 `|| true`가 못 잡았고 stderr는 `/dev/null`로 갔다. 그리고 9109는 IP 필터만이 아니라 user 범위 엔드포인트의 권한 부족에서도 나온다.
+* **발견.** 공식 `cf`는 cwd에 `.cloudflare/cache/`(계정 ID·이름)를 쓴다 — 사이트 리포는 gitignore해야 한다. `--dry-run`은 `-z <도메인>`을 해석하지 않은 채 URL에 찍는다. ThinkPad에서 토큰 없이 부른 `cf`는 GLG OAuth(사용자 전권)로 돈다.
+
+### 스킬 · 문서
+
+* **`evidence-closure` 스킬 — `subtract`의 짝.** 결함 신고는 입력이지 종결이 아니다. raw evidence → 깨진 계약 → 결정 카드 → 인간 결정 → primary·side-effect red → fix → 전체 green → 원 신고 조건 재검증까지 닫고, 이미 고쳐졌다는 결함은 옛 트리에서 red로 박는다. (`42dd495`)
+* **`/recall`의 의미 검색 호출을 명시했다.** 네이티브 도구(`session_search`·`knowledge_search`)가 보이면 그것을, 안 보이면 `semantic-memory` 스킬의 직접 실행 예시를 쓴다 — command와 두 스킬에 같은 규칙을 적었다. (`6bd4d9a`)
+* **`/recall` frontmatter 수선.** description의 맨 `: `를 YAML이 중첩 매핑으로 읽어, `~/.claude/commands`가 여기 걸린 모든 리포에서 Claude Code가 시작할 때마다 파싱 오류를 찍었다. (`ba8ee3e`)
+* **`tag-release`: CHANGELOG 산문은 줄을 접지 않는다.** 릴리스 노트가 그 절을 그대로 복사하므로 열 맞춤 줄바꿈이 github.com에 그대로 보인다. (`1da7651`)
+* **모델 명단.** 형제 호출 명단을 줄였고(`d2b0e1d`), 큐레이션 명단을 GPT-6로 옮겼고(`0723c97`), Sol 셀렉터를 `gpt-6.1-sol`로 바꾸며 낡은 OMP 프로필 둘(`deepseek-pro`·`terra`)을 지웠다(`b36be4e`).
+* **기억축 운영 기록.** 2026-09-27 전체 동기화(sessions 95,789행 · md 10,938행 · OpenClaw 6,458행, 세 축 Oracle 검증)와 성장·효용 정기 판독 좌표를 NEXT에 남겼다. compact는 조각 수를 줄였지만 sessions 축의 디스크 절감은 확인되지 않았다. (`989cf87`)
+
+### 안전벽 · 설정
+
+* `workspace-mini`를 비공개 loose 리포로 등재하고 서사 git을 허용했다(`534b25b`, `ba3d131`). Claude Code가 계정 동기화 스킬을 `~/.claude/skills/synced/`에 쓰는데 그 링크가 이 리포 안에 떨어져서 gitignore했다(`e9e314e`).
+
+### 닫힌 NEXT 좌표
+
+* **16 — Autopilot 운행 로직·off/on·모델 경로 검수.** DM/consult/패널이 advisory-only임과 새 기본값, Pi 실물 도구 가시성 회귀를 확인했다. 판단 근거의 적합성과 재개 범위는 좌표 17로 남는다.
+
 ## v2026.9.21 — 이웃을 재고, 우리 숫자를 다시 센다
 
 ### 하네스 관측소
