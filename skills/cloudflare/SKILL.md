@@ -8,8 +8,9 @@ user_invocable: true
 
 Use the installed tools: **`cf`** (official CLI, full API) and **`wrangler`** (Workers) — pnpm
 globals from nixos-config `scripts/external-packages.sh`. Pass the token per command; never export it.
-On ThinkPad a bare `cf` (no token in env) runs as GLG's `cf auth login` — full user rights, not the scoped
-token. Keep the prefix; the login is for reading the token's own policy (`cf-doctor` does that).
+A bare `cf` or `wrangler` (no token in env) runs as GLG's OAuth login (`cf auth login` / `wrangler login`) —
+full user rights, not the scoped token. Keep the prefix; the cf login is for reading the token's own policy
+(`cf-doctor` does that), and the wrangler login is not the deploy path.
 
 ```bash
 CLOUDFLARE_API_TOKEN=$(<~/.cf-token-glg) cf <cmd>

@@ -107,7 +107,7 @@ if jq -e '.policies' >/dev/null 2>&1 <<<"$pol"; then
 		+ (if (.value | type) == "object" then " → " + (.value | keys | map(sub("com.cloudflare.api.account.";"")) | join(",")) else "" end)) | join(" "))
 		+ "\n    " + (.permission_groups | map(.name) | sort | join(" · "))' <<<"$pol"
 else
-	echo "policy  unreadable — needs a user login (\`cf auth login\`, ThinkPad) or User · API Tokens · Read"
+	echo "policy  unreadable — needs a user login (\`cf auth login\`) or User · API Tokens · Read"
 fi
 
 cat <<'EOF'
