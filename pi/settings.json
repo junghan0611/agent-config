@@ -9,7 +9,10 @@
 
   "_no_compaction": "Do not add a compaction policy key here. Compaction must be allowed to occur on the harness that owns it: Pi runs its normal lifecycle with built-in text-summary compaction for every provider; entwurf likewise does not manage a suppress/enable policy. Do not reinstall the retired Codex-native checkpoint extension. `/new` + `/recall` is cross-harness continuity practice, not a configuration lock. See README § Session Management.",
 
+  "_tui": "tmux에서 쓰기 위해 tuiMode는 regular로 둔다(GLG 결정 2026-10-03, Oracle live 설정 확인). Pi 1.0 기본값 fullscreen 대신 일반 화면을 쓰는 사용자 선택이며, 하네스 결함 판정은 아니다.",
+
   "_common": {
+    "tuiMode": "regular",
     "defaultProvider": "openai-codex",
     "defaultModel": "gpt-5.6-terra",
     "hideThinkingBlock": false,

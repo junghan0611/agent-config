@@ -7,6 +7,21 @@
 
 ## Unreleased
 
+## v2026.10.3 — entwurf 0.30.0 기념, 압축은 Pi에게 돌려줬다
+
+### Pi — 빌트인 압축과 tmux 화면
+
+* **entwurf 0.30.0 퍼블리시 때문에 미뤘던 압축 전환을 실행했다.** GLG 결정으로 `pi-codex-compaction`을 지원 manifest와 Oracle 설치본에서 제거하고 모든 provider의 압축을 Pi 빌트인 평문 요약에 맡겼다. README·AGENTS·설정 레퍼런스와 패키지 로드 게이트를 함께 전환했다. Oracle 영수증 `1790970875467-bg01.log`: 제거 성공, `PASS: supported Pi packages load; built-in compaction boundary and recall seam hold`, exit 0(API/LLM 0). 재검증과 `f8a5815` 푸시도 통과했다. 기존 native 체크포인트 세션은 확장 없이 재개하지 않는다 — GLG가 Oracle Pi Codex를 모두 새 프로세스·새 세션으로 시작하기로 확인했다. 다른 기기 제거와 첫 빌트인 압축 시간·요약 관측은 NEXT 좌표 18에 남겼다. 빨라졌다는 주장은 하지 않는다.
+* **tmux를 위한 `tuiMode: regular`를 공통 레퍼런스에 담았다.** Oracle live 설정과 GLG의 선택을 확인해 `pi/settings.json` `_common`에 추가했다. Pi 1.0 기본 fullscreen 대신 일반 화면을 쓰는 사용자 선택이며 하네스 결함 판정은 아니다. 기존 live 파일은 바꾸지 않았고 JSON 검증을 통과했다.
+* **README의 현재 entwurf 버전을 0.30.0으로 갱신했다.** Codex·Antigravity native-push, tmux의 Codex fresh-call 및 Herdr의 pi/Claude Code 경계를 upstream README와 대조해 정정했다. 과거 릴리즈를 설명하는 0.17.2 기록은 보존했다.
+
+### 스킬과 환경 — 지난 태그 이후 갈무리
+
+* **Claude Bash의 direnv 연결을 opt-in으로 열었다.** 허용된 `.envrc`에 `# agent-env: direnv`가 있을 때만 SessionStart가 `CLAUDE_ENV_FILE`에 direnv export의 eval을 추가한다. 환경값 자체를 파일에 쓰지 않으며 표식 없는 프로젝트는 바뀌지 않는다. (`cb02d79`)
+* **botlog 스킬을 119줄로 증류하고 이슈 연결을 추가했다.** (`9fbfebb`)
+* **lifetract HA 문서를 실제 조회 계약에 맞췄다.** KST 자정·반개방 조회 창, `ha logbook`, `ha entities --domain`과 적용 가능한 플래그, env → pass → file 토큰 우선순위를 정정했다. (`7e34688`)
+* **기억축 정화와 skill-audit 재검토를 NEXT 좌표 20·21로 세웠다.** 완료 선언이 아니라 다음 판의 책갈피이며 실행·판정 경계는 NEXT에 남아 있다. (`db3c895`)
+
 ## v2026.10.2 — pi 1.0과 durable을 우리 바닥의 다음 판으로 재기 시작했다
 
 ### harness-bench — `PI.md` 신설 (#27)
