@@ -15,7 +15,7 @@
 - [ ] **14. herdr 재조사 — 조사는 닫혔고, 대장 결함 하나가 열려 있다** ← PAUSED: status.py 방향 GLG 결정 대기 (2026-09-21). `HERDR.md` 09-21 절 + 오후 정정, 이웃 13종 실측(소넷 형제 둘), entwurf 담당자 답 다섯 — 전부 llmlog `20260914T161103`에 보존(`.agent-reports/`는 gitignore). **남은 한 줄: `harness-bench status`가 `## 상태` 헤딩을 먼저 찾고 뒤의 날짜 절을 안 본다** — `status.py:52-60`. 그래서 HERDR.md가 09-21까지 갱신됐는데 대장은 09-09로 보고한다. HERMES·OMP·OUROBOROS·PRIME도 같은 구조면 전부 과소보고다. 고치는 방향 둘 중 GLG 결정 대기: `max(상태, 마지막 dated 절)`을 쓰거나, 매트릭스 문서의 `## 상태` 헤딩을 갱신 대상으로 삼거나.
 - [ ] **15. 기억축 성장·검색 효용 정기 판독** ← PAUSED: 다음 전체 동기화/월간 점검 때 관측값 축적 후 GLG가 andenken 담당자와 조율 요청. 아래 NOW의 측정 좌표.
 - [ ] **17. 판단 근거 적합성·재개 범위** ← CURRENT: GLG가 별도 세션에서 열 때만. 오늘은 의미 판정기·continuation 설계에 착수하지 않는다.
-- [ ] **18. Pi 압축을 codex native → 빌트인으로 전환** ← PAUSED: entwurf 릴리즈(0.99.2 전환 포함)가 끝난 뒤, 코디네이터가 `/new` 할 때 (GLG 결정 2026-10-01). 아래 NOW 참조.
+- [ ] **18. Pi 압축을 codex native → 빌트인으로 전환** ← 2026-10-03 GLG 실행 승인(entwurf 0.30.0 퍼블리시로 미뤘던 일). 지원 manifest·문서·검증 게이트 전환; Oracle 제거/검증 영수증은 아래 NOW. 남은 것: 다른 기기 제거 + 새 프로세스/세션에서 첫 빌트인 압축 관측.
 - [ ] **19. pi 1.0 + pi-durable 집중 탐구 — `PI.md` (#27 = 이 주제의 최신 좌표, entwurf#88 닫힘)** ← PAUSED: 2차 자동화 검수 완료·Fable 검수 통과(11:13 KST 보고, #27 댓글), **GLG 방향 판정 대기** (2026-10-02). GLG 방향: *"prime agent 보다 pi 버전업과 durable, codemode 등을 따라가야 하는 게 더 급해졌어."* 1차 결론: Opus 조사·Fable 검수 완료, v1.0.0 소스 읽음·미설치·테스트 미실행. 결론 셋: ① coding agent 1.0에 배경 압축 없음(측정) → 좌표 18 기대치 불변, 레버는 여전히 압축 모델 확장. ② durable 영속 inbox/`requestId`는 pi 1.0 시민에게 안 닿음(측정) — 경계 후보 「storage 안 = durable, storage 사이 = entwurf」(제안). ③ goal/autopilot/decision-gate가 손으로 지은 이어가기·fork 상태·재시작 시계·결정 memo가 durable 커널 원시와 1:1(단서). 다음 한 칸(GLG가 열 때만): `/tmp/pi-v1`에서 `npm ci` + faux 예제 25·13·23(API 0) → F7·B7·G4 측정. 아래 NOW 참조.
 
 - [ ] **20. 기억축 정화 — 「GLG와 대화한 턴」만 남긴다 (andenken 조율)** ← CURRENT: **GLG가 직접 판정했다 (2026-10-02)** — C(하네스 주입)·B′(에이전트↔에이전트) **둘 다 drop**, **전체 재임베딩은 하지 않는다**. 실행은 andenken 담당자(garden `20261002T173340-f03de1`)가 자기 집 `NEXT.md` RAIL 5 「세션 축 입장 경계」를 CURRENT로 잡아 가져갔다 — 순서: 규칙 코드화 → API 0 dry-run → 백업·delete·verify·publish → acceptance. **이 집은 조율만 하고 dry-run을 따로 요청하지 않는다.** **GLG 북극성: *"목표는 나랑 대화한 턴이야. 그래야 decision-gate가 동작이 가능하게 기억이 생기거든."*** 좌표 15(월간 판독)와 짝 — 15는 관측, 20은 정리. 아래 NOW 참조.
@@ -26,7 +26,7 @@
 > 재사용하지 않는다 — 지난 핸드오프가 부른 이름이 계속 그 자리를 가리켜야 한다. 좌표 10이
 > 가리키는 11의 내용은 이제 `v2026.9.21` 절에 있다.
 
-현재 좌표: **20 CURRENT — 기억축 정화, andenken과 조율 중** · 21 PAUSED(`skill-audit` 재검토 + botlog 증류본 채택 판정) · **19 PAUSED — 1·2차 끝, GLG가 #27 읽고 방향 판정(#27이 최신 좌표)** · 17(판단 근거·재개는 후일 GLG 재개 요청 대기) — 16은 `v2026.9.30`에 닫힘 — 18 압축 전환은 entwurf 릴리즈 뒤 — 14 herdr 판정 대기 · 15 기억축 월간 판독 대기 · 13 본작업 보류 · 12 GLG 판정 대기 · 3·4 남의 손 대기
+현재 좌표: **20 CURRENT — 기억축 정화, andenken과 조율 중** · 21 PAUSED(`skill-audit` 재검토 + botlog 증류본 채택 판정) · **19 PAUSED — 1·2차 끝, GLG가 #27 읽고 방향 판정(#27이 최신 좌표)** · 17(판단 근거·재개는 후일 GLG 재개 요청 대기) — 16은 `v2026.9.30`에 닫힘 — 18 압축 전환 적용 중(다른 기기 제거·첫 빌트인 관측 남음) — 14 herdr 판정 대기 · 15 기억축 월간 판독 대기 · 13 본작업 보류 · 12 GLG 판정 대기 · 3·4 남의 손 대기
 
 # NOW
 
@@ -49,12 +49,12 @@
 - **Pi 압축 전환 — codex native → 빌트인 (좌표 18, 2026-10-01 GLG 결정).** GLG 원문: *"이거 빌트인으로 바꿀꺼야. 단, 지금 entwurf 릴리즈 마치고 나서."* 근거와 고민거리 전문 = llmlog `20261001T075945`.
   - **왜 (측정, oracle, 최근 14일 25회):** `@ogulcancelik/pi-codex-compaction` 압축 시간은 모델 따라 갈렸다. gpt-5.6-terra/5.6-sol/6-sol에서는 31–163초였고, **gpt-6.1-sol(9/30~ 코디네이터)에서는 216–383초**였다. 컨텍스트(약 256K)와 thinking(high)은 같았다. 확장이 대화 전체를 Codex 서버에 보내므로, 그 서버 처리 시간만큼 코디네이터가 멈추고 형제들도 같이 기다린다.
   - **함정:** native 압축 엔트리의 `summary`는 표시 한 줄(`OpenAI Codex native compaction checkpoint (<uuid>).`)뿐이다. 실제 압축 내용은 `details.replacementHistory`에 있고, 확장이 요청마다 다시 끼운다(`index.ts` `before_provider_request`). **확장을 빼고 native 압축 세션을 다시 열면 맥락을 잃는다.** 그래서 전환은 코디네이터가 `/new` 할 때 하고, 옛 native 세션은 이어가지 않는다.
-  - **할 일 (그때, 한 커밋):**
-    - `pi/packages.json`에서 패키지를 뺀다. 기기마다 `pi uninstall npm:@ogulcancelik/pi-codex-compaction`을 실행한다. `run.sh setup`은 제거를 자동으로 하지 않는다.
-    - codex native를 「지원」으로 적은 문서 넷을 고친다: `README.md` § Session Management의 codex 문단, `pi/settings.json` `_no_compaction`, `AGENTS.md` § Session Management, `pi/packages.json` `_purpose`.
-    - 전환 뒤 첫 빌트인 압축 시간을 재서 위 표와 나란히 둔다(압축 엔트리 시각 − 직전 메시지 시각으로 근사).
+  - **2026-10-03 실행 승인:** GLG: *"응 지금 그거 하자 entwurf 0.30.0 퍼블리시 하느라 미뤘던거야. compact도 pi 빌트인에 맡기는게 좋겠어."*
+  - **이 집 변경:** `pi/packages.json` 지원 목록에서 제거, `README.md`·`AGENTS.md`·`pi/settings.json`을 빌트인 기준으로 정정. `test:pi-packages`는 native 확장 부재 + entwurf의 lifecycle observer만 허용하는 경계로 변경(관찰자 소스 읽음: `entwurf/pi-extensions/entwurf-control.ts:1064–1066`, 요약 제공/취소 없음).
+  - **Oracle 영수증 (2026-10-03):** `1790970875467-bg01.log`, exit 0 — `Removed npm:@ogulcancelik/pi-codex-compaction` / `PASS: supported Pi packages load; built-in compaction boundary and recall seam hold` (API/LLM 0). `pi list`에서 native 등록 없음, live `compaction.enabled: true` 유지 확인. JSON 파싱·Python 구문·`git diff --check` 통과.
+  - **Next:** 다른 기기에서도 `pi remove npm:@ogulcancelik/pi-codex-compaction` → 새 Pi 프로세스·새 세션. `run.sh setup`은 제거를 자동으로 하지 않는다. 첫 빌트인 압축 시간·평문 summary를 관측해 위 표와 나란히 둔다. 실 모델 압축은 아직 미측정. GLG가 Oracle의 Pi Codex 세션을 모두 새 세션으로 시작하기로 확인했고, 이 변경의 커밋·푸시를 요청했다(2026-10-03).
   - **기대치:** 빌트인도 기본은 세션 모델과 세션 thinking으로 요약한다(pi 0.99.1 `_runDefaultCompaction`). 압축 전용 모델 설정은 없다. 그러니 **빨라진다는 보장은 없다.** 얻는 것은 평문 요약이다 — 사람이 읽을 수 있고 모델을 바꿔도 이어진다(Armin, earendil.com/posts/compaction-in-pi). 그래도 느리면 `session_before_compact`에 빠른 모델로 요약하는 작은 확장을 만드는 것이 다음 후보다. GLG 판정 뒤에만 한다.
-  - **Do not:** entwurf 릴리즈 전에 제거하지 않는다. 현 코디네이터 세션을 확장 없이 재개하지 않는다.
+  - **Do not:** 기존 native 압축 세션을 확장 없이 재개하거나 `/reload`로 전환하지 않는다. 제거 뒤 새 프로세스·새 세션 + `/recall`로 간다. 압축 전용 모델 확장은 만들지 않는다 — 우선 Pi 빌트인에 맡긴다.
 
 - **Goal 도구 가시성 수선 + Pi 익스텐션 전수조사 (2026-09-29, Opus 보고).** `goal=null`이면 `get_goal`·`update_goal` 비노출, active면 둘 다, paused/blocked/complete 등 비활성이면 읽기 `get_goal`만. `update_goal` 실행도 active에서만 허용해 비활성 목표의 재상태변경·blocked 재호출 consult 에지를 막는다(`pi-extensions/goal.ts`). 영수증: `test:goal` 단위 29/29 + 격리 Pi RPC 13/13(모델 0), `test:decision-gate`·`test:autopilot` green(2026-09-29 Opus 보고). 기존 Pi 프로세스는 새 코드 재적재(`/reload` 또는 새 프로세스) 전까지 옛 도구 목록을 쓴다. 오늘 커밋 요청은 이 goal 수선과 그 검증에 한정한다.
   - **전수 범위:** 이 집 설치 Pi 확장 21개(로컬 TS 19 + npm 2), 다른 소유자 패키지·herdr 실파일 제외. **후속 수선 후보** A: `session-recall-compat.ts:44-50`이 이름만 바꿔 upstream 설명/오류 힌트에 `session_search`가 남음(semantic 검색과 혼동). E: `env-loader.ts:85-90`이 프로젝트 `.env.local`을 프로세스 환경에 주입(위험 가능성, 악용 재현 전). **GLG 정책 판정** B: `heartbeat.ts:327-343`은 트리 이동에 disarm 없음 — 가지 사이 시계를 이어갈지 결정 필요. 그 밖의 낮은 우선순위·관측 공백은 이 대화 Opus 전수조사 원문을 읽고 착수 전 재측정. goal 외 자동 수선·설치 확장 전체 변경은 하지 않는다.

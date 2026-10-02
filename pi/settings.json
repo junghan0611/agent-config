@@ -7,7 +7,7 @@
 
   "_no_packages": "This settings reference still declares NO packages because Pi's installer owns the live packages[] array and entwurf self-registers there. Array merge would create a false second owner. Supported third-party Pi extensions instead live in pi/packages.json; `./run.sh setup:pi-packages` installs a missing package or runs Pi's extension-only update for an installed one. andenken remains a cross-harness semantic-memory skill; its pi-native registerTool is convenience, not the shared door.",
 
-  "_no_compaction": "Do not add a compaction policy key here. Compaction must be allowed to occur on the harness that owns it: Pi runs its normal lifecycle and its supported Codex-native extension retains an opaque same-model checkpoint; entwurf likewise does not manage a suppress/enable policy. `/new` + `/recall` is cross-harness continuity practice, not a configuration lock. See README § Session Management.",
+  "_no_compaction": "Do not add a compaction policy key here. Compaction must be allowed to occur on the harness that owns it: Pi runs its normal lifecycle with built-in text-summary compaction for every provider; entwurf likewise does not manage a suppress/enable policy. Do not reinstall the retired Codex-native checkpoint extension. `/new` + `/recall` is cross-harness continuity practice, not a configuration lock. See README § Session Management.",
 
   "_common": {
     "defaultProvider": "openai-codex",

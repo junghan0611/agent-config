@@ -89,7 +89,7 @@ def compact_handlers(files: list[Path]) -> list[Path]:
     return [path for path in files if BEFORE_COMPACT.search(path.read_text())]
 
 
-def assert_compaction_order(packages: list[object]) -> None:
+def assert_builtin_compaction(packages: list[object]) -> None:
     project_extensions = Path.cwd() / ".pi/extensions"
     local_files = [
         path for root in (project_extensions, GLOBAL_EXTENSIONS) if root.is_dir()
@@ -106,32 +106,26 @@ def assert_compaction_order(packages: list[object]) -> None:
         (index for index, entry in enumerate(packages) if package_source(entry) == COMPACTION_SOURCE),
         None,
     )
-    if compaction_index is None:
-        fail("missing pi-codex-compaction package")
+    if compaction_index is not None:
+        fail("retired pi-codex-compaction package must not override Pi built-in compaction")
     entwurf_index = next(
         (index for index, entry in enumerate(packages) if manifest(entry).get("name") == ENTWURF_PACKAGE),
         None,
     )
     if entwurf_index is None:
         fail("missing Entwurf Pi package")
-    if entwurf_index >= compaction_index:
-        fail(f"Entwurf must precede Codex compaction in tier 3: {entwurf_index} >= {compaction_index}")
-
     handlers_by_package = [compact_handlers(loaded_extension_files(entry)) for entry in packages]
     handler_indices = [index for index, handlers in enumerate(handlers_by_package) if handlers]
-    if handler_indices != [entwurf_index, compaction_index]:
+    if handler_indices != [entwurf_index]:
         rendered = ", ".join(
             f"{index}: {path}" for index, handlers in enumerate(handlers_by_package) for path in handlers
         )
         fail(
-            "session_before_compact must be unique to Entwurf then Codex compaction; found "
+            "session_before_compact must be unique to Entwurf's lifecycle observer; found "
             + (rendered or "none")
         )
-    if len(handlers_by_package[compaction_index]) != 1:
-        fail(
-            "Codex compaction must register exactly one session_before_compact handler: "
-            + ", ".join(map(str, handlers_by_package[compaction_index]))
-        )
+    if len(handlers_by_package[entwurf_index]) != 1:
+        fail("Entwurf must register exactly one compaction lifecycle observer")
 
 
 def main() -> None:
@@ -139,9 +133,10 @@ def main() -> None:
     packages = settings.get("packages", [])
     if not isinstance(packages, list):
         fail("Pi settings packages are not a list")
-    if not has_package(packages, COMPACTION_SOURCE):
-        fail("missing pi-codex-compaction package")
-    assert_compaction_order(packages)
+    supported = json.loads((Path.cwd() / "pi/packages.json").read_text())["packages"]
+    if has_package(supported, COMPACTION_SOURCE):
+        fail("supported manifest must not reinstall retired Codex compaction")
+    assert_builtin_compaction(packages)
 
     recall = next(
         (entry for entry in packages if isinstance(entry, dict)
@@ -218,7 +213,7 @@ def main() -> None:
     if "Failed to load extension" in sandbox.stderr or "Cannot find module" in sandbox.stderr:
         fail(sandbox.stderr)
 
-    print("PASS: supported Pi packages load; compaction ordering and recall seam hold")
+    print("PASS: supported Pi packages load; built-in compaction boundary and recall seam hold")
 
 
 if __name__ == "__main__":
