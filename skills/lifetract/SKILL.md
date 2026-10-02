@@ -223,8 +223,20 @@ lifetract ha state heart_rate                  # 도메인 이름으로 한 sens
 lifetract ha state sleep_duration              # (또는 literal entity_id 도 OK)
 lifetract ha states                            # 등록된 24개 known sensor 일괄 조회
 lifetract ha entities                          # HA 가 노출하는 모든 entity (raw, known 플래그 표시)
-lifetract ha history sleep_duration --days 7   # 7일치 state 변화 (HA recorder)
+lifetract ha entities --domain sensor          # 그 도메인만. 없는 도메인은 에러 (빈 목록으로 속이지 않음)
+lifetract ha history sleep_duration            # 기본 7일 = [내일-7, 내일) KST 자정
+lifetract ha history <entity_id> --from 2026-10-01 --to 2026-10-02
+lifetract ha logbook                           # 같은 창. 인자 없으면 전체, kind 또는 entity_id 로 거른다
+lifetract ha logbook sensor.foo --days 1
 ```
+
+`ha status` 는 서브커맨드가 아니다. 목록은 `ha states`.
+
+창 플래그(`--days` / `--from` / `--to`)는 `ha history` 와 `ha logbook` 만 읽는다.
+다른 ha 서브커맨드에 붙이면 거부된다 (`ha ping --days 1` → `means nothing to "ha ping"`).
+창은 나머지 lifetract 와 같은 계약이다. KST 고정, 반개방 `[from, to)`, 경계는 자정.
+기본 7일은 굴러가는 `now-7d` 가 아니다. kind 는 별칭이고, 지도 밖 entity_id 도 그대로 받는다.
+`--domain` 은 `ha entities` 만. `ha call` / `ha services` 는 없다.
 
 ```json
 // ha state heart_rate
@@ -239,7 +251,7 @@ lifetract ha history sleep_duration --days 7   # 7일치 state 변화 (HA record
 }
 ```
 
-**토큰**: `pass show 2fa/totp/ha/junghanacs` (primary) → env `HA_TOKEN` (fallback) → `~/.lifetract/ha.env`. 토큰값 자체는 절대 commit/push 금지.
+**토큰** (`lifetract/ha.go` `loadHAToken`, env → pass → file): env `HA_TOKEN` → `pass show 2fa/totp/ha/junghanacs` → `~/.lifetract/ha.env`. 게이트웨이 컨테이너는 pass도 `HA_TOKEN`도 없으므로 파일이 실제 경로다. 토큰값 자체는 절대 commit/push/출력 금지.
 
 **도메인 kind**: `sleep_duration`, `steps_daily`, `distance_daily`, `floors_daily`, `heart_rate`, `resting_heart_rate`, `heart_rate_variability`, `weight`, `body_fat`, `height`, `calories_burned`, `active_calories_burned`, `basal_metabolic_rate`, `hydration`, `detected_activity`, `geocoded_location`, `battery`, `sleep_confidence`, `respiratory_rate`, `oxygen_saturation`, `body_temperature`, `blood_glucose`, `systolic_blood_pressure`, `diastolic_blood_pressure` (24종).
 
@@ -248,7 +260,7 @@ lifetract ha history sleep_duration --days 7   # 7일치 state 변화 (HA record
 **`ha history` 동작**: HA recorder 는 *state 변화 시점에만* row 저장. recorder 30일 보관은 "있는 데이터 보존" 이지 "없는 데이터 채워줌" 이 아님. HA 인프라가 띄워진 시점 이전 데이터는 영원히 안 잡힘. 과거는 Samsung CSV export 가 유일한 길. HA history = *내일부터의 적립* 자리.
 
 ```json
-// ha history sleep_duration --days 7
+// ha history sleep_duration --from 2026-10-01 --to 2026-10-02
 {
   "entity_id": "sensor.sm_s942n_s26_glgman_sleep_duration",
   "kind": "sleep_duration",
