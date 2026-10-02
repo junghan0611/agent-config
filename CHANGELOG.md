@@ -7,6 +7,25 @@
 
 ## Unreleased
 
+## v2026.10.2 — pi 1.0과 durable을 우리 바닥의 다음 판으로 재기 시작했다
+
+### harness-bench — `PI.md` 신설 (#27)
+
+* **pi 1.0 + pi-durable을 harness-bench 과제로 세웠다.** entwurf 코디네이터가 GLG 결정을 전달했다 — *"pi-durable 이슈는 리서치 껀. 0.30.0은 ACP 기본기, 고도화는 agent-config 리서치 결과랑 합쳐서 방향을 잡겠다."* Fable이 코디네이터, Opus 형제가 조사, 결과는 `PI.md`와 agent-config#27에 쌓이고 entwurf에는 회신하지 않는다(0.30.0 집중). 다른 대문자 문서와 달리 「다른 하네스」가 아니라 **우리가 서 있는 바닥의 다음 판**을 본다. README harness-bench 표 일곱 번째 행.
+* **1차 — v1.0.0 소스 읽기 (매트릭스 A–G 33행).** upstream `badlogic/pi-mono` `packages/durable` 153파일을 `/tmp/pi-v1` worktree에서 읽었다(원 클론 HEAD v0.99.1 불변, 미설치). 결론 셋: ① coding agent 1.0에는 배경 압축이 없다(`backgroundTokens` 0건) — 좌표 18의 5분 멈춤은 1.0 수용으로 풀리지 않고 레버는 여전히 압축 모델 확장. ② durable의 영속 inbox·`requestId` exactly-once는 pi 1.0 시민에게 닿지 않는다(coding agent는 durable 미의존, 큐는 `pi-agent-core` 메모리) — 경계 후보 「storage 안 = durable, storage 사이 = entwurf」. ③ goal·autopilot·decision-gate가 손으로 지은 이어가기·fork 상태·재시작 시계·결정 memo가 durable에서는 커널 원시(`onYield→continue`, `defineDoc fork`, `sleep(until)`, hook `memo`). 거울이지 포팅 계획이 아니다. Fable이 앵커 12개를 재측정해 전부 일치.
+* **2차 — 자동화 검수 (모델 0, API 0).** 루트 디스크 98%라 `/dev/shm` tmpfs에서 돌렸다. durable vitest 851 pass / 2 fail(`/bin/bash` 하드코딩, NixOS 호스트 가정) · 예제 4개 rc=0(단언 0개). 거처 측정: `defineDoc fork` 3종(`initial`=없음·`current`=부모 현재·`asOf`=fork 시점)이 JSONL·SQLite reopen 뒤 생존하고 S-exp 문자열은 `doc-<id>.jsonl`에 사람이 읽는 그대로 남는다. pi 1.0 격리 설치에서 하우스 테스트 319 ok(0.99.2와 동일), 우리 확장 21개 로드·도구 노출 동일, 로더는 `@mariozechner/*` 별칭 유지 — **1.0 수용의 이 집 쪽 위험은 실행으로도 안 보인다.** codemode store는 호출 사이·재개 뒤 생존, 가지 밖 `null`; `structuredContent`는 세션 JSONL에 0건 — 구조는 1.0에서도 경계에서 텍스트로 눌린다. CHANGELOG 접점 둘: fullscreen 기본, codemode `models.generateImages()`→OpenRouter 길(codemode는 기본 꺼짐). 실 모델이 필요한 것(압축 시간·요약 품질·consult 적합성·GLG 개입 홉)은 「자동화로는 더 못 재는 것」으로 남겼다.
+* **「한 통」 — entwurf#88·prime-agent·durable을 한 지도에.** GLG: *"lisp 연결하는 것 목표에 대해서, 그게 한 통으로 정리돼야 해."* 다섯 자리(표현·거처·계산·전달·사람 admission)로 보면 #88 = 표현+전달, prime-agent = 계산(REPL 언어, R2), durable = 거처(R3 기질 후보). 10-01 llmlog `20261001T070752`의 「durable 관련성은 추측」을 「거처 층에서 읽음, 표현·전달 층 무관」으로 좁혔다. 2차에서 거처 후보가 둘로 늘었다 — 1.0 codemode store(이미 있음) vs durable(타입 문서·fork 정책·원자 commit). 순서는 불변: 비-eval form 한 장 왕복(§8)이 먼저, durable 거처 측정은 그 뒤. `PRIME.md`에 연결 절.
+* **entwurf#88을 닫고 #27을 이 주제의 최신 좌표로 잡았다.** GLG: *"prime agent 보다 pi 버전업과 durable, codemode 등을 따라가야 하는 게 더 급해졌어."* #88의 원문 시간축·Phase A/B/C·선행 계보·댓글 6건은 보존된 기록이다.
+* **발견한 이 집 검증면 결함 1건(미수선, GLG 판정).** load 스모크 2개가 npm 배치에서 pi-ai를 못 찾으면 `{skip}` → rc=0 → `run.sh` `&&` 체인에서 통과로 읽힌다(`pi-extensions/tests/decision-gate.load.test.ts:49-53`).
+
+### 압축 전략 (좌표 18)
+
+* **Pi 압축을 codex native에서 빌트인으로 전환하기로 했다 — entwurf 릴리즈 뒤, 코디네이터 `/new` 때.** gpt-6.1-sol 코디네이터에서 `pi-codex-compaction` 압축이 216–383초(이전 모델 31–163초, 컨텍스트·thinking 동일). native 압축 세션을 확장 없이 재개하면 맥락을 잃으므로 옛 세션은 이어가지 않는다. 빌트인도 세션 모델·thinking으로 요약하므로 빨라진다는 보장은 없고, 확실한 소득은 사람이 읽는 평문 요약이다. llmlog `20261001T075945`.
+
+### Cloudflare
+
+* **wrangler 로그인을 다루고 OAuth의 기기 구분을 없앴다.** (`36085ab`)
+
 ## v2026.9.30 — 침묵은 방아쇠일 뿐이고, Cloudflare는 공식 손에 넘긴다
 
 ### autopilot · goal (pi 익스텐션)

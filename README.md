@@ -345,7 +345,7 @@ What `setup` deliberately does **not** do: install entwurf (that is entwurf's ow
 
 Some questions cannot be answered by reading a project's README. *Does a runtime that generates its own skills from experience beat a human-authored skill set?* You only find out by standing both up on the same machine, giving them the same repeated task, and looking at what each wrote down afterwards.
 
-Six subjects sit on this bench, and they ask different questions:
+Seven subjects sit on this bench, and they ask different questions:
 
 | Subject | Question | Standing |
 |---|---|---|
@@ -355,6 +355,7 @@ Six subjects sit on this bench, and they ask different questions:
 | [Ouroboros](https://github.com/Q00/ouroboros) | Besides entwurf, how does a popular Agent OS carry task-memory across harnesses, and how does it run long? | candidate, **not pinned, not installed** — matrix in [OUROBOROS.md](OUROBOROS.md) |
 | [herdr](https://github.com/herdrdev/herdr) | Besides our tmux/entwurf floor, how does a popular agent-terminal runtime show stuck panes and survive detach? | **installed and running (0.9.1 measured 2026-09-21), not declared in nixos-config; entwurf now ships a Herdr plugin (`Herdr Entwurf` 0.4.0) on the public marketplace** — matrix in [HERDR.md](HERDR.md) |
 | [Xirp](https://backstage.spotify.com/docs/xirp) (Spotify) | When one product owns the whole factory — sessions, worktrees, workflow status, institutional memory — what does it get that a three-part workshop does not? | **cannot be installed: macOS-only** — observation in [XIRP.md](XIRP.md) |
+| [pi 1.0 + pi-durable](https://github.com/earendil-works/pi/tree/main/packages/durable) | Our own floor grew a durable layer — committed inbox, checkpointed tasks, background compaction. Where does it meet our compaction switch, autopilot/goal/decision-gate, the session memory axis, and entwurf's cross-process address? | **read at `v1.0.0` in a `/tmp` worktree, not installed, tests not run**; live pi is 0.99.2 — matrix in [PI.md](PI.md) |
 
 
 This comparison belongs here, not in entwurf. **entwurf guarantees its own garden-id,
