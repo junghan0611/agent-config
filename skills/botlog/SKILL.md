@@ -4,226 +4,116 @@ description: "봇 노트 — 공개 botlog(기본=리포 담당자 문서)와 �
 user_invocable: true
 ---
 
-# botlog / llmlog — Agent Notes
+# botlog / llmlog — API
 
-## Identity
-
-Two modes, different jobs. Do not treat botlog as an infinite dump of agent essays.
-
-| | **botlog** (`~/org/botlog/`) | **llmlog** (`~/org/llmlog/`) |
-|---|---|---|
-| Public | Digital garden | Private |
-| Default role | **담당자 문서** — one living public face per repo/workstream | Temporary work scratch / rare handoff body |
-| Tag | `:botlog:` required | `:llmlog:` required |
-| Growth | Prefer **update existing** over create | Prefer **do not create** |
-| `#+description:` / `#+hugo_lastmod:` | required (hugo SEO) | omit |
-| `[!abstract] 이 노트에 대하여` | required | required if file exists |
-
-Default mode = **botlog as 담당자 문서**.  
-llmlog only when GLG explicitly wants a private work body, or a short-lived scratch that cannot live in repo `NEXT.md` / llmlog heading append.
-
-## botlog center — 담당자 문서
-
-A **담당자 문서** is the public steward note for a repo (or stable workstream). Title usually carries `§<repo>` (or the established project sigil). It answers: what this house owns, what it refuses, where code/docs live, and the current judgment — not a session diary.
-
-Reference shapes (read outline / abstract first; do not full-dump):
-
-- `20260223T040400` — `§memex-kb` 담당자 문서 (current strong pattern)
-- `20260220T201100` — `§garden2wikidocs` 프로젝트 공개 시간축·담당 허브
-
-### What belongs in the 담당자 문서
-
-- Scope and non-scope (맡은 것 / 맡지 않는 것)
-- SSOT paths (`~/repos/gh/<repo>/`, run.sh, skills, AGENTS)
-- Current architecture or operating picture in durable language
-- Boundaries, retirements, and open confirms that still matter next month
-- Outgoing links: 관련메타, 큰그림/실행 계약, **독립 사례 문서는 이웃으로** (do not absorb long journeys)
-- Dated **현재 보고** headings when the steward posture actually changed
-- 히스토리 lines with **model-with-version** on agent passes (same authorship legibility as autholog-mend)
-
-### What does not belong
-
-- Blow-by-blow session logs (use repo `NEXT.md`, agenda stamp, or a short llmlog heading if unavoidable)
-- One-off research essays that are not the repo’s public face (separate botlog only when GLG asks, or when the piece must stay public and is not a steward update)
-- Absorbing every case study into the steward note — keep case docs as neighbors
-- Creating a second 담당자 문서 for the same repo
-
-### Create vs update (botlog)
-
-```bash
-# Search existing steward / project botlog FIRST
-denotecli search "§<repo>" --dirs ~/org/botlog --max 8
-denotecli search "<repo-keyword>" --dirs ~/org/botlog --max 8
-```
-
-| Found | Action |
-|-------|--------|
-| Existing `§repo` 담당자 문서 | **Update** — 히스토리 + 현재 보고 heading + links. Do not create another. |
-| Empty botlog room reserved for this repo | **Reopen that room** (title/tags/body). Prefer empty rooms over new IDs. |
-| Only unrelated botlogs | Create one 담당자 문서 (or ask GLG which empty room). |
-| GLG names an empty room ID | Use that ID. Example pattern: recovered empty botlog rooms after autholog move. |
-
-**Do not grow botlog count by default.** One steward face per repo is enough; depth goes into updates and neighbor case docs.
-
-### 담당자 문서 — standard shape
-
-```org
-#+title:      §<repo>: <one-line steward posture>
-#+date:       [YYYY-MM-DD Day HH:MM]
-#+filetags:   :botlog:<repotag>:...:
-#+hugo_lastmod: [YYYY-MM-DD Day HH:MM]
-#+identifier: YYYYMMDDTHHMMSS
-#+export_file_name: YYYYMMDDTHHMMSS.md
-#+description: <1-2 sentence SEO card — not the same sentences as abstract>
-#+reference:  <optional bib keys>
-
-#+begin_quote
-[!abstract] 이 노트에 대하여
-
-이 노트는 <repo> 담당자가 지금 무엇을 맡고 무엇을 맡지 않는지 기록하는 자리다. ...
-#+end_quote
-
-* 히스토리
-- [YYYY-MM-DD ...] @mitsein/<model-with-version> — ...
-
-* 관련메타
-- [[denote:...][† ...]]
-
-* 관련노트
-** 담당자의 큰그림과 실행 계약
-- =~/repos/gh/<repo>/= — SSOT
-- [[denote:...][...]] — ...
-
-** 독립된 사례 문서 — 합치지 않고 이웃으로 둔다
-- [[denote:...][...]] — why it stays separate
-
-* [YYYY-MM-DD] 담당자의 현재 보고 — <title> :LLMLOG:
-
-durable posture, boundaries, judgment...
-
-** 지금 맡은 것
-** 현재 경계와 남은 확인
-** 담당자의 판단
-```
-
-Not every section is mandatory on day one; the steward posture and “update not multiply” rule are.
-
-When reopening an empty room, keep identifier; rewrite title/tags/abstract/body; leave a 히스토리 line for the prior vacancy/recovery if useful; optional `* 옛 방의 씨앗` / ARCHIVE only when a displaced prior use must stay named.
-
-## llmlog — minimal temporary work body
-
-llmlog is **not** the default continuity surface anymore.
-
-### Prefer instead
-
-1. **Repo `NEXT.md` / `NEXT--<branch>.md`** — disposable handoff, concrete next step (see next-handoff skill)
-2. **Append heading** on an existing llmlog or botlog 담당자 문서 when the workstream already has a home
-3. **Agenda stamp** for “what was done”
-4. **autholog-mend** when the material is GLG raw public voice — not botlog
-
-### Create llmlog only when
-
-- GLG explicitly says `llmlog` / private work note
-- A multi-hop entwurf needs a private append-only body and no NEXT/existing note fits
-- The content must not be garden-public and cannot live in the repo
-
-### llmlog anti-patterns
-
-- New llmlog per session “just in case”
-- Duplicating NEXT into a long llmlog that later needs deletion
-- Using llmlog as a second 담당자 문서
-
-If an llmlog is created, keep it short, append-only by heading, and point back to repo NEXT / 담당자 botlog. Deletion debt is real — do not make files you expect someone to clean up.
-
-## Shared mechanics
-
-### Headers
-
-| Header | botlog | llmlog |
-|---|---|---|
-| `#+title` | ✅ often `§repo: ...` | ✅ |
-| `#+date` | ✅ | ✅ |
-| `#+filetags` | ✅ `:botlog:...:` | ✅ `:llmlog:...:` |
-| `#+identifier` | ✅ | ✅ |
-| `#+export_file_name` | ✅ | ✅ |
-| `#+description` | ✅ required | — |
-| `#+hugo_lastmod` | ✅ required | — |
-| `#+reference` | optional | optional |
-
-### Abstract
-
-Right after headers, before `* 히스토리`:
-
-```org
-#+begin_quote
-[!abstract] 이 노트에 대하여
-
-...
-#+end_quote
-```
-
-botlog: `#+description:` and abstract must be **different sentences** (card meta vs body lead-in).
-
-### Authorship in 히스토리
-
-- GLG: `@junghan`
-- Agent: **model with version** visible (e.g. nearby pattern `@mitsein/sonnet5`, `@mitsein/grok-4.5`). Harness-only (`pi` alone) is not enough.
-- Read live session model (`PI_MODEL` / `PI_AGENT_ID`); never invent.
-
-### Body conventions
-
-- First heading: `* 히스토리` (reverse chronological)
-- Content headings that are agent synthesis: `:LLMLOG:` tag on the heading is fine even inside botlog (garden convention)
-- Org syntax only (no markdown tables)
-- Tags: `[a-z0-9]` only, alphabetically sorted, prefer established magnets (tag-mend if new/suspicious)
-
-### Create file (only after search / empty-room decision)
-
-```bash
-TS=$(TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S')
-# botlog: ~/org/botlog/${TS}--§repo-slug__botlog_tag1_tag2.org
-# llmlog: ~/org/llmlog/${TS}--slug__llmlog_tag1_tag2.org
-```
-
-Prefer Emacs/denote front-matter rename when reopening or retitling an existing ID. Do not raw-`mv` Denote files casually.
-
-### Update existing (emacs skill)
-
-```bash
-ec '(agent-denote-add-history "ID" "@mitsein/<model> — what changed")'
-ec '(agent-denote-add-heading "ID" "[YYYY-MM-DD] 담당자의 현재 보고 — ..." "LLMLOG" "body")'
-ec '(agent-denote-add-link "ID" "TARGET-ID" "link description")'
-```
-
-### Stamp agenda
-
-```bash
-{skillsDir}/agenda/scripts/agenda-stamp.sh "botlog: §repo steward update — ..." "botlog:tag"
-```
-
-If the script fails after reasonable retries, **STOP and report** — do not substitute Write/Edit/heredoc on `~/org/botlog/agenda/`. See `agenda` skill → Single Writer Rule.
-
-### dblock
-
-Same garden rule: no dblock refresh/eval so magnets “catch up” while writing. GLG export scripts refresh. Regexp **definition** fixes only when broken.
+| Operation / signature | Command / example |
+|---|---|
+| Steward search | `denotecli search "§<repo>" --dirs ~/org/botlog --max 8` |
+| Keyword search | `denotecli search "<repo-keyword>" --dirs ~/org/botlog --max 8` |
+| `agent-denote-add-history(ID, "@mitsein/<model> — what changed")` | `ec '(agent-denote-add-history "ID" "@mitsein/<model> — what changed")'` |
+| `agent-denote-add-heading(ID, TITLE, TAG, BODY)` | `ec '(agent-denote-add-heading "ID" "[YYYY-MM-DD] 담당자의 현재 보고 — ..." "LLMLOG" "body")'` |
+| `agent-denote-add-link(ID, TARGET-ID, DESC)` | `ec '(agent-denote-add-link "ID" "TARGET-ID" "link description")'` |
+| New ID (Creation gate below) | `TS=$(TZ='Asia/Seoul' date '+%Y%m%dT%H%M%S')` |
+| New filename | botlog: `~/org/botlog/${TS}--§repo-slug__botlog_tag1_tag2.org`; llmlog: `~/org/llmlog/${TS}--slug__llmlog_tag1_tag2.org` |
+| Agenda stamp (`agenda` skill) | `{skillsDir}/agenda/scripts/agenda-stamp.sh "botlog: §repo steward update — ..." "botlog:tag"` |
+| ⚠ Stamp failure after reasonable retries | **STOP & report**; never substitute Write/Edit/heredoc on `~/org/botlog/agenda/` (Single Writer Rule) |
+| History author | GLG: `@junghan`; agent: `@mitsein/<model>` with **model-with-version** (e.g. `sonnet5`, `grok-4.5`) |
+| Model source | Read live `PI_MODEL` / `PI_AGENT_ID`; **never invent**; harness-only `pi` is insufficient |
 
 ## Decision cheat-sheet
 
 | GLG intent | Surface |
-|------------|---------|
-| Repo steward public face / progress posture | **botlog 담당자 문서** (update or one empty room) |
-| Long case journey under a repo | Neighbor botlog/case note — link from 담당자, don’t merge |
-| Next session handoff | Repo **NEXT.md** |
-| Private scratch GLG asked for | **llmlog** (minimal) or append existing |
+|---|---|
+| Repo public face / progress posture | **botlog 담당자 문서** (default); Creation gate below |
+| Long case journey | Neighbor botlog/case note; link from steward, do not merge |
+| Next-session handoff | Repo **NEXT.md** / `NEXT--<branch>.md` (next-handoff skill) |
+| What was done | Agenda stamp |
+| Session diary / operational detail | Repo NEXT or short existing llmlog heading |
+| Requested private scratch | **llmlog**; see llmlog creation |
 | GLG raw public voice | **autholog-mend**, not botlog |
 | Tag/filename magnet hygiene | **tag-mend** |
 
-## New repo steward (e.g. zotero-config)
+## Creation gate — search FIRST
 
-When GLG asks a repo 담당자 to write “one botlog”:
+Run both API searches before creating a note.
+**Do not grow botlog count by default.** One steward per repo/stable workstream.
 
-1. Search `botlog` for `§<repo>` / repo keywords — update if a steward face already exists
-2. Prefer a **빈 botlog 방** GLG designates (rooms emptied after autholog recovery, etc.). Do not mint a new identifier when an empty room is offered
-3. Write **one** 담당자 문서: scope, non-scope, SSOT path, current judgment, neighbor links
-4. Later progress = 히스토리 + 현재 보고 update — not a new botlog each time GLG says “갱신”
-5. Session ops / handoff stay in that repo’s `NEXT.md`, not a fresh llmlog
+| Found | Action |
+|---|---|
+| Existing `§repo` steward | Update: 히스토리 + links; dated current report when posture changes |
+| Empty room reserved for repo | Reopen; prefer empty rooms over new IDs |
+| GLG names/offers an empty room ID | Use that ID, never mint another |
+| Only unrelated botlogs | Create one steward or ask GLG which empty room |
+| Public essay, not a steward update | Separate botlog only if GLG asks or the piece must stay public |
+
+## Identity / publication
+
+| | botlog (`~/org/botlog/`) | llmlog (`~/org/llmlog/`) |
+|---|---|---|
+| Role | Public garden steward | Private temporary work body or **고민 좌표**; both first-class |
+| Recall | **Never. Published to a URL = already out in the world** (also meta · bib · notes) | Deletable / `deprecated/` — never published |
+| Filetag | `:botlog:` required | `:llmlog:` required |
+| `#+description:` / `#+hugo_lastmod:` | Required | Omit |
+| Abstract | Required | Required if file exists |
+
+**The folder is a consequence of publication, not of note type.**
+
+## Steward shape
+
+Read outline/abstract, then needed sections; references supply shape, not policy overrides.
+
+| Part | Content / action |
+|---|---|
+| Strong reference | `denotecli read 20260223T040400 --outline` — §memex-kb |
+| Alternate reference | `20260220T201100` — §garden2wikidocs public timeline/hub |
+| Title | `§<repo>` or established project sigil |
+| Scope | Ownership and non-scope |
+| SSOT | `~/repos/gh/<repo>/`, run.sh, skills, AGENTS |
+| Operating picture | Durable architecture, boundaries, retirements, open confirms that matter next month |
+| Judgment | Current steward judgment |
+| Outgoing links | Related meta; big-picture/execution contracts; cases follow Decision cheat-sheet |
+| Day-one structure | Reference sections are optional; steward posture is not |
+| Reopen | Keep identifier; rewrite title/tags/abstract/body |
+| Retitle | Emacs/denote front-matter rename, **not raw `mv`** |
+| Prior use | Optional vacancy/recovery 히스토리; `* 옛 방의 씨앗` / ARCHIVE only if displaced use must stay named |
+
+## llmlog creation — not default continuity
+
+| Rule / eligible case | Action / condition |
+|---|---|
+| Default | Prefer not to create: use/append existing NEXT/note, not per-session “just in case” files, NEXT duplicates, or second stewards |
+| GLG request | Explicit llmlog / private work note |
+| Cross-repo concern | Several repos/issues; no single repo NEXT/steward can hold it |
+| Multi-hop entwurf | Private append-only body needed; no NEXT/existing note fits |
+| Private content | Must stay private and cannot live in repo; no existing note fits |
+| Body | Short, append-only by heading; link back to repo NEXT/steward; avoid deletion debt |
+
+Issue text rots as code moves; the 고민 does not.
+The concern note prevents each repo's steward from re-interpreting it their own way,
+and lets a new session handed only an issue find the concern above it.
+An issue comment would trap that cross-repo concern inside one issue.
+
+### Issue linkage — note holds concern; children hold work (1:N, cross-repo)
+
+| Rule | Action |
+|---|---|
+| Child issues | In note: `[[https://github.com/<owner>/<repo>/issues/N][<repo>#N]]` + one line naming each issue's role |
+| Back-reference | Issue body: ``llmlog `<denote-id>` — <title>``; ID + title, **not URL** (private) |
+| Status | GitHub is SSOT; never copy open/closed into note |
+| Format | Plain links (25 notes already do), **no new org keyword/property**. `:ISSUE:` tried once in `20260513T133346`, now `deprecated/`, not adopted |
+| Lifetime | All children closed: **necessary, not sufficient**; new issues may attach. Tool may report open-child count; **human decides retirement**; eligibility follows Identity / publication |
+| Board | **sorge** owns cross-repo visibility to other stewards |
+| Reference | `20260408T120252`: `담당자: <repo> · <date> · 근거는 [[…][<repo>#N]]` |
+
+## Shared mechanics — Emacs skill for writes
+
+| Contract | Rule |
+|---|---|
+| Headers | Both required: `#+title`, `#+date`, `#+filetags`, `#+identifier`, `#+export_file_name` (`ID.md`); optional `#+reference` bib keys. Differences: Identity / publication |
+| Abstract shape | After headers, before `* 히스토리`: `#+begin_quote` → `[!abstract] 이 노트에 대하여` → blank line + body → `#+end_quote` |
+| SEO vs lead-in | Botlog description: 1–2 SEO sentences; abstract: body lead-in with **different sentences** |
+| Syntax | Org only, no Markdown tables |
+| History | First heading `* 히스토리`; reverse chronological |
+| Synthesis | Agent headings may use `:LLMLOG:` even in botlog |
+| Tags | `[a-z0-9]` only, alphabetically sorted; established magnets first; new/suspicious → Decision cheat-sheet |
+| dblock | GLG export scripts refresh/eval; not writing-time magnet catch-up. Fix regexp **definitions** only when broken |
