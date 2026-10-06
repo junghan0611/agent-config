@@ -142,7 +142,7 @@ verb 열의 뜻:
 | `fresh (<사유> → resume 불가)` | dormant pi인데 precheck가 막혔다. **사유는 뭉뚱그리지 않는다** |
 | `fresh (same-id resume 없음)` | claude-code 등 — `target-not-pi` |
 
-precheck 사유는 다섯이고 각각 다른 사실이다.
+precheck 사유는 여섯이고 각각 다른 사실이다.
 
 | 사유 | 뜻 |
 |---|---|
@@ -151,6 +151,7 @@ precheck 사유는 다섯이고 각각 다른 사실이다.
 | `transcript-missing` | recorded transcript가 디스크에 없다 |
 | `foreign-transcript` | transcript가 스스로 말하는 native id가 record와 **다르다** |
 | `identity-unverified` | id를 **확인하지 못했다** — 문법 미지원 backend(antigravity/codex)이거나 tail에서 id를 못 찾았다 |
+| `durable-native-store` | `pi-durable` — transcript가 **없는 레일**이다. 대화는 native SQLite(`session.sqlite`)에 있고 이 스킬은 열지 않는다. 경로만 계산해 보여준다 |
 
 이것은 entwurf `resume-launch-identity.ts:100-143`이 던지는 조건을 **미리 읽은 것**이다.
 `ok`는 성공 보장이 아니라 **거짓일 때 resume을 권하지 않기 위한 필터**다. 통과한 뒤에도
@@ -265,7 +266,19 @@ python3 {baseDir}/scripts/entwurf-peek.py map -p agent-config -a --since 7200
   `awaiting assistant reply`, assistant text면 `waiting for user`. transcript는 끝 256KB만
   읽는다. provider별 JSONL shape가 다르면 정확도가 떨어진다.
 - **age는 transcript mtime**: 프로세스 생존이 아니다. record만 있고 transcript가 없으면
-  `—`로 비운다 — 그럴듯한 값으로 채우지 않는다.
+  `—`로 비운다 — 그럴듯한 값으로 채우지 않는다. `pi-durable`만 예외로 **native
+  `session.sqlite`의 mtime**을 쓴다. 그 레일은 transcript가 설계상 없으므로(record의
+  `transcriptPath`가 명시적 `null`), mtime을 비우면 **한 달째 일하는 시민이 기본 뷰의
+  나이 필터에서 탈락한다.** 파일 stat 하나이고 DB를 열지 않는다.
+- **`situation`은 durable을 보고 `map`은 못 본다**: `situation`은 record를 돌지만
+  (`certify_records`) `map`/`trace`는 JSONL 파일 발견으로 돈다(`find_session_files`). durable은
+  JSONL이 없으므로 `map`에서 **구조적으로 안 보인다** — 크래시가 아니라 누락이다. `map`의 침묵을
+  「durable 형제 없음」으로 읽지 마라. 그 질문은 `situation`에 한다.
+- **`pi-durable`은 생명주기가 다르다**: 한 garden id가 달 단위로 같은 대화를 쥘 수
+  있다. 그래서 이 스킬에서 durable 행의 `no transcript`를 「첫 turn 전」으로 적는 것은
+  단순 오표기가 아니라 **가장 오래 산 시민을 가장 어린 시민으로 보고하는 일**이다.
+  본문을 읽는 손은 아직 없다 — live durable DB를 RO로라도 여는 것은 andenken#15 Q6가
+  승인하지 않았고, main만 cp하면 전손이라는 측정이 거기 있다.
 - **model은 transcript 우선**: record의 `model`은 덮어써질 수 있고 resume은 transcript에
   박힌 identity를 따른다. record에서 온 값은 `*`로 표시한다.
 - **record store는 남의 authority**: 읽기만 한다. 쓰지 않고, 지우지 않고, peers와

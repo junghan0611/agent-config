@@ -19,6 +19,7 @@ transcriptPath)뿐이며 이 스크립트는 그 store를 읽기 전용으로 �
 
 import argparse
 import errno
+import hashlib
 import json
 import os
 import re
@@ -1094,7 +1095,13 @@ RESUMABLE_BACKENDS = {"pi"}
 
 LIVE_RECORD_SCHEMA = 3
 # `meta-session.ts` META_CITIZEN_BACKENDS — 이 enum 밖의 backend는 v3 record가 아니다.
-META_CITIZEN_BACKENDS = ("claude-code", "antigravity", "codex", "copilot", "omp", "pi")
+# `pi-durable`은 2026-10-06 entwurf `feat/durable-native-support`에서 추가됐다
+# (read at `pi-extensions/lib/meta-session.ts:324-332`, oracle). 미러가 뒤처지면
+# durable 시민의 record가 **전부 schema-invalid로 버려져** situation에서 사라진다 —
+# "아직 안 태어났다"로 보이는 것이 가장 나쁜 실패다. 월 단위로 사는 레일이니까.
+META_CITIZEN_BACKENDS = (
+    "claude-code", "antigravity", "codex", "copilot", "omp", "pi-durable", "pi",
+)
 # `meta-session.ts:347-357` — strict keyset. 여분 key는 coerce하지 않고 record를 버린다.
 META_IDENTITY_KEYS = frozenset({
     "schemaVersion", "gardenId", "backend", "nativeSessionId", "cwd",
@@ -1397,6 +1404,29 @@ def transcript_owner(path: Path, rec: dict) -> str:
     return "match" if owner == rec.get("nativeSessionId") else "mismatch"
 
 
+DURABLE_BACKEND = "pi-durable"
+# `~/.pi/agent/experimental/durable-sessions/<sha256(realpath cwd)[:24]>/<nativeSessionId>/`
+# read at pi `cd32f77` `coding-agent/src/experimental/durable/sessions.ts:19-55`;
+# bucket 도출은 이 기기에서 재현 확인했다 (realpath ~/repos/gh/entwurf →
+# f42d1f975f08a6e05e922e1f, 2026-10-06 thinkpad).
+DURABLE_SESSIONS_ROOT = Path.home() / ".pi/agent/experimental/durable-sessions"
+
+
+def durable_store_path(rec: dict) -> Path | None:
+    """record만으로 durable 대화의 저장 파일 경로를 계산한다. 열지는 않는다.
+
+    경로 계산은 API 0이고 DB 접촉이 0이다. **여는 것은 다른 일이다** — live durable DB를
+    읽기 전용으로라도 여는 것은 andenken#15 Q6가 아직 승인하지 않았고, main만 cp하면
+    전손이라는 측정도 거기 있다. 그래서 이 스킬은 "어디를 보면 되는지"까지만 말한다.
+    """
+    cwd = rec.get("cwd")
+    sid = rec.get("nativeSessionId")
+    if not isinstance(cwd, str) or not cwd or not isinstance(sid, str) or not sid:
+        return None
+    bucket = hashlib.sha256(os.path.realpath(cwd).encode()).hexdigest()[:24]
+    return DURABLE_SESSIONS_ROOT / bucket / sid / "session.sqlite"
+
+
 def record_activity(rec: dict) -> dict:
     """record → transcript 기반 활동 추정. transcript가 없으면 정직하게 비운다.
 
@@ -1412,6 +1442,23 @@ def record_activity(rec: dict) -> dict:
     보고하는 일이다.
     """
     blank = {"path": None, "mtime": None, "status": None, "model": None}
+    if rec.get("backend") == DURABLE_BACKEND:
+        # durable은 transcript가 **없는 레일**이다. entwurf가 record에 transcriptPath를
+        # 명시적으로 null로 적는다(read at `meta-bridge-pi-durable.ts:864`). 그래서 이
+        # 행을 일반 "no transcript (첫 turn 전)"으로 적으면 한 달째 일하고 있는 시민이
+        # 아직 안 태어난 것으로 보고된다. 경로만 계산해 보여주고 본문은 읽지 않는다.
+        store = durable_store_path(rec)
+        mtime = None
+        if store is not None and store.is_file():
+            mtime = store.stat().st_mtime
+        return {
+            **blank,
+            "path": store,
+            "mtime": mtime,
+            "status": classify_activity(mtime) if mtime else None,
+            "state": "durable native store (SQLite) — 본문 미독",
+            "precheck": "durable-native-store",
+        }
     tpath = rec.get("transcriptPath")
     if not tpath:
         return {**blank, "state": "no transcript (첫 turn 전)", "precheck": "no-transcript"}
@@ -1457,6 +1504,9 @@ PRECHECK_BLOCKED = {
     "transcript-missing": "recorded transcript가 디스크에 없다",
     "foreign-transcript": "transcript header가 다른 세션의 것이다",
     "identity-unverified": "transcript identity를 확인하지 못했다",
+    "durable-native-store": (
+        "transcript가 없는 레일이다 — 대화는 native SQLite에 있고 이 스킬은 열지 않는다"
+    ),
 }
 
 

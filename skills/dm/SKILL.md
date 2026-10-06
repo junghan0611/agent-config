@@ -35,8 +35,10 @@ GLG는 동시에 여러 기기·여러 리포·여러 하네스의 형제들을 
 | 하네스/모델 | **직접 적어야 한다** (`--as`) | 없음 — 비우면 실패한다 |
 
 `--as`에 적을 값은 자기 정체다: `claudecode/opus` · `pi/gpt-5.6-terra` ·
-`codex/gpt-5.6` · `openclaw/bbot` · `antigravity/gemini-3.7`. 하네스를 빼고 모델만
-적지 마라 — GLG가 구분하는 축은 모델이 아니라 **어느 창에서 도는가**다.
+`codex/gpt-5.6` · `openclaw/bbot` · `antigravity/gemini-3.7` ·
+`pi-durable/<model>`. 하네스를 빼고 모델만 적지 마라 — GLG가 구분하는 축은 모델이
+아니라 **어느 창에서 도는가**다. `pi-durable`은 `pi`와 다른 창이다(달 단위 상주,
+별도 하네스) — `pi/`로 적으면 GLG가 어느 형제가 말한 건지 못 가린다.
 
 ## API
 

@@ -35,6 +35,13 @@ It is a read-only projection: `record` is fact, transcript last-event is an esti
 `➖ unprobed` means *this surface cannot tell*, not "dead". Never quote it as a dispatch or
 placement authority.
 
+A `pi-durable` row reads differently from every other row: that garden id can hold **one
+conversation for a month**, so its `durable native store (SQLite)` state is not "nothing
+happened yet" — it means the conversation lives outside the transcript axis and this surface
+does not open it. Do not pair such a row with `session-recap`; there is no recap axis for that
+rail yet (gated on [andenken#15](https://github.com/junghan0611/andenken/issues/15)). Treat its
+age as the store's mtime, and ask the citizen itself rather than inferring from silence.
+
 ### 2. Both harnesses' session spine
 
 The operator moves between pi and Claude Code and entwurf opens siblings on both, so a

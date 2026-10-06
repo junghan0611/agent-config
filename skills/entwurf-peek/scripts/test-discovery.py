@@ -389,6 +389,44 @@ def main():
         check("mismatch prints identity, not body",
               ("native id와 다르다" in mism.stdout, "💬" in mism.stdout), (True, False))
 
+        # ── pi-durable: transcript 없는 레일을 "첫 turn 전"으로 둔갑시키지 않는다 ──
+        # 월 단위로 사는 시민이 가장 어린 시민으로 보고되는 실패를 고정한다.
+        drec = {
+            "schemaVersion": 3,
+            "gardenId": "20261006T080634-a269da",
+            "backend": "pi-durable",
+            "nativeSessionId": "1791241594264-745a3c3d-e467-4eff-8dc7-45635d306324",
+            "cwd": "/home/junghan/repos/gh/entwurf",
+            "model": None,
+            "transcriptPath": None,
+            "createdAt": "2026-10-06T08:06:34.000Z",
+            "recordUpdatedAt": "2026-10-06T08:06:34.000Z",
+        }
+        parsed, perr = ep.parse_record_v3(json.dumps(drec))
+        check("pi-durable record certifies (entwurf enum mirror)",
+              (parsed is not None, perr), (True, None))
+        check("unknown backend still refused",
+              ep.parse_record_v3(json.dumps({**drec, "backend": "pi-eternal"}))[0], None)
+
+        dact = ep.record_activity(drec)
+        check("durable state is named, not '첫 turn 전'",
+              ("durable native store" in dact["state"], "첫 turn" in dact["state"]),
+              (True, False))
+        check("durable precheck is its own reason",
+              dact["precheck"], "durable-native-store")
+        check("durable reason is spelled out",
+              "durable-native-store" in ep.PRECHECK_BLOCKED, True)
+        check("durable store path = bucket(sha256 realpath cwd)[:24]/nativeSessionId",
+              str(ep.durable_store_path(drec)).endswith(
+                  "durable-sessions/f42d1f975f08a6e05e922e1f/"
+                  "1791241594264-745a3c3d-e467-4eff-8dc7-45635d306324/session.sqlite"), True)
+        check("durable path deriver needs both cwd and nativeSessionId",
+              ep.durable_store_path({**drec, "cwd": ""}), None)
+        check("pi with no transcript keeps the old reason",
+              ep.record_activity({**drec, "backend": "pi"})["precheck"], "no-transcript")
+        check("durable is not resumable under the same id",
+              ep.verbs_for("unprobed", "pi-durable", "durable-native-store"), "send?")
+
         print(f"[test-discovery] {_n} checks, {_fail} failed")
         return 1 if _fail else 0
     finally:
