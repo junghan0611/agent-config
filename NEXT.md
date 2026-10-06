@@ -20,15 +20,23 @@
 
 - [ ] **20. 기억축 정화 — 「GLG와 대화한 턴」만 남긴다 (andenken 조율)** ← CURRENT: **GLG가 직접 판정했다 (2026-10-02)** — C(하네스 주입)·B′(에이전트↔에이전트) **둘 다 drop**, **전체 재임베딩은 하지 않는다**. 실행은 andenken 담당자(garden `20261002T173340-f03de1`)가 자기 집 `NEXT.md` RAIL 5 「세션 축 입장 경계」를 CURRENT로 잡아 가져갔다 — 순서: 규칙 코드화 → API 0 dry-run → 백업·delete·verify·publish → acceptance. **이 집은 조율만 하고 dry-run을 따로 요청하지 않는다.** **GLG 북극성: *"목표는 나랑 대화한 턴이야. 그래야 decision-gate가 동작이 가능하게 기억이 생기거든."*** 좌표 15(월간 판독)와 짝 — 15는 관측, 20은 정리. 아래 NOW 참조.
 - [ ] **21. `skill-audit` — 자기 수선 검수 스킬 (설계 재검토 후 착수)** ← PAUSED: grok 검토 끝, **다시 검토해서 다음에** (GLG 지시 2026-10-02). 자리 확정: `.claude/skills/skill-audit/SKILL.md` — **프로젝트 로컬, 범용 아님**, `agent-config` 담당자 스킬과 **따로**(GLG: *"agent-config 스킬이 자체가 자기수선이니까 따로 나눠야돼"*). 같은 좌표에 `skills/botlog/SKILL.md` 증류본(119줄/7,446B) **미커밋 채택 판정**이 함께 걸려 있다. 아래 NOW 참조.
+- [ ] **22. pi-durable을 andenken 세 번째 세션 source로 — [andenken#15](https://github.com/junghan0611/andenken/issues/15) 관리** ← PAUSED: **GLG가 durable을 직접 써 본 뒤 Q1–Q7 판정** (2026-10-06). GLG: *"아직 나도 durable 을 완벽하게 파악하고 사용하는게 아니라. 먼저 만들기가 조심스럽다."* 계약 초안·측정·증거는 andenken `40c20e5` `probes/pi-durable/`에 있다. **이 집 코드 변경 0** — 소비면은 andenken 착지 뒤 함께 움직인다. 좌표 19(durable 탐구)의 기억축 갈래, 좌표 20(andenken RAIL 5)와 수신자 규칙을 공유(Q5). 아래 NOW 참조.
 
 > 닫힌 좌표 1·2·5·6·7·8·9·11·16은 `CHANGELOG.md`로 넘어갔다 (`v2026.9.2` · `v2026.9.4` ·
 > `v2026.9.4-wiring.1` · `v2026.9.9` · **8·11은 `v2026.9.21`에 늦게 갈무리** · 16은 `v2026.9.30`). 번호는
 > 재사용하지 않는다 — 지난 핸드오프가 부른 이름이 계속 그 자리를 가리켜야 한다. 좌표 10이
 > 가리키는 11의 내용은 이제 `v2026.9.21` 절에 있다.
 
-현재 좌표: **20 CURRENT — 기억축 정화, andenken과 조율 중** · 21 PAUSED(`skill-audit` 재검토 + botlog 증류본 채택 판정) · **19 PAUSED — 1·2차 끝, GLG가 #27 읽고 방향 판정(#27이 최신 좌표)** · 17(판단 근거·재개는 후일 GLG 재개 요청 대기) — 16은 `v2026.9.30`에 닫힘 — 18 압축 전환 적용 중(다른 기기 제거·첫 빌트인 관측 남음) — 14 herdr 판정 대기 · 15 기억축 월간 판독 대기 · 13 본작업 보류 · 12 GLG 판정 대기 · 3·4 남의 손 대기
+현재 좌표: **20 CURRENT — 기억축 정화, andenken과 조율 중** · **22 PAUSED — pi-durable source, andenken#15에서 GLG Q1–Q7 판정 대기(노트북에서 두 리포 pull 후 재검수)** · 21 PAUSED(`skill-audit` 재검토 + botlog 증류본 채택 판정) · **19 PAUSED — 1·2차 끝, GLG가 #27 읽고 방향 판정(#27이 최신 좌표)** · 17(판단 근거·재개는 후일 GLG 재개 요청 대기) — 16은 `v2026.9.30`에 닫힘 — 18 압축 전환 적용 중(다른 기기 제거·첫 빌트인 관측 남음) — 14 herdr 판정 대기 · 15 기억축 월간 판독 대기 · 13 본작업 보류 · 12 GLG 판정 대기 · 3·4 남의 손 대기
 
 # NOW
+
+- **pi-durable 세션 source — 좌표 22, [andenken#15](https://github.com/junghan0611/andenken/issues/15) (2026-10-06, oracle).** 발단: entwurf 레인(gpt-6.1-sol, garden `20261003T164401-a30dda`)이 GLG 요청으로 durable 세션/기록면 조사를 이 집에 넘겼다(브리핑 oracle-local `~/tmp/entwurf-pi102-durable/new-lane/agent-config-durable-session-memory-brief.md`, sha `5052bbd4…`). GLG 결정: *"나는 pi-durable을 따로 소스로 만들고 싶어 … 누군가는 연속성 있게 기억할 녀석인거야 … 한녀석만 믿을수 없잖아. 다 세션을 기억되고 임베딩되고 저장관리할거야 … 내 대화 워딩도 거기 주로 있게될거야."* 배치(GLG): 코어 durable = oracle 상주·항상 live, 핵심 리포마다 하나. 노트북은 릴리즈 후 설치, 전원이 꺼지는 기기. 방향 경계 = entwurf#130 GLG 댓글 *"pi-durable에게 뭔가 더 해주면 안돼 … durable이 해야 할것은 기억축의 연장이야."*
+  - **한 일:** native 소스(pi `cd32f772`+overlay) 직접 재확인 → andenken 담당자(Opus, garden `20261006T102129-a7ad17`, 레인 정지)를 fresh로 불러 계약 초안·API 0 측정·개정 diff를 받음 → andenken#15 등록(parked, ball:glg) → GLG가 andenken 세션에서 증거 커밋·푸시 요청 → andenken `40c20e5` `probes/pi-durable/`(REPORT·미적용 docs diff·`extract-durable.py`·합성 9시나리오 DB·생성기·README 재검수 순서). #15 본문 산출물 표를 그 위치로 정정함.
+  - **핵심 사실 (근거는 #15):** 경로 `~/.pi/agent/experimental/durable-sessions/<sha256(cwd)[:24]>/<ms>-<UUIDv4>/session.sqlite` · entries INSERT-only + 전역 단조 id → watermark · fork는 물리 복사 아님 · `pi.compaction`이 role=user라 **kind로 분류** · live DB는 main만 cp하면 전손, `VACUUM INTO`가 정답 · GLG 발화 판별 = NULL `request_id` 소거법(Q4 위험) · 현행 andenken 9곳이 깨짐(`dedupeByBasename` 붕괴가 최악).
+  - **노트북에서 첫 1보:** agent-config·andenken 둘 다 `git pull` → andenken `probes/pi-durable/README.md` 순서로 재검수 → #15 Q1–Q7 판정. 판정이 나오면 andenken 담당자가 구현, 이 집은 소비면을 따라 움직인다.
+  - **이 집 몫 (andenken 착지 뒤, 지금은 0):** `semantic-memory` `--source pi-durable` · `session-recap` reader + `_is_native_pi_session_file` 거울 · `entwurf-peek` 「지금 무엇을 하는 중인가」(durable 형제는 현재 `transcript absent`) · `memory-sync` 문서 · `AGENTS.md` § semantic-memory multi-source 줄.
+  - **Do not:** live 코디네이터 DB 접속(RO 포함 — Q6 승인 전) · durable 팀(entwurf #129/0.31.0)에 연락·작업 전달 · durable에 기능 추가 · Pi JSONL로 위장 export · 유료 임베딩·`sessions.lance` 변경.
 
 - **pi 1.0 + pi-durable 집중 탐구 — 좌표 19 (2026-10-02, GLG 지시).** 발단: entwurf 코디네이터(gpt-6.1-sol, 세션 `20261002T100622-43047f`)가 10:15 KST 메일로 GLG 결정을 전달했다 — *"pi-durable 이슈는 리서치 껀이야. 그쪽으로 전달해. … 0.30.0은 acp까지 커버하는 기본기, 고도화는 agent-config 리서치 결과랑 합쳐서 내가 방향을 더 잡아볼게."* GLG가 이 세션에서 확정: Fable이 코디네이터, Opus 형제가 조사, `PI.md`를 harness-bench 과제로 세운다. **entwurf 0.30.0에는 섞지 않는다.** 결과를 바탕으로 GLG가 entwurf의 다음 방향을 역으로 잡는다. GLG 원문: *"pi-durable의 주제는 내가 여기 리포에서 autopilot decision-gate와도 다 연결될것같거든."*
   - **측정(2026-10-02 oracle):** `~/repos/3rd/pi/pi-mono` 워크트리는 v0.99.1, origin fetch 뒤 태그 `v1.0.0` 존재, `packages/durable` 153파일(README·CHANGELOG·docs·src·test·vitest.benchmark.config.ts). 설치 pi는 0.99.2. 이 집에 `PI.md` 없었음.
