@@ -89,6 +89,7 @@ The result: context survives across sessions, across harnesses, across models. O
 | **Copilot CLI** | skill surface only from this repo | full skill set | `~/.copilot/skills` → `skills/` (directory symlink). `settings.json` / birth plugin / statusLine are entwurf-owned (`install-copilot-bridge`, `install-copilot-statusline`). No MCP doorbell on this rail yet |
 | **Kiro CLI** (optional) | skill surface only from this repo | full skill set when installed | `~/.kiro/skills` → `skills/` when `kiro-cli` is on `PATH`. Kiro is intentionally not an entwurf citizen; its settings, agents, and sessions remain Kiro-owned. |
 | **OMP** (`omp`, oh-my-pi) | custom task-agent catalog from this repo; bridge configuration from entwurf | **deliberately no shared skills** | GLG's **working submarine**: one visible OMP parent calls its in-process agents for the work it receives. `omp/agents/*.md` is linked by `./run.sh setup:links` into `~/.omp/agent/agents/`; profiles bind only a name to a model and “Assist the GLG-requested sibling.” Its built-in automatic roles (`reviewer`, `scout`, `security-reviewer`, `sonic`, `task`) are disabled; a new harness gets the same default. Entwurf owns `install-omp-bridge` / `install-omp-receive` / `install-omp-config`; `~/.omp/skills` remains absent. |
+| **pi-durable** (separate native harness) | its own SQLite conversation store; **not** on the session memory axis yet ([andenken#15](https://github.com/junghan0611/andenken/issues/15) parked) | **full skill set, with no new link** — the durable app calls the same `loadSkills({cwd, agentDir, skillPaths, includeDefaults:true})` pi does (read at `experimental/durable/prompt.ts:34` @v1.0.4), so `~/.pi/agent/skills` reaches it | Admitted by entwurf, not by this repo: supply is a pinned source checkout plus overlay (upgrading pi installs nothing), and **pi extensions do not load there** (app README:66 — *"Not here: … extensions"*), so `semantic-memory` SKILL.md is the door while `session_search` / `knowledge_search` registerTool is absent. Matrix in [PI-DURABLE.md](PI-DURABLE.md) |
 | **OpenClaw** (4 bots) | andenken skill (same SSOT via symlink) | full skill set | settings / Nix store mount |
 
 **OpenCode is not used.** It once appeared in this table and in the fan-out list, but `run.sh` never wires it — there is no `~/.config/opencode/skills` link and no OpenCode branch anywhere in setup. The rows have been removed rather than left as an aspiration; a harness this repo does not actually reach should not be advertised as supported.
@@ -206,6 +207,16 @@ This repo is the **official consumer reference** for the `entwurf` surface.
 So when `entwurf` changes, this is the first consumer that should stay green.
 
 **Six rails, one address layer (entwurf 0.30.0).** Claude Code, Copilot CLI and **OMP** are mailbox-backed self-fetch citizens; Antigravity and Codex are native-push citizens with no mailbox; pi supplies the control sockets. `entwurf_fresh_call` opens a visible sibling on `pi` / `claude-code` / `copilot` / `omp` / `codex` in tmux, or `pi` / `claude-code` in Herdr. Codex requires the operator-owned app-server and its admission prerequisites; launch is not delivery. `entwurf_resume_call` reopens a dormant **pi** citizen under its own garden id without running a turn. A dormant citizen on any other rail is honestly unreachable rather than silently resumed in the background — the hidden-resume path was withdrawn under entwurf's visible-first rule, and that refusal is a feature this repo relies on.
+
+**A seventh backend is being admitted, and it is not a pi variant.** `pi-durable` is registered in
+entwurf's capability map as its own self-fetch backend on the `feat/durable-native-support` branch
+(target **0.31.0**, not shipped as of 2026-10-06), and it arrives at `deliveryLevel: D0` while every
+other rail sits at D6 — admission parity still reports it `Unaccounted`. Its lifetime is the reason
+it gets its own row rather than a footnote on pi: one garden id can hold one conversation for a
+month, a core durable is meant to be resident per main repository, and dormancy is not its normal
+state. Consumer-side assumptions written for session-shaped citizens therefore break on it; the
+first measured instance was in this repo's own `entwurf-peek` (2026-10-06, fixed). The subject
+matrix is [PI-DURABLE.md](PI-DURABLE.md).
 
 The seven tools above are what this session's MCP schema actually exposes (read 2026-09-04); the bridge surface is the **v2** one. The v1 trio (`entwurf` / `entwurf_resume` / `entwurf_send`) was removed in a hard cut (entwurf `CHANGELOG.md` #50) and no longer exists anywhere — a doc row naming those tools is stale, not a fallback. Note also that `session_search` / `knowledge_search` never came from this bridge: they are andenken's pi-native `registerTool` surface.
 
@@ -344,7 +355,7 @@ What `setup` deliberately does **not** do: install entwurf (that is entwurf's ow
 
 Some questions cannot be answered by reading a project's README. *Does a runtime that generates its own skills from experience beat a human-authored skill set?* You only find out by standing both up on the same machine, giving them the same repeated task, and looking at what each wrote down afterwards.
 
-Seven subjects sit on this bench, and they ask different questions:
+Eight subjects sit on this bench, and they ask different questions:
 
 | Subject | Question | Standing |
 |---|---|---|
@@ -354,7 +365,8 @@ Seven subjects sit on this bench, and they ask different questions:
 | [Ouroboros](https://github.com/Q00/ouroboros) | Besides entwurf, how does a popular Agent OS carry task-memory across harnesses, and how does it run long? | candidate, **not pinned, not installed** — matrix in [OUROBOROS.md](OUROBOROS.md) |
 | [herdr](https://github.com/herdrdev/herdr) | Besides our tmux/entwurf floor, how does a popular agent-terminal runtime show stuck panes and survive detach? | **installed and running (0.9.1 measured 2026-09-21), not declared in nixos-config; entwurf now ships a Herdr plugin (`Herdr Entwurf` 0.4.0) on the public marketplace** — matrix in [HERDR.md](HERDR.md) |
 | [Xirp](https://backstage.spotify.com/docs/xirp) (Spotify) | When one product owns the whole factory — sessions, worktrees, workflow status, institutional memory — what does it get that a three-part workshop does not? | **cannot be installed: macOS-only** — observation in [XIRP.md](XIRP.md) |
-| [pi 1.0 + pi-durable](https://github.com/earendil-works/pi/tree/main/packages/durable) | Our own floor grew a durable layer — committed inbox, checkpointed tasks, background compaction. Where does it meet our compaction switch, autopilot/goal/decision-gate, the session memory axis, and entwurf's cross-process address? | **read at `v1.0.0` in a `/tmp` worktree, not installed, tests not run**; live pi is 0.99.2 — matrix in [PI.md](PI.md) |
+| [pi 1.0](https://github.com/earendil-works/pi) | Our own floor reached 1.0. Where does it meet our compaction switch, autopilot/goal/decision-gate, codemode, and the extensions this repo loads? | **read at `v1.0.0` in an isolated worktree, not installed into the live HOME, upstream tests not run** — matrix in [PI.md](PI.md) |
+| [pi-durable](https://github.com/earendil-works/pi/tree/main/packages/durable) | A sibling whose garden id can hold one conversation for a month: what does a *resident* harness change about addressing, skill surface, supply, and what we can honestly observe? | **a separate harness, not a pi feature** — registered by entwurf at `deliveryLevel: D0` while every other rail is D6, admission parity still RED, supplied source-only (upgrading pi installs nothing) — matrix in [PI-DURABLE.md](PI-DURABLE.md) |
 
 
 This comparison belongs here, not in entwurf. **entwurf guarantees its own garden-id,
@@ -440,6 +452,23 @@ file: the claim that **Pi became a first-class Xirp harness is inherited from a 
 and could not be confirmed here** — Spotify's own docs still list Claude Code, Codex and Gemini,
 and the changelog names Cursor but not Pi. Verifying or retiring that one sentence is the file's
 first open item.
+
+[PI-DURABLE.md](PI-DURABLE.md) is the eighth subject and the only one that is **our own floor
+wearing a different lifetime.** `pi-durable` shares pi's upstream source, and that shared source
+merges none of their runtime, storage, authentication or admission contracts — entwurf states that
+boundary in its own words (*"Treat `pi-durable` as a separate native harness, not an enhancement to
+ordinary Pi"*) and registers it as a separate backend. What makes it a bench subject rather than a
+version note is **time**: one garden id can hold one conversation for a month, a core durable is
+meant to be resident per main repository, and dormancy is not its normal state. That single change
+breaks assumptions written for session-shaped citizens — it already produced a measured defect in
+this repo, where `entwurf-peek` dropped every durable record as schema-invalid and would then have
+reported a month-old resident as *"before its first turn"* (fixed 2026-10-06, 81 checks green).
+Two boundaries are held on purpose: it is registered at `deliveryLevel: D0` while every other rail
+is D6, and **durable is not yet durable** — addressing and send/receive stand, crash survival and
+exactly-once do not. The skill surface is the surprise in the other direction: the durable app
+calls the same `loadSkills` pi does, so this repo's SSOT skills reach it, while pi *extensions* do
+not load there at all. The memory axis belongs to [andenken#15](https://github.com/junghan0611/andenken/issues/15),
+implementation and release to entwurf's lane; this file keeps the harness-side view.
 
 [UNCLEBOB.md](UNCLEBOB.md) sits beside it but looks at a different surface: **what a harness
 uses to prove itself.** Robert C. Martin spent 2026 building SwarmForge — 331 commits, git

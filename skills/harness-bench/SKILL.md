@@ -1,6 +1,6 @@
 ---
 name: harness-bench
-description: "하네스 리서치 장기 관측소 — agent-config 루트의 대문자 하네스 문서(HERMES / OMP / OUROBOROS / HERDR / PRIME / YEGGE / UNCLEBOB)를 상태·증거로 갱신한다. 채택·성능·좋고 나쁨 판정이 아니다. RLM 기억, native 형제 delivery/UX 대칭성, 역할이 아닌 다른 학교 모델과의 협업, 스펙 전 탐색 대화, 그리고 그 하네스가 무엇으로 자기를 증명하는가(검증면 — 테스트 배치·게이트 자기검증·문서계약)를 본다. 스킬 주입·라이브 setup 금지. 트리거: '하네스 리서치', 'HERMES', 'OMP.md', 'OUROBOROS', 'HERDR', 'PRIME', 'prime-agent', 'YEGGE', 'UNCLEBOB', '밥 마틴', 'CRAP', '검증면', '테스트 배치', '게이트', '벤치', '대문자 문서', 'harness bench', 'harness research'."
+description: "하네스 리서치 장기 관측소 — agent-config 루트의 대문자 하네스 문서(HERMES / OMP / OUROBOROS / HERDR / PRIME / YEGGE / UNCLEBOB / XIRP / PI / PI-DURABLE)를 상태·증거로 갱신한다. 채택·성능·좋고 나쁨 판정이 아니다. RLM 기억, native 형제 delivery/UX 대칭성, 역할이 아닌 다른 학교 모델과의 협업, 스펙 전 탐색 대화, 그리고 그 하네스가 무엇으로 자기를 증명하는가(검증면 — 테스트 배치·게이트 자기검증·문서계약)를 본다. 스킬 주입·라이브 setup 금지. 트리거: '하네스 리서치', 'HERMES', 'OMP.md', 'OUROBOROS', 'HERDR', 'PRIME', 'prime-agent', 'YEGGE', 'UNCLEBOB', '밥 마틴', 'CRAP', 'XIRP', 'PI.md', 'PI-DURABLE', 'pi-durable', '독립 하네스', '하네스 명부', '검증면', '테스트 배치', '게이트', '벤치', '대문자 문서', 'harness bench', 'harness research'."
 user_invocable: true
 ---
 
@@ -64,6 +64,12 @@ Keep these five lenses together:
   기준 제안 for lens 5, and §D is material handed to entwurf 담당자 — **never an instruction
   to entwurf.** Do not copy that license to another subject: every other `NAME.md` keeps the
   line. When lens 5 measurements age, update `UNCLEBOB.md` §B/§C rather than re-deriving them.
+- **`PI.md`와 `PI-DURABLE.md`는 둘 다 우리 바닥이고, 서로 다른 주체다.** `PI.md`는 pi 1.0 전체
+  (압축·codemode·확장 로딩)를, `PI-DURABLE.md`는 **독립 하네스**로서의 `pi-durable`
+  (주소·생명주기·공급·스킬 표면)을 본다. GLG 2026-10-06: *"PI-DURABLE.md라고 별도로 만들어야돼
+  독립하네스야 … 독립적인 대우를 해줘."* 한쪽을 다른 쪽의 절로 접지 않는다. durable의 축은 기능이
+  아니라 **시간**이다 — 한 garden id가 달 단위로 한 대화를 쥔다. 기억축(세션 source·임베딩)은
+  andenken#15 몫이고, 구현·릴리즈는 entwurf 레인(#129/#130) 몫이다. 여기는 하네스 면만 본다.
 - **One advantage per subject — `protocol.md`.** When a run day comes, exercise only what each harness pushes; protocol.md names it plus the turn and isolation it needs. The rail is chosen that day from `MODELS.md`, not frozen here.
 
 README table `Subject / Question / Standing` is the index. A table row without a sibling `NAME.md` is not a license to invent one.
