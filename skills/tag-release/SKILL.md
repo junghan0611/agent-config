@@ -32,8 +32,8 @@ Rules:
 - `CHANGELOG.md` = past / what closed. `ROADMAP.md` = future / where to go, optional and manual.
 - Do not create a `docs/archive` graveyard just to hide closed NEXT items. Detailed docs are fine if reachable from `AGENTS.md`, `README.md`, `NEXT.md`, or workspace SSOT pointers.
 - **A tag without a GitHub Release is an unfinished cut, not a style choice.** GLG reads release notes on github.com — that page, not `CHANGELOG.md`, is where a cut becomes visible. `git push origin "$TAG"` creates no release; `gh release create` does. If a previous tag has no release, backfill it in the same session and say so.
-- Release notes are the CHANGELOG section for that tag, verbatim. Do not re-summarize — the section was already written once and a second summary drifts from it.
-- For new CHANGELOG/release prose, prefer one source line per paragraph or list item, without column-based hard wrapping. Preserve intentional Markdown structure and repository-specific style. The release copies the CHANGELOG section verbatim, including its source newlines.
+- Release notes contain the CHANGELOG section for that tag, without re-summarizing. Like `entwurf-release`, extraction joins wrapped continuation lines within paragraphs/list items: GitHub release bodies render source newlines as line breaks, unlike file views. Only whitespace may change; fenced code, blank-line boundaries, headings, quotes, tables and explicit Markdown hard breaks are preserved.
+- Preserve the repository's CHANGELOG source style (hard-wrapped or unwrapped); do not reflow older sections. Soft-wrap only the extracted release notes, never the source file.
 - **Attaching build artifacts is optional and off by default.** Source tarballs are auto-attached by GitHub. Add `--attach` only for a binary a user cannot produce themselves; never attach gitignored build output as if it were reviewed.
 - Boundary truth is `git log <baseline>..HEAD`; date-based `gitcli log` is only a readable timeline aid.
 - Agent edits only `CHANGELOG.md` + `NEXT.md`. No automatic `ROADMAP.md` / `AGENTS.md` edits. No unsolicited tag-release; Make runs only on an explicit GLG request/approval. Never `--no-verify`.
@@ -83,16 +83,19 @@ Publish after pre-flight:
 git tag "$TAG" && git push origin HEAD && git push origin "$TAG"
 ```
 
-Release — **required, same breath as the push.** Notes are the CHANGELOG section, extracted verbatim; the release title is that heading's own text:
+Release — **required, same breath as the push.** Extract and soft-wrap the section (whitespace-only guard); the title is that heading's own text. Missing/empty section or extractor failure aborts before publication:
 
 ```bash
 NOTES=$(mktemp)
-awk -v t="## $TAG" '$0==t||index($0,t" ")==1{f=1;next} f&&/^## /{exit} f' CHANGELOG.md > "$NOTES"
-test -s "$NOTES"                                   # empty notes = wrong tag heading, abort
-TITLE=$(grep -m1 -E "^## $TAG([[:space:]]|\$)" CHANGELOG.md | sed 's/^## //')
+SCRIPT="$HOME/.pi/agent/skills/pi-skills/tag-release/scripts/release_notes.py"
+[ -f "$SCRIPT" ] || SCRIPT="$HOME/.claude/skills/tag-release/scripts/release_notes.py"
+TITLE=$(python3 "$SCRIPT" CHANGELOG.md "$TAG" "$NOTES") || exit 1
+test -s "$NOTES" || exit 1
 gh release create "$TAG" --title "$TITLE" --notes-file "$NOTES"
 gh release view "$TAG" --json url -q .url          # receipt: paste this to GLG
 ```
+
+Offline regression: `python3 "$(dirname "$SCRIPT")/test_release_notes.py"`.
 
 Optional, only when asked: `--attach <file>` for a binary a user cannot build, `--latest=false` for a backfill, `--draft` when GLG wants to read before it is public.
 

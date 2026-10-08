@@ -34,6 +34,8 @@
 
 # NOW
 
+- **전역 릴리즈 줄바꿈 정렬 (2026-10-08, GLG 커밋·push 요청).** `skills/tag-release/SKILL.md` + `scripts/release_notes.py`를 entwurf M6처럼 추출 시 문단·목록의 연속 줄을 합치는 방식으로 변경했다. CHANGELOG 원본은 재정렬하지 않고 fenced code·명시적 hard break·Markdown 블록 경계를 보존, 공백 이외 텍스트 변경은 거절한다. API-0 회귀 `python3 skills/tag-release/scripts/test_release_notes.py` 7/7 + 실제 `v2026.10.8` 추출·원본 해시 불변 확인. 다음 승인된 릴리즈부터 새 추출기를 사용한다. 기존 릴리즈 수정·새 태그·entwurf#133 운영비 정책은 이번 범위 밖이다.
+
 - **전체 임베딩 판독 — 좌표 15의 3번째 판독점 (2026-10-08, thinkpad).** sessions `--global` 104,141 chunks · md 11,002 chunks(+19) · OpenClaw 6,951 rows, 세 축 모두 verify·오라클 발행 통과(로그 `/tmp/andenken-embed-*.log`, 호스트 로컬). prune은 오늘 3건(glg·mini·bbot `sup✓`)이고 백업·receipt는 andenken `data/openclaw-prune/`.
   - **bbot dirty 22/23은 「대화 중」이 아니었다.** 원인은 OpenClaw 9.8의 크론 부모 세션 분류 누락(검사는 색인 대상으로 세고 실제 색인은 시스템 메시지뿐이라 제외) — nixos-config `9c20d2b`, `docs/openclaw-gotchas.md` bbot dirty 절. 패치는 9.8 한정이라 **OpenClaw 버전업 때 상류 수정 여부 확인·회수**. 이 집이 처음에 「대화 중」으로 추측한 것은 틀렸다.
   - **dirty가 되풀이되면:** 단정하지 말고 source별 indexed/eligible·identity·누락 항목을 대조한다. `--force` 재색인·dirty hold 우회 금지. 이전 수확본의 dirty는 자동 갱신되지 않으니 오라클 수선 뒤엔 `sync:openclaw`부터 다시.
