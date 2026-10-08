@@ -7,6 +7,31 @@
 
 ## Unreleased
 
+## v2026.10.8 — entwurf 0.32.0 기념, durable 접점의 레퍼런스 소비자
+
+### pi-durable — 접점은 entwurf, 이 집의 정책은 agent-config
+
+* **Entwurf 0.32.0의 `--native-module`을 실제 소비하는 env/hide 레퍼런스를 만들었다.** `pi-durable/env.mjs`가 ESM top-level에서 TUI/runtime·provider 생성 전에 초기화하고 native `{ name: "agent-config-env" }`를 내보낸다. 홈 `~/.env.local`만 읽고 기존값·명시적 빈 값·주소/정체성·cwd를 보존한다. 상속된 `OPENROUTER_API_KEY`·`HF_TOKEN`·`GROQ_API_KEY`·`GEMINI_API_KEY`는 지우고 파일에서도 재주입하지 않는다. 필요한 스킬의 직접 파일 읽기는 그대로다. ordinary Pi 확장 둘은 바꾸지 않았고 SDK 공급·ExtensionAPI 호환층·shell 실행·fresh-call 전파를 추가하지 않았다. [레퍼런스와 실행 계약](https://github.com/junghan0611/agent-config/blob/v2026.10.8/pi-durable/README.md).
+* **첫 실제 기동 실패를 감추지 않고 Pi와 같은 읽기로 수선했다.** 합성 검증을 통과했던 엄격 파서가 재개 시 실제 홈 파일의 shell `case` 줄을 거부했다. GLG 승인으로 대입 추출 정책을 `env-loader.ts`에 맞췄다: 비대입 줄 skip, 값은 literal, `$HOME`·선두 `~/`만 전개, 같은 key는 뒤 대입 우선, 비식별자 key만 의도적으로 제외. `case`/`if` 분기는 평가하지 않는다. 살아 있는 Pi 파서와 식별자 key 24개 비교·수선 변이 5개 RED 영수증을 보존했다. 운영 routing의 정답이라고 승격하지 않는다.
+* **실제 홈 파일 import와 같은 garden-id 재개를 확인했다.** 값·원문을 출력하지 않는 격리 read-only import가 성공했고 identity·cwd·파일 메타데이터는 불변이었다. GLG가 `--continue --native-module`로 garden `20261007T104525-12d0ca`를 다시 열어 이전 대화를 이어갔다. native argv와 bash 도구 자식의 숨김 4키 부재를 측정했다. bridge 자식의 전체 env·각 주입 값의 운영 의미·crash survival·exactly-once는 이 영수증의 범위 밖이다. [실패·복구·실사용 영수증](https://github.com/junghan0611/agent-config/blob/v2026.10.8/PI-DURABLE.md).
+* **거짓 green을 막는 API-0 게이트를 붙였다.** `./run.sh test:pi-durable-env`는 단위/자식 프로세스·Entwurf bootstrap seam(new/continue)·오프라인 실제 `ModelRuntime`을 분리해 검증한다. built Entwurf checkout가 없으면 `entwurf-checkout-missing`과 exit 1이다; 성공 skip이 아니다. 체크아웃 없는 단위 전용 명령도 문서화했다.
+
+### 현재 문서 — 0.32.0 공급·실행 계약
+
+* **README·AGENTS·ENV-SETUP·PI-DURABLE·harness-bench를 현재 계약으로 맞췄다.** Entwurf 패키지의 emitted app carrier + exact Pi 1.0.4 SDK, 퇴역한 고정-XDG source runtime(no fallback), D2 배달 경계, native contact 6개, 매 기동마다 명시하는 모듈을 설명했다. 0.30/0.31·D0·source-only였던 날짜별 관측은 역사로 보존했다. 이 집의 태그는 CalVer이며 `0.32.0`은 Entwurf 버전이다; 런타임 설치나 패키지 배포를 여기서 수행한 것이 아니다.
+* **`pdt`/`pds`/`pdc` 셸 예제를 레퍼런스에 포함했다.** medium/high는 모델의 thinking suffix이고, `pdt`에도 모듈을 붙여 effort 변경이 환경 정책을 바꾸지 않게 했다. `pdc`는 현재 cwd의 최신 저장 세션을 재개하는 명령이지 garden-id picker가 아니다. `--continue`에 module은 허용되지만 fresh-only provider/model/width/bootstrap은 거부된다. shell helper 3개를 합성 HOME·stub `entwurf`로 문법·실제 argv·공백 quoting 검증했다. live 셸 설정은 수정하지 않았고 두-Ctrl+C 과거 관측을 현재 exit 보증으로 복사하지 않았다.
+
+### 지난 태그 이후 — 독립 하네스 대우와 열린 다음 손
+
+* **pi-durable을 여덟 번째 harness-bench 주체로 분리했다.** `PI-DURABLE.md`·README 명부·`harness-bench`에 독립 하네스로 앉혔다. 기능이 아니라 한 garden id가 장기간 한 대화를 쥐는 생명주기를 본다. `entwurf-peek`의 enum 미러 누락으로 durable record가 버려지던 결함과 SQLite 시민을 「첫 turn 전」으로 부르던 결함을 수선했다. DB는 열지 않고 경로 계산·stat만 사용한다. `dm`·`command-recall`의 소비면 경계도 맞췄다. (`5c3d67c`, `c3f8dfb`)
+* **10-06 첫 레인 사건의 원인을 하네스가 아니라 작업 프로토콜로 좁혔다.** private clone/report에 머물고 원본에 착지하지 않는 습관은 durable 시민보다 앞섰고 레인 핸드오프가 그 경계를 집행하고 있었다. 모델/동사 탓이라는 후보는 당시 영수증으로 기각했다. 장수 프로세스의 새 계약 전달·모델 관측면은 별도 질문으로 남겼다. 이력은 `PI-DURABLE.md`에 보존했다. (`a834380`)
+* **기억축은 완료로 오독하지 않게 남겨 두었다.** 10-06 두 번째 월간 판독을 기록했고 bbot dirty hold는 NEXT 좌표 15에 남겼다. durable 세션 source는 andenken#15 Q1–Q7 판정·착지 뒤 소비한다(좌표 22); 이 릴리즈에서 live DB·임베딩을 건드리지 않았다. 좌표 24와 23의 닫힌 일은 CHANGELOG로 승격하고, 23의 prompt/mtime/모델 후속 관측 및 다른 진행 좌표는 NEXT에 보존했다. (`293e021`, `5d3b059`)
+
+### 검증 — 2026-10-08, thinkpad
+
+* `./run.sh test:pi-durable-env`: **15/15 pass, 0 fail, 0 skip**, exit 0; 의도적으로 누락된 checkout는 이름 있는 exit 1. 합성 HOME·bootstrap seam·오프라인 SDK 범위이며 실 storage/citizen/model turn 검증으로 승격하지 않는다.
+* `python3 skills/entwurf-peek/scripts/test-discovery.py`: **81 checks, 0 failed**. README 셸 helper 3개의 stub argv 검증, `bash -n run.sh`, `git diff --check` 통과. 실제 같은-id 재개 영수증은 별도 증거다.
+
 ## v2026.10.3 — entwurf 0.30.0 기념, 압축은 Pi에게 돌려줬다
 
 ### Pi — 빌트인 압축과 tmux 화면
