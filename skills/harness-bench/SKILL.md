@@ -69,7 +69,9 @@ Keep these five lenses together:
   (주소·생명주기·공급·스킬 표면)을 본다. GLG 2026-10-06: *"PI-DURABLE.md라고 별도로 만들어야돼
   독립하네스야 … 독립적인 대우를 해줘."* 한쪽을 다른 쪽의 절로 접지 않는다. durable의 축은 기능이
   아니라 **시간**이다 — 한 garden id가 달 단위로 한 대화를 쥔다. 기억축(세션 source·임베딩)은
-  andenken#15 몫이고, 구현·릴리즈는 entwurf 레인(#129/#130) 몫이다. 여기는 하네스 면만 본다.
+  andenken#15 몫이고, 런타임 공급·접점·출하는 entwurf 레인(#129/#130) 몫이다. 여기는 하네스 면과
+  그 접점을 쓰는 소비자를 본다. Entwurf 0.32.0의 이 집 env/hide 레퍼런스는 `pi-durable/README.md`;
+  실제 같은-id 재개 증거는 `PI-DURABLE.md` 2026-10-08 절. 기존 Pi 확장 rail의 지원으로 오독하지 않는다.
 - **One advantage per subject — `protocol.md`.** When a run day comes, exercise only what each harness pushes; protocol.md names it plus the turn and isolation it needs. The rail is chosen that day from `MODELS.md`, not frozen here.
 
 README table `Subject / Question / Standing` is the index. A table row without a sibling `NAME.md` is not a license to invent one.

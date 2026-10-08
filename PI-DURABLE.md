@@ -28,6 +28,8 @@ upstream 소스를 공유한다는 사실이 두 하네스의 런타임·저장�
 
 ---
 
+> **현재 안내 (2026-10-08):** Entwurf **0.32.0**는 출하됐고 패키지 carrier + Pi **1.0.4** SDK 공급·D2·native contact 6개가 현재 계약이다. 이 집의 env/hide 레퍼런스와 실제 같은-id 재개도 확인했다. 아래 `상태 — 2026-10-06`과 첫 구현 절은 당시 관측으로 보존한다; 최신 계약은 마지막 [0.32.0 소비자 레퍼런스 절](#2026-10-08-0320-소비자-레퍼런스--현재-공급실행-계약), 사용·테스트는 [pi-durable/README.md](pi-durable/README.md), 셸 함수는 [루트 README](README.md#shell-aliases-bashrclocal)를 먼저 보라.
+
 ## 상태 — 2026-10-06
 
 관측 자리: thinkpad, Claude Opus 5 (claudecode ACP), `~/repos/gh/agent-config`. oracle 측 사실은
@@ -379,3 +381,183 @@ python3 skills/entwurf-peek/scripts/test-discovery.py    # 81 checks, 0 failed
 ssh oracle 'cd ~/repos/gh/entwurf && git diff pi/entwurf-capabilities.json'
 ssh oracle 'ls ~/.pi/agent/experimental/durable-sessions'
 ```
+
+---
+
+## [2026-10-08] 확장 면에 한 칸 — `pi-durable/env.mjs` (env-loader + hide-providers)
+
+> **퇴역 표시 (같은 날, 아래 「첫 실사용 사건」 절):** 이 절의 「문법」 행과 문법 차이·거부 서술은 엄격 파서 시절의 것이다. 현재 읽기 의미는 `env-loader.ts` parseDotenv와 같고(비식별자 key만 skip), 파일 내용으로는 기동이 실패하지 않는다. 15 green 영수증과 나머지 계약은 그대로 기록으로 남긴다.
+
+GLG 요청(coordinator `20261007T104525-12d0ca` 경유): *"hide-provider도 좋네. pi-durable 쪽 전용으로
+만들 생각이었어."* entwurf 0.32.0이 `--native-module <절대경로>` ingress를 출하하면서 실제 env-loader는
+이 집 몫으로 넘어왔다 `[읽음 entwurf#130 issuecomment-6049936030: "Real dotenv/native env-loader belongs
+to agent-config"]`. 위 § 스킬·확장 표면의 「pi 확장: 없다」는 그대로다 — 이것은 pi 확장이 아니라
+**durable native 모듈 하나**이고, 명시 argv로만 붙는다.
+
+```bash
+entwurf pi-durable --provider <p> --model <m> --width task-wide \
+  --native-module ~/repos/gh/agent-config/pi-durable/env.mjs      # 절대경로여야 한다 (셸이 ~ 를 펼친다)
+entwurf pi-durable --continue --native-module ~/repos/gh/agent-config/pi-durable/env.mjs
+./run.sh test:pi-durable-env                                      # 15 tests, API 0 (Entwurf 체크아웃 필요)
+```
+
+GLG 운영 시나리오는 *한 번 만들고 같은 대화를 계속 다시 연다*이므로 쓰는 자리는 두 줄뿐이다.
+`entwurf_fresh_call`로의 전파·영구 profile·설치 자동화는 **하지 않았다**(entwurf 쪽 입력 불변).
+
+### 계약 — 무엇을 하고 무엇을 안 하는가
+
+| 항목 | 동작 | 증거 |
+|---|---|---|
+| 시점 | 모듈 최상위 평가 = 초기화. TUI·runtime import 전, provider runtime 생성 전 | `[읽음 entwurf bootstrap.mjs:369-378, carrier/runtime.js:140-146]` `[측정 tests/entwurf.test.mjs: events loadTui→open→tui, loadTui 시점에 값 있음]` |
+| 숨김 | 상속된 `OPENROUTER_API_KEY`·`HF_TOKEN`·`GROQ_API_KEY`·`GEMINI_API_KEY` 삭제 + 파일의 같은 키 미주입 (`hide-providers.ts`와 같은 넷) | `[측정 실제 ModelRuntime, PI_OFFLINE=1: 키만으로 openrouter·groq·google·huggingface 가용 → 모듈 뒤 넷 다 0]` |
+| 주입 | `~/.env.local` **하나만**. 프로젝트 `.env.local`은 안 읽는다(NEXT 2026-09-29 전수조사 finding E가 열린 질문이라) | `[측정 tests/env.test.mjs]` |
+| 우선권 | 이미 있는 키가 이긴다 — **빈 문자열이어도**. `env-loader.ts`는 truthy만 지켰다 | 같은 테스트 + 변이(truthy로 바꾸면 RED) |
+| 보호 키 | `HOME`·`PI_SESSION_ID`·`PI_CODING_AGENT_DIR`·`ENTWURF_*`는 파일에 있어도 안 쓴다. 쓰면 entwurf guard가 기동 전체를 거부한다 | `[측정 bootstrap seam: guard 통과]` `[측정 변이: 보호 키를 쓰면 seam 테스트가 RED]` |
+| 실패 | 파일 없음 = 무동작. 그 밖의 read 오류·문법 밖 줄 = throw → entwurf가 `native-module-import-failed`로 거부. 메시지는 줄 번호·키 이름만 | `[측정 실제 런처: "line 2 (B): an unclosed double quote", 합성 sentinel 노출 0, .pi 미생성]` |
+| 문법 | `env-loader.ts` parseDotenv가 baseline — `=` 양옆 공백·`"a\"b"`의 백슬래시 보존·`v#x` literal 유지. 차이는 `pi-durable/dotenv.mjs` 머리 표: 문법 밖 줄 거부, 따옴표 뒤 잔여(`"v"#x` 포함)는 **잘라내지 않고 거부**, 공백 뒤 `#` 주석, `'$HOME'`·`"~/x"` literal, `${HOME}` 전개. 문법 전체가 bash인 것은 아니다(머리 표 아래 예외 한 줄). 명령 실행·source·이스케이프 해석 없음 | `[측정 tests/env.test.mjs grammar 3건]` |
+| 자식 | durable bash 도구는 `process.env`를 펼쳐 자식에게 준다 → 숨긴 키는 자식에게도 없다 | `[읽음 pi-durable dist/env/node.js:197-204, :734-738]` `[측정 bash 자식: "yes\|"]` |
+
+### 이번에 새로 잰 것 — BASH_ENV는 「허리띠」가 못 된다
+
+`hide-providers.ts:31`은 *"BASH_ENV=~/.env.local makes every bash pi spawns re-source the file"*을
+허리띠로 적었다. 이번에 둘을 쟀다:
+
+- **이 셸(thinkpad)에서 BASH_ENV는 비어 있다** `[측정 echo]`, nixos-config·agent-config에 설정처가
+  없다 `[측정 grep, 주석 2곳뿐]`. 다른 기기·로그인 셸 경로는 `미측정` — 「모든 기기에 없다」가 아니다.
+- **bash는 stdin이 소켓이면 BASH_ENV를 건너뛴다** `[측정: Node spawn stdio "pipe"(socketpair) → 안 읽음,
+  "ignore"/"inherit" → 읽음, 같은 bash 5.3.9]`. durable bash 도구는 stdin을 먹이지 않으면 `ignore`,
+  먹이면 `pipe`다 `[읽음 dist/env/node.js:738]`. 테스트가 두 갈래를 다 고정한다.
+
+그래서 이 모듈은 BASH_ENV를 건드리지 않고, 키가 필요한 스킬은 지금처럼 `~/.env.local`을 **직접**
+읽는 길에 기댄다. `pi-extensions/` 두 파일의 주석 정정은 이번 범위(두 확장 무변경) 밖이라 관측으로만 남긴다.
+
+### 검증면 (렌즈 5)
+
+- 테스트가 행동 옆에 있다: `pi-durable/tests/` — 단위·자식 프로세스 10건 + 의존성 누락 회귀 1건 + entwurf 통합 3건 + 전제 1건 = 15.
+  운영 `~/.env.local`은 한 번도 열지 않았다; 전부 합성 HOME·합성 값.
+- 통합 둘은 **증거가 다르다**: bootstrap seam(`open`·`connect` 스텁, 실제 carrier·storage·birth 없음)과
+  실제 `ModelRuntime` 발견(오프라인). 둘째가 첫째를 대신하지 않는다.
+- 변이 5개(상속 숨김 제거 / truthy 우선권 / 파일이 숨김 키 재주입 / 보호 키 기록 / read 오류 삼킴)
+  전부 RED `[측정, 변이 후 원본 sha256 d9cf5abf… 복원 확인]`.
+- 실제 런처 `entwurf pi-durable … --native-module`(carrier resolver 포함)에서 모듈이 ingress를 통과해
+  carrier의 `Unknown provider` 거부까지 갔다 — 합성 HOME, `PI_OFFLINE=1`, 운영 `meta-sessions`·
+  `durable-sessions` mtime 불변 `[측정]`.
+- 의존성 누락은 실패다 (같은 날 coordinator 검토로 수선): 처음엔 entwurf 체크아웃이 없으면 통합 suite가
+  이유를 찍고 skip, rc 0이었다 — node 요약도 `ℹ skipped 0`이라 개수 검사로도 안 잡혔다
+  `[읽음 coordinator 재현 receipt]`. 이제 `[prerequisite]` 테스트가 `entwurf-checkout-missing: <경로들>`로
+  실패한다 `[측정 AGENT_CONFIG_ENTWURF_DIR=<없는 경로> ./run.sh test:pi-durable-env → rc 1, tests 12 / pass 11 / fail 1]`.
+  그 성질 자체를 `env.test.mjs` 회귀가 고정한다. 체크아웃 없이 단위만: `node --test pi-durable/tests/env.test.mjs` (11 pass).
+- 같은 검토로 문법 두 곳을 고쳤다: `A = "v"`(baseline이 받던 것)를 거부하던 호환 결함, 그리고
+  **`A="v"#x`를 `v`로 조용히 자르던 결함**(bash는 `v#x` `[측정 env -i bash --noprofile --norc]`). 둘 다 회귀가 있고, 수선 뒤 변이 셋
+  (`=` 양옆 공백 제거 / 붙은 `#`을 주석 취급 / 전제 테스트 제거)이 전부 RED `[측정]`.
+- coordinator 독립 재측정 (2026-10-08 ~10:39 KST) `[읽음 coordinator receipt]`: full `tests 15 / pass 15 /
+  fail 0 / skipped 0` rc 0 · 체크아웃 없는 경로 rc 1 `tests 12 / pass 11 / fail 1` `entwurf-checkout-missing` ·
+  `git diff --check` rc 0 · sha256 `env.mjs d9cf5abf…` `dotenv.mjs 5ca979d2…` `tests/env.test.mjs 52a21576…`
+  `tests/entwurf.test.mjs 12d59259…`. 합성/seam/offline 범위의 수용이다 — 실 TUI·운영 `--continue`·bridge
+  child 실제 상속은 아래 미측정 그대로. 변이·실 런처 proof는 coordinator가 재실행하지 않았다.
+
+### 미측정
+
+- 실제 durable 대화에서 `--continue --native-module`로 다시 연 형제가 숨김·주입을 그대로 갖는지
+  (실 TUI·실 세션 필요 — 기존 durable 프로세스를 멈추지 않는다는 경계 안에서는 재지 않았다).
+- 운영 `~/.env.local`이 `dotenv.mjs` 문법 안에 드는지. 밖이면 첫 기동이 줄 번호와 함께 거부된다
+  — 그것이 의도된 표면이다.
+- bridge 자식의 실제 환경 상속(측정한 것은 spawn **spec**뿐).
+
+---
+
+## [2026-10-08] 첫 실사용 사건 — 엄격 파서가 운영 기동을 막았다, baseline 읽기로 복귀
+
+### 사건
+
+GLG가 `pdc`(`--continue --native-module …/env.mjs`)로 durable을 다시 열다 실패했다 `[읽음 GLG traceback,
+coordinator 전달]`:
+
+```text
+native-module-import-failed: …/pi-durable/env.mjs: /home/<user>/.env.local: line 143: not KEY=value
+  at loadNativeModule (bootstrap.mjs:173) / main (bootstrap.mjs:374)
+```
+
+ingress 연결은 성공했다 — 우리 파서가 운영 파일 형식을 거부해 runtime 전에 기동을 막았다. 거부는 이름 있고
+값 없는 설계대로의 실패였지만, 전제가 틀렸다.
+
+- **퇴역한 전제:** 「`~/.env.local`은 dotenv 파일이다」. 합성 dotenv만으로 설계·검증했고 운영 파일은 읽지
+  않았다. coordinator의 syntax-only probe(값·원문 출력 0) `[읽음 coordinator receipt]`: line 143 = shell `case`,
+  line 144 = `=` 없는 분기 구문, line 145–147 = `FORGE_URL`/`FORGE_TOKEN`/`FORGE_USER` 대입. 그 파일은
+  Bash `case`를 가진 shell config다.
+- **pi는 왜 그냥 됐나** `[읽음 pi-extensions/env-loader.ts:29]`: `if (eq < 1) continue;` — `=` 없는 줄을
+  넘긴다. 엄격 파서는 같은 줄에서 throw했다. 차이는 그 한 줄이다. pi도 `case`를 평가하지 않는다.
+- **단정하지 않는 것:** 운영 routing이 지금 틀렸다고 적지 않는다. 상속 env가 이미 무엇을 갖고 있는지,
+  분기 안 대입이 실제로 어떻게 겹치는지는 **미측정**이다.
+
+### 판정과 수선 — GLG: *"응 좋아. 맡기자 가자"*
+
+GLG의 일관성 질문(*"왜 이전에 pi는 그냥 되고 이건 안되는거지? 일관성을 유지해야되니까"*)에 따라 가장 작은
+안을 골랐다: **`env-loader.ts` parseDotenv와 같은 읽기, 실행 0.** Bash로 파일을 평가하는 안은 실행 0 계약을
+바꾸는 범위·권한 확대라 비교로만 남기고 채택하지 않았다.
+
+- `pi-durable/dotenv.mjs`: `=` 없는 줄 skip, key·value trim, 양끝 같은 따옴표만 벗김, `$HOME`·선두 `~/`만 전개,
+  나머지는 문자열 그대로(`"v"#x`, `"unterminated`, `v # note`, `$OTHER`). 파일 내용으로는 throw하지 않는다.
+  **의도된 차이 하나:** 식별자가 아닌 key는 skip — pi는 `dev) export X=1 ;;`를 `dev) export X`라는 이름으로 넣는다.
+- `case`/`if`는 평가하지 않는다 — 분기 안 대입이 파일 순서대로 다 읽히고 같은 key는 마지막 값이 남는다.
+  pi와 같은 한계이고, 표준 Bash 해석으로 승격하지 않는다.
+- `env.mjs`의 나머지 계약(홈 전용·기존값/빈 값 우선·보호 키·숨김 넷·ENOENT만 무동작, 그 밖 read 오류는 실패)은 불변.
+
+### 검증 `[측정, 합성만 — 운영 파일 읽기·source 0]`
+
+- **비교기:** 테스트가 `pi-extensions/env-loader.ts` 소스에서 `parseDotenv`를 그대로 떼어(타입 주석 둘만 제거)
+  fake HOME 자식에서 돌리고, 따옴표·주석·`$HOME`·`~`·`$VAR`·어긋난 따옴표·붙은 `#`·CRLF 등 30줄 말뭉치에서
+  **식별자 key 24개 전부 일치**, 남는 것은 비식별자 key(`export\tTAB`) 하나뿐임을 고정한다. 복사본이 아니라
+  살아 있는 소스를 따른다.
+- **shell config 말뭉치:** `case`/`esac`/`if`/`fi`/분기 패턴/`[ … ] && export` 를 담은 합성 파일이 기동 실패 없이
+  읽히고(`ROUTE=other` — 뒤 분기가 이김), pi 대비 빠지는 key가 정확히 `[ "$A"`, `dev) export ODD` 둘.
+- `./run.sh test:pi-durable-env` → tests 15 / pass 15 / fail 0 / skipped 0, rc 0 · Entwurf 경로 없음 → rc 1,
+  tests 12 / pass 11 / fail 1, `entwurf-checkout-missing`.
+- 변이 5개 전부 RED: `=` 없는 줄 throw(옛 엄격) → 4 fail · 식별자 skip 제거 → 3 · 인라인 주석 제거 → 1 ·
+  `~/`를 `path.join` 대신 문자열 연결 → 1 · `$HOME` 단어 경계 → 1. 복원 sha256 `8034cf06…`.
+- 기존 seam(new·--continue)·실제 offline ModelRuntime·숨김·보호 키·빈 값·자식 상속·누락 회귀는 그대로 green.
+
+### 실제 파일 확인 (coordinator)
+
+- coordinator 실제 파일 read-only import (2026-10-08 ~11:00 KST) `[읽음 coordinator receipt]`: 격리 node 자식에서 실제 `~/.env.local`을 읽기 전용으로 `env.mjs` import — 값·원문·전체 env 출력 0, Bash source/실행 0, runtime/storage/TUI/birth 0. rc 0, `{module:"agent-config-env", read:true, injectedCount:4, keptCount:52, skippedCount:4, hiddenProvidersAbsent:true, identityUnchanged:true, cwdUnchanged:true, fileMetadataUnchanged:true}`, 파일 stat ino/size/mtime/ctime 전후 일치. → 실제 파일 내용으로 line 143 실패가 재발하지 않음을 **모듈 import 수준**에서 확인. 「운영 파일 안 읽음」은 구현 형제·합성 테스트 범위에서만 참이고, initiative 전체로는 이 probe가 대체한다.
+- 같은 시각 coordinator D2 독립 재측정 `[읽음 coordinator receipt]`: tests 15 / pass 15 / fail 0 / skipped 0 rc 0 ·
+  누락 경로 rc 1 · `bash -n run.sh`·`git diff --check` rc 0 · sha256 `env.mjs 62dd8830…` `dotenv.mjs 8034cf06…`
+  `tests/env.test.mjs 7d1ed2bd…` `tests/entwurf.test.mjs 12d59259…`.
+
+### 실사용 재개 — 닫힘
+
+- GLG 실사용 재개 (2026-10-08 11:03–11:04 KST) `[읽음 coordinator receipt]`: GLG *"재시작했다 에러 없다 보이나?"* — 프로세스 argv `node --import …/carrier-resolver.mjs …/bootstrap.mjs --continue --native-module /home/<user>/repos/gh/agent-config/pi-durable/env.mjs` · `entwurf_self` 이전 garden id `20261007T104525-12d0ca` 그대로(`meta-session/pi-durable`, cwd `~/repos/gh/agent-config`) · 도구 호출·이전 대화 연속 · bash 도구 자식 env 키 존재 boolean만: `OPENROUTER_API_KEY`·`HF_TOKEN`·`GROQ_API_KEY`·`GEMINI_API_KEY`·`BASH_ENV` 모두 false(값 출력 0). bridge child 전체 env·routing 선택·모든 주입 값은 검증 범위 밖.
+
+### 미측정
+
+- 최종 routing 선택(분기 안 대입이 실제로 어떤 값으로 남는지의 운영 의미)은 위 probe로도 승격하지 않는다.
+- bridge 자식의 전체 실제 env 상속은 미측정이다. 실 TUI·실 세션의 `--continue --native-module` 재개는 위 「실사용 재개 — 닫힘」 영수증으로 닫혔다; 첫 구현 절의 미측정과 혼동하지 않는다.
+
+---
+
+## [2026-10-08] 0.32.0 소비자 레퍼런스 — 현재 공급·실행 계약
+
+**출하된 접점을 실제 집의 정책으로 소비했다.** 이 절은 10-06 출하 전 관측과 위 엄격 파서의 실패를 덮어쓰지 않고, 현재 계약을 따로 세운다. 이 집은 런타임을 복제하지 않는다 — Entwurf가 공급하는 한 접점에 홈 환경 읽기·provider 숨김을 담은 레퍼런스를 둔다.
+
+| 현재 사실 | 값 | 증거 |
+|---|---|---|
+| Entwurf 출하 | **v0.32.0**, HEAD `80d66f4`; GitHub Release 공개·비초안·비프리릴리즈, `publishedAt 2026-10-08T00:32:29Z` | `[측정 git·package.json·gh release view, thinkpad 2026-10-08]` |
+| app/SDK 공급 | Entwurf npm 패키지 안의 emitted carrier + exact Pi **1.0.4** SDK set. upstream pin `7c10bd4337495ee613f2224843ecdf349b80d1df`(`v1.0.4`), contact overlay 포함 | `[읽음 pi/pi-durable/overlay/upstream-pin.json·package.json @80d66f4]` |
+| 퇴역한 경로 | operator source checkout를 고정 XDG runtime으로 설치하던 0.31.0 경로, **fallback 없음**. ordinary Pi 업그레이드만으로 experimental app을 공급하지 않는다 | `[읽음 docs/durable-native-support.md § Contact and installation @80d66f4]` |
+| 배달 경계 | durable `wakeMode: self-fetch`, **D2**; 다른 여섯 backend D6 | `[읽음 pi/entwurf-capabilities.json @80d66f4]` |
+| native contact | `entwurf_self`·`peers`·`v2`·`inbox_read`·`callback`·`fresh_call` 6개. native resume verb 없음 | `[읽음 docs/durable-native-support.md·이 세션 실제 tool schema, 2026-10-08]` |
+| module ingress | `--native-module <absolute file>` **하나**, fresh·continue 모두 허용. ESM 초기화 완료 뒤 TUI/runtime import, contact 뒤 default native object 설치. cwd·identity mistake guard; sandbox 아님 | `[읽음 bootstrap.mjs·docs/durable-native-support.md @80d66f4; 이 집 seam tests]` |
+| local reopen | `--continue` = 현재 cwd의 최신 저장 세션, garden-id 지정 아님. provider/model/width/bootstrap은 fresh-only, module은 매번 다시 명시 | `[읽음 bootstrap.mjs:299-349 @80d66f4]` |
+| 이 집 소비자 | `pi-durable/{env.mjs,dotenv.mjs}` + API-0 tests. ordinary `pi-extensions/` 두 구현은 무변경. module/SDK 설치 framework·shell 실행·fresh-call 전파 없음 | `[읽음 이 집 diff; tests 15/15; 위 실제 파일·재개 영수증]` |
+
+### README·실행 예제가 레퍼런스의 일부다
+
+[pi-durable/README.md](pi-durable/README.md)에 native object·top-level 순서·보호 키·기존 빈 값 우선·home-only·Pi 파서 의미·읽기 실패·증거 범위를 모았다. 루트 README·AGENTS·ENV-SETUP의 **현재** 0.30/0.31 source-only·D0 안내는 이 계약으로 맞췄다. 날짜가 붙은 오래된 관측은 그대로다.
+
+루트 README의 `pdt`/`pds`/`pdc`는 최초 생성 medium/high와 cwd-local 재개를 가른다. **`pdt`에도 같은 모듈을 붙인다** — effort만 바꿨는데 env 정책까지 빠지는 예제를 만들지 않는다. 모델 effort는 `gpt-6.1-sol:medium`/`:high`의 suffix다. `--continue`가 「추가 인자 0」이라는 옛 주석은 현재 사실이 아니다; `--native-module`은 허용된다. 두 번 Ctrl+C라는 0.31.0 관측은 0.32.0 exit 보증으로 복사하지 않았다. live `.bashrc.local`·운영 env·durable 프로세스에는 이번 문서 작업이 쓰지 않았다.
+
+### 열어 둔 경계
+
+- 실제 same-id 재개와 bash 자식의 숨김은 위 영수증의 범위에서 닫혔다. bridge 전체 env·각 주입 값의 운영 의미·분기 routing은 미측정이다.
+- D2를 crash/recovery·exactly-once 수용으로 올리지 않는다. 벤더 모델 턴·native admission을 이번 API-0 테스트가 대신하지 않는다.
+- 기억축은 여전히 [andenken#15](https://github.com/junghan0611/andenken/issues/15) Q1–Q7 판정·착지 뒤 소비한다. live DB(RO 포함)는 열지 않았다. prompt에 스킬이 실제 주입되는 모양·durable store mtime의 관측 효용은 별도 실물 관측 과제로 남긴다.

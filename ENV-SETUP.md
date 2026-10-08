@@ -27,6 +27,28 @@ pi-skills CLI들이 정상 동작하려면 아래 환경변수가 필요합니�
 transcribe, gemini-image-gen)는 전부 `~/.env.local`을 직접 읽으므로 영향이 없다.
 자세한 내용은 [MODELS.md](MODELS.md).
 
+## pi-durable — native 홈 환경 읽기 (Entwurf 0.32.0)
+
+ordinary Pi의 `env-loader.ts`·`hide-providers.ts`는 durable에서 로드되지 않는다. 이 집의 [`pi-durable/env.mjs`](pi-durable/env.mjs)가 **같은 읽기 정책**을 native ESM top-level에서 수행한다 — provider 생성 전, shell 실행 없이.
+
+```bash
+# 최초 생성
+entwurf pi-durable --provider openai-codex --model gpt-6.1-sol:high \
+	--width task-wide --native-module "$HOME/repos/gh/agent-config/pi-durable/env.mjs"
+
+# 같은 cwd의 최신 저장 세션 다시 열기 — 모듈은 매번 명시
+entwurf pi-durable --continue \
+	--native-module "$HOME/repos/gh/agent-config/pi-durable/env.mjs"
+```
+
+- 읽는 파일은 홈 `~/.env.local` 하나뿐이다. 프로젝트 파일은 읽지 않는다. 기존 env는 **빈 값도** 우선하고 `HOME`·`PI_SESSION_ID`·`PI_CODING_AGENT_DIR`·`ENTWURF_*`는 주입하지 않는다.
+- 위 네 provider 키는 상속 env에서도 제거하고 파일에서도 재주입하지 않는다. 키가 필요한 스킬의 직접 파일 읽기는 그대로다. `BASH_ENV`를 설정하거나 지우지 않는다.
+- Pi처럼 대입 줄을 추출한다: `export `·양끝 따옴표·`$HOME`·선두 `~/` 처리, 비대입 줄과 비식별자 key skip, 같은 key는 뒤 대입 우선. `case`/`if` 분기는 **평가하지 않는다**. shell 실행이나 운영 routing의 정답을 보장하는 로더가 아니다.
+- `ENOENT`만 정상 read no-op이며 다른 읽기 실패는 기동을 거부한다. 값·원문을 출력하지 않는다.
+- Entwurf 0.32.0 패키지가 app carrier + Pi 1.0.4 SDK를 공급한다. 이 집은 SDK·런타임을 설치하지 않고 셸 설정도 변경하지 않는다. `--continue`에는 fresh-only provider/model/width를 붙이지 않는다.
+
+15/15 API-0 검증 및 실제 같은-id 재개·bash 자식 숨김 확인(2026-10-08). 엄격 파서의 실제 기동 실패와 수선은 [PI-DURABLE.md](PI-DURABLE.md)에 보존했다. [전체 레퍼런스 계약과 증거 한계](pi-durable/README.md), [셸 헬퍼](README.md#shell-aliases-bashrclocal), `./run.sh test:pi-durable-env`.
+
 ## Telegram (분신 에이전트)
 
 | 변수 | 용도 |

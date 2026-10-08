@@ -1709,6 +1709,7 @@ Usage: ./run.sh <command> [args]
   demo:autopilot              [DEMO] autopilot→decision-gate 다리를 눈으로 — 실물 runConsult(스텁 형제)·dm.sh --dry-run + 설치된 pi 격리 RPC (텔레그램·모델 0)
   test:session-memory-warm    세션 기억 warm-on-demand seam 회귀 (API/임베딩 호출 없음)
   test:pi-packages            지원 Pi 패키지 로드 + recall tool 충돌 회귀 (API/LLM 호출 없음)
+  test:pi-durable-env         pi-durable --native-module env/hide 모듈 회귀 + Entwurf ingress·오프라인 provider 발견 (API 0)
 
 === 인덱싱 ===
   index:sessions [--force]    세션 인덱싱 (OpenRouter 8B / 4096d)
@@ -1844,6 +1845,10 @@ case "${1:-help}" in
       bash "$SCRIPT_DIR/pi-extensions/tests/session-memory-warm-launcher.test.sh" ;;
   test:pi-packages)
     python3 "$SCRIPT_DIR/pi-extensions/tests/pi-packages-smoke.py" ;;
+  test:pi-durable-env)
+    # 합성 HOME·합성 dotenv만. Entwurf 체크아웃(dist 빌드)이 없으면 [prerequisite] 가
+    # entwurf-checkout-missing 으로 실패한다(rc 1). 체크아웃 없이 단위만: node --test pi-durable/tests/env.test.mjs
+    node --test "$SCRIPT_DIR"/pi-durable/tests/*.test.mjs ;;
 
   # === andenken (delegated) ===
   test|test:unit|test:integration|test:search)
