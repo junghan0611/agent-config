@@ -34,6 +34,10 @@
 
 # NOW
 
+- **전체 임베딩 판독 — 좌표 15의 3번째 판독점 (2026-10-08, thinkpad).** sessions `--global` 104,141 chunks · md 11,002 chunks(+19) · OpenClaw 6,951 rows, 세 축 모두 verify·오라클 발행 통과(로그 `/tmp/andenken-embed-*.log`, 호스트 로컬). prune은 오늘 3건(glg·mini·bbot `sup✓`)이고 백업·receipt는 andenken `data/openclaw-prune/`.
+  - **bbot dirty 22/23은 「대화 중」이 아니었다.** 원인은 OpenClaw 9.8의 크론 부모 세션 분류 누락(검사는 색인 대상으로 세고 실제 색인은 시스템 메시지뿐이라 제외) — nixos-config `9c20d2b`, `docs/openclaw-gotchas.md` bbot dirty 절. 패치는 9.8 한정이라 **OpenClaw 버전업 때 상류 수정 여부 확인·회수**. 이 집이 처음에 「대화 중」으로 추측한 것은 틀렸다.
+  - **dirty가 되풀이되면:** 단정하지 말고 source별 indexed/eligible·identity·누락 항목을 대조한다. `--force` 재색인·dirty hold 우회 금지. 이전 수확본의 dirty는 자동 갱신되지 않으니 오라클 수선 뒤엔 `sync:openclaw`부터 다시.
+
 - **최근 닫힘 — 좌표 24, Entwurf 0.32.0 소비자 레퍼런스 (2026-10-08).** env/hide 구현·엄격 파서 사건과 Pi-compatible 수선·15/15 검증·실제 같은-id 재개는 `CHANGELOG.md v2026.10.8`과 `PI-DURABLE.md`에 승격했다. 사용·테스트·경계는 `pi-durable/README.md`, 셸 helper는 루트 README. 다음 세션은 이 구현을 다시 만들지 않는다. bridge 전체 env·운영 routing은 미측정이며, 관측 요청 없이 프로세스/셸/환경 파일을 바꾸지 않는다.
 
 - **`pi-durable` 후속 실물 관측 — 좌표 23 (2026-10-08 갱신, PAUSED).** 독립 명부·peek의 enum/SQLite 관측 구분 수선(81 checks)·10-06 첫 레인 사건 기록은 이미 커밋됐고 `CHANGELOG.md v2026.10.8`로 승격했다. 당시 D0/source-only/0.31.0 출하 대기는 역사다; 현재는 **0.32.0 carrier + Pi 1.0.4 SDK·D2·contact 6개** (`PI-DURABLE.md` 마지막 날짜 절). 미커밋이라고 다시 읽지 않는다.
