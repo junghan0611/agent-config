@@ -28,7 +28,7 @@ upstream 소스를 공유한다는 사실이 두 하네스의 런타임·저장�
 
 ---
 
-> **현재 안내 (2026-10-08):** Entwurf **0.32.0**는 출하됐고 패키지 carrier + Pi **1.0.4** SDK 공급·D2·native contact 6개가 현재 계약이다. 이 집의 env/hide 레퍼런스와 실제 같은-id 재개도 확인했다. 아래 `상태 — 2026-10-06`과 첫 구현 절은 당시 관측으로 보존한다; 최신 계약은 마지막 [0.32.0 소비자 레퍼런스 절](#2026-10-08-0320-소비자-레퍼런스--현재-공급실행-계약), 사용·테스트는 [pi-durable/README.md](pi-durable/README.md), 셸 함수는 [루트 README](README.md#shell-aliases-bashrclocal)를 먼저 보라.
+> **현재 안내 (2026-10-09):** Entwurf **0.34.0** npm 출하·accepted bytes가 확인됐고, carrier + Pi **1.1.0** SDK·native BG 배지·명시 file/directory ingress가 공급된다. env-first background-bash 소비자의 installed integration과 published core binding도 닫혔다. GLG가 `pdc`의 `index.mjs` 전환·소비자 커밋/푸시를 승인했다. 앞의 0.32.0/1.0.4 및 0.33.x PARTIAL 절은 당시 기록이다. 최신 상태는 마지막 2026-10-09 절, 사용·테스트는 [pi-durable/README.md](pi-durable/README.md), 셸 함수는 [루트 README](README.md#shell-aliases-bashrclocal)를 먼저 보라.
 
 ## 상태 — 2026-10-06
 
@@ -561,3 +561,109 @@ GLG의 일관성 질문(*"왜 이전에 pi는 그냥 되고 이건 안되는거�
 - 실제 same-id 재개와 bash 자식의 숨김은 위 영수증의 범위에서 닫혔다. bridge 전체 env·각 주입 값의 운영 의미·분기 routing은 미측정이다.
 - D2를 crash/recovery·exactly-once 수용으로 올리지 않는다. 벤더 모델 턴·native admission을 이번 API-0 테스트가 대신하지 않는다.
 - 기억축은 여전히 [andenken#15](https://github.com/junghan0611/andenken/issues/15) Q1–Q7 판정·착지 뒤 소비한다. live DB(RO 포함)는 열지 않았다. prompt에 스킬이 실제 주입되는 모양·durable store mtime의 관측 효용은 별도 실물 관측 과제로 남긴다.
+
+## [2026-10-08] 모래시계 — background-bash 네이티브 이식 검토
+
+**GLG 요청:** env-loader는 동작하지만 작업을 걸고 기다릴 모래시계가 없어 불편하다. durable용 구현 가능성을 검토한다. 이번에는 제품 구현·설치·재시작을 하지 않았다.
+
+### 찾은 기능과 가능한 네이티브 길
+
+- 기존 기능은 `pi-extensions/background-bash.ts`: `bash_background`로 시작·즉시 반환, `bash_background_check`로 조회·중단, 실행 중 `⏳ n tasks`, 완료 시 `sendMessage(triggerTurn: true)`로 에이전트를 다시 호출한다. `[읽음 :253–332, :452–566; README §background-bash]`
+- durable의 네이티브 Extension은 `tools/sections/hooks/wraps/tasks`를 받지만 `ctx.ui.setStatus`·`registerCommand`를 제공하지 않는다. 기존 Pi 확장 factory를 그대로 가져오는 길이 아니다. `[읽음 entwurf node_modules/@earendil-works/pi-durable/dist/harness/types.d.ts:206–218; bootstrap.mjs:135–158]`
+- `background: true`인 conversation-owned task는 일반 idle 대기·Esc 범위에서 빠지며, task 안에서 conversation에 `submit(whenBusy: "followUp", requestId)`할 수 있다. tool 호출이 끝난 뒤 그 호출의 api를 보관해 쓰면 거절된다 — 완료 보고는 살아 있는 네이티브 task의 invocation에서 해야 한다. `[읽음 dist/types.d.ts:132–189, :229–243; dist/harness/types.d.ts:73–80, :109–148; upstream test/examples/23-subagent-background.ts:71–119]`
+- 현 TUI는 taskGraph를 `/tasks` 패널로 보여 주고 시작 시 패널을 연다. 네이티브 task로 등록하면 하네스가 이미 가진 표시면을 사용할 수 있다. 푸터의 **동일한 `⏳ n tasks` 배지**는 별도 UI 접점이 필요한 후속이며, native module만으로 제공된다고 하지 않는다. `[읽음 entwurf pi/pi-durable/carrier/runtime.js:333–344, :363–364; carrier/tui.js:313–334, :509–519]`
+
+### API-0 측정 — 네이티브 task 원시만 확인
+
+현재 로컬 entwurf checkout은 package `0.33.0`, 설치 SDK는 **1.1.0**이었다. 위 0.32.0/1.0.4 출하 영수증을 갱신하거나 0.33.0 수용으로 승격하지 않는다. `[측정 package.json·설치 pi-durable/package.json, 2026-10-08]`
+
+`MemoryStorage`와 모델 provider 없는 registry에 gate로 기다리는 background task 하나를 설치해 다음 네 단언을 통과했다. `[측정 이 세션 bash 영수증, 2026-10-08]`
+
+```text
+PASS: native background task visible in taskGraph (/tasks data source)
+PASS: conversation can settle while background task runs
+PASS: ordinary conversation abort leaves background task running
+PASS: completed background task disappears from live taskGraph
+Scope: installed SDK 1.1.0, MemoryStorage, no model/provider calls, no live DB/TUI or shell commands
+```
+
+첫 probe는 CJS `require.resolve`가 Chord의 import-only `./context` export를 못 풀어 실행 전 실패했다. entwurf cwd에서 정상 ESM import로 재측정한 결과가 위 영수증이다. `[측정 ERR_PACKAGE_PATH_NOT_EXPORTED → 네 단언 PASS]` 실제 명령 실행·완료 후 모델 재호출·재시작·중단·TUI 시각 수용은 **미측정**이다.
+
+### 구현 제안 — 아직 착수하지 않음
+
+1. 이 집의 `pi-durable/background-bash.mjs`에 같은 도구 이름 두 개와 네이티브 background task를 둔다. 상태·실행·결과 전달은 native task/commit/inbox에 맡기고 별도 manager·watcher·queue를 만들지 않는다.
+2. `--native-module`은 **하나**이므로 env 초기화를 유지하면서 env와 background를 합친 native object 하나를 내보낸다. 가능하면 기존 `env.mjs` 진입 경로를 유지해 기존 셸 helper의 환경 로딩이 빠지지 않게 한다. `[읽음 bootstrap.mjs:374; 이 집 env.mjs:82; 합성 방식은 제안]`
+3. 기본 SDK import를 무심코 추가하지 않는다. 이 집 cwd에서는 `@earendil-works/pi-durable`·`pi-ai` 모두 `ERR_MODULE_NOT_FOUND`였다. 실제 설치 ingress에서 SDK 공급 경계와 native object/schema 등록을 먼저 API-0로 증명하며, 이 집이 다른 버전의 runtime을 설치하거나 복제하지 않는다. `[측정 import.meta.resolve, 2026-10-08; 해결 방식은 미결정]`
+4. **임의 셸 명령은 replay-safe가 아니다.** native task는 자체 phase를 재개하므로 tool의 `replay: "unsafe"` 표기만으로 내부 background 효과의 중복 실행이 막힌다고 하지 않는다. 실행 intent·중단 불확실 상태·결과 commit·report requestId를 분리해, crash 뒤 명령을 자동 재실행하지 않는 경계를 먼저 검증한다. `[읽음 dist/types.d.ts TaskRuntime/TaskDefinition, durable README §Tools·Child Tasks; 실행 경계는 제안/미검증]`
+5. 첫 수용은 비차단 시작·native `/tasks` 가시성·한 번의 완료 follow-up·오류/timeout·명시적 stop·종료/재개 시 중복 실행 금지를 API-0로 확인한다. 마지막에 GLG의 실제 새 기동/같은-id 재개·긴 명령 하나로 수용한다. 하단 모래시계 배지가 반드시 필요하면 UI 공급 담당인 entwurf의 별도 접점 판단을 받되, 지금 그 레인에 작업을 보내지 않는다.
+
+## [2026-10-08] 푸터 모래시계는 필수 — 작업 실행과 같은 수용 범위
+
+**GLG가 범위를 정정했다:** *“footer 일부를 가져와서 맞춰서 넣어야겠는데? 필연적으로 모래시계가 없으면 알수가 없거든 이것도 같이 봐줘.”* 위 검토의 `/tasks` 우선·배지 후속 제안은 이 요구를 충족하지 못한다. **비차단 실행 + 완료 재호출 + 항상 보이는 작업 상태**를 하나의 수용 범위로 잡는다. 이번에도 제품 수정은 하지 않았다.
+
+### 추가로 읽어 확인한 틈
+
+- durable에는 이미 두 줄 footer와 `#syncFooter(view)`가 있다. Pi의 footer 전체를 복제할 필요가 없다. 가져올 부분은 `glg-footer.ts:338–346`의 상태 표시 UX와 `background-bash.ts:253–265`의 pending count이다. sessionManager·ExtensionAPI·Pi usage 누적은 durable로 베끼지 않는다. `[읽음 entwurf carrier/tui.js:160–162, :211–212, :376–408; 이 집 두 Pi 확장]`
+- `/tasks`를 숨기면 `toggleTasks()`가 `closeTasks()`로 graph 구독을 해제하고 view의 tasks를 undefined로 바꾼다. 표시된 상세 창의 데이터만으로 footer를 계산하면 숨길 때 상태도 사라진다. **관측과 패널 표시를 분리해야 한다.** `[읽음 carrier/runtime.js:253–260, :333–344]`
+- footer는 dock에서 `shrink: 1, minSize: 0`이다. 좁고 낮은 pane에서 사라지지 않는다는 보장은 현재 없다. **배지의 폭/높이 우선순위도 계약**에 포함해야 한다. `[읽음 carrier/tui.js:219–225; Pi docs/tui.md §Understand the component model]`
+- 네이티브 Extension에는 UI factory/status sink가 없고, `--native-module` ingress도 object 설치만 한다. 따라서 지금 env 모듈에 `setStatus`를 붙이거나 stdout에 직접 ANSI를 쓰는 우회는 하지 않는다. `[읽음 SDK dist/harness/types.d.ts:206–218; bootstrap.mjs:135–158, :374–378; docs/tui.md “Do not create a second terminal renderer”]`
+- emitted `carrier/tui.js`를 손으로 고치면 공급 재현성이 깨진다. 현재 pin의 TUI는 `patched: false`이고 emitter는 **patched file 정확히 하나·patch가 바꾸는 파일 정확히 하나**를 요구한다. runtime+TUI의 두 접점 수정에는 이 좁은 공급 계약과 그 테스트도 함께 바뀌어야 한다. `[읽음 overlay/upstream-pin.json:20–36; scripts/emit-pi-durable-carrier.ts:121–135, :175–201]`
+
+### 최소 구성 제안 — 새 UI framework가 아니라 기존 footer 한 칸
+
+```text
+agent-config native tool → durable background task/commit
+                                      ↓
+                     기존 taskGraph 관측 (항상 유지)
+                           ├─ /tasks 상세 창 (숨김 가능)
+                           └─ footer ⏳ n tasks (숨김 불가)
+```
+
+- **데이터:** 기존 graph 구독 하나를 수명 전체에 유지한다. `/tasks`는 표시 boolean만 바꾸고 종료 시 구독을 dispose한다. 별도 watcher·polling·manager를 추가하지 않는다. `[제안; native taskGraph는 이미 commit 기반, 읽음 SDK dist/harness/task-graph.d.ts]`
+- **범위:** 배지는 선택된 대화가 아니라 session 전체의 live background task를 센다. 다른 대화로 화면을 바꿔도 진행 중 작업을 감추지 않는다. `pending/waiting/completing/aborting`도 미완료로 표시하고 terminal이 된 뒤 빠진다. task 수는 native task 수이지 OS 프로세스 수라고 하지 않는다. `[제안; graph node 필드는 읽음 dist/harness/task-graph.d.ts:5–33]`
+- **화면:** 기존 footer의 앞쪽/보호된 상태 줄에 `⏳ 1 task`를 넣는다. 작업 중에는 키힌트·긴 cwd부터 줄이고 배지를 먼저 보존한다. 폭은 native `visibleWidth/truncateToWidth`로 계산하고 새 터미널 렌더러는 만들지 않는다. 시작·완료 commit으로 갱신하므로 배지만을 위한 초당 timer는 불필요하다. `[제안; 기존 Pi count도 timer 없음, 읽음 background-bash.ts:422–424]`
+- **소유:** 실행 도구·env 합성은 이 집, durable view/TUI 공급 overlay·emitter·재생성/설치 증명은 entwurf다. consumer가 런타임을 포크하거나 classic Pi 호환층을 만들지 않는다. 이 검토는 형제 호출·다른 리포 수정·현재 컷 변경의 승인이 아니다. `[읽음 이 집 AGENTS.md §durable 소비자·entwurf docs/durable-native-support.md §Ownership; 분할은 제안]`
+- **수용:** 턴 종료 후 배지 유지 → `/tasks` 숨김 후 유지 → 작업 중 화면 전환 후 유지 → 둘 시작/하나 완료/마지막 완료에 2→1→없음 → 좁은 폭·낮은 높이·resize → 재개 중 interrupted/pending을 성공으로 숨기지 않음. API-0 상태/renderer 검사 뒤 실제 TTY 긴 명령으로 확인한다. **이 추가 UI 수용은 아직 미측정**이다.
+
+## [2026-10-08] 소비자 구현·수선 검수 — 전체는 PARTIAL, entwurf 0.33.x 지원 대기
+
+GLG가 Opus 구현과 이 세션 검수를 요청했다. 소비자 Claude Code Opus `20261008T195210-0fbe54`가 구현했고, 조율/검수는 이 집 durable `20261008T084123-6f5c09`가 맡았다. 이어 GLG가 *“entwurf 0.33.x 수정에 넣을게 기다려야겠다. 맞춰서 가야겠어. 제대로 된 지원 받으려면 우리쪽에서 할것과 나눠서”*라고 범위를 정했다. 공급 담당 coordinator `20261008T113104-801621`에게 전달했고, 공개 후속 좌표는 [entwurf#134](https://github.com/junghan0611/entwurf/issues/134)다. 구현 슬롯·작성자·비용/최종 gate는 그 집의 후속 판단이며 0.33.0 컷에 소급 추가하지 않는다.
+
+### 이 집에 준비된 것 — 운영 기본값은 아직 바꾸지 않는다
+
+- `pi-durable/background-bash.mjs`: `bash_background`/`bash_background_check`, conversation-owned native background task `agent-config.bash-background`. SDK import/설치 없음; plain extension/task object와 JSON Schema를 실제 owning SDK에 등록한다. 실행 intent를 먼저 commit하고, 복구는 `interrupted`로 보고하며 임의 셸을 다시 실행하지 않는다. 완료는 stable requestId의 native follow-up, 사용자 직접 발화가 아닌 자동 결과임을 표시한다.
+- `pi-durable/index.mjs`: env를 먼저 평가하고 위 도구/task를 단일 object `agent-config`로 합친 **명시 PARTIAL preview**. 기존 `env.mjs`/`dotenv.mjs`와 ordinary Pi 확장은 그대로다. 기본 launch/helper 예제와 live 셸은 env-only 유지. index에서 시작한 task를 재개하려면 같은 정의도 다시 로드해야 한다.
+- 새 테스트와 기존 ingress seam을 `./run.sh test:pi-durable`로 연결했다. SDK는 entwurf checkout에서만 가져온다. 실제 검증 조합은 package0.33.0·SDK1.1.0이며 published0.32/SDK1.0.4에 대한 background 수용은 주장하지 않는다.
+
+### 독립 검수에서 발견하고 같은 묶음으로 수선한 것
+
+초기 affected suite 38/38은 통과했지만 추가 native probe가 네 틈을 재현했다: parent exit에 조기 완료해 늦은 출력을 잃음, unref SIGKILL timer 때문에 종료한 앱 뒤 자손이 남음, 실제 close/reopen interrupted 로그의 pre-commit end line으로 prune됨, UTF-8 suffix가 한글을 깨뜨림. API-0 green만으로 수용을 선언하지 않았다.
+
+수선 뒤 이 세션 독립 **14/14 focused PASS(16.39s)** + **2/2 missing-checkout meta PASS(0.48s)**. 합성 outer HOME·env-i·faux provider·실제 bash·소유 tempSQLite 사용, fail/skip 0. 테스트 전후 source/test SHA가 같았고 `git diff --check`도 통과했다. 별도 앱의 자연 종료 뒤 process group 소멸, graph1/report0 동안 늦은 출력 보존, 실제 interrupted/crash 로그 보존, durable result 뒤에만 sidecar retention 권한, marker 포함 UTF-8/전체 로그 상한, 종료 미확인 warning/로그 보존을 확인했다. `survived` 실 커널 상태는 만들지 않았고 표시/retention 분기만 unit으로 검사했다. 종료 시도 대기는 bounded지만 stdio 닫힘과 모든 프로세스의 강제 종료를 보장하지 않는다.
+
+최종 background source SHA256 `5cfaf61f4bd7951a72b1897ba5230ec4e8263350ed9cae7a2f756b98fc06cbce`, index `11258397fce0fe542e254e1d042aa1390fed37f528bdfde13f204c18298953c6`. 구현자가 보고한 이전 amendment 43/43×3은 별도 receipt다; 이 세션의 최종 전체44/44 실행으로 승계하지 않는다. 상세 검수 `.agent-reports/20261008-durable-bg-reviewed.md`(ignored), raw `/tmp/durable-bg-amend-review-rKmYRrLI/review.log`(호스트 로컬); 결정적 수치는 위에 함께 보존했다.
+
+### 남은 접점과 멈춤선
+
+소비자 코드/affected API-0 검수는 닫혔으나 **전체 기능은 PARTIAL**이다. 필수 footer·상시 taskGraph 관측·패널 표시 분리·좁은 pane 보호·명시 module directory/filter·overlay/emitter/installed-consumer 공급은 entwurf#134의 몫이다. 옵션명/파일 패턴은 아직 제안, 이 집은 디렉터리 loader/숨은 UI patch/두 번째 runtime을 만들지 않는다. 그 지원 착지 뒤 실제 TTY·설치된 공급 bytes·fresh/continue·완료 재호출을 같은 수용 범위로 잇는다. live index 기동·실 모델 선택·실 footer는 아직 미측정, 이번 새 작업 commit/push·배포·live 설정 변경은 수행하지 않았다.
+
+## [2026-10-09] 0.34.0 출하·실제 소비자 설치 접점 — pdc 전환 승인
+
+**공급 대기는 닫혔다.** `[상속: entwurf coordinator 20261008T113104-801621의 final registry/U3 receipt; 직접 readonly: 보존 registry.tgz/M3 SHA와 P6 core4 대조]` Entwurf #134의 lifetime graph·보호된 native BG badge·명시 directory/filter loader가 #133과 함께 **0.34.0**으로 출하됐다. [릴리즈](https://github.com/junghan0611/entwurf/releases/tag/v0.34.0) source/tag/main `ca1cded3554ba6e58a8991637a4d3c276e83288f`, accepted/published tgz SHA256 `e9d995ff3858ffca40fa12b4fce2a6db3802da3ee27c7b233142fc4c71f23450`, 13,576,954 bytes. 이집이 downloaded registry artifact와 M3를 직접 대조했고, 그 runtime/TUI/bootstrap/resolver 4개는 P6의 실제 installed candidate와 byte-identical이었다. 새 설치/재실행으로 같은 증거를 만들지는 않았다.
+
+### 실제 소비자 P6 — fake executor가 아니라 실제 native 경로
+
+`[실측자: 기존 공급 Opus 20261008T213950-09069e; 그 coordinator 독립 검수 receipt 상속; 이집 source/screens/hash readonly 대조]` 모든 HOME/PI/XDG/DB/PTY/bridge roots를 소유한 temporary installed candidate에서 원본 index/env/dotenv/background-bash 4개 사본 해시를 맞췄다. env/index 평가 뒤 **실제 ModelRuntime factory/public registerNativeProvider**에 faux를 등록하는 단일 test-only seam만 사용, original aggregate를 그대로 export했다. CLI/carrier/Harness/SQLite/task graph/TUI/tool executor는 대체하지 않았다.
+
+- 실제 SDK `bash_background` #13 및 `bash_background_check`, native kind/background=true, parent idle. `/tasks` hidden에서도 `⏳ 1 task`는 100×30/28×6/**12×2**에 남았다.
+- gate release 뒤 exit0/log tail·one automated follow-up `bash-background-report:13`·faux noted·badge0. 둘째 #34는 정상 close 뒤 동일 garden id로 두 번 continue: `interrupted`/unknown outcome/NOT run again, marker=1, 보고1. OS 전체 종료를 task terminal/count0로 보증하지 않는다.
+- 이집이 보존 source/allowlist/screens/faux log·marker를 읽고 원본/사본/temporary tgz의 hash를 직접 확인했다. SQL requestId 각각1 및 app/bridge/process group gone는 공급자 실측의 상속이며 이집 live SQL/PID 재검사는 아니다.
+- **8 scripted faux rounds**, vendor model 호출/과금0 by construction. Synthetic token counters는0이 아니며 network-level sniff/실 모델 자율선택/GLG physical TTY로 승격하지 않는다. 이번 cut의 manual TTY/새 Claude는 owner-deferred, AGY7은 owner-waived/NOT CERTIFIED였고 normal hooks/CI/accepted bytes는 면제하지 않았다.
+
+원 temporary tgz `2a1cd9e1…`는 M3 `e9d995ff…`와 다른 archive다. Published-byte binding으로 source 접점을 닫았지 원 14/14+2/2·seeded Hold·P6·U3를 하나의 새 whole consumer PASS로 합치지 않는다. U3의 19s registry-installed model-list smoke는 별도 supplier receipt이며 BG 재실행이 아니다. 공개 인계: [#134 최종 댓글](https://github.com/junghan0611/entwurf/issues/134#issuecomment-6071983472), [#133](https://github.com/junghan0611/entwurf/issues/133#issuecomment-6071973560).
+
+### GLG의 이번 소비자 전환 승인과 다음 재개
+
+`[직접: 이 세션 GLG “우리도 커밋푸시하자 리드미 업데이트하고 … ~/.bashrc.local에 pdc 커맨드 수정”]` 기존 env-first 코드는 바꾸지 않고, README의 launch/reference는 `index.mjs` aggregate로 정렬했다. 로컬 **pdc 함수만** `--continue --native-module "$HOME/repos/gh/agent-config/pi-durable/index.mjs"`로 수정한다. 같은 cwd의 newest session에 매번 정의를 재설치하며 fresh-only provider/model/width는 붙이지 않는다. 다른 live helper·HOME env file·DB·runtime은 바꾸거나 재시작하지 않는다.
+
+현재 host의 전역 가용 entry는 checkout `run.sh`로 이어지는 DEVLINK(그 coordinator readonly census 상속), 전역 npm 설치가 아니다. GLG가 shell 정의를 다시 읽고 ordinary 세션을 열어 실제 사용한다. 디렉터리 옵션은 명시 `*.extension.mjs` opt-in의 별도 선택지이며 지금 plain 파일 폴더를 ambient scan하지 않는다. 이집이 SDK/runtime/renderer를 복제하지 않는 소유 경계는 그대로다.

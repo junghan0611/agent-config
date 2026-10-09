@@ -29,6 +29,7 @@ import { after, describe, it } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ENV_MJS = fileURLToPath(new URL("../env.mjs", import.meta.url));
+const INDEX_MJS = fileURLToPath(new URL("../index.mjs", import.meta.url));
 const ENTWURF = process.env.AGENT_CONFIG_ENTWURF_DIR ?? path.join(homedir(), "repos", "gh", "entwurf");
 const BOOTSTRAP = path.join(ENTWURF, "pi", "pi-durable", "bootstrap.mjs");
 const CONTACT = path.join(ENTWURF, "mcp", "entwurf-bridge", "dist", "pi-extensions", "meta-bridge-pi-durable.js");
@@ -100,6 +101,7 @@ const seamScript = (root, argv) => `
 		open: async (options) => {
 			trace.events.push("open");
 			trace.opened = { cwd: options.cwd, continueSession: options.continueSession, names: options.extensions.map((e) => e.name) };
+			trace.installed = options.extensions.map((e) => ({ name: e.name, tools: (e.tools ?? []).map((t) => t.name), tasks: (e.tasks ?? []).map((t) => t.definition.name) }));
 			return {
 				view: { current: () => ({ session: { id: "1759622400000-0b5e2a4c-1f3d-4e8a-9c7b-2d6f8e1a3c5b", directory: path.join(root, "durable"), cwd: options.cwd } }) },
 				controller: {}, settings: {}, submitToRoot: async () => ({ id: 41 }), close: async () => {},
@@ -137,6 +139,28 @@ describe("env.mjs through Entwurf's --native-module ingress", { skip }, () => {
 			assert.deepEqual(trace.opened, { cwd: box.cwd, continueSession: label === "--continue", names: ["entwurf", "agent-config-env"] });
 			assert.equal(trace.cwd, box.cwd);
 			// The bridge spawn SPEC built from process.env (not the bridge child's actual inheritance).
+			assert.deepEqual(trace.specs, [{ LOADED: "yes", OPENROUTER_API_KEY: false }]);
+		});
+	}
+});
+
+describe("index.mjs (env + background-bash) through the same ingress", { skip }, () => {
+	const dotenv = ["export LOADED=yes", `GEMINI_API_KEY=${SYNTHETIC}`].join("\n");
+	for (const [label, argv] of [
+		["new session", ["--provider", "loopback", "--model", "scripted", "--width", "task-wide", "--native-module", INDEX_MJS]],
+		["--continue", ["--continue", "--native-module", INDEX_MJS]],
+	]) {
+		it(`${label}: env initialized first, one native object installed after the contact, no reserved name`, () => {
+			const box = sandbox(dotenv);
+			const trace = node(box, { OPENROUTER_API_KEY: SYNTHETIC }, seamScript(box.root, argv));
+			assert.deepEqual(trace.events, ["loadTui", "open", "tui"]);
+			assert.deepEqual(trace.atTui, { LOADED: "yes", OPENROUTER_API_KEY: false, GEMINI_API_KEY: false });
+			assert.deepEqual(trace.opened.names, ["entwurf", "agent-config"]);
+			assert.deepEqual(trace.installed[1], {
+				name: "agent-config",
+				tools: ["bash_background", "bash_background_check"],
+				tasks: ["agent-config.bash-background"],
+			});
 			assert.deepEqual(trace.specs, [{ LOADED: "yes", OPENROUTER_API_KEY: false }]);
 		});
 	}

@@ -315,7 +315,7 @@ describe("env.mjs (child process, fake HOME)", () => {
 	});
 });
 
-describe("tests/entwurf.test.mjs without an Entwurf checkout", () => {
+describe("tests/entwurf.test.mjs and tests/background.test.mjs without an Entwurf checkout", () => {
 	it("fails by name with a nonzero exit, never a silent skip", () => {
 		const { root } = sandbox();
 		const entwurfTest = fileURLToPath(new URL("./entwurf.test.mjs", import.meta.url));
@@ -330,5 +330,20 @@ describe("tests/entwurf.test.mjs without an Entwurf checkout", () => {
 		assert.match(r.stdout, /entwurf-checkout-missing: .*no-entwurf\/pi\/pi-durable\/bootstrap\.mjs/);
 		assert.match(r.stdout, /^ℹ fail 1$/m);
 		assert.match(r.stdout, /^ℹ pass 0$/m);
+	});
+
+	it("tests/background.test.mjs fails by name too; only its in-process units pass", () => {
+		const { root } = sandbox();
+		const backgroundTest = fileURLToPath(new URL("./background.test.mjs", import.meta.url));
+		const r = spawnSync(process.execPath, ["--test", backgroundTest], {
+			cwd: root,
+			env: { PATH: process.env.PATH, HOME: root, AGENT_CONFIG_ENTWURF_DIR: path.join(root, "no-entwurf") },
+			encoding: "utf8",
+			timeout: 60_000,
+		});
+		assert.equal(r.status, 1, r.stdout + r.stderr);
+		assert.match(r.stdout, /entwurf-checkout-missing: .*no-entwurf\/node_modules\/@earendil-works\/pi-durable/);
+		assert.match(r.stdout, /^ℹ fail 1$/m);
+		assert.match(r.stdout, /^ℹ pass 5$/m);
 	});
 });

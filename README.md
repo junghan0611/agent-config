@@ -55,7 +55,7 @@ If `entwurf` asks “what does a real consumer look like?”, this repo is the a
 | Claude skill plugin farm | pair boundary | this repo builds one consumer layout at `~/.pi/agent/claude-plugin/`, then points `entwurf` at it |
 | Skills / prompts / themes / profile | `agent-config` | SSOT in `skills/`, `commands/`, `pi-themes/`, `home/AGENTS.md` |
 | Consumer install/update policy | `agent-config` | `run.sh setup` / server-device upgrade path |
-| Durable native module | `agent-config` | [`pi-durable/env.mjs`](pi-durable/env.mjs): env-loader + provider hiding through Entwurf 0.32.0's explicit `--native-module`; [reference implementation](pi-durable/README.md) |
+| Durable native module | `agent-config` | [`pi-durable/index.mjs`](pi-durable/index.mjs): env/hide first, then native background-bash tools; Entwurf **0.34.0 / Pi 1.1.0** supplies the persistent BG badge, independent of `/tasks`. Published-byte-bound installed integration verified with scripted faux; [reference implementation](pi-durable/README.md) |
 | Production verification | pair boundary | day-to-day use here, bridge invariants in `entwurf` |
 
 In short: **entwurf defines the bridge contract; agent-config proves the contract against lived use.**
@@ -90,7 +90,7 @@ The result: context survives across sessions, across harnesses, across models. O
 | **Copilot CLI** | skill surface only from this repo | full skill set | `~/.copilot/skills` → `skills/` (directory symlink). `settings.json` / birth plugin / statusLine are entwurf-owned (`install-copilot-bridge`, `install-copilot-statusline`). No MCP doorbell on this rail yet |
 | **Kiro CLI** (optional) | skill surface only from this repo | full skill set when installed | `~/.kiro/skills` → `skills/` when `kiro-cli` is on `PATH`. Kiro is intentionally not an entwurf citizen; its settings, agents, and sessions remain Kiro-owned. |
 | **OMP** (`omp`, oh-my-pi) | custom task-agent catalog from this repo; bridge configuration from entwurf | **deliberately no shared skills** | GLG's **working submarine**: one visible OMP parent calls its in-process agents for the work it receives. `omp/agents/*.md` is linked by `./run.sh setup:links` into `~/.omp/agent/agents/`; profiles bind only a name to a model and “Assist the GLG-requested sibling.” Its built-in automatic roles (`reviewer`, `scout`, `security-reviewer`, `sonic`, `task`) are disabled; a new harness gets the same default. Entwurf owns `install-omp-bridge` / `install-omp-receive` / `install-omp-config`; `~/.omp/skills` remains absent. |
-| **pi-durable** (separate native harness) | its own SQLite conversation store; **not** on the session memory axis yet ([andenken#15](https://github.com/junghan0611/andenken/issues/15) parked) | **full skill set, with no new link** — the durable app calls the same `loadSkills({cwd, agentDir, skillPaths, includeDefaults:true})` pi does (read at `experimental/durable/prompt.ts:34` @v1.0.4), so `~/.pi/agent/skills` reaches it | Entwurf **0.32.0** supplies the emitted app carrier and exact **Pi 1.0.4** SDK set in its npm package; no operator source checkout or old fixed-XDG runtime is required. Classic Pi extensions still do not load. This repo supplies an explicit native env/hide module, not an ExtensionAPI shim. `semantic-memory` remains the skill door; its Pi-only registerTool shortcuts are absent. Same-id `--continue --native-module` restart measured on 2026-10-08; [reference](pi-durable/README.md), [matrix and receipts](PI-DURABLE.md). |
+| **pi-durable** (separate native harness) | its own SQLite conversation store; **not** on the session memory axis yet ([andenken#15](https://github.com/junghan0611/andenken/issues/15) parked) | **full skill set, with no new link** — the durable app calls the same `loadSkills({cwd, agentDir, skillPaths, includeDefaults:true})` pi does (read at `experimental/durable/prompt.ts:34` @v1.0.4), so `~/.pi/agent/skills` reaches it | Entwurf **0.34.0** supplies the emitted app carrier and exact **Pi 1.1.0** SDK set in its npm package; no operator source checkout or old fixed-XDG runtime is required. Classic Pi extensions still do not load. This repo supplies an explicit native env/hide + background-bash aggregate, not an ExtensionAPI shim. `semantic-memory` remains the skill door; its Pi-only registerTool shortcuts are absent. Same-id `--continue --native-module` restart measured on 2026-10-08; [reference](pi-durable/README.md), [matrix and receipts](PI-DURABLE.md). |
 | **OpenClaw** (4 bots) | andenken skill (same SSOT via symlink) | full skill set | settings / Nix store mount |
 
 **OpenCode is not used.** It once appeared in this table and in the fan-out list, but `run.sh` never wires it — there is no `~/.config/opencode/skills` link and no OpenCode branch anywhere in setup. The rows have been removed rather than left as an aspiration; a harness this repo does not actually reach should not be advertised as supported.
@@ -193,11 +193,13 @@ Two things learned the hard way, recorded so they are not re-derived: spawn thro
 
 External Pi packages have two ownership paths: andenken remains the cross-harness `semantic-memory` skill and entwurf self-registers its citizen surface; supported Pi-only packages are tracked in [`pi/packages.json`](pi/packages.json), installed or updated through `setup:pi-packages`. None are merged directly into this repo's settings reference.
 
-### Durable Native Module — a reference consumer of Entwurf 0.32.0
+### Durable Native Module — env first, background tools and native badge (Entwurf 0.34.0)
 
 **entwurf는 접점을 공급하고, 이 집은 실제 소비자를 증명한다.** [`pi-durable/env.mjs`](pi-durable/env.mjs) is the reference implementation: an ordinary ES module initializes environment variables **before** the durable TUI/runtime and provider discovery, then exports a native `{ name: "agent-config-env" }` object. No SDK value import, classic Pi extension shim, plugin manager, or runtime installation is added here.
 
 It reads the home `~/.env.local` only, follows the existing Pi loader's assignment-reading semantics, preserves existing values (including an explicit empty string), leaves citizen identity/cwd untouched, and removes the four skill-only provider keys from the parent environment. It does **not** execute shell code or evaluate `case` branches. Skills needing a hidden key read the home file themselves. Full contract and API-0 verification: [`pi-durable/README.md`](pi-durable/README.md); ready-to-use `pdt` / `pds` / `pdc`: [§ Shell Aliases](#shell-aliases-bashrclocal).
+
+**Background commands — supplied in Entwurf 0.34.0 (2026-10-09).** [`pi-durable/index.mjs`](pi-durable/index.mjs) evaluates `env.mjs` first and installs one native object, `agent-config`, carrying `bash_background` / `bash_background_check`: a long command returns a task id at once, the conversation can be idle, and a native follow-up reports the result. Recovery reports `interrupted` rather than replaying arbitrary shell. Entwurf owns the **protected `⏳ n tasks` badge** and lifetime graph observation; hiding `/tasks` does not hide ongoing work, and narrow panes use an ASCII active marker. The count is live native tasks, not a guarantee that all OS processes ended successfully. The actual installed-candidate integration exercised both SDK tools, hidden-panel badge, completion and two same-id reopens with scripted faux; its four core files are byte-identical through accepted M3 and the published npm artifact. Vendor autonomous selection and GLG's physical TTY remain unmeasured, not a new release blocker. GLG authorized `pdc` to use `index.mjs` on 2026-10-09; env-only `env.mjs` remains available. Contract, receipts and optional explicit directory/filter loading: [`pi-durable/README.md`](pi-durable/README.md).
 
 **The incident is part of the reference.** A stricter first parser passed 15 synthetic checks but refused the real home file's `case` line during restart. It was repaired by returning to Pi's reading policy, not by adding a shell interpreter. A comparator now runs the live Pi parser on the same synthetic corpus; the repaired module also passed a value-free read-only check against the real file. GLG then reopened the same garden id with `--continue --native-module`; the native argv and the bash child's missing provider keys were measured on 2026-10-08. Earlier failures and evidence scopes remain in [PI-DURABLE.md](PI-DURABLE.md).
 
@@ -367,7 +369,7 @@ Eight subjects sit on this bench, and they ask different questions:
 | [herdr](https://github.com/herdrdev/herdr) | Besides our tmux/entwurf floor, how does a popular agent-terminal runtime show stuck panes and survive detach? | **installed and running (0.9.1 measured 2026-09-21), not declared in nixos-config; entwurf now ships a Herdr plugin (`Herdr Entwurf` 0.4.0) on the public marketplace** — matrix in [HERDR.md](HERDR.md) |
 | [Xirp](https://backstage.spotify.com/docs/xirp) (Spotify) | When one product owns the whole factory — sessions, worktrees, workflow status, institutional memory — what does it get that a three-part workshop does not? | **cannot be installed: macOS-only** — observation in [XIRP.md](XIRP.md) |
 | [pi 1.0](https://github.com/earendil-works/pi) | Our own floor reached 1.0. Where does it meet our compaction switch, autopilot/goal/decision-gate, codemode, and the extensions this repo loads? | **read at `v1.0.0` in an isolated worktree, not installed into the live HOME, upstream tests not run** — matrix in [PI.md](PI.md) |
-| [pi-durable](https://github.com/earendil-works/pi/tree/main/packages/durable) | A sibling whose garden id can hold one conversation for a month: what does a *resident* harness change about addressing, skill surface, supply, and what we can honestly observe? | **a separate harness, not a pi feature** — released Entwurf 0.32.0 carrier + Pi 1.0.4 SDK; D2 delivery boundary; native env/hide reference consumer and same-id restart measured 2026-10-08 — [reference](pi-durable/README.md), [matrix](PI-DURABLE.md) |
+| [pi-durable](https://github.com/earendil-works/pi/tree/main/packages/durable) | A sibling whose garden id can hold one conversation for a month: what does a *resident* harness change about addressing, skill surface, supply, and what we can honestly observe? | **a separate harness, not a pi feature** — released Entwurf 0.34.0 carrier + Pi 1.1.0 SDK; D2 delivery boundary; env-first background tools and native badge, installed integration bound to published bytes on 2026-10-09 — [reference](pi-durable/README.md), [matrix](PI-DURABLE.md) |
 
 
 This comparison belongs here, not in entwurf. **entwurf guarantees its own garden-id,
@@ -547,25 +549,25 @@ _pi_garden_pi() { command pi "$@"; }
 # (`pihome`, the --telegram presence variant, was dropped 2026-08-06 with the bridge)
 pia() { _pi_garden_pi --entwurf-control --emacs-agent-socket server "$@"; }
 
-# pi-durable (Entwurf 0.32.0+): packaged Pi 1.0.4 carrier, no old fixed-XDG source runtime.
+# pi-durable (Entwurf 0.34.0+): packaged Pi 1.1.0 carrier, env-first BG aggregate + native badge.
 # New session: provider + exact model + task-wide width. Thinking is the model :level suffix.
 # Every process names its native module explicitly; put that path in the helper once.
 pdt() {
 	entwurf pi-durable --provider openai-codex --model gpt-6.1-sol:medium \
-		--width task-wide --native-module "$HOME/repos/gh/agent-config/pi-durable/env.mjs" "$@"
+		--width task-wide --native-module "$HOME/repos/gh/agent-config/pi-durable/index.mjs" "$@"
 }
 pds() {
 	entwurf pi-durable --provider openai-codex --model gpt-6.1-sol:high \
-		--width task-wide --native-module "$HOME/repos/gh/agent-config/pi-durable/env.mjs" "$@"
+		--width task-wide --native-module "$HOME/repos/gh/agent-config/pi-durable/index.mjs" "$@"
 }
 # Reopen this cwd's newest saved session. Do not pass fresh-only provider/model/width flags.
 pdc() {
 	entwurf pi-durable --continue \
-		--native-module "$HOME/repos/gh/agent-config/pi-durable/env.mjs"
+		--native-module "$HOME/repos/gh/agent-config/pi-durable/index.mjs"
 }
 ```
 
-These are shell examples, not functions installed by `run.sh setup`. `pdt` also names the module so changing thinking effort does not silently drop the environment policy. `pdc` is cwd-local, **not** a garden-id picker: return to the same repository before reopening. `--continue` accepts `--native-module`, but rejects the fresh-only provider/model/width/bootstrap flags. Neither an extension directory nor a saved session automatically reattaches this module.
+These are shell examples, not functions installed by `run.sh setup`. `pdt` also names the module so changing thinking effort does not silently drop the environment policy. `pdc` is cwd-local, **not** a garden-id picker: return to the same repository before reopening. `--continue` accepts `--native-module`, but rejects the fresh-only provider/model/width/bootstrap flags. Neither an extension directory nor a saved session automatically reattaches this module. GLG authorized the local `~/.bashrc.local` **pdc only** to use `index.mjs` on 2026-10-09; other live helpers were not rewritten. In an already-open shell, reload that file (`source ~/.bashrc.local`) before using `pdc`. The current host's `entwurf` is a globally available checkout DEVLINK, not a global npm installation; installing/upgrading it remains Entwurf's responsibility.
 
 Measured 2026-10-08 on thinkpad: `pdc` reopened the same garden id with the module in the native argv, prior dialogue visible, and all four hidden provider keys absent from the bash child. The older 0.31.0 two-Ctrl+C observation is not a 0.32.0 exit guarantee; exit behavior was not re-measured in this cut. [Reference implementation and limitations](pi-durable/README.md).
 
