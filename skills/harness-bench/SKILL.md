@@ -70,8 +70,10 @@ Keep these five lenses together:
   독립하네스야 … 독립적인 대우를 해줘."* 한쪽을 다른 쪽의 절로 접지 않는다. durable의 축은 기능이
   아니라 **시간**이다 — 한 garden id가 달 단위로 한 대화를 쥔다. 기억축(세션 source·임베딩)은
   andenken#15 몫이고, 런타임 공급·접점·출하는 entwurf 레인(#129/#130) 몫이다. 여기는 하네스 면과
-  그 접점을 쓰는 소비자를 본다. Entwurf 0.32.0의 이 집 env/hide 레퍼런스는 `pi-durable/README.md`;
-  실제 같은-id 재개 증거는 `PI-DURABLE.md` 2026-10-08 절. 기존 Pi 확장 rail의 지원으로 오독하지 않는다.
+  그 접점을 쓰는 소비자를 본다. 현재 Entwurf 0.35.0/Pi1.1의 env-first background-bash 레퍼런스는
+  `pi-durable/README.md`; 실제 같은-id/env 재개는 `PI-DURABLE.md` 2026-10-08 절,
+  installed BG 접점은10-09 절, 0.35 registry equality·사용 경험/기억 품질 경계는10-12 절.
+  Herdr plugin0.35의 Pi↔native Claude demo를 durable 설치/fresh-target 지원으로 승격하지 않는다. 기존 Pi 확장 rail의 지원으로 오독하지 않는다.
 - **One advantage per subject — `protocol.md`.** When a run day comes, exercise only what each harness pushes; protocol.md names it plus the turn and isolation it needs. The rail is chosen that day from `MODELS.md`, not frozen here.
 
 README table `Subject / Question / Standing` is the index. A table row without a sibling `NAME.md` is not a license to invent one.

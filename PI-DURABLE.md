@@ -28,7 +28,7 @@ upstream 소스를 공유한다는 사실이 두 하네스의 런타임·저장�
 
 ---
 
-> **현재 안내 (2026-10-09):** Entwurf **0.34.0** npm 출하·accepted bytes가 확인됐고, carrier + Pi **1.1.0** SDK·native BG 배지·명시 file/directory ingress가 공급된다. env-first background-bash 소비자의 installed integration과 published core binding도 닫혔다. GLG가 `pdc`의 `index.mjs` 전환·소비자 커밋/푸시를 승인했다. 앞의 0.32.0/1.0.4 및 0.33.x PARTIAL 절은 당시 기록이다. 최신 상태는 마지막 2026-10-09 절, 사용·테스트는 [pi-durable/README.md](pi-durable/README.md), 셸 함수는 [루트 README](README.md#shell-aliases-bashrclocal)를 먼저 보라.
+> **현재 안내 (2026-10-12):** Entwurf **0.35.0** core와 별도 Herdr plugin0.35 snapshot이 출하됐다. carrier + exact Pi **1.1.0** SDK 9개·native BG/명시 ingress는 유지되고, 직접 읽은 registry archive의 core4가0.34/P6 공급과 byte-equal이다. 소비자 commit/push·pdc 전환·GLG 실제 재개/BG 조회는 닫혔다. 새 Herdr demo는 **ordinary Pi↔native Claude Code**이지 durable fresh-target 지원이나 기억 성능 검수가 아니다. 아래 날짜별 D0/옛 SDK/PARTIAL/freeze는 역사로 보존한다. 최신 상태는 마지막10-12 절, 사용은 [pi-durable/README.md](pi-durable/README.md), 셸 함수는 [루트 README](README.md#shell-aliases-bashrclocal).
 
 ## 상태 — 2026-10-06
 
@@ -667,3 +667,29 @@ GLG가 Opus 구현과 이 세션 검수를 요청했다. 소비자 Claude Code O
 `[직접: 이 세션 GLG “우리도 커밋푸시하자 리드미 업데이트하고 … ~/.bashrc.local에 pdc 커맨드 수정”]` 기존 env-first 코드는 바꾸지 않고, README의 launch/reference는 `index.mjs` aggregate로 정렬했다. 로컬 **pdc 함수만** `--continue --native-module "$HOME/repos/gh/agent-config/pi-durable/index.mjs"`로 수정한다. 같은 cwd의 newest session에 매번 정의를 재설치하며 fresh-only provider/model/width는 붙이지 않는다. 다른 live helper·HOME env file·DB·runtime은 바꾸거나 재시작하지 않는다.
 
 현재 host의 전역 가용 entry는 checkout `run.sh`로 이어지는 DEVLINK(그 coordinator readonly census 상속), 전역 npm 설치가 아니다. GLG가 shell 정의를 다시 읽고 ordinary 세션을 열어 실제 사용한다. 디렉터리 옵션은 명시 `*.extension.mjs` opt-in의 별도 선택지이며 지금 plain 파일 폴더를 ambient scan하지 않는다. 이집이 SDK/runtime/renderer를 복제하지 않는 소유 경계는 그대로다.
+
+## [2026-10-12] 0.35.0 — 상주하는 형제에게 드라이버를 건넨 뒤
+
+### 지금 공급하는 것과 그대로인 경계
+
+`[직접 읽음: entwurf main 4c5455b, core tag48dcc9a, public core/plugin Release 및 npm metadata/archive]` core **v0.35.0**와 별도 **v2026.10.12-herdr.0.35.0** 플러그인 snapshot이 공개됐다. npm latest0.35.0/repair0.12.8-repair.1; archive **11,083,782 bytes**, SHA256 `82ae9ab99b799c987fe0dac4bb76fc406afe42088a128a131af4d69a97592e71`. 직접 재계산한 sha512가 registry integrity와 plugin의 npm lock에 일치한다. pkg의 9개 SDK 선언은 exact1.1.0이다.
+
+`[직접 바이트 대조]` registry의 runtime/TUI/bootstrap/resolver **4/4**가0.34.0 tag와 현재 checkout 모두에 일치했다. 10-09 P6의 네 core 해시와도 같다. 이 집 env/index/dotenv/background-bash 원본 SHA는 그대로다. **공급 접점의 유지**이지 새0.35 installed-runtime/TUI/vendor/crash 검수가 아니다. provenance와 과거 시행착오는 위 절에 남긴다.
+
+`[직접 git/이 대화의 tool receipt, 10-09]` 소비자 코드는 `1db8b76`로 commit/push했고 GLG가 재시작을 보고했다. 이어 두 BG 도구 노출과 `bash_background_check {}` → `No background tasks.`를 확인했다. closing NEXT는 `16e323d`; pdc-only index 전환은 완료됐으며 다른 helper·runtime/DB·프로세스는 자동으로 고치지 않았다.
+
+`[직접 source-read: pi/entwurf-capabilities.json·plugins/herdr/{herdr-plugin.toml,runtime-lock.json,README.md}]` durable은 여전히 **self-fetch D2**, contact6, transcriptPath null/SQLite의 독립 시민이다. Herdr plugin0.35는 npm core0.35를 잠그지만 **P={pi,claude-code}**만 활성화/새 탭 호출한다. durable 설치/fresh-target은 열리지 않았다. direct tmux fresh와 same-cwd local continue도 서로 다른 생명주기이며 native-module 자동 전파는 없다. Coordinator는 임시 협업 역할이지 새 감독 하네스가 아니다.
+
+### GLG가 말한 편안함 — 기억 품질 판정이 아니다
+
+`[GLG가 제공한 10-12 글의 요지, Wikidocs33151]` durable에게 Entwurf 드라이버를 건넨 뒤 심리적으로 편안해졌지만, 얼마나 잘 기억하는지는 평가하지 않았다는 사용 경험이다. 판단 능력이 이미 bottleneck이므로 한계를 존중해 형제들과 나아간다는 관점이다. [공개 원문](https://wikidocs.net/blog/@junghanacs/33151/)의 자동 본문 재접속은403이었으며, 이 해석은 GLG가 제공한 내용에 근거한다.
+
+오래 같은 대화를 쥠, 세션을 넘는 의미 검색, 근거를 찾아 유용하게 판단함은 **세 가지 다른 사실**이다. 편안함을 장기 기억의 성능·속도 우위나 자율 실행 허가로 번역하지 않는다. andenken#15/Q1–Q7·live DB reader 범위는 이 release 정렬에서 열지 않는다. 10-11 화면 판독의 generation task ID도 subagent 수/턴 수가 아니다(기존 llmlog `20261006T174633`); 느린 턴의 paired timing·원인은 미측정이다.
+
+### 새 데모와 검증면
+
+`[직접 source/public Release 읽음]` 0.12 hard cut 이후 새 Herdr GIF는 **ordinary Pi↔native Claude Code**의 callback→task→native Bash→reply를 보인다. 원본 승인 media/private raw capture와 새 LIVE take recipe는 다르다. 이 GIF를 durable-Herdr 지원·이 소비자 badge·기억 품질 검수로 승격하지 않는다. 재촬영/렌더/공개 export도 이번 작업이 아니다.
+
+`[public supplier checkpoint 읽음, 재실행 아님]` core exact-SHA CI38171776316의 four jobs·FULL549s·Node59/59와 artifact Docker는 기록돼 있다. 그러나 **whole940 qualification BODY·native Codex LIVE는 이 cut 한정 미측정 예외**이며 standard release oracle/`--cut` PASS가 아니다. 별도 plugin CI38174959054 four jobs·FULL445s·public main install/use/deactivate/reinstall은 그 source의 영수증이다. #137의 untouched TOML exact-once find span은 자동 BODY SKIP을 줄 뿐, skipped BODY를 PASS로 바꾸거나 모든 plugin/data를 면제하지 않는다. #132/#135/#136/#137/#138은 공개 CLOSED로 확인했지만 #132 C durable-Herdr 범위는 미측정/보류다.
+
+읽을 권위: [core Release](https://github.com/junghan0611/entwurf/releases/tag/v0.35.0), [plugin Release](https://github.com/junghan0611/entwurf/releases/tag/v2026.10.12-herdr.0.35.0), [native support](https://github.com/junghan0611/entwurf/blob/v0.35.0/docs/durable-native-support.md), [Herdr guide](https://github.com/junghan0611/entwurf/blob/v2026.10.12-herdr.0.35.0/plugins/herdr/README.md). 호스트-local 추가 대조 영수증 `.agent-reports/20261012-entwurf035/registry-receipt.json`은 ignored이며 public links/결정적 해시는 위에 실었다.

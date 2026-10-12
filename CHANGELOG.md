@@ -7,6 +7,36 @@
 
 ## Unreleased
 
+## v2026.10.12 — Entwurf 0.35 소비면 정렬, 상주하는 형제에게 드라이버를
+
+### 0.35 — 작업대·드라이버·형제의 자리를 맞췄다
+
+* **현재 안내를 Entwurf0.35.0/Pi1.1 공급과 별도 Herdr035 snapshot으로 맞췄다.** README·AGENTS·ENV-SETUP·native README·harness-bench가 같은 계약을 가리킨다. Entwurf는 하네스가 아니라 garden-id 주소·공식 배달·보이는 생명주기의 드라이버이며, agent-config는 소비자/스킬 SSOT/시험소다. Herdr plugin은 npm core0.35.0을 잠그지만 여전히 pi/Claude Code만 활성화·새 탭 호출하고 PATH bins를 공급하지 않는다. durable Herdr-target 지원으로 확대하지 않았다.
+* **새 데모의 의미와 증거 범위를 함께 남겼다.** 0.12 hard cut 이후 renewed whole-Herdr GIF는 ordinary Pi↔native Claude Code의 callback→task→native Bash→reply다. 독립 시민의 협업이지 parent/subagent 계층이 아니다. GLG의 [공개 사용기](https://wikidocs.net/blog/@junghanacs/33151/)가 말한 편안함·사람 판단의 bottleneck을 그대로 존중하고, 아직 평가하지 않은 기억 품질이나 속도 우위로 바꾸지 않았다. 원본/새 LIVE take/private raw의 구별과 별도 source-specific receipts는 [PI-DURABLE](https://github.com/junghan0611/agent-config/blob/v2026.10.12/PI-DURABLE.md)·[HERDR](https://github.com/junghan0611/agent-config/blob/v2026.10.12/HERDR.md)의10-12 절에 보존했다.
+* **공급 바이트를 직접 대조했다.** npm latest0.35.0, archive11,083,782B/SHA256 `82ae9ab99b799c987fe0dac4bb76fc406afe42088a128a131af4d69a97592e71`; 재계산 sha512=registry integrity=Herdr npm lock. runtime/TUI/bootstrap/resolver4/4는0.34 tag·P6 공급·현재 checkout과 byte-equal, SDK9개는 exact1.1.0이고 원4consumer SHA는 유지됐다. 이는 source/supply binding이며 새 installed035 TUI/vendor/recovery 검수가 아니다.
+* **출하와 전체 qualification을 섞지 않았다.** [core035](https://github.com/junghan0611/entwurf/releases/tag/v0.35.0)와 [별도 plugin035](https://github.com/junghan0611/entwurf/releases/tag/v2026.10.12-herdr.0.35.0)의 공개 checkpoint를 읽었다. Four-job CI·artifact Docker·plugin public-main install journey는 각 영수증의 범위다. Whole940 BODY와 native Codex LIVE는 owner가 이번 cut만 미룬 미측정 예외이며 PASS/상시 면제가 아니다. #137의 certified untouched TOML find span에 따른 BODY SKIP도 whole qualification PASS가 아니다. 이 집은 공급 gate·demo·설치를 재실행하지 않았다.
+
+### 지난 태그 이후 — native BG 소비자를 닫았다
+
+* **env-first native background-bash aggregate를 커밋·푸시했다.** `1db8b76`의 `pi-durable/index.mjs`가 env를 먼저 평가하고 두 BG 도구와 conversation-owned task를 공급한다. Intent-before-spawn, unsafe shell no-replay/interrupted, stable native follow-up을 사용하며 SDK 설치·classic ExtensionAPI shim·별도 renderer/manager를 만들지 않았다. Supplier의0.34 native badge는 Tasks 패널을 감춰도 지속하고, terminal count0를 OS 종료 보증으로 쓰지 않는다. Late output·joined escalation·interrupted log retention·UTF-8 bounds 수선과 10-08 affected14/14+missing-checkout2/2, 10-09 actual installed P6/8 faux rounds의 **각기 다른** 증거 범위는 native README/PI-DURABLE에 남겼다.
+* **pdc-only 전환과 실제 재개를 확인했다.** 10-09 GLG 승인으로 local pdc에 index를 붙였고, 재시작 보고 뒤 두 도구 노출·actual check의 `No background tasks.`를 확인했다. 다른 live helper는 바꾸지 않았다. Closing handoff `16e323d`와 remote `d9ada4f`의10-11 화면 판독/10-12 기억축 기록을 3-way 비교로 함께 보존했다. Generation task record ID를 턴 수/내부 subagent 수로 오독하지 않으며, 느린 턴 원인·paired timing은 미측정이다.
+* **릴리즈 노트 추출기의 줄바꿈을 고쳤다.** `8210772`는 추출 때만 wrapped paragraph/list continuation을 접고, source CHANGELOG·fences·blank lines·명시 hard break를 보존한다. 공백 외 텍스트 변화는 거부하며 API-0 회귀7개가 있다. 이 snapshot의 GitHub Release에도 같은 추출기를 사용한다.
+
+### 낡은 현재표와 NEXT 갈무리
+
+* **ACP permission·config 소유권 안내를 바로잡았다.** 현재 source overlay는 이미 bypassPermissions였다. README의 ‘default/should be bypass’ 현재표를 수선하고, native operator-wide key와 isolated ACP authority는 분리했다. Warning key skipDangerousModePermissionPrompt는 source에서 이미 RETIRED/operator-owned였으므로 옛 ‘미해결’ 현재표도 수선했다(두 host의 live 설정은 재측정 안 함). Codex/Antigravity MCP/settings는 Entwurf 소유임을 맞췄다. Tracked skills와 이름 집합도47=47, 양쪽 차집합0으로 확인했다.
+* **전역 안전 훅과 Husky의 합성 경계를 설명했다.** Local core.hooksPath가 global을 덮는 문제와 기존 scanner→delegate 경로를 AGENTS/git-hooks README에 명시했다. 현재 Entwurf checkout은 global을 상속하고 prepare는 Husky 대신 bridge build만 호출한다. Private loose 예외의 낡은 ‘두 리포’ 문구도 실제 `_scan.sh`의 명시6개에 맞췄다. Hook/config를 이번에 변경하거나 우회하지 않았다.
+* **닫힌 NEXT25/줄바꿈 작업/기억축 판독을 이 절로 승격했다.** 완료한 소비자 preview/STOP·공급 대기를 현행 지시에서 제거했다. 10-08/10-12 기억축 기록은 `9198c05`/`d9ada4f`의 영수증이며 이번 cut의 새 임베딩 실행은 아니다. 진행 중인 Q1–Q7·근거 적합성·압축 관측·하네스 대장 과소보고 등 열린 다음 손은 NEXT에 남겼다. 옛 dated 관측과 이전 CHANGELOG는 재작성하지 않았다.
+
+### 기억축 — 닫힌 판독점과 열린 효용 질문
+
+* **10-08→10-12 기록:** sessions104,141→106,106·md11,002→11,051·OpenClaw6,951→7,510. 세 축 local/Oracle verify·발행 완료가 기록됐고10-12 md orphan0, prune47건(전부sup✓), backup/undo `andenken/data/openclaw-prune/2026-10-11T23-44-14-200Z-20261011T234307Z-1497542-1001b6/`다. 10-12 bbot/glg/mini dirty는 오라클 증분 index(`--force` 없음) 후 재수확으로 정상화됐지만 원인은 미측정이다. 10-08 bbot 크론 부모 분류 패치는OpenClaw9.8 한정이므로 upgrade 때 상류 수정/회수 확인이 남는다. 대표 질의 적중·응답시간도 아직 안 쟀다.
+
+### 이 snapshot의 검증과 운영 경계
+
+* 직접 registry/manifest/core4/consumer SHA 비교,47 skills 이름집합·local Markdown 링크 확인, diff check. 10-12 API-0 회귀는 native 소비자 **44/44 PASS, skip0**·entwurf-peek **81 checks/0 failed**·release extractor **7/7 PASS**, `bash -n run.sh`·diff check 통과(자동 background receipt1496, exit0/43s). 소유 합성 HOME/SQLite·offline faux 실행이며 새 installed035/vendor/physical TTY/whole supplier qualification 검수가 아니다.
+* 이 release는 agent-config의 **CalVer 문서/소비자 snapshot**이다. Entwurf core/plugin npm 재출하·새 runtime 설치·셸 변경·live DB 조회·임베딩·새 형제/모델 실험을 실행하지 않았다. API-0 fixture와10-09 P6는 supplier035의 whole qualification을 대신하지 않는다.
+
 ## v2026.10.8 — entwurf 0.32.0 기념, durable 접점의 레퍼런스 소비자
 
 ### pi-durable — 접점은 entwurf, 이 집의 정책은 agent-config

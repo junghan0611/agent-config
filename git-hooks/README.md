@@ -205,6 +205,23 @@ that review plus the commands above.
 
 ## Installation
 
+### Local overrides and Husky (checked 2026-10-12)
+
+Git's repository-local `core.hooksPath` takes precedence over the global setting.
+A local `.husky/_` therefore skips this directory's safety scanner, even though
+Husky's own lint/typecheck hook still runs. Diagnose with
+`git config --show-origin --show-scope --get-all core.hooksPath`.
+
+The global `pre-commit`/`pre-push` already scan first and invoke `_delegate.sh`
+after success; that resolves executable classic `.git/hooks/<name>` first, then
+`.husky/<name>`. Do not disable Husky checks or bypass the scanner to compose them.
+Removing a local override requires GLG's explicit authorization, and its installer
+must not immediately recreate it. Entwurf0.35's source `prepare` now builds the
+bridge without invoking Husky, and its observed checkout inherits this global
+path. This is source/config evidence, not a claim that every clone was repaired.
+
+### Global provisioning
+
 Set globally (via nixos-config home-manager):
 
 ```nix

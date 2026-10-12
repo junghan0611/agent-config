@@ -1,6 +1,6 @@
 # pi-durable — native env/hide and background-bash reference
 
-**접점은 entwurf, 집의 정책은 agent-config.** Entwurf **0.34.0**의 `--native-module`과 native BG 배지를 소비하는 env-first 레퍼런스 구현이다. durable을 한 번 만들고 같은 대화를 계속 다시 여는 사용을 위한 것으로, 두 번째 하네스나 Pi 확장 호환층이 아니다.
+**접점은 entwurf, 집의 정책은 agent-config.** 현재 확인한 Entwurf **0.35.0**의 `--native-module`과 native BG 배지(0.34.0 도입)를 소비하는 env-first 레퍼런스 구현이다(2026-10-12). durable을 한 번 만들고 같은 대화를 계속 다시 여는 사용을 위한 것으로, 두 번째 하네스나 Pi 확장 호환층이 아니다.
 
 ## Launch and lifetime
 
@@ -128,3 +128,12 @@ A separate, value-free read-only import of the actual home file succeeded withou
 - The prior **14/14 focused + 2/2 missing-checkout** consumer review is separate evidence. No new whole consumer suite is implied by those numbers or this installed fixture. [Public supplier handoff](https://github.com/junghan0611/entwurf/issues/134#issuecomment-6071983472); full chronology: [PI-DURABLE.md](../PI-DURABLE.md).
 
 Source contract: [Entwurf #130](https://github.com/junghan0611/entwurf/issues/130), [#134 published handoff](https://github.com/junghan0611/entwurf/issues/134#issuecomment-6071983472), [`docs/durable-native-support.md`](https://github.com/junghan0611/entwurf/blob/v0.34.0/docs/durable-native-support.md), and `pi/pi-durable/{bootstrap.mjs,overlay/upstream-pin.json,carrier/runtime.js,carrier/tui.js}` at `v0.34.0` (`ca1cded3554ba6e58a8991637a4d3c276e83288f`). Classic `pi-extensions/` remains unchanged and still belongs to ordinary Pi.
+
+### 2026-10-12 — current 0.35.0 supply, not a new runtime implementation
+
+- Read the [core0.35.0 publication checkpoint](https://github.com/junghan0611/entwurf/releases/tag/v0.35.0) at `48dcc9a` and the separate [Herdr plugin snapshot](https://github.com/junghan0611/entwurf/releases/tag/v2026.10.12-herdr.0.35.0) at `4c5455b`. Direct registry metadata reports latest0.35.0; its archive is 11,083,782 bytes, SHA256 `82ae9ab99b799c987fe0dac4bb76fc406afe42088a128a131af4d69a97592e71`. Recomputed sha512 matches both registry integrity and the plugin's npm lock.
+- Direct archive comparison: runtime/TUI/bootstrap/resolver **4/4 byte-equal** to the 0.34.0 source tag and current supplier checkout; all nine declared SDK members remain exact1.1.0. Our four consumer sources retain the P6 hashes. This is source/supply binding, not another installed-0.35 TUI/vendor/recovery run; the dated API-0 and installed receipts above keep their original scope.
+- Actual operator reopen on10-09: GLG reported restart; this durable session exposed both BG tools and `bash_background_check {}` returned `No background tasks.` Consumer code/docs were committed in `1db8b76`; the closing handoff is `16e323d`. This confirms loading/query, not a new physical badge or background-process test.
+- The renewed Herdr GIF shows **ordinary Pi ↔ native Claude Code**, not this consumer. The plugin still activates only those two; it neither wires nor fresh-opens durable. Direct tmux fresh-call gets no consumer native-module propagation; `pdc` remains a local same-cwd reopen. Source-switch deactivate/reinstall is an explicit owner operation, not an automatic update here.
+- [GLG's public use account](https://wikidocs.net/blog/@junghanacs/33151/): giving the screwdriver to durable feels more comfortable, but memory quality is not evaluated. Long-lived conversation continuity, shared semantic retrieval and useful judgment are separate claims; no recall/speed benchmark follows from that comfort.
+- The core release's whole940 qualification BODY and native Codex LIVE were explicitly deferred for this cut. Four-floor CI/artifact evidence and the plugin's successful install journey/automatic BODY SKIP are supplier-publication receipts, not whole qualification PASS or a standing waiver. No new install, model experiment, live DB read or helper rewrite is performed in this documentation alignment.

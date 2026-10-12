@@ -1,5 +1,7 @@
 # PI — 검수 매트릭스
 
+> **현재 읽기 안내 (2026-10-12):** 이 문서의1.0.0/10-02 격리 측정은 역사다. 현재 확인한 Entwurf0.35는 exact Pi1.1 SDK를 공급하지만 **ordinary Pi와 pi-durable은 별도 하네스**다. durable 공급·생활·native BG 최신 관측은 [PI-DURABLE.md](PI-DURABLE.md)10-12 절, 실제 소비자는 [pi-durable/README.md](pi-durable/README.md). 이 release 정렬에서 upstream/운영 Pi upgrade나 압축 성능 검수는 하지 않았다.
+
 pi 1.0(coding agent)과 **pi-durable**(`@earendil-works/pi-durable`, 같은 날 실험 패키지로 출하)을
 **오래 사는 실무자의 바닥**으로 재는 작업면. 비교 대상은 우리 밑바닥 **entwurf** — garden-id ·
 배달 · 살아 있음 — 이고, entwurf를 순위에 올리지 않는다. 기능 대결이 아니다.
@@ -532,3 +534,11 @@ rm -rf /dev/shm/{pi-v1,pi1,pnpm1,pnpm-store,npm-cache,iso-home,agent21-*,agentD-
 ```
 
 `/tmp/pi-v1` worktree는 1차 그대로 둔다(읽기 핀). `run.sh setup:pi-durable`·pi 바이너리 핀 타깃은 만들지 않았다.
+
+## [2026-10-12] 0.35 정보 정렬 — ordinary Pi와 durable을 합치지 않는다
+
+`[직접 entwurf package/source/public Release 읽음]` Entwurf0.35는 exact1.1.0 SDK 9개와 별도의 durable app carrier를 공급한다. Ordinary Pi supported range는≥1.1.0 <1.2이며, 그 CLI를 올리는 것만으로 durable app을 공급/수용하지 않는다. README의 ‘upstream tests not run’ 행은 위10-02 API-0 측정(하우스319 pass, durable851 pass/2 host-assumption failures)을 반영하도록 정정했다. 옛 숫자는0.35 검증으로 승계하지 않는다.
+
+`[직접 source 읽음: entwurf pi-extensions/lib/acp/overlay.ts:119–125 @48dcc9a]` isolated ACP overlay의 `permissions.defaultMode`는 이미 **bypassPermissions**다. 소비자 README의 ‘default/should be bypass’는 오래된 현재표여서 수선했다. Native operator-wide key는 여전히 agent-config/GLG 소유다. `scripts/meta-bridge-state.py:90–128`의 warning key `skipDangerousModePermissionPrompt`도 이미 MANAGED가 아니라 RETIRED로 operator에게 돌려주는 source다. 옛 ‘미해결 asymmetry’ 현재표를 source에 맞췄으며 이 정렬에서 실제 설정/ledger를 조회·수정하거나 retirement를 실행하지 않았다.
+
+`[GLG 직접 제공한 공개 글 / supplier demo docs 읽음]` 새 Herdr demo는 ordinary Pi↔native Claude Code 협업이다. durable의 거처/의미 검색·판단 효용·내부 subagent/codemode를 한 계층으로 합치거나 demo로 기억/속도를 인증하지 않는다. 후속은 GLG가 열 때만; [PI-DURABLE.md](PI-DURABLE.md)와 [HERDR.md](HERDR.md)의10-12 절이 해당 공급/작업대 관측의 자리다.

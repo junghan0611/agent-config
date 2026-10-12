@@ -1,5 +1,7 @@
 # HERDR — 검수 매트릭스
 
+> **현재 안내 (2026-10-12):** Entwurf core0.35.0와 별도 Herdr plugin0.35.0 snapshot이 공개됐고, 새 whole-workbench GIF는 Pi↔native Claude Code 협업을 보인다. 플러그인은 여전히 두 하네스만 활성화하며 durable fresh-target 지원은 없다. 아래09-09 미설치/09-21 plugin0.4 관측은 당시 기록; 마지막10-12 절과 supplier source lock/공개 checkpoint를 먼저 보라. 이 기기의 Herdr 설치판·서버는 이번에 재측정하지 않았다.
+
 herdr(herdrdev/herdr)를 **에이전트가 사는 터미널 런타임**으로 재는 작업면.
 비교 대상은 우리 밑바닥 **entwurf의 visible-first tmux** — garden-id · 배달 ·
 살아 있음 — 이지, 기능 대결이 아니다.
@@ -503,3 +505,19 @@ runtime identity and is not part of a binding"* 으로 우리가 `nativeSessionI
 | F6 | herdr 배달을 안 쓰는 이웃 | 없던 항목 | **측정됨(1/13 — pi-peer, pi 전용)** |
 | F7 | 스크래핑을 완료 권위로 채택한 이웃 | 없던 항목 | **측정됨(1건 — tuanhung303/herdr-swarm)** *"Spawn's verified exit is the single delivery authority."* |
 | F8 | `[[build]]`+`[[panes]]` 매니페스트 이웃 | 없던 항목 | **측정됨(0건)** — 우리 0.4.0이 이 장르에서 가장 좁은 매니페스트 |
+
+## [2026-10-12] Herdr는 작업대, Entwurf는 드라이버 — 0.35.0 공개 snapshot
+
+`[직접 git/manifest/lock/public Release 읽음]` core **v0.35.0**는 `48dcc9a`, 별도 plugin **v2026.10.12-herdr.0.35.0**는 `4c5455b`다. `Herdr Entwurf` manifest version0.35.0·Linux·minHerdr0.9.0·one build/one read-only overlay pane은 그대로다. fixture floor0.9.3은 설치 허용 최소판이나 이 기기의 live 설치판과 다른 값이다. 09-21 live0.9.1·marketplace0.4.0은 역사이며, 현재 marketplace 카드/host runtime은 이번에 다시 조회하지 않았다.
+
+`[직접 registry archive/lock 대조]` plugin lock은 checkout 검증 창을 닫고 **npm @junghanacs/entwurf@0.35.0**의 measured sha512를 잠근다. registry archive11,083,782B/SHA256 `82ae9ab99b799c987fe0dac4bb76fc406afe42088a128a131af4d69a97592e71`, 재계산 sha512=registry=lock. Core 업데이트가 plugin/기존 host를 자동으로 re-pin하지 않으며 이 문서 정렬에서도 설치·재시작·소유권 전환은 하지 않는다.
+
+`[직접 guide/source 읽음]` **P={pi,claude-code}**, build는 Herdr가 먼저 integrate한 하네스를 활성화한다. plugin이 Entwurf bins를 PATH에 두지 않으므로 설치 runtime의 절대 경로와 direct entry는 구별한다. 같은 settled npm source의 update는 조건부 rebind; checkout↔npm source switch는 이전 owner root의 명시 deactivate 후 재설치다. Herdr uninstall에는 cleanup hook이 없어 runtime/wiring을 자동 삭제하지 않는다. #135는 acquisition 전 component/activation 소유권 검사·no-ledger refusal을, #136은 ledger에서 plugin-runtime doctor mode를 도출하는 수선을 출하했다. API/자료 reader 동작과 소유권 증거도 별도 축이다.
+
+`[직접 public demo guide 읽음]` renewed GIF는 ordinary Pi가 native Claude Code를 열고 callback→addressed task→native Bash→reply를 받은 **whole Herdr**다. 두 garden-id 시민이지 parent/subagent 계층이 아니다. 승인된 원본과 private raw capture, 새 LIVE take는 서로 다른 증거다. **durable 설치/fresh-target 지원·패인에서 그려진 durable ROW·detach/restart 검수는 이 GIF로 입증되지 않는다.** #132 C는 보류/미측정이며 이번 cut에서 넓히지 않았다.
+
+`[supplier public release checkpoint 읽음; 이 집 재실행0]` plugin SHA의 ordinary four-job CI38174959054/FULL445s, npm-source public-main clean-container install/use/deactivate/reinstall, real-npm swap/harness-seeded torn-swap recovery가 기록돼 있다. Core035의 whole940 BODY와 native Codex LIVE는 owner가 이번 cut만 미룬 **미측정 예외**다. #137의 untouched TOML find-span 판정이 실제 plugin push에서 BODY SKIP한 관측은 있지만 qualification PASS는 아니고 unchanged oracle도 body-less SHA를 거절한다. 일반화한 blanket waiver로 들고 가지 않는다.
+
+`[GLG 직접 제공한 10-12 공개 글]` Herdr의 접근성 때문에 시연을 이 작업대로 골랐고, durable에게 드라이버를 준 뒤 심리적으로 편안하다고 했다. 기억 품질은 평가하지 않았다. 이 집은 그 운영 경험을 남기며 성능/우열 판정을 붙이지 않는다.
+
+다음 관측은 GLG가 열 때만: 실제 해당 host의 runtime/plugin source·flagless doctor·native self/ROW, 또는 조건을 맞춘 느린 턴 한 판. 설치법/소유권/원본 증거를 먼저 읽고, 자동 upgrade·재촬영·새 형제 실험을 하지 않는다. 권위: [core Release](https://github.com/junghan0611/entwurf/releases/tag/v0.35.0), [plugin Release](https://github.com/junghan0611/entwurf/releases/tag/v2026.10.12-herdr.0.35.0), [Herdr guide](https://github.com/junghan0611/entwurf/blob/v2026.10.12-herdr.0.35.0/plugins/herdr/README.md), [demo source/provenance](https://github.com/junghan0611/entwurf/blob/v0.35.0/demo/README.md), [GLG 공개 원문](https://wikidocs.net/blog/@junghanacs/33151/).
