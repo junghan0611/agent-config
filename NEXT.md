@@ -5,6 +5,8 @@
 
 # RAIL — 현재 좌표
 
+- [ ] **26. pi-durable 편집 안전성 장기관찰 — [#28](https://github.com/junghan0611/agent-config/issues/28)** ← PAUSED: Opus가 보고한 GLG17:1x 판정 — 지금 근거로 Hashline 도입/포트하지 않고 Pi 버전업을 기다리며 장기관찰. 격리 load smoke까지만, stale 비교 미실행. 기존 상주 세션/원4소스 유지. 아래 NOW.
+
 - [ ] **3. entwurf-peek `trace` 파서 수선** ← PAUSED: `mux-placement` acceptance fixture 대기
 - [ ] **4. 설치면 소유 경계 마감 (#46)** ← PAUSED: entwurf `setup`이 먼저 normalize해야 한다
 - [ ] **10. 다음 텀 — 이슈 넷 검토하고 닫기** ← 좌표 11·12로 흡수됐다(라벨 판이 답한다). 오늘 좌표 댓글을 다 달아뒀다: **#24**(게이트 전체가 섰다 — lint + 익스텐션 + 모델 지정면, 실물 2판. 닫기/가르기 판정만 남음) · **#23**(시계 채워짐, 세션 밖 상태전이·죽은 세션 깨우기·`LOOP.md` 열림) · **#21**(소비할 물건 생김, 지시문 한 장으로 좁아짐) · **#16**(재측정 결과 **아직 살아 있는 버그**, `run.sh:1775-1776` 한 줄 수정). 나머지 9개(#1·3·5·6·10·13·14·15·17·20)는 GLG 의 *"할일/급한일/안할일/나중에할일"* 분류를 한 판 잡고 해야 한다. → **그 분류 판이 2026-09-10 에 라벨로 섰다. 좌표 11 을 보라** — 이제 `board.py --mine` 이 답한다.
@@ -30,9 +32,14 @@
 > 가리키는 11의 내용은 이제 `v2026.9.21` 절에 있다. **24와 23의 닫힌 부분은 `v2026.10.8`** —
 > 23의 후속 관측·22의 기억축 판정은 남겨 두었다. **25와 릴리즈 줄바꿈 수선은 `v2026.10.12`**에 갈무리했다.
 
-현재 좌표: **0.35 소비면 정보 정렬·갈무리 — 닫힌25는 `CHANGELOG.md v2026.10.12`로 승격; 후속 사용/관측은 GLG가 열 때만** · **24 닫힘 — durable env/hide 레퍼런스·실사용 재개·0.32.0 문서, `v2026.10.8`** · **23 PAUSED — durable 후속 실물 관측만 남음** · **20 CURRENT — 기억축 정화, andenken과 조율 중** · **22 PAUSED — pi-durable source, andenken#15에서 GLG Q1–Q7 판정 대기(노트북에서 두 리포 pull 후 재검수)** · 21 PAUSED(`skill-audit` 재검토 + botlog 증류본 채택 판정) · **19 PAUSED — 1·2차 끝, GLG가 #27 읽고 방향 판정(#27이 최신 좌표)** · 17(판단 근거·재개는 후일 GLG 재개 요청 대기) — 16은 `v2026.9.30`에 닫힘 — 18 압축 전환 적용 중(다른 기기 제거·첫 빌트인 관측 남음) — 14 herdr 판정 대기 · 15 기억축 월간 판독 대기 · 13 본작업 보류 · 12 GLG 판정 대기 · 3·4 남의 손 대기
+현재 좌표: **26 PAUSED — Pi 버전업 장기관찰, Hashline 도입/포트 없음** · **0.35 정렬/25는 `v2026.10.12` 공개 완료** · **24 닫힘 — durable env/hide 레퍼런스·실사용 재개·0.32.0 문서, `v2026.10.8`** · **23 PAUSED — durable 후속 실물 관측만 남음** · **20 CURRENT — 기억축 정화, andenken과 조율 중** · **22 PAUSED — pi-durable source, andenken#15에서 GLG Q1–Q7 판정 대기(노트북에서 두 리포 pull 후 재검수)** · 21 PAUSED(`skill-audit` 재검토 + botlog 증류본 채택 판정) · **19 PAUSED — 1·2차 끝, GLG가 #27 읽고 방향 판정(#27이 최신 좌표)** · 17(판단 근거·재개는 후일 GLG 재개 요청 대기) — 16은 `v2026.9.30`에 닫힘 — 18 압축 전환 적용 중(다른 기기 제거·첫 빌트인 관측 남음) — 14 herdr 판정 대기 · 15 기억축 월간 판독 대기 · 13 본작업 보류 · 12 GLG 판정 대기 · 3·4 남의 손 대기
 
 # NOW
+
+- **pi-durable 편집 안전성 장기관찰 — 좌표26/#28 (2026-10-12, PAUSED).** Opus `20261012T164637-f929b3`의17:12 checkpoint 상속: GLG가 그 세션17:1x에 ‘관점은 durable에 효과가 있을까, 지금 근거로 넣으면 안 된다, Pi 버전업을 기다리며 장기관찰’로 판정했다. 앞의 가드 우선안·Pi 시험 진행안은 퇴역했으며 설치/포트/추가 시험을 이어가지 않는다. Opus는 이슈 제목을 research로 바꾸고 state:parked 및 판정 댓글을 게시했다고 보고했다.
+  - **Next:** GLG가 장기관찰을 재개할 때만 Pi 변경점과 stale 편집 비교부터 범위를 다시 잡는다. Stale fixture는 아직 실행하지 않았다. Source/npm6.4 binding·격리 RPC load smoke는 Opus receipt(이집 재실행0), 출력 절감2–3%는 추정이며 실제 장기 효과·Sol 인과·durable 효과는 미측정이다. 새 Han 도입49건도 후보이며 오탐/기기 간 중복/편집 직전 파일 replay는 미검증이다.
+  - **Read:** [최신 판정/재개 조건](https://github.com/junghan0611/agent-config/issues/28#issuecomment-6120347063) → [이전 외부 자문](https://github.com/junghan0611/agent-config/issues/28#issuecomment-6119963036). 로컬 검토 `.agent-reports/20261012-issue28-review.md`, Opus probe/config `.agent-reports/20261012-issue28-baseline/`는 ignored. Third-party 후보 checkout `~/repos/3rd/pi-hashline-edit-pro` @72f6315/runtime deps는 그 Opus가 남겼다고 보고; 자동 삭제하지 않는다.
+  - **Do not:** 도입/포트/추가 시험·live DB/원시 대화 조회·설정/모델 전환·원4source 변경·ExtensionAPI shim/carrier/SDK 복제·형제 호출·새 GLG 요청 없는 commit/push. Coordinator 추가 조사 없이 NEXT만 맞췄으며 GitHub 변경은 Opus의 owner 판정 반영이다.
 
 - **durable 실사용 화면 판독 — 좌표 23 (2026-10-11, GLG 질문).** 기존 llmlog `20261006T174633`의 10-11 절에 기록했다. GLG 제공 화면 + 현지 Pi durable 1.1.0 소스 읽음: `pi.generation #1551/#1555`는 공통 storage ID 풀에서 발급된 task record id이고 subagent/턴 횟수가 아니다. 현재 main generation 하나라는 화면은 과거 위임 이력을 증명하지 않는다. 내부 foreground `subagent`, Entwurf 형제, background bash, 일반 Pi codemode(현재 durable 앱 미등록)를 구별했다.
   - **Next (GLG가 관측을 열 때만):** 느린 턴 하나의 입력→첫 보이는 출력→완료 시각과 `/tasks` 단계 변화·thinking·usage를 함께 기록한다. 일반 Pi와 비교할 때 모델/effort·context·도구·출력량 조건을 맞춘다. ‘durable이 느리다’는 GLG 체감 관측이며 원인·paired timing은 미측정; 오라클 설치판·전사도 이번에 직접 확인하지 않았다.
