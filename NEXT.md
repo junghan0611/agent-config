@@ -13,7 +13,7 @@
 - [ ] **13. 하네스 관측소에 검증면 축이 섰다 — 두 대문자 문서 신규** ← PAUSED: 본작업 재개는 GLG 판정 뒤 (2026-09-18). `UNCLEBOB.md`(밥 마틴, 게이트 관측) · `XIRP.md`(Spotify, macOS 전용이라 설치 불가) · `harness-bench` **렌즈 5 = 검증면**. **본작업(entwurf 검증면)은 0.23.0 릴리즈가 끝난 뒤 GLG가 다시 연다** — 그때까지 이 좌표는 문서만 서 있는 상태다. 아래 NOW.
 
 - [ ] **14. herdr 재조사 — 조사는 닫혔고, 대장 결함 하나가 열려 있다** ← PAUSED: status.py 방향 GLG 결정 대기 (2026-09-21). `HERDR.md` 09-21 절 + 오후 정정, 이웃 13종 실측(소넷 형제 둘), entwurf 담당자 답 다섯 — 전부 llmlog `20260914T161103`에 보존(`.agent-reports/`는 gitignore). **남은 한 줄: `harness-bench status`가 `## 상태` 헤딩을 먼저 찾고 뒤의 날짜 절을 안 본다** — `status.py:52-60`. 그래서 HERDR.md가 09-21까지 갱신됐는데 대장은 09-09로 보고한다. HERMES·OMP·OUROBOROS·PRIME도 같은 구조면 전부 과소보고다. 고치는 방향 둘 중 GLG 결정 대기: `max(상태, 마지막 dated 절)`을 쓰거나, 매트릭스 문서의 `## 상태` 헤딩을 갱신 대상으로 삼거나.
-- [ ] **15. 기억축 성장·검색 효용 정기 판독** ← PAUSED: 다음 전체 동기화/월간 점검 때 관측값 축적 후 GLG가 andenken 담당자와 조율 요청 (판독점 2회: 09-27·10-06). 아래 NOW의 측정 좌표.
+- [ ] **15. 기억축 성장·검색 효용 정기 판독** ← PAUSED: 다음 전체 동기화/월간 점검 때 관측값 축적 후 GLG가 andenken 담당자와 조율 요청 (판독점 4회: 09-27·10-06·10-08·10-12). 아래 NOW의 측정 좌표.
 - [ ] **17. 판단 근거 적합성·재개 범위** ← CURRENT: GLG가 별도 세션에서 열 때만. 오늘은 의미 판정기·continuation 설계에 착수하지 않는다.
 - [ ] **18. Pi 압축을 codex native → 빌트인으로 전환** ← 2026-10-03 GLG 실행 승인(entwurf 0.30.0 퍼블리시로 미뤘던 일). 지원 manifest·문서·검증 게이트 전환과 Oracle 제거는 `v2026.10.3`에 갈무리. 남은 것: 다른 기기 제거 + 새 프로세스/세션에서 첫 빌트인 압축 관측.
 - [ ] **19. pi 1.0 + pi-durable 집중 탐구 — `PI.md` (#27 = 이 주제의 최신 좌표, entwurf#88 닫힘)** ← PAUSED: 2차 자동화 검수 완료·Fable 검수 통과(11:13 KST 보고, #27 댓글), **GLG 방향 판정 대기** (2026-10-02). GLG 방향: *"prime agent 보다 pi 버전업과 durable, codemode 등을 따라가야 하는 게 더 급해졌어."* 1차 결론: Opus 조사·Fable 검수 완료, v1.0.0 소스 읽음·미설치·테스트 미실행. 결론 셋: ① coding agent 1.0에 배경 압축 없음(측정) → 좌표 18 기대치 불변, 레버는 여전히 압축 모델 확장. ② durable 영속 inbox/`requestId`는 pi 1.0 시민에게 안 닿음(측정) — 경계 후보 「storage 안 = durable, storage 사이 = entwurf」(제안). ③ goal/autopilot/decision-gate가 손으로 지은 이어가기·fork 상태·재시작 시계·결정 memo가 durable 커널 원시와 1:1(단서). 다음 한 칸(GLG가 열 때만): `/tmp/pi-v1`에서 `npm ci` + faux 예제 25·13·23(API 0) → F7·B7·G4 측정. 아래 NOW 참조.
@@ -36,6 +36,10 @@
 
 # NOW
 
+- **durable 실사용 화면 판독 — 좌표 23 (2026-10-11, GLG 질문).** 기존 llmlog `20261006T174633`의 10-11 절에 기록했다. GLG 제공 화면 + 현지 Pi durable 1.1.0 소스 읽음: `pi.generation #1551/#1555`는 공통 storage ID 풀에서 발급된 task record id이고 subagent/턴 횟수가 아니다. 현재 main generation 하나라는 화면은 과거 위임 이력을 증명하지 않는다. 내부 foreground `subagent`, Entwurf 형제, background bash, 일반 Pi codemode(현재 durable 앱 미등록)를 구별했다.
+  - **Next (GLG가 관측을 열 때만):** 느린 턴 하나의 입력→첫 보이는 출력→완료 시각과 `/tasks` 단계 변화·thinking·usage를 함께 기록한다. 일반 Pi와 비교할 때 모델/effort·context·도구·출력량 조건을 맞춘다. ‘durable이 느리다’는 GLG 체감 관측이며 원인·paired timing은 미측정; 오라클 설치판·전사도 이번에 직접 확인하지 않았다.
+  - **Do not:** 성능 원인 단정, 자동 subagent/형제 실험, live DB(RO 포함/Q6 미승인), 셸/설정 변경, 설치/재시작, 무승인 commit/push. 10-06 공급 초안은 역사로 보존했고 현재 소비자 SSOT는 `pi-durable/README.md`다.
+
 - **durable background-bash + 필수 footer — 좌표 25 (2026-10-09, GLG 소비자 commit/push·pdc→index 승인).**
   - **소비자 검수 닫힘:** Opus `20261008T195210-0fbe54` 구현 → 이 세션 독립 review → 한 수선 bundle. `background-bash.mjs`/`index.mjs`는 미커밋 PARTIAL preview; 기본 helper와 live는 env-only 유지. SDK 설치/복제 없음.
   - **Proof:** SDK1.1.0·합성 HOME·faux provider·실제 bash/소유SQLite, 최종 affected **14/14 + missing-checkout meta 2/2 PASS**, source/test SHA 전후 동일·diff check 통과. late output/종료 후 남는 자손/실제 interrupted 로그 삭제/UTF-8 틈 수선. 이전 구현자43/43은 별도 receipt, 최종 whole44/44로 승계하지 않음.
@@ -46,6 +50,10 @@
   - **Do not:** footer를 `/tasks`로 대체/전체완료 선언, index 운영 전환, UI 우회·runtime 복제/설치, 추가 형제·entwurf 무승인 변경·현재 컷 변경, live DB/프로세스/셸 설정 변경, 이번 새 작업 commit/push.
 
 - **전역 릴리즈 줄바꿈 정렬 (2026-10-08, GLG 커밋·push 요청).** `skills/tag-release/SKILL.md` + `scripts/release_notes.py`를 entwurf M6처럼 추출 시 문단·목록의 연속 줄을 합치는 방식으로 변경했다. CHANGELOG 원본은 재정렬하지 않고 fenced code·명시적 hard break·Markdown 블록 경계를 보존, 공백 이외 텍스트 변경은 거절한다. API-0 회귀 `python3 skills/tag-release/scripts/test_release_notes.py` 7/7 + 실제 `v2026.10.8` 추출·원본 해시 불변 확인. 다음 승인된 릴리즈부터 새 추출기를 사용한다. 기존 릴리즈 수정·새 태그·entwurf#133 운영비 정책은 이번 범위 밖이다.
+
+- **전체 임베딩 판독 — 좌표 15의 4번째 판독점 (2026-10-12, thinkpad, 월요일 usual ask).** 10-08 → 10-12: sessions 104,141 → **106,106행**(compact 직전 25조각 2.7G → 2조각 2.6G → 재발행 증분 119 chunk 뒤 3조각) · md 11,002 → 11,051행(364 chunk, 약 $0.004, 15조각 390M) · OpenClaw 6,951 → 7,510행(prune 47건 bbot 1·glg 1·gpt 43·mini 2 전부 `sup✓`, 16 → 1조각 163M → 128M). 로컬·oracle verify 전부 통과, oracle md orphan 0(가든 pull 불필요).
+  - **OpenClaw dirty 재발:** bbot·glg·mini가 처음 `🔄 dirty`(identity valid, chunkV 5, `paid-rebuild` 없음) → 오라클 `memory index --agent <id>` 증분(bbot 160 s·glg 117 s·mini 50 s, `--force` 없음) → 재수확 뒤 전원 ✅. 원인은 안 쟀다 — 10-08 bbot 크론 부모 세션 건과 같은 뿌리인지 미확인.
+  - **영수증:** prune 백업·undo는 andenken `data/openclaw-prune/2026-10-11T23-44-14-200Z-20261011T234307Z-1497542-1001b6/`, 로그는 thinkpad `/tmp/embed-{1..10}-*.log`(휘발). 대표 질의 적중·응답시간은 안 쟀다.
 
 - **전체 임베딩 판독 — 좌표 15의 3번째 판독점 (2026-10-08, thinkpad).** sessions `--global` 104,141 chunks · md 11,002 chunks(+19) · OpenClaw 6,951 rows, 세 축 모두 verify·오라클 발행 통과(로그 `/tmp/andenken-embed-*.log`, 호스트 로컬). prune은 오늘 3건(glg·mini·bbot `sup✓`)이고 백업·receipt는 andenken `data/openclaw-prune/`.
   - **bbot dirty 22/23은 「대화 중」이 아니었다.** 원인은 OpenClaw 9.8의 크론 부모 세션 분류 누락(검사는 색인 대상으로 세고 실제 색인은 시스템 메시지뿐이라 제외) — nixos-config `9c20d2b`, `docs/openclaw-gotchas.md` bbot dirty 절. 패치는 9.8 한정이라 **OpenClaw 버전업 때 상류 수정 여부 확인·회수**. 이 집이 처음에 「대화 중」으로 추측한 것은 틀렸다.
