@@ -36,20 +36,19 @@
 
 현재 좌표: **27 PAUSED — #30 준비 완료·다음 GLG 요청 때 후보/자료 접근 범위부터** · **26 PAUSED — Pi 버전업 장기관찰, Hashline 도입/포트 없음** · **0.36/SDK 1.2 소비자 정렬은 `v2026.10.14` 공개 완료** · **이슈판 10-14 정리 — 아래 `# 이슈판`** · **24 닫힘 — durable env/hide 레퍼런스·실사용 재개·0.32.0 문서, `v2026.10.8`** · **23 PAUSED — durable 후속 실물 관측만 남음** · **20 CURRENT — 기억축 정화, andenken과 조율 중** · **22 PAUSED — pi-durable source, andenken#15에서 GLG Q1–Q7 판정 대기(노트북에서 두 리포 pull 후 재검수)** · 21 PAUSED(`skill-audit` 재검토 + botlog 증류본 채택 판정) · **19 PAUSED — 1·2차 끝, GLG가 #27 읽고 방향 판정(#27이 최신 좌표)** · 17(판단 근거·재개는 후일 GLG 재개 요청 대기) — 16은 `v2026.9.30`에 닫힘 — 18 압축 전환 적용 중(다른 기기 제거·첫 빌트인 관측 남음) — 14 herdr 판정 대기 · 15 기억축 월간 판독 대기 · 13 본작업 보류 · 12 GLG 판정 대기 · 3·4 남의 손 대기
 
-# 이슈판 — 열린 11건 (2026-10-14 GLG와 정리)
+# 이슈판 — 열린 8건 (2026-10-14 GLG와 정리)
 
 꺼내 볼 목록이다. 손이 안 가는 것은 다음 정리 때 자연히 닫는다. 상태는 라벨에 있다 — 이 표보다 `gh issue list` 가 앞선다. 남의 판에 있는 이 집 몫은 `python3 skills/sorge/scripts/board.py --mine`.
 
 | 상태 | 이슈 | 꺼낼 때 첫 손 |
 |---|---|---|
-| 수선 커밋됨, push 대기 | #14 문단 하드 줄바꿈 금지 · #16 `run.sh env` 링크 오탐 · #26 session-recap home 밖 CWD | 커밋의 `Closes #N` 이 push 때 셋을 닫는다 — 닫혔는지만 확인 |
 | ready | #25 DELIVERY.md Codex 전달(D)/표현(P) 축 분리 | 0.36의 Codex 0.162.1 alias가 새 재료 |
 | proposed | #29 pi-durable 토픽 뷰 | entwurf 무변경 전제부터 다시 읽기 |
 | parked · ball:glg | #21 incubation/resurfacing · #23 범용 루프 · #30 기억 효용 | GLG가 다시 열 때만. heartbeat(`pi-extensions/heartbeat.ts`)는 이미 있다 |
 | parked · ball:owner | #20 Prime Agent RLM · #28 Hashline 장기관찰 | #20은 10-02 방향(prime-agent 뒤로), #28은 Pi 버전업 때 |
 | blocked · ball:glg | #17 Upstage Solar Open 2 | grant 소식이 오면 |
 
-**10-14에 닫은 것:** #1 #3 #5 #6 #10 #15 (진척 없는 제안·전제 소멸), #27 (durable이 entwurf 0.32→0.36으로 흡수돼 사전 리서치 단계가 지나감, 후속은 #28·#29·#30·andenken#15). #13은 [forge-config#1](https://github.com/junghan0611/forge-config/issues/1)로 옮겼다.
+**10-14에 닫은 것:** #14 #16 #26 (수선 `a6459bb`·`f0ecb97`·`ab9164a`, push로 자동 닫힘), #1 #3 #5 #6 #10 #15 (진척 없는 제안·전제 소멸), #27 (durable이 entwurf 0.32→0.36으로 흡수돼 사전 리서치 단계가 지나감, 후속은 #28·#29·#30·andenken#15). #13은 [forge-config#1](https://github.com/junghan0611/forge-config/issues/1)로 옮겼다.
 
 # NOW
 
