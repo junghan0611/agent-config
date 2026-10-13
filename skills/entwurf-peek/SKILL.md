@@ -1,6 +1,6 @@
 ---
 name: entwurf-peek
-description: "지금 어느 형제가 어디서 무엇을 하는 중인지 한 장으로 세우고, 다음 한 수(살아있는 형제에게 보낼지 · 잠든 형제를 같은 id로 되세울지 · 새 형제를 열지)를 고를 재료를 주는 판단 도우미. `situation`이 meta-record(사실)와 transcript(추정)를 같은 평면에 올리고, `peek`이 한 세션 안을 들여다본다. 실행은 하지 않는다 — 부르는 것은 entwurf_v2 / entwurf_resume_call / entwurf_fresh_call이고, 무엇을 부를지는 GLG가 정한다. placement(tmux server/window/pane) 사실의 출처가 아니다. 트리거: '누가 뭐 하고 있지', '분신 현황', '지금 살아있는 형제', 'situation', 'entwurf-peek', '누구한테 맡길까', '다시 부를까', 'peek session', '분신 추적'."
+description: "지금 어느 형제가 어디서 무엇을 하는 중인지 한 장으로 세우고, 다음 한 수(살아있는 형제에게 보낼지 · 잠든 형제를 같은 id로 되세울지 · 새 형제를 열지)를 고를 재료를 주는 판단 도우미. `situation`이 meta-record(사실)와 transcript(추정)를 같은 평면에 올리고, `peek`이 한 세션 안을 들여다본다. 실행은 하지 않는다 — 부르는 것은 entwurf_v2 / entwurf_resume_call / entwurf_fresh_call이고, 무엇을 부를지는 GLG가 정한다. placement(tmux server/window/pane) 사실의 출처가 아니다. 트리거: '누가 뭐 하고 있지', '분신 현황', '지금 살아있는 형제', 'situation', 'entwurf-peek', '누구한테 맡길까', '다시 부를까', 'peek session', '분신 추적', '누구한테 물어볼까', 'durable 형제', '장수 시민'."
 ---
 
 # entwurf-peek — 지금 누가 어디서 무엇을 하는가
@@ -116,12 +116,13 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-p, --project NAME` | all | record의 cwd 부분 매치 |
-| `--since SEC` | 86400 | 최근 N초 내 활동/갱신된 citizen. `alive`는 언제나 포함 |
+| `-p, --project NAME` | all | record의 cwd 부분 매치 (`agent-config`는 `homeagent-config`도 잡는다) |
+| `--since SEC` | 86400 · `--durable`이면 없음 | 최근 N초 내 활동/갱신된 citizen. `alive`는 언제나 포함 |
 | `-a, --all` | off | since 무시 |
-| `--limit N` | 24 | 최대 행 수 |
+| `--limit N` | 24 · `--durable`이면 없음 | 최대 행 수 |
+| `--durable` | off | **장수 시민 창** — `pi-durable`만, 모든 리포. 명시한 `--since`/`--limit`/`-p`만 건다 |
 | `--self-id GID` | — | `entwurf_self`가 준 내 id — 내 행에 `← me` |
-| `--json` | off | 에이전트 파싱용 JSON |
+| `--json` | off | 에이전트 파싱용 JSON. `durable: {total, in_project, shown}` = store 전체 / `-p` 범위 / 이 표 |
 
 읽는 법:
 
@@ -131,6 +132,19 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 ➖ unprobed  control-socket probe가 없는 backend(claude-code 등) → 여기서는 모른다
 model 뒤 `*`  transcript가 아니라 record가 말한 model (resume은 transcript를 따른다)
 ```
+
+**최근 창과 장수 시민 창은 다른 질문이다.** 기본 표는 「지금 누가 움직이나」이고 since·limit이
+걸린다. 「이 일의 얼개를 누구에게 물을까」는 `--durable`이 답한다 — 한 garden id가 달 단위로
+같은 대화를 쥐는 시민은 최근이 아니어도 물어볼 후보다. 기본 표 끝의 한 줄
+`장수 시민(pi-durable) 전체 N · 이 표 M → 전부 보기: situation --durable`이 두 창을 잇는다
+(`N`은 `-p`와 무관한 store 전체). `--durable` 행이 더 적는 것: 활동 출처(`db`|`wal`), record
+갱신, 생성일, `담당 역할: 알 수 없음`. 역할은 record에 없으므로 **durable이라는 사실을 담당자
+임명으로 읽지 않는다** (JSON `role: null`). online 여부도 이 창은 모른다 — `entwurf_peers`의
+`receiver` 열이 SSOT인데, peers는 최신 32행만 보여 오래된 durable은 거기서도 아직 안 보인다
+(현 설치의 관측 경계: entwurf `pi-extensions/lib/entwurf-peers-render.ts:44`
+`ENTWURF_PEERS_RENDER_LIMIT = 32`, 2026-10-13 읽음·peers 출력 실측 — 정책이 아니라 그날의 사실).
+헤더의 `since … · limit …`은 **실효 창**이다: `since 없음`(이 모드에 기본 없음) · `since 무관 (-a)` ·
+`since Ns`, `limit 없음` · `limit N`. `limit N`이 보이면 그 표는 잘린 것이다.
 
 verb 열의 뜻:
 
@@ -249,6 +263,9 @@ python3 {baseDir}/scripts/entwurf-peek.py situation
 # entwurf 작업 중인 형제만, 내 행 표시하고
 python3 {baseDir}/scripts/entwurf-peek.py situation -p entwurf --self-id 20260807T081850-678fc0
 
+# "이 얼개를 누구에게 물을까?" — 모든 리포의 장수(durable) 시민, 나이·행수 무관
+python3 {baseDir}/scripts/entwurf-peek.py situation --durable
+
 # 후보 하나를 골라 안을 본다 (garden id 그대로)
 python3 {baseDir}/scripts/entwurf-peek.py peek b0ae2b --thinking
 
@@ -266,10 +283,14 @@ python3 {baseDir}/scripts/entwurf-peek.py map -p agent-config -a --since 7200
   `awaiting assistant reply`, assistant text면 `waiting for user`. transcript는 끝 256KB만
   읽는다. provider별 JSONL shape가 다르면 정확도가 떨어진다.
 - **age는 transcript mtime**: 프로세스 생존이 아니다. record만 있고 transcript가 없으면
-  `—`로 비운다 — 그럴듯한 값으로 채우지 않는다. `pi-durable`만 예외로 **native
-  `session.sqlite`의 mtime**을 쓴다. 그 레일은 transcript가 설계상 없으므로(record의
-  `transcriptPath`가 명시적 `null`), mtime을 비우면 **한 달째 일하는 시민이 기본 뷰의
-  나이 필터에서 탈락한다.** 파일 stat 하나이고 DB를 열지 않는다.
+  `—`로 비운다 — 그럴듯한 값으로 채우지 않는다. `pi-durable`만 예외로 **native store의
+  `max(session.sqlite, session.sqlite-wal)` mtime**을 쓴다. 그 레일은 transcript가 설계상
+  없으므로(record의 `transcriptPath`가 명시적 `null`), mtime을 비우면 **한 달째 일하는 시민이
+  기본 뷰의 나이 필터에서 탈락한다.** 본체만 보면 같은 일이 checkpoint 사이마다 깜빡이며
+  일어난다 — commit은 `-wal`에만 닿는다(2026-10-13 `12d0ca`: 본체 10-11, wal 10-13). `-shm`은
+  세지 않는다: 소유 합성 SQLite에서 외부 reader의 SELECT가 `-shm`만 옮겼다(2026-10-13 실측;
+  durable 앱의 SQLite 엔진에서는 미측정). 이 값은 **관측한 store 쓰기 시각**이지 online도
+  마지막 대화 시각도 아니다. 파일 stat뿐이고 DB를 열지 않는다.
 - **`situation`은 durable을 보고 `map`은 못 본다**: `situation`은 record를 돌지만
   (`certify_records`) `map`/`trace`는 JSONL 파일 발견으로 돈다(`find_session_files`). durable은
   JSONL이 없으므로 `map`에서 **구조적으로 안 보인다** — 크래시가 아니라 누락이다. `map`의 침묵을

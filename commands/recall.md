@@ -64,9 +64,16 @@ surface your harness exposes it on — do not hardcode a host path; the skill di
 differs per harness and an isolated-HOME sibling will not find yours.
 
 ```
-entwurf-peek situation          # default: unfiltered recent roster
-entwurf-peek situation --json   # to parse rather than read
+entwurf-peek situation            # default: unfiltered recent roster
+entwurf-peek situation --json     # to parse rather than read
+entwurf-peek situation --durable  # long-lived pi-durable citizens, every repo, no age/row cap
 ```
+
+The recent roster has an age window and a row cap. A `pi-durable` citizen can hold long-running
+context in one conversation and remains a candidate to ask even when it falls outside that window.
+When the board's last line reads `장수 시민(pi-durable) 전체 N · 이 표 M` with `M < N`, run
+`--durable` before concluding nobody here holds the context. Its rows are candidates to ask, not appointed
+owners — `role` is unknown — and its activity time is a store write, not online status.
 
 Run it **unfiltered by default**, then speak about the current project first. `-p <PROJECT>`
 narrows to one repo and hides exactly the thing this section exists for — the Nano↔Gecko

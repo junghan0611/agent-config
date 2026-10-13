@@ -1427,6 +1427,34 @@ def durable_store_path(rec: dict) -> Path | None:
     return DURABLE_SESSIONS_ROOT / bucket / sid / "session.sqlite"
 
 
+def durable_store_activity(store: Path) -> tuple[float | None, str | None]:
+    """durable 대화의 마지막 **쓰기** 시각과 그 출처 — `max(db, -wal)` mtime.
+
+    WAL 모드에서 commit은 `-wal`에만 닿고 본체는 checkpoint 때만 바뀐다. 본체 mtime만
+    보면 일하는 중인 시민이 checkpoint 사이마다 기본 창에서 깜빡이며 빠진다 (2026-10-13
+    `12d0ca`: db 10-11 17:38, wal 10-13 11:58). `-shm`은 세지 않는다 — 소유 합성 SQLite에서
+    외부 reader의 SELECT 한 번이 `-shm` mtime만 옮기고 `-wal`·본체는 그대로였다
+    (2026-10-13 실측). 읽기를 활동으로 세면 들여다보는 쪽이 시민을 깨어 있게 만든다.
+    stat만 하고 어떤 파일도 열지 않는다.
+    """
+    best: tuple[float | None, str | None] = (None, None)
+    for path, source in ((store, "db"), (store.with_name(store.name + "-wal"), "wal")):
+        # stat 한 번으로 분류와 시각을 같이 읽는다. is_file() 뒤에 다시 stat하면 그 사이
+        # 마지막 close가 `-wal`을 지워 ENOENT로 터진다 — 없는 `-wal`은 닫힌 세션의 정상
+        # 상태다. 무시 집합은 pathlib `is_file()`과 같다(ENOENT·ENOTDIR·ELOOP).
+        try:
+            st = path.stat()
+        except OSError as exc:
+            if exc.errno in (errno.ENOENT, errno.ENOTDIR, errno.ELOOP):
+                continue
+            raise
+        if not stat.S_ISREG(st.st_mode):
+            continue
+        if best[0] is None or st.st_mtime > best[0]:
+            best = (st.st_mtime, source)
+    return best
+
+
 def record_activity(rec: dict) -> dict:
     """record → transcript 기반 활동 추정. transcript가 없으면 정직하게 비운다.
 
@@ -1448,13 +1476,12 @@ def record_activity(rec: dict) -> dict:
         # 행을 일반 "no transcript (첫 turn 전)"으로 적으면 한 달째 일하고 있는 시민이
         # 아직 안 태어난 것으로 보고된다. 경로만 계산해 보여주고 본문은 읽지 않는다.
         store = durable_store_path(rec)
-        mtime = None
-        if store is not None and store.is_file():
-            mtime = store.stat().st_mtime
+        mtime, source = durable_store_activity(store) if store is not None else (None, None)
         return {
             **blank,
             "path": store,
             "mtime": mtime,
+            "activity_source": source,
             "status": classify_activity(mtime) if mtime else None,
             "state": "durable native store (SQLite) — 본문 미독",
             "precheck": "durable-native-store",
@@ -1523,12 +1550,40 @@ def verbs_for(liveness: str, backend: str, precheck: str) -> str:
     return f"fresh ({PRECHECK_BLOCKED.get(precheck, precheck)} → resume 불가)"
 
 
+def record_time(value: str | None) -> float | None:
+    """record의 ISO 시각 → epoch. 못 읽으면 None — 그럴듯한 값으로 채우지 않는다."""
+    try:
+        return datetime.fromisoformat((value or "").replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return None
+
+
+SITUATION_DEFAULT_SINCE = 86400
+SITUATION_DEFAULT_LIMIT = 24
+
+
 def cmd_situation(args) -> int:
     sockets = find_active_sockets()
     records, store_defects = certify_records()
     if not records and not store_defects:
         print(f"meta-record 없음: {RECORDS_DIR}", file=sys.stderr)
         return 1
+
+    # 최근 활동 창과 장수 시민 창은 다른 질문이다. 기본 창은 그대로 두고, `--durable`은
+    # 명시하지 않은 since·limit을 걸지 않는다 — 한 달째 같은 대화를 쥔 시민이 「최근」이
+    # 아니라서 안 보이는 것이 이 창이 막으려는 실패다.
+    since = args.since if args.since is not None else (None if args.durable else SITUATION_DEFAULT_SINCE)
+    limit = args.limit if args.limit is not None else (None if args.durable else SITUATION_DEFAULT_LIMIT)
+    # 표에 적는 창은 **실효값**이다. 명시한 limit이 걸렸는데 「무관」이라 적으면 잘린 표가
+    # 전부로 읽힌다. since는 셋을 가른다: -a로 해제 / 값 / 이 모드에 기본이 없음.
+    since_label = "since 무관 (-a)" if args.all else (f"since {since}s" if since is not None else "since 없음")
+    limit_label = f"limit {limit}" if limit is not None else "limit 없음"
+    window = f"{since_label} · {limit_label}"
+    durable_total = sum(1 for r in records if r.get("backend") == DURABLE_BACKEND)
+    durable_in_project = sum(
+        1 for r in records
+        if r.get("backend") == DURABLE_BACKEND and (not args.project or args.project in (r.get("cwd") or ""))
+    )
 
     now = datetime.now().timestamp()
     rows = []
@@ -1537,19 +1592,16 @@ def cmd_situation(args) -> int:
         backend = rec.get("backend") or "unknown"
         cwd = rec.get("cwd") or ""
         liveness = liveness_for(rec, sockets)
+        if args.durable and backend != DURABLE_BACKEND:
+            continue
         if args.project and args.project not in cwd:
             continue
         act = record_activity(rec)
-        if not args.all and liveness != "alive":
+        if not args.all and since is not None and liveness != "alive":
             ref = act["mtime"]
             if ref is None:
-                try:
-                    ref = datetime.fromisoformat(
-                        (rec.get("recordUpdatedAt") or rec.get("createdAt") or "").replace("Z", "+00:00")
-                    ).timestamp()
-                except ValueError:
-                    ref = 0
-            if (now - ref) > args.since:
+                ref = record_time(rec.get("recordUpdatedAt") or rec.get("createdAt")) or 0
+            if (now - ref) > since:
                 continue
         rows.append({
             "gid": gid,
@@ -1560,23 +1612,45 @@ def cmd_situation(args) -> int:
             "model_source": "transcript" if act["model"] else ("record" if rec.get("model") else None),
             "state": act["state"],
             "mtime": act["mtime"],
+            # durable만 채운다: 활동 시각이 store 본체(db)에서 왔는지 WAL에서 왔는지.
+            "activity_source": act.get("activity_source"),
             "status": act["status"],
             "precheck": act["precheck"],
             "verbs": verbs_for(liveness, backend, act["precheck"]),
             "is_self": bool(args.self_id and args.self_id in gid),
+            "record_updated_at": rec.get("recordUpdatedAt"),
+            "created_at": rec.get("createdAt"),
+            # 담당 역할은 record에 없다. 모르는 것을 비워 두는 자리이지, 채울 자리가 아니다.
+            "role": None,
         })
-        if len(rows) >= args.limit:
+        if limit is not None and len(rows) >= limit:
             break
 
+    durable = {
+        "total": durable_total,
+        "in_project": durable_in_project,
+        "shown": sum(1 for r in rows if r["backend"] == DURABLE_BACKEND),
+    }
     if args.json:
-        print(json.dumps({"rows": rows, "store_defects": store_defects},
+        print(json.dumps({"rows": rows, "store_defects": store_defects, "durable": durable},
                          ensure_ascii=False, indent=2, default=str))
         return 0
+
+    # 기본 창에서 장수 시민으로 건너가는 다리. 행 형식과 창 규칙은 건드리지 않고, 창 밖에도
+    # 물어볼 수 있는 시민이 있다는 사실만 센다 — -p와 무관하게 전체를 센다.
+    bridge = None
+    if not args.durable and durable_total:
+        scope = f" · -p {args.project}: {durable_in_project}" if args.project else ""
+        bridge = (f"  장수 시민(pi-durable) 전체 {durable_total}{scope} · 이 표 {durable['shown']}"
+                  f" → 전부 보기: situation --durable")
 
     if not rows:
         for d in store_defects:
             print(f"  ⚠ store defect: {d}", file=sys.stderr)
-        print(f"해당 citizen 없음 (since {args.since}s, project={args.project or 'all'})", file=sys.stderr)
+        kind = "durable citizen" if args.durable else "citizen"
+        print(f"해당 {kind} 없음 ({window}, project={args.project or 'all'})", file=sys.stderr)
+        if bridge:
+            print(bridge, file=sys.stderr)
         return 1
 
     live_icon = {"alive": "🟢", "dormant": "⚫", "unprobed": "➖"}
@@ -1591,10 +1665,13 @@ def cmd_situation(args) -> int:
     n_dormant = sum(1 for r in rows if r["liveness"] == "dormant")
     n_unprobed = sum(1 for r in rows if r["liveness"] == "unprobed")
 
-    lines = [
-        f"═══ situation map  {n_alive} alive · {n_dormant} dormant · {n_unprobed} unprobed "
-        f"· sockets {len(sockets)} ═══"
-    ]
+    if args.durable:
+        lines = [f"═══ durable citizens  {len(rows)} of {durable_total} · {window} ═══"]
+    else:
+        lines = [
+            f"═══ situation map  {n_alive} alive · {n_dormant} dormant · {n_unprobed} unprobed "
+            f"· sockets {len(sockets)} ═══"
+        ]
     for cwd, items in sorted(by_cwd.items(), key=lambda x: -max((r["mtime"] or 0) for r in x[1])):
         lines.append(f"\n  📁 {cwd}")
         for r in items:
@@ -1607,7 +1684,18 @@ def cmd_situation(args) -> int:
                 f"    {live_icon[r['liveness']]} {r['backend']:11} {r['gid']}  {model:26} "
                 f"{age:>7}  · {r['state']}"
             )
+            if args.durable:
+                rec_t = record_time(r["record_updated_at"])
+                lines.append(
+                    f"          활동 {age} ({r['activity_source'] or 'store 없음'}) · "
+                    f"record 갱신 {fmt_age(rec_t) if rec_t else '?'} · "
+                    f"생성 {(r['created_at'] or '?')[:10]} · 담당 역할: 알 수 없음"
+                )
             lines.append(f"          → {r['verbs']}{me}")
+
+    if bridge:
+        lines.append("")
+        lines.append(bridge)
 
     if store_defects:
         lines.append("")
@@ -1623,6 +1711,12 @@ def cmd_situation(args) -> int:
     lines.append("   · placement(tmux server/window/pane)는 여기 없다 — launch receipt 또는 peer self-report만이 근거다.")
     lines.append("   · state는 transcript last-event 추정이다. 사실이 필요하면 그 창을 직접 보거나 물어라.")
     lines.append("   · 행이 보인다는 것은 dispatch 초대가 아니다. 무엇을 부를지는 GLG가 정한다.")
+    if args.durable:
+        lines.append("  장수 시민 창 경계:")
+        lines.append("   · 활동 = 관측한 store 파일 쓰기 시각 max(session.sqlite, -wal). online도, 마지막 대화 시각도 아니다.")
+        lines.append("   · online은 entwurf_peers의 receiver 열이 SSOT다. 이 표는 미러하지 않는다.")
+        lines.append("     (2026-10-13 관측: 설치된 entwurf의 peers는 최신 32행만 보여 오래된 durable은 거기서도 빠진다.)")
+        lines.append("   · 담당 역할은 record에 없다. durable이라는 사실은 담당자 임명이 아니라 물어볼 후보라는 뜻이다.")
     print("\n".join(lines))
     return 0
 
@@ -1663,10 +1757,15 @@ def main() -> int:
     # situation
     p_sit = sub.add_parser("situation", help="누가 어디서 무엇을 하는 중인가 (판단 재료 한 장)")
     p_sit.add_argument("-p", "--project", help="cwd 부분 매치 필터 (e.g. entwurf, agent-config)")
-    p_sit.add_argument("--since", type=int, default=86400,
-                       help="최근 N초 이내 활동/갱신된 citizen만 (기본 86400=24h). alive는 항상 포함")
+    p_sit.add_argument("--since", type=int, default=None,
+                       help="최근 N초 이내 활동/갱신된 citizen만 (기본 86400=24h, --durable이면 기본 없음). "
+                            "alive는 항상 포함")
     p_sit.add_argument("-a", "--all", action="store_true", help="since 무시하고 전부")
-    p_sit.add_argument("--limit", type=int, default=24, help="최대 행 수 (기본 24)")
+    p_sit.add_argument("--limit", type=int, default=None,
+                       help="최대 행 수 (기본 24, --durable이면 기본 없음)")
+    p_sit.add_argument("--durable", action="store_true",
+                       help="장수 시민 창: pi-durable citizen만, 모든 리포. 명시하지 않은 since·limit을 걸지 "
+                            "않는다. -p를 함께 주면 그 리포로 좁힌다")
     p_sit.add_argument("--self-id", dest="self_id",
                        help="entwurf_self가 준 내 garden id — 내 행을 표시한다")
     p_sit.add_argument("--json", action="store_true", help="JSON 출력")

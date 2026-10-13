@@ -40,7 +40,10 @@ conversation for a month**, so its `durable native store (SQLite)` state is not 
 happened yet" — it means the conversation lives outside the transcript axis and this surface
 does not open it. Do not pair such a row with `session-recap`; there is no recap axis for that
 rail yet (gated on [andenken#15](https://github.com/junghan0611/andenken/issues/15)). Treat its
-age as the store's mtime, and ask the citizen itself rather than inferring from silence.
+age as the store's last write (`max(db, -wal)` mtime) — not online status — and ask the citizen
+itself rather than inferring from silence. The default board has an age window and a row cap; if
+its last line shows fewer durables in the table than in the store, run `situation --durable` to
+list every long-lived citizen across repos before concluding nobody holds the context.
 
 ### 2. Both harnesses' session spine
 

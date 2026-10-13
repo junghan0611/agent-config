@@ -427,6 +427,161 @@ def main():
         check("durable is not resumable under the same id",
               ep.verbs_for("unprobed", "pi-durable", "durable-native-store"), "send?")
 
+        # ── durable 활동 = max(db, -wal) mtime. -shm은 읽기에도 움직이므로 세지 않는다 ──
+        import time as _time
+        now = _time.time()
+        old, fresh = now - 10 * 86400, now - 60
+        act_dir = d / "durable-activity"
+        act_dir.mkdir()
+        db = act_dir / "session.sqlite"
+        db.write_bytes(b"")
+        os.utime(db, (old, old))
+        check("db only → db mtime, source db", ep.durable_store_activity(db), (old, "db"))
+        wal = act_dir / "session.sqlite-wal"
+        wal.write_bytes(b"")
+        os.utime(wal, (fresh, fresh))
+        check("old db + fresh wal → wal wins (checkpoint lag)", ep.durable_store_activity(db), (fresh, "wal"))
+        shm = act_dir / "session.sqlite-shm"
+        shm.write_bytes(b"")
+        os.utime(shm, (now, now))
+        check("newer -shm is ignored (reads move it)", ep.durable_store_activity(db), (fresh, "wal"))
+        wal.unlink()
+        check("closed session (no -wal) is normal, not a crash", ep.durable_store_activity(db), (old, "db"))
+        wal.mkdir()
+        check("-wal that is not a regular file is ignored", ep.durable_store_activity(db), (old, "db"))
+        check("no store at all → (None, None)",
+              ep.durable_store_activity(act_dir / "nope" / "session.sqlite"), (None, None))
+
+        # ── CLI: 최근 창은 그대로, `--durable`은 since·limit 없이 모든 리포의 durable ──
+        # 소유 temp HOME — durable store root, control dir, record store 전부 그 안에 있다.
+        home = d / "home"
+        agent = home / ".pi" / "agent"
+        store_dir = agent / "meta-sessions"
+        store_dir.mkdir(parents=True)
+        repo_a = d / "repo-a"
+        repo_b = d / "homerepo-b"
+        repo_a.mkdir()
+        repo_b.mkdir()
+
+        def iso(t):
+            return _time.strftime("%Y-%m-%dT%H:%M:%S.000Z", _time.gmtime(t))
+
+        def cli_record(gid, backend, cwd, updated, native=None, store=None):
+            ((store or store_dir) / f"{gid}.meta.json").write_text(json.dumps({
+                "schemaVersion": 3, "gardenId": gid, "backend": backend,
+                "nativeSessionId": native or f"native-{gid}", "cwd": str(cwd), "model": None,
+                "transcriptPath": None, "createdAt": iso(updated), "recordUpdatedAt": iso(updated)}))
+
+        def durable_store(gid, cwd, db_t, wal_t=None, agent_dir=None):
+            import hashlib
+            bucket = hashlib.sha256(os.path.realpath(cwd).encode()).hexdigest()[:24]
+            sdir = (agent_dir or agent) / "experimental" / "durable-sessions" / bucket / f"native-{gid}"
+            sdir.mkdir(parents=True)
+            (sdir / "session.sqlite").write_bytes(b"")
+            os.utime(sdir / "session.sqlite", (db_t, db_t))
+            if wal_t is not None:
+                (sdir / "session.sqlite-wal").write_bytes(b"")
+                os.utime(sdir / "session.sqlite-wal", (wal_t, wal_t))
+
+        d_old = "20261001T000000-d0d001"      # 장수 시민: 열흘 전 마지막 쓰기, -wal 없음
+        d_lag = "20261007T000000-d0d002"      # checkpoint 지연: 본체 열흘 전, -wal 방금
+        cli_record(d_old, "pi-durable", repo_a, old)
+        durable_store(d_old, repo_a, old)
+        cli_record(d_lag, "pi-durable", repo_b, old)
+        durable_store(d_lag, repo_b, old, fresh)
+        p_old = "20261002T000000-01d01d"
+        cli_record(p_old, "pi", repo_a, old)
+        for i in range(25):                   # 기본 limit 24를 채우는 최근 pi 시민들
+            cli_record(f"20261013T{i:06d}-aaa{i:03d}", "pi", repo_a, now - 120 - i)
+
+        def run_sit(*argv, at=None):
+            h, s = at or (home, store_dir)
+            env = {k: v for k, v in os.environ.items() if k not in ("PI_CODING_AGENT_DIR",)}
+            env.update(HOME=str(h), ENTWURF_META_SESSIONS_DIR=str(s))
+            return subprocess.run([sys.executable, str(cli), "situation", *argv],
+                                  env=env, capture_output=True, text=True)
+
+        def sit_json(*argv, at=None):
+            out = run_sit("--json", *argv, at=at)
+            return json.loads(out.stdout) if out.returncode == 0 else {"rc": out.returncode, "err": out.stderr}
+
+        base_keys = {"gid", "backend", "cwd", "liveness", "model", "model_source", "state",
+                     "mtime", "status", "precheck", "verbs", "is_self"}
+        dflt = sit_json()
+        dflt_ids = {r["gid"] for r in dflt["rows"]}
+        check("default window keeps its limit 24", len(dflt["rows"]), 24)
+        check("default rows keep every pre-existing key", all(base_keys <= set(r) for r in dflt["rows"]), True)
+        check("synthetic store certifies clean (no defect hides a row)", dflt["store_defects"], [])
+        check("default window still drops an old pi citizen", p_old in dflt_ids, False)
+        check("…by the since filter: -a admits that same old pi citizen",
+              p_old in {r["gid"] for r in sit_json("-a", "--limit", "200")["rows"]}, True)
+        check("default window still drops an old durable", d_old in dflt_ids, False)
+        dflt_all = sit_json("--limit", "200")
+        check("old db + fresh wal durable is in the default since window",
+              d_lag in {r["gid"] for r in dflt_all["rows"]}, True)
+        lag_row = next(r for r in dflt_all["rows"] if r["gid"] == d_lag)
+        check("its activity names the wal", lag_row["activity_source"], "wal")
+        check("durable counts: total store-wide, shown = this table",
+              (dflt_all["durable"]["total"], dflt_all["durable"]["shown"]), (2, 1))
+
+        dur = sit_json("--durable")
+        check("--durable lists every durable regardless of age and default limit",
+              {r["gid"] for r in dur["rows"]}, {d_old, d_lag})
+        check("--durable role is unknown, never inferred", {r["role"] for r in dur["rows"]}, {None})
+        check("--durable row for a closed session reads db",
+              next(r for r in dur["rows"] if r["gid"] == d_old)["activity_source"], "db")
+        check("--durable -p narrows to that repo (partial match contract kept)",
+              {r["gid"] for r in sit_json("--durable", "-p", "repo-a")["rows"]}, {d_old})
+        check("--durable -p substring still matches homerepo-b",
+              {r["gid"] for r in sit_json("--durable", "-p", "repo-b")["rows"]}, {d_lag})
+        check("--durable with explicit --since is honored",
+              {r["gid"] for r in sit_json("--durable", "--since", "3600")["rows"]}, {d_lag})
+        check("--durable with explicit --limit is honored", len(sit_json("--durable", "--limit", "1")["rows"]), 1)
+
+        txt = run_sit("-p", "repo-a").stdout
+        bridge = next((ln for ln in txt.splitlines() if "장수 시민(pi-durable)" in ln), "")
+        check("default text carries the bridge with store-wide total", "전체 2" in bridge, True)
+        check("bridge scopes -p separately", "-p repo-a: 1" in bridge, True)
+        check("bridge command has no -p", bridge.rstrip().endswith("situation --durable"), True)
+        dtxt = run_sit("--durable").stdout
+        check("--durable text says role is unknown", "담당 역할: 알 수 없음" in dtxt, True)
+        check("--durable text does not call file mtime online",
+              "online도, 마지막 대화 시각도 아니다" in dtxt, True)
+
+        # ── 기본 limit 24를 넘는 durable 무리: --durable은 전부, 명시 limit은 자른다 ──
+        # 그리고 헤더는 실효 창을 적는다 — 잘린 표를 「limit 무관」이라 적으면 전부로 읽힌다.
+        home2 = d / "home2"
+        agent2 = home2 / ".pi" / "agent"
+        store2 = agent2 / "meta-sessions"
+        store2.mkdir(parents=True)
+        many = [f"20261001T{i:06d}-dd{i:04d}" for i in range(26)]
+        for i, gid in enumerate(many):
+            cwd_i = d / f"many-repo-{i:02d}"
+            cwd_i.mkdir()
+            cli_record(gid, "pi-durable", cwd_i, old - i, store=store2)
+            durable_store(gid, cwd_i, old - i, agent_dir=agent2)
+        at2 = (home2, store2)
+        many_rows = sit_json("--durable", at=at2)["rows"]
+        check("--durable lists all 26 durables past the default limit 24",
+              {r["gid"] for r in many_rows}, set(many))
+        check("--durable explicit --limit 1 trims to 1", len(sit_json("--durable", "--limit", "1", at=at2)["rows"]), 1)
+
+        def header(*argv):
+            return run_sit(*argv, at=at2).stdout.splitlines()[0]
+        check("header: --durable has no since and no limit",
+              header("--durable"), "═══ durable citizens  26 of 26 · since 없음 · limit 없음 ═══")
+        check("header: explicit limit is shown, not called 무관",
+              header("--durable", "--limit", "1"), "═══ durable citizens  1 of 26 · since 없음 · limit 1 ═══")
+        check("header: -a lifts since only, limit still shown",
+              header("--durable", "-a", "--limit", "1"),
+              "═══ durable citizens  1 of 26 · since 무관 (-a) · limit 1 ═══")
+        none_recent = run_sit("--durable", "--since", "3600", at=at2)
+        check("empty --durable window names its effective since and limit",
+              (none_recent.returncode, "since 3600s · limit 없음" in none_recent.stderr), (1, True))
+        dflt2 = run_sit(at=at2)
+        check("default window over only-old durables still bridges to all of them",
+              (dflt2.returncode, "전체 26 · 이 표 0" in dflt2.stderr), (1, True))
+
         print(f"[test-discovery] {_n} checks, {_fail} failed")
         return 1 if _fail else 0
     finally:

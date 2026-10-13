@@ -36,6 +36,10 @@
 
 # NOW
 
+- **장수 durable 시민 발견 — 좌표23 별도 수선 (2026-10-13, GLG 맡김·commit/push 승인).** 새 Claude Code Opus `20261013T120933-1aae86` 구현, durable coordinator `12d0ca` 검수. 최근 활동 보드는 보존하고 `situation --durable`은 전 리포 durable을 기본 since/limit 없이 발견한다. 활동은 max(db,wal) 관측 mtime이며 online/역할로 추정하지 않는다. 직접 source/diff 검수 및 최종 소유 fixture 재실행 **115/115 PASS**; 26개 durable·명시 제한 표시·old Pi 시간 필터 양성/음성 회귀 확인, false-positive fixture 수선 닫힘. 검수한 5파일 diff SHA `d1f2f809…`(NEXT 제외), source `6ff1865…`/test `9bac93ed…` 구현자 receipt와 일치; diff check PASS.
+  - **Next:** 발견 수선 검수 완료·GLG가 이 묶음 정상 commit/push 승인. 설치된 스킬 경로로 `--durable --json` 실행해 전체9/표시9·이 상주 시민 발견 직접 확인, 설치 경로의 115 checks도 PASS. 남은 Entwurf live-fact 조회는 별도 요청 때 전달한다. 시맨틱 메모리 논의로 복귀한다. 사용: `situation`은 기존 최근 창, `situation --durable`은 전체 durable, `--durable -p <repo>`는 리포별 좁힘. 실제 호출/재개는 별도 GLG 선택. 시맨틱 검색 질의/품질은 기존 형제의 별도 레인이다.
+  - **OPEN / Do not:** 오래된 시민의 online/offline 사실 조회는 Entwurf peers 최신32 관측 제한에 막혀 별도 소유 접점 요구로 남는다. receiver mirror/새 역할 레지스트리/자동 재개/담당자 임명 금지; live durable DB(RO 포함/Q6 미승인)·설정/설치/재시작·그집 수정·추가 형제·무승인 commit/push 없음. `FACTORY.draft.md` 미접촉.
+
 - **pi-durable 편집 안전성 장기관찰 — 좌표26/#28 (2026-10-12, PAUSED).** Opus `20261012T164637-f929b3`의17:12 checkpoint 상속: GLG가 그 세션17:1x에 ‘관점은 durable에 효과가 있을까, 지금 근거로 넣으면 안 된다, Pi 버전업을 기다리며 장기관찰’로 판정했다. 앞의 가드 우선안·Pi 시험 진행안은 퇴역했으며 설치/포트/추가 시험을 이어가지 않는다. Opus는 이슈 제목을 research로 바꾸고 state:parked 및 판정 댓글을 게시했다고 보고했다.
   - **Next:** GLG가 장기관찰을 재개할 때만 Pi 변경점과 stale 편집 비교부터 범위를 다시 잡는다. Stale fixture는 아직 실행하지 않았다. Source/npm6.4 binding·격리 RPC load smoke는 Opus receipt(이집 재실행0), 출력 절감2–3%는 추정이며 실제 장기 효과·Sol 인과·durable 효과는 미측정이다. 새 Han 도입49건도 후보이며 오탐/기기 간 중복/편집 직전 파일 replay는 미검증이다.
   - **Read:** [최신 판정/재개 조건](https://github.com/junghan0611/agent-config/issues/28#issuecomment-6120347063) → [이전 외부 자문](https://github.com/junghan0611/agent-config/issues/28#issuecomment-6119963036). 로컬 검토 `.agent-reports/20261012-issue28-review.md`, Opus probe/config `.agent-reports/20261012-issue28-baseline/`는 ignored. Third-party 후보 checkout `~/repos/3rd/pi-hashline-edit-pro` @72f6315/runtime deps는 그 Opus가 남겼다고 보고; 자동 삭제하지 않는다.
