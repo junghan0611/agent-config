@@ -7,6 +7,27 @@
 
 ## Unreleased
 
+## v2026.10.14 — Entwurf 0.36 출하, BG 도구 결과를 SDK 1.2 `output`으로
+
+### 0.36 — 툴 결과의 채널이 바뀌었다
+
+* **background 도구 결과를 SDK 1.2 `output`으로 돌려준다.** `2fe2662`. pi-durable 1.2.0에서 모델에게 가는 채널은 `ToolExecutionResult.output`이고 선택 필드다(`dist/harness/types.d.ts:106` 읽음). 비어 있으면 `api.output()`으로 쌓은 텍스트가 대신 쓰이는데(`tool.js:395`), 우리 도구는 그 텍스트를 쌓지 않는다. 그래서 `content`만 돌려준 결과가 모델에게 `[]`로 닿았다. `text()`가 `output`을 돌려주도록 고쳤다. report 제출 `{ type: "input", content }`와 일반 Pi/MCP `content`는 다른 계약이라 그대로 두었다. dual ABI나 `content` fallback은 없다. 그래서 이 모듈은 1.2 전용이고 Entwurf 0.36.0 이상이 필요하다.
+* **고치기 전후를 같은 파일로 쟀다(API-0, `env -i`, 합성 HOME/TMPDIR).** 1.2 위에서 옛 `content`로는 29/44였다. background 11건은 빈 tool result `''`를 봤고, ingress 4건은 `onFailed` 부재로 실패했다. 고친 뒤 44/44였다(10-13, 미커밋 #141 작업트리). 10-14에는 출하된 clean checkout `9f33dd1`(`v0.36.0-1`; 태그 뒤 커밋은 Herdr 파일만)에서 다시 **44/44, skip 0**이었다. ingress stub의 `onFailed`는 test seam 정렬이며, 출하본 `bootstrap.mjs:347`과 맞는다.
+* **GLG 수동 재시작 뒤 범위가 정해진 실사용을 관찰했다.** 코디네이터의 durable 세션이 부른 BG #17099의 시작 텍스트와 자동 완료 보고(exited 0, marker 포함)가 모델 컨텍스트에 도착했다. 세 형제의 nonce 왕복도 확인됐다. 코디네이터 receipt를 상속한 scoped PASS이며, 일반 Pi나 native Codex LIVE, FULL이 아니다.
+* **일반 Pi 호스트를 1.2.0으로 맞췄다(10-13, 코디네이터 승인).** PATH의 `pi`는 1.1.0이었고, Entwurf host 범위 `>=1.2.0 <1.3` 밖이었다. nix pnpm 11.20.0으로 `pnpm add -g @earendil-works/pi-coding-agent@1.2.0`을 실행했다. pi 실행, `pi update`, setup은 하지 않았다.
+* **현재 좌표 문서를 0.36.0/1.2.0으로 정렬했다.** `cea0d18`. README·AGENTS·ENV-SETUP·PI·harness-bench·모듈 README를 고쳤다. `PI-DURABLE.md`에는 10-13·10-14 절을 더했다. 10-14 절은 태그 `v0.36.0`=`daf8cab`, 그 커밋의 `ci` success, npm latest 0.36.0과 1.2.0 의존성 9개를 직접 읽은 기록이다.
+
+### 지난 태그 이후
+
+* **장수 durable 시민을 찾는다.** `294d6be`. `entwurf-peek situation --durable`은 모든 리포의 durable을 기본 since/limit 없이 보여 준다. 활동 시각은 max(db, wal) 관측 mtime이고, 역할이나 online은 추정하지 않는다(115 checks PASS). 오래된 시민의 online 사실은 Entwurf peers의 최신 32행 관측 경계에 막혀 OPEN으로 남는다.
+* **기억 사용 품질 #30의 준비자료를 보존하고 레인을 멈췄다.** `b602d77`. GLG가 다음에 후보와 자료 접근 범위를 정할 때 재개한다.
+* **Hashline 시험을 장기관찰로 내렸다.** `26aa736`. GLG 판정에 따라, 지금 근거로는 도입하거나 포트하지 않고 Pi 버전업을 기다린다.
+
+### 이 snapshot의 검증과 운영 경계
+
+* 이번 cut에서 직접 돌린 회귀: native 소비자 **44/44, skip 0**(0.36.0 checkout), entwurf-peek **115 checks/0 failed**, release extractor **7 OK**, `git diff --check`.
+* 이 release는 agent-config의 **CalVer 문서/소비자 snapshot**이다. Entwurf 0.36.0의 whole qualification, native Codex 범위, exact CI는 그 릴리스의 영수증이며 여기서 다시 돌리지 않았다. npm 설치본 0.36.0 실행(이 호스트의 `entwurf`는 checkout을 가리킨다), vendor 모델 턴, TUI, 재시작은 하지 않았다.
+
 ## v2026.10.12 — Entwurf 0.35 소비면 정렬, 상주하는 형제에게 드라이버를
 
 ### 0.35 — 작업대·드라이버·형제의 자리를 맞췄다

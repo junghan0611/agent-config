@@ -34,7 +34,7 @@
 > 가리키는 11의 내용은 이제 `v2026.9.21` 절에 있다. **24와 23의 닫힌 부분은 `v2026.10.8`** —
 > 23의 후속 관측·22의 기억축 판정은 남겨 두었다. **25와 릴리즈 줄바꿈 수선은 `v2026.10.12`**에 갈무리했다.
 
-현재 좌표: **27 PAUSED — #30 준비 완료·다음 GLG 요청 때 후보/자료 접근 범위부터** · **26 PAUSED — Pi 버전업 장기관찰, Hashline 도입/포트 없음** · **0.35 정렬/25는 `v2026.10.12` 공개 완료** · **24 닫힘 — durable env/hide 레퍼런스·실사용 재개·0.32.0 문서, `v2026.10.8`** · **23 PAUSED — durable 후속 실물 관측만 남음** · **20 CURRENT — 기억축 정화, andenken과 조율 중** · **22 PAUSED — pi-durable source, andenken#15에서 GLG Q1–Q7 판정 대기(노트북에서 두 리포 pull 후 재검수)** · 21 PAUSED(`skill-audit` 재검토 + botlog 증류본 채택 판정) · **19 PAUSED — 1·2차 끝, GLG가 #27 읽고 방향 판정(#27이 최신 좌표)** · 17(판단 근거·재개는 후일 GLG 재개 요청 대기) — 16은 `v2026.9.30`에 닫힘 — 18 압축 전환 적용 중(다른 기기 제거·첫 빌트인 관측 남음) — 14 herdr 판정 대기 · 15 기억축 월간 판독 대기 · 13 본작업 보류 · 12 GLG 판정 대기 · 3·4 남의 손 대기
+현재 좌표: **27 PAUSED — #30 준비 완료·다음 GLG 요청 때 후보/자료 접근 범위부터** · **26 PAUSED — Pi 버전업 장기관찰, Hashline 도입/포트 없음** · **0.36/SDK 1.2 소비자 정렬은 `v2026.10.14` 공개 완료** · **24 닫힘 — durable env/hide 레퍼런스·실사용 재개·0.32.0 문서, `v2026.10.8`** · **23 PAUSED — durable 후속 실물 관측만 남음** · **20 CURRENT — 기억축 정화, andenken과 조율 중** · **22 PAUSED — pi-durable source, andenken#15에서 GLG Q1–Q7 판정 대기(노트북에서 두 리포 pull 후 재검수)** · 21 PAUSED(`skill-audit` 재검토 + botlog 증류본 채택 판정) · **19 PAUSED — 1·2차 끝, GLG가 #27 읽고 방향 판정(#27이 최신 좌표)** · 17(판단 근거·재개는 후일 GLG 재개 요청 대기) — 16은 `v2026.9.30`에 닫힘 — 18 압축 전환 적용 중(다른 기기 제거·첫 빌트인 관측 남음) — 14 herdr 판정 대기 · 15 기억축 월간 판독 대기 · 13 본작업 보류 · 12 GLG 판정 대기 · 3·4 남의 손 대기
 
 # NOW
 
@@ -56,8 +56,8 @@
   - **Next (GLG가 관측을 열 때만):** 느린 턴 하나의 입력→첫 보이는 출력→완료 시각과 `/tasks` 단계 변화·thinking·usage를 함께 기록한다. 일반 Pi와 비교할 때 모델/effort·context·도구·출력량 조건을 맞춘다. ‘durable이 느리다’는 GLG 체감 관측이며 원인·paired timing은 미측정; 오라클 설치판·전사도 이번에 직접 확인하지 않았다.
   - **Do not:** 성능 원인 단정, 자동 subagent/형제 실험, live DB(RO 포함/Q6 미승인), 셸/설정 변경, 설치/재시작, 무승인 commit/push. 10-06 공급 초안은 역사로 보존했고 현재 소비자 SSOT는 `pi-durable/README.md`다.
 
-- **현재 공급/재개 — 0.35 정보 정렬 (2026-10-12).** 닫힌25/BG 소비자·pdc 전환·줄바꿈 수선은 `CHANGELOG.md v2026.10.12`로 승격. current 사용은 `pi-durable/README.md`; 이력은 `PI-DURABLE.md`/`HERDR.md`10-12 절. 원4consumer source와0.35 registry core4 해시를 대조했고 별도 Herdr035 plugin은 여전히pi/Claude만 지원한다. GLG의 편안함은 사용 경험이지 기억 성능 검수가 아니다.
-  - **Next:** GLG가 다음 사용/관측을 열 때만 해당 체크포인트 재개. 0.35 whole940/Codex LIVE는 supplier의 cut 한정 미측정 예외이지 PASS가 아니다. 다른 live helper·runtime·DB·설치/재시작·형제/실모델 실험은 이번 release 정렬에서 건드리지 않는다.
+- **현재 공급/재개 — 0.36 정렬 (2026-10-14).** BG 도구 `output` 전환·일반 Pi 1.2.0·0.36 문서 정렬은 `CHANGELOG.md v2026.10.14`로 승격. current 사용은 `pi-durable/README.md`; 이력은 `PI-DURABLE.md` 10-13·10-14 절. 이 모듈은 1.2 전용이라 Entwurf 0.36.0 이상이 필요하다.
+  - **Next:** GLG가 다음 사용/관측을 열 때만 재개. npm 설치본 0.36.0 실행·vendor 모델 턴·TUI는 미측정이다. 0.36 whole qualification·native Codex는 supplier 영수증이지 여기서의 PASS가 아니다. 다른 live helper·runtime·DB·설치/재시작·형제/실모델 실험은 이번 release 정렬에서 건드리지 않았다.
 
 - **기억축 정기 판독 — 좌표 15, 다음 GLG 요청 대기.** 닫힌10-08/10-12 판독은 `CHANGELOG.md v2026.10.12`로 승격(`9198c05`/`d9ada4f` 기록). 마지막10-12 값은 sessions106,106·md11,051·OpenClaw7,510; 이 release 정렬에서 임베딩을 다시 실행한 값이 아니다.
   - **Next:** 다음 전체 동기화/월간 점검 때 성장과 대표 질의 적중·응답시간을 함께 잰다. 10-08 bbot 크론 부모 분류 패치는OpenClaw9.8 한정이며 버전업 때 상류 수정/회수 확인. 10-12 dirty 재발 원인은 별도 미측정이다.
