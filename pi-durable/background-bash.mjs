@@ -454,7 +454,8 @@ async function liveCount(tx) {
 	return n;
 }
 
-const text = (value, details) => ({ content: [{ type: "text", text: value }], ...(details ? { details } : {}) });
+/** A native ToolExecutionResult: `output` is what the model reads (SDK 1.2; an unknown `content` key is dropped). */
+const text = (value, details) => ({ output: [{ type: "text", text: value }], ...(details ? { details } : {}) });
 
 function describe(record) {
 	const { input, state } = record;

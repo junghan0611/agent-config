@@ -55,7 +55,7 @@ If `entwurf` asks “what does a real consumer look like?”, this repo is the a
 | Claude skill plugin farm | pair boundary | this repo builds one consumer layout at `~/.pi/agent/claude-plugin/`, then points `entwurf` at it |
 | Skills / prompts / themes / profile | `agent-config` | SSOT in `skills/`, `commands/`, `pi-themes/`, `home/AGENTS.md` |
 | Consumer install/update policy | `agent-config` | `run.sh setup` / server-device upgrade path |
-| Durable native module | `agent-config` | [`pi-durable/index.mjs`](pi-durable/index.mjs): env/hide first, then native background-bash tools; Entwurf **0.35.0 / Pi 1.1.0** carries the persistent BG badge introduced in 0.34.0, independent of `/tasks`. Published-byte-bound installed integration verified with scripted faux; [reference implementation](pi-durable/README.md) |
+| Durable native module | `agent-config` | [`pi-durable/index.mjs`](pi-durable/index.mjs): env/hide first, then native background-bash tools; Entwurf **0.35.0 / Pi 1.1.0** carries the persistent BG badge introduced in 0.34.0, independent of `/tasks`. Published-byte-bound installed integration verified with scripted faux. Since 2026-10-13 the BG tools return the SDK **1.2** `output` and are 1.2-only; today only the Entwurf #141 working tree carries 1.2; [reference implementation](pi-durable/README.md) |
 | Production verification | pair boundary | day-to-day use here, bridge invariants in `entwurf` |
 
 In short: **entwurf defines the bridge contract; agent-config proves the contract against lived use.**
@@ -219,7 +219,7 @@ So when `entwurf` changes, this is the first consumer that should stay green.
 
 **Seven backends, one address layer (checked at entwurf 0.35.0, 2026-10-12).** Claude Code, Copilot CLI, **OMP**, and **pi-durable** are self-fetch citizens; Antigravity and Codex use native-push; pi supplies control sockets. The capability map records durable at **D2**, the others at D6 (read at entwurf `pi/entwurf-capabilities.json` @`48dcc9a`, 2026-10-12); that is a delivery evidence boundary, not a rank. `entwurf_fresh_call` supports `pi` / `claude-code` / `copilot` / `omp` / `codex` / `pi-durable` in tmux, or `pi` / `claude-code` in Herdr. Codex requires the operator-owned app-server; launch is not delivery. `entwurf_resume_call` remains a **pi-only** lifecycle verb. Durable's local reopen is `entwurf pi-durable --continue`: it selects this cwd's newest saved session, not a garden-id target. No hidden background resume is substituted for a visible lifecycle.
 
-**The seventh backend is released, and it is not a pi variant.** The first packaged carrier and env ingress shipped in [0.32.0 / #130](https://github.com/junghan0611/entwurf/issues/130). Current 0.35.0 carries the Pi 1.1.0 SDK set and the native BG/file-or-directory ingress introduced in 0.34.0. This repo supplies the env-first background-bash aggregate; the 2026-10-09 installed fixture remains its scoped runtime evidence. A 2026-10-12 registry read found the four core files byte-equal to the proven 0.34.0 supply, not a new installed-0.35 whole-runtime test. Its operating scenario is **create once, keep reopening the same conversation**, rather than fresh-call propagation; modules are not auto-discovered or saved as a launch profile. Its longer lifetime already exposed two consumer-side assumptions in `entwurf-peek` (fixed 2026-10-06, 81 checks). [PI-DURABLE.md](PI-DURABLE.md) preserves early D0 observations separately from D2 and the dated same-id reload receipts.
+**The seventh backend is released, and it is not a pi variant.** The first packaged carrier and env ingress shipped in [0.32.0 / #130](https://github.com/junghan0611/entwurf/issues/130). Current 0.35.0 carries the Pi 1.1.0 SDK set and the native BG/file-or-directory ingress introduced in 0.34.0. This repo supplies the env-first background-bash aggregate; the 2026-10-09 installed fixture remains its scoped runtime evidence for 1.1. Since 2026-10-13 its tools return SDK 1.2 `output` and are 1.2-only (API-0 measured, operator restart pending). A 2026-10-12 registry read found the four core files byte-equal to the proven 0.34.0 supply, not a new installed-0.35 whole-runtime test. Its operating scenario is **create once, keep reopening the same conversation**, rather than fresh-call propagation; modules are not auto-discovered or saved as a launch profile. Its longer lifetime already exposed two consumer-side assumptions in `entwurf-peek` (fixed 2026-10-06, 81 checks). [PI-DURABLE.md](PI-DURABLE.md) preserves early D0 observations separately from D2 and the dated same-id reload receipts.
 
 ### 0.35.0 — a visible screwdriver, not a new hierarchy
 
@@ -557,7 +557,7 @@ _pi_garden_pi() { command pi "$@"; }
 # (`pihome`, the --telegram presence variant, was dropped 2026-08-06 with the bridge)
 pia() { _pi_garden_pi --entwurf-control --emacs-agent-socket server "$@"; }
 
-# pi-durable (Entwurf 0.34.0+): packaged Pi 1.1.0 carrier, env-first BG aggregate + native badge.
+# pi-durable: env-first BG aggregate + native badge. The BG tools need the Pi 1.2.0 durable carrier (pi-durable/README.md).
 # New session: provider + exact model + task-wide width. Thinking is the model :level suffix.
 # Every process names its native module explicitly; put that path in the helper once.
 pdt() {

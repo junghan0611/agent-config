@@ -72,7 +72,7 @@ export const Hold = {
 			parameters: { type: "object", properties: { gate: { type: "string" } }, required: ["gate"] },
 			async execute(args) {
 				await until(() => existsSync(args.gate), 30_000, `gate ${args.gate}`);
-				return { content: [{ type: "text", text: "released" }] };
+				return { output: [{ type: "text", text: "released" }] };
 			},
 		},
 	],

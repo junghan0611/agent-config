@@ -693,3 +693,65 @@ GLG가 Opus 구현과 이 세션 검수를 요청했다. 소비자 Claude Code O
 `[public supplier checkpoint 읽음, 재실행 아님]` core exact-SHA CI38171776316의 four jobs·FULL549s·Node59/59와 artifact Docker는 기록돼 있다. 그러나 **whole940 qualification BODY·native Codex LIVE는 이 cut 한정 미측정 예외**이며 standard release oracle/`--cut` PASS가 아니다. 별도 plugin CI38174959054 four jobs·FULL445s·public main install/use/deactivate/reinstall은 그 source의 영수증이다. #137의 untouched TOML exact-once find span은 자동 BODY SKIP을 줄 뿐, skipped BODY를 PASS로 바꾸거나 모든 plugin/data를 면제하지 않는다. #132/#135/#136/#137/#138은 공개 CLOSED로 확인했지만 #132 C durable-Herdr 범위는 미측정/보류다.
 
 읽을 권위: [core Release](https://github.com/junghan0611/entwurf/releases/tag/v0.35.0), [plugin Release](https://github.com/junghan0611/entwurf/releases/tag/v2026.10.12-herdr.0.35.0), [native support](https://github.com/junghan0611/entwurf/blob/v0.35.0/docs/durable-native-support.md), [Herdr guide](https://github.com/junghan0611/entwurf/blob/v2026.10.12-herdr.0.35.0/plugins/herdr/README.md). 호스트-local 추가 대조 영수증 `.agent-reports/20261012-entwurf035/registry-receipt.json`은 ignored이며 public links/결정적 해시는 위에 실었다.
+
+## [2026-10-13] SDK 1.2 — 툴 결과는 `output`, 이 소비자는 1.2 전용
+
+### 무엇이 깨졌고 어떻게 고쳤나
+
+`[직접 읽음: Entwurf checkout node_modules pi-durable 1.2.0 dist/harness/{types.d.ts:106, tool.js:395}]`
+
+- native `ToolExecutionResult`에서 모델에게 가는 채널은 `output`이다.
+- `output`은 **선택** 필드다. 비어 있으면 `api.output()`으로 쌓아 둔 텍스트가 대신 쓰인다.
+- 우리 BG 도구는 그 텍스트를 쌓지 않는다. 그래서 `content`만 돌려준 결과는 모델에게 `[]`로 닿았다.
+
+수선은 `background-bash.mjs`의 `text()` 한 줄을 `output`으로 바꾼 것이다.
+
+- report 제출 `{ type: "input", content }`는 입력 초안 계약이므로 그대로 둔다.
+- 일반 Pi/MCP의 `content`도 다른 계약이므로 건드리지 않는다.
+- dual ABI나 `content` fallback은 두지 않는다.
+- 테스트 쪽은 두 곳을 맞췄다. 테스트 전용 `hold` 도구를 같이 바꿨다. Entwurf 미커밋 bootstrap이 contact에 `onFailed`를 넘기기 시작해서, ingress stub에도 `onFailed`를 더했다. 이는 Entwurf 자체 native-module 테스트와 같은 한 줄이다.
+- 그 stub은 test seam 정렬일 뿐이다. 실제 terminal 경로의 증거가 아니며, 그 경로는 Entwurf B3의 몫이다.
+
+### 측정 `[측정, API-0 — 합성 HOME/TMPDIR, env -i, vendor 0]`
+
+대상은 Entwurf checkout `d8cfc21` **+ 미커밋 #141 작업트리**다. SDK는 9/9 1.2.0이고, 파일은 `./run.sh test:pi-durable`과 같다.
+
+| 셀 | 결과 |
+|---|---|
+| 1.2 + 옛 `content` (wrong-key) | 29/44. background 11건: 모델이 본 tool result `''` (`background.test.mjs:191`). ingress 4건: `the root admission handed to attach has no onFailed function` |
+| 1.2 + `output` | **44/44** |
+
+1.1.0 위에서 `output`이 어떻게 되는지는 **재지 않았다**. 옛 1.1 영수증(43/43 등)은 `content` 시절의 날짜 기록으로 남는다. 현재 호환성 주장이 아니다.
+
+### 일반 Pi 호스트 정렬 `[측정: 설치 전후 수동 판독, pi 실행 0]`
+
+**설치 전:**
+
+- PATH의 `pi`는 pnpm global `pi-coding-agent` **1.1.0**이었다.
+- Entwurf가 pin에서 도출하는 host 범위는 `>=1.2.0 <1.3`(`run.sh` `pi_supported_range`)이다. 1.1.0은 범위 밖이다.
+- `~/.pi/agent/settings.json` packages에는 1.2를 pin한 checkout이 이미 올라 있었다.
+
+**설치:** 코디네이터 승인으로 nix pnpm 11.20.0, 중립 cwd에서 `pnpm add -g @earendil-works/pi-coding-agent@1.2.0`을 실행했다. rc 0.
+
+- shim은 새 global dir를 가리킨다. 그 graph의 `@earendil-works` 7개(coding-agent·ai·agent-core·tui·codemode·mcp·telemetry)는 모두 1.2.0이다.
+- 1.1.0 global dir는 pnpm이 지웠다. 그 dir를 쓰는 프로세스가 0인 것은 설치 전에 확인했다.
+- pnpm은 기본 동작(`minimumReleaseAgeStrict` 꺼짐)으로 global `pnpm-workspace.yaml`의 `minimumReleaseAgeExclude`에 1.2.0 항목 7개를 덧붙였다. 이전 판들도 같은 방식으로 들어가 있던 자리다. 새 정책이 아니라 pnpm 자체 동작의 기록이다.
+- 하지 않은 것: `pi update`, `pi --version`(settings를 먼저 읽는다), setup, 세션 실행, settings/store/auth 접촉.
+
+**Entwurf checkout:** fingerprint를 S1B5 기록과 대조했다. HEAD·index·status·deps·lock·carrier·SDK 9/9·`.pnpm` 목록(289)이 같다. worksurface 차이는 설치 뒤 다른 writer가 고친 `NEXT*.md` 두 파일뿐이다.
+
+### GLG 수동 재시작 뒤 — 실사용 관찰 `[상속: 코디네이터 20261008T113104-801621 receipt, Entwurf .tmp-verify/141-kickoff/coordinator-b3-review/POST-RESTART-LIVE.md sha256 46df6d1f…]`
+
+조합은 미커밋 Entwurf checkout + SDK 1.2다. 코디네이터가 "준비 완료"를 공지한 뒤 GLG가 손으로 재시작했다. 에이전트가 시작한 재시작은 없다.
+
+- 코디네이터의 durable 세션이 정상 사용 중에 `bash_background`를 불렀다. 모델이 본 시작 텍스트는 `Started background task #17099`였다. 자동 완료 보고 `exited 0`/1s와 정확한 marker `ENTWURF-141-RESTART-BG-OUTPUT-20261013T1913`도 모델 컨텍스트에 도착했다. 폴링은 없었고 원본 store를 직접 들여다보지도 않았다.
+- 같은 garden 왕복도 확인됐다. 이 집 Claude Code(`20261013T174920-67ff66`)를 포함한 세 형제가 nonce 메시지를 실제로 읽고 회신했고, 코디네이터가 그 회신을 읽었다(lastReadAt 10:18:27.957Z).
+  - 이 집 몫의 증거는 회신 `8eb312`다. 담긴 내용: `entwurf_self` 같은 garden/cwd, self-fetch, replyable, 그리고 resume 뒤 맥락 유지와 작업트리 해시 불변.
+  - 이것은 peer receipt다. 코디네이터가 transcript 원본을 검사한 것은 아니다.
+
+이 관찰은 범위가 정해진 PASS일 뿐이다. 일반 Pi나 native Codex LIVE, FULL, frozen acceptance, 0.36 release 승인이 아니다.
+
+### 남은 것
+
+- 게시된 Entwurf(0.35.1, 1.1.0)에는 아직 1.2 carrier가 없다. 1.2 공급은 이 호스트의 같은 checkout 경로에서만 성립한다.
+- Entwurf 최종 acceptance, commit, release는 별도 권한 경계다. 이 집의 commit/push는 GLG가 정한다.

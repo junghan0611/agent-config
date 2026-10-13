@@ -104,7 +104,7 @@ const seamScript = (root, argv) => `
 			trace.installed = options.extensions.map((e) => ({ name: e.name, tools: (e.tools ?? []).map((t) => t.name), tasks: (e.tasks ?? []).map((t) => t.definition.name) }));
 			return {
 				view: { current: () => ({ session: { id: "1759622400000-0b5e2a4c-1f3d-4e8a-9c7b-2d6f8e1a3c5b", directory: path.join(root, "durable"), cwd: options.cwd } }) },
-				controller: {}, settings: {}, submitToRoot: async () => ({ id: 41 }), close: async () => {},
+				controller: {}, settings: {}, submitToRoot: async () => ({ id: 41 }), onFailed: () => () => {}, close: async () => {},
 			};
 		},
 		contact: {

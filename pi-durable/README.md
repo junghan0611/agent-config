@@ -1,10 +1,10 @@
 # pi-durable — native env/hide and background-bash reference
 
-**접점은 entwurf, 집의 정책은 agent-config.** 현재 확인한 Entwurf **0.35.0**의 `--native-module`과 native BG 배지(0.34.0 도입)를 소비하는 env-first 레퍼런스 구현이다(2026-10-12). durable을 한 번 만들고 같은 대화를 계속 다시 여는 사용을 위한 것으로, 두 번째 하네스나 Pi 확장 호환층이 아니다.
+**접점은 entwurf, 집의 정책은 agent-config.** 현재 확인한 Entwurf **0.35.0**의 `--native-module`과 native BG 배지(0.34.0 도입)를 소비하는 env-first 레퍼런스 구현이다(2026-10-12). 2026-10-13부터 background 도구 결과는 SDK **1.2** `output` 계약만 따른다 — 아래 전제를 먼저 본다. durable을 한 번 만들고 같은 대화를 계속 다시 여는 사용을 위한 것으로, 두 번째 하네스나 Pi 확장 호환층이 아니다.
 
 ## Launch and lifetime
 
-Prerequisite for the env + background aggregate `index.mjs`: Entwurf **0.34.0+** on PATH, with its exact **Pi 1.1.0** SDK set. Entwurf owns the emitted app carrier, native footer and loader; agent-config installs none of them. The unchanged consumer was exercised through the actual installed candidate, whose four core files match the accepted and published 0.34.0 artifact. `env.mjs` alone still works on 0.32.0+; background-bash makes no claim about that release's SDK 1.0.4. Upgrading ordinary Pi alone does not supply this durable app. The old fixed-XDG source-runtime route has no fallback.
+Prerequisite for the env + background aggregate `index.mjs`: an Entwurf durable carrier on the exact **Pi 1.2.0** SDK set. Since 2026-10-13 the background tools return the native `ToolExecutionResult.output` that SDK 1.2 hands the model, with no `content` fallback. The 1.1.0 set of published Entwurf 0.34.0–0.35.1 read `content`, and this module is not tested there. Today the 1.2.0 set exists only in the Entwurf #141 working tree that this host's `entwurf` resolves to (`~/.local/bin/entwurf` → checkout `run.sh`); npm latest 0.35.1 still declares 1.1.0 (read 2026-10-13). Entwurf owns the emitted app carrier, native footer and loader; agent-config installs none of them. `env.mjs` alone returns no tool results and still works on 0.32.0+. Upgrading ordinary Pi alone does not supply this durable app. The old fixed-XDG source-runtime route has no fallback.
 
 From the repository that will own the conversation:
 
@@ -60,7 +60,7 @@ A `case` or `if` is **not evaluated**. Assignments inside all branches are extra
 
 Every reopen must attach the same aggregate/task definition. A session opened with `env.mjs` alone cannot execute this task's phases; previously created work can remain pending until its definition is installed again.
 
-The stock durable app does not itself supply these consumer tool names; the Pi extension `pi-extensions/background-bash.ts` cannot load there (ExtensionAPI factory, `setStatus`, `sendMessage`). `background-bash.mjs` gives the model the same two tool names on native primitives only: a durable task, its commits, and the owning conversation's inbox. There is no manager, watcher, queue, or ExtensionAPI layer.
+The stock durable app does not itself supply these consumer tool names; the Pi extension `pi-extensions/background-bash.ts` cannot load there (ExtensionAPI factory, `setStatus`, `sendMessage`). `background-bash.mjs` gives the model the same two tool names on native primitives only: a durable task, its commits, and the owning conversation's inbox. There is no manager, watcher, queue, or ExtensionAPI layer. Both tools return `{ output, details }`, the SDK 1.2 model channel. The report keeps the input draft's own `content` field.
 
 | Tool | Contract |
 |---|---|
@@ -137,3 +137,12 @@ Source contract: [Entwurf #130](https://github.com/junghan0611/entwurf/issues/13
 - The renewed Herdr GIF shows **ordinary Pi ↔ native Claude Code**, not this consumer. The plugin still activates only those two; it neither wires nor fresh-opens durable. Direct tmux fresh-call gets no consumer native-module propagation; `pdc` remains a local same-cwd reopen. Source-switch deactivate/reinstall is an explicit owner operation, not an automatic update here.
 - [GLG's public use account](https://wikidocs.net/blog/@junghanacs/33151/): giving the screwdriver to durable feels more comfortable, but memory quality is not evaluated. Long-lived conversation continuity, shared semantic retrieval and useful judgment are separate claims; no recall/speed benchmark follows from that comfort.
 - The core release's whole940 qualification BODY and native Codex LIVE were explicitly deferred for this cut. Four-floor CI/artifact evidence and the plugin's successful install journey/automatic BODY SKIP are supplier-publication receipts, not whole qualification PASS or a standing waiver. No new install, model experiment, live DB read or helper rewrite is performed in this documentation alignment.
+
+### 2026-10-13 — SDK 1.2: background tool text rides `output`, 1.2-only
+
+- Contract, read in pi-durable 1.2.0: `dist/harness/types.d.ts:106` defines `ToolExecutionResult.output` as the model channel. It is optional. `dist/harness/tool.js:395` `finalResult` falls back to the text retained through `api.output()`. These tools retain none, so a result carrying only `content` reached the model as `[]`.
+- Change: `background-bash.mjs` `text()` returns `output`. The report submission keeps the `{ type: "input", content }` input draft unchanged. The test-only `hold` tool follows. The ingress stub gains `onFailed`, matching Entwurf's own native-module test after its uncommitted bootstrap began handing `onFailed` to the contact. That stub is test-seam alignment only, not evidence for the terminal path, which Entwurf owns. No dual ABI and no `content` fallback.
+- Measured, API-0: synthetic HOME/TMPDIR under `env -i`, against Entwurf checkout `d8cfc21` **plus its uncommitted #141 working tree**, with the SDK at 9/9 1.2.0. The files are those of `./run.sh test:pi-durable`.
+  - Before the change, on 1.2 with the old `content`: 29/44. 11 background scenarios saw an empty tool result, e.g. `background.test.mjs:191` got `''` for `/^Started background task #\d+\./`. 4 ingress cases failed with `the root admission handed to attach has no onFailed function`.
+  - After the change: 44/44.
+- Not measured: `output` under the 1.1.0 set, a vendor model turn, the TUI, and the operator's restart onto 1.2. That restart is pending GLG's manual stop/start. Processes already running keep the module and SDK they loaded.
