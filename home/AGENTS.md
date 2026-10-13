@@ -201,6 +201,7 @@ Use the `commit` skill before making commits. Use the `tag-release` skill before
 - When writing GitHub issues or comments, label authorship at the top so reviewers know the perspective (agent draft ≠ GLG’s own voice). Short form:
   `Author: <model> (<harness/session>, YYYY-MM-DD) — not GLG direct; review as a separate viewpoint.`
   Optional footer: `Requested by GLG · drafted by <model> (YYYY-MM-DD) · awaiting review.`
+- In GitHub issue, PR and comment bodies, write each paragraph as one line and separate paragraphs with a blank line. Do not hard-wrap at a fill column: browser translation reads every line as its own sentence.
 
 ## Global Commit/Push Safety Rail
 
