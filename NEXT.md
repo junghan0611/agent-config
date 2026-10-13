@@ -5,6 +5,8 @@
 
 # RAIL — 현재 좌표
 
+- [ ] **27. 에이전트 시맨틱 메모리 사용 품질 — [#30](https://github.com/junghan0611/agent-config/issues/30)** ← PAUSED: 준비자료 보존·해시 검증 완료, GLG가 다음에 후보/접근 범위를 정할 때 재개. 오늘 조사·구현 종료. 좌표15의 사용 평가 갈래; 아래 NOW와 준비 완료 댓글 참조.
+
 - [ ] **26. pi-durable 편집 안전성 장기관찰 — [#28](https://github.com/junghan0611/agent-config/issues/28)** ← PAUSED: Opus가 보고한 GLG17:1x 판정 — 지금 근거로 Hashline 도입/포트하지 않고 Pi 버전업을 기다리며 장기관찰. 격리 load smoke까지만, stale 비교 미실행. 기존 상주 세션/원4소스 유지. 아래 NOW.
 
 - [ ] **3. entwurf-peek `trace` 파서 수선** ← PAUSED: `mux-placement` acceptance fixture 대기
@@ -32,12 +34,17 @@
 > 가리키는 11의 내용은 이제 `v2026.9.21` 절에 있다. **24와 23의 닫힌 부분은 `v2026.10.8`** —
 > 23의 후속 관측·22의 기억축 판정은 남겨 두었다. **25와 릴리즈 줄바꿈 수선은 `v2026.10.12`**에 갈무리했다.
 
-현재 좌표: **26 PAUSED — Pi 버전업 장기관찰, Hashline 도입/포트 없음** · **0.35 정렬/25는 `v2026.10.12` 공개 완료** · **24 닫힘 — durable env/hide 레퍼런스·실사용 재개·0.32.0 문서, `v2026.10.8`** · **23 PAUSED — durable 후속 실물 관측만 남음** · **20 CURRENT — 기억축 정화, andenken과 조율 중** · **22 PAUSED — pi-durable source, andenken#15에서 GLG Q1–Q7 판정 대기(노트북에서 두 리포 pull 후 재검수)** · 21 PAUSED(`skill-audit` 재검토 + botlog 증류본 채택 판정) · **19 PAUSED — 1·2차 끝, GLG가 #27 읽고 방향 판정(#27이 최신 좌표)** · 17(판단 근거·재개는 후일 GLG 재개 요청 대기) — 16은 `v2026.9.30`에 닫힘 — 18 압축 전환 적용 중(다른 기기 제거·첫 빌트인 관측 남음) — 14 herdr 판정 대기 · 15 기억축 월간 판독 대기 · 13 본작업 보류 · 12 GLG 판정 대기 · 3·4 남의 손 대기
+현재 좌표: **27 PAUSED — #30 준비 완료·다음 GLG 요청 때 후보/자료 접근 범위부터** · **26 PAUSED — Pi 버전업 장기관찰, Hashline 도입/포트 없음** · **0.35 정렬/25는 `v2026.10.12` 공개 완료** · **24 닫힘 — durable env/hide 레퍼런스·실사용 재개·0.32.0 문서, `v2026.10.8`** · **23 PAUSED — durable 후속 실물 관측만 남음** · **20 CURRENT — 기억축 정화, andenken과 조율 중** · **22 PAUSED — pi-durable source, andenken#15에서 GLG Q1–Q7 판정 대기(노트북에서 두 리포 pull 후 재검수)** · 21 PAUSED(`skill-audit` 재검토 + botlog 증류본 채택 판정) · **19 PAUSED — 1·2차 끝, GLG가 #27 읽고 방향 판정(#27이 최신 좌표)** · 17(판단 근거·재개는 후일 GLG 재개 요청 대기) — 16은 `v2026.9.30`에 닫힘 — 18 압축 전환 적용 중(다른 기기 제거·첫 빌트인 관측 남음) — 14 herdr 판정 대기 · 15 기억축 월간 판독 대기 · 13 본작업 보류 · 12 GLG 판정 대기 · 3·4 남의 손 대기
 
 # NOW
 
+- **에이전트 시맨틱 메모리 사용 품질 — [#30](https://github.com/junghan0611/agent-config/issues/30) (2026-10-13, 좌표27 PAUSED; 좌표15의 사용 평가 갈래).** [준비 완료·정정·재개 조건 댓글](https://github.com/junghan0611/agent-config/issues/30#issuecomment-6140137204)을 게시했고 readback으로 확인한다. GLG의 검색 UI가 아니라 얼개를 모르는 에이전트의 맥락 복원 접점: 사용/축 선택·질의 적합성·회수 품질·후속 판단 활용을 분리한다. andenken#14/#12는 관련 엔진 결함이며 이 소비자 평가와 구별; #15 durable source 경계는 그대로.
+  - **준비 / Receipt:** GLG가 지정한 기존 조사 형제 `20261013T112752-19fb65`와 맥락·1276→824→715 방법 및 정정을 맞췄다(원작성자 receipt 상속, 필터 독립 재현 전). 기존 산출물·방법/정정·자료공백·카드 틀·후보12건은 비공개 `.agent-reports/issue30/preparation-19fb65/`에 보존했다. coordinator 직접 ignore 및 manifest14파일 전체hash PASS; manifest `f0328001…`, artifact manifest `d5732c7f…` 일치. 자료는 호스트 로컬이며 git 백업 아님. 후보715는 진단 혼입 가능한 잔여 호출, 잠정21건 채점은 현재 재질의/부분판독이라 품질 지표가 아니다. 새 Sonnet `20261013T123226-b486ea`는 GLG가 종료했고 그 정정본은 제한된 역사 사례로만 보존한다.
+  - **Next (오늘 STOP):** GLG가 다시 열 때만 후보/자료 접근 범위(회사 세션 포함 여부)부터 정한다. 후보12건 중 회사5건 포함은 미판정; 아직 새 카드 실독·검색/replay·Opus 구현 없음. 기대맥락/당시 반환/후속 활용/oracle을 채운 뒤 질의 적합성·회수·활용을 따로 평가한다. 오늘은 이 댓글/좌표 정리의 정상 commit/push만 승인됐다.
+  - **Do not:** GLG가 검색 주사용자라고 오독, 점수/재질의 횟수로 자동 품질 판정, 엔진 개선부터 결론, 무승인 새 replay/API·bulk corpus/재임베딩·인덱스/운영변경·live durable DB(RO 포함)·원시 private자료 공개·commit/push. Sonnet→coordinator→필요시 Opus의 단계와 repo 소유 경계를 유지한다.
+
 - **장수 durable 시민 발견 — 좌표23 별도 수선 (2026-10-13, GLG 맡김·commit/push 승인).** 새 Claude Code Opus `20261013T120933-1aae86` 구현, durable coordinator `12d0ca` 검수. 최근 활동 보드는 보존하고 `situation --durable`은 전 리포 durable을 기본 since/limit 없이 발견한다. 활동은 max(db,wal) 관측 mtime이며 online/역할로 추정하지 않는다. 직접 source/diff 검수 및 최종 소유 fixture 재실행 **115/115 PASS**; 26개 durable·명시 제한 표시·old Pi 시간 필터 양성/음성 회귀 확인, false-positive fixture 수선 닫힘. 검수한 5파일 diff SHA `d1f2f809…`(NEXT 제외), source `6ff1865…`/test `9bac93ed…` 구현자 receipt와 일치; diff check PASS.
-  - **Next:** 발견 수선 검수 완료·GLG가 이 묶음 정상 commit/push 승인. 설치된 스킬 경로로 `--durable --json` 실행해 전체9/표시9·이 상주 시민 발견 직접 확인, 설치 경로의 115 checks도 PASS. 남은 Entwurf live-fact 조회는 별도 요청 때 전달한다. 시맨틱 메모리 논의로 복귀한다. 사용: `situation`은 기존 최근 창, `situation --durable`은 전체 durable, `--durable -p <repo>`는 리포별 좁힘. 실제 호출/재개는 별도 GLG 선택. 시맨틱 검색 질의/품질은 기존 형제의 별도 레인이다.
+  - **Next:** 발견 수선은 `294d6be`로 정상 commit·main push 완료(2026-10-13 직접 receipt). 설치된 스킬 경로로 `--durable --json` 실행해 전체9/표시9·이 상주 시민 발견 직접 확인, 설치 경로의 115 checks도 PASS. 남은 Entwurf live-fact 조회는 별도 요청 때 전달한다. 시맨틱 메모리 논의로 복귀한다. 사용: `situation`은 기존 최근 창, `situation --durable`은 전체 durable, `--durable -p <repo>`는 리포별 좁힘. 실제 호출/재개는 별도 GLG 선택. 시맨틱 검색 질의/품질은 기존 형제의 별도 레인이다.
   - **OPEN / Do not:** 오래된 시민의 online/offline 사실 조회는 Entwurf peers 최신32 관측 제한에 막혀 별도 소유 접점 요구로 남는다. receiver mirror/새 역할 레지스트리/자동 재개/담당자 임명 금지; live durable DB(RO 포함/Q6 미승인)·설정/설치/재시작·그집 수정·추가 형제·무승인 commit/push 없음. `FACTORY.draft.md` 미접촉.
 
 - **pi-durable 편집 안전성 장기관찰 — 좌표26/#28 (2026-10-12, PAUSED).** Opus `20261012T164637-f929b3`의17:12 checkpoint 상속: GLG가 그 세션17:1x에 ‘관점은 durable에 효과가 있을까, 지금 근거로 넣으면 안 된다, Pi 버전업을 기다리며 장기관찰’로 판정했다. 앞의 가드 우선안·Pi 시험 진행안은 퇴역했으며 설치/포트/추가 시험을 이어가지 않는다. Opus는 이슈 제목을 research로 바꾸고 state:parked 및 판정 댓글을 게시했다고 보고했다.
