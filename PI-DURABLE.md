@@ -755,3 +755,17 @@ GLG가 Opus 구현과 이 세션 검수를 요청했다. 소비자 Claude Code O
 
 - 게시된 Entwurf(0.35.1, 1.1.0)에는 아직 1.2 carrier가 없다. 1.2 공급은 이 호스트의 같은 checkout 경로에서만 성립한다.
 - Entwurf 최종 acceptance, commit, release는 별도 권한 경계다. 이 집의 commit/push는 GLG가 정한다.
+
+## [2026-10-14] 0.36.0 출하 — 1.2 공급이 작업트리에서 릴리스로
+
+10-13 절 「남은 것」의 첫 줄이 닫혔다. 1.2 carrier는 이제 이 호스트의 미커밋 작업트리가 아니라 게시된 릴리스에 있다.
+
+`[직접 읽음: gh release view v0.36.0, gh run list --commit daf8cab, npm view @junghanacs/entwurf@0.36.0]`
+
+- 태그 `v0.36.0` = `daf8cab`. GitHub Release는 2026-10-13T21:22:35Z에 게시됐고, 그 커밋의 `ci` workflow는 `success`다.
+- npm latest는 0.36.0이다(integrity `sha512-3aPk69Rm…244UwQ==`). `@earendil-works/*` 9개는 모두 exact 1.2.0이다.
+- 릴리스 노트(S1-B3)는 이 집과 같은 규칙을 적었다. 모델 채널은 `output`이고 `content`는 읽지 않는다. 10-13에 우리가 본 `[]`는 그 규칙의 소비자 쪽 모습이었다.
+
+`[측정, API-0 — 합성 HOME/TMPDIR, env -i, vendor 0]` 대상은 clean한 Entwurf checkout `9f33dd1`(`v0.36.0-1`)이다. 태그 뒤의 한 커밋은 Herdr 파일만 바꾼다. `./run.sh test:pi-durable`과 같은 파일로 **44/44**, skip 0이었다. 10-13에 미커밋 bootstrap을 따라 넣었던 stub의 `onFailed`는 출하본 `pi/pi-durable/bootstrap.mjs:347`과 맞는다.
+
+하지 않은 것: npm으로 설치한 0.36.0 실행(이 호스트의 `entwurf`는 여전히 checkout을 가리킨다), vendor 모델 턴, TUI, 재시작. 릴리스의 전체 qualification과 native Codex 범위는 Entwurf의 영수증이며, 여기서 다시 돌리지 않았다.

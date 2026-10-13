@@ -1,10 +1,10 @@
 # pi-durable — native env/hide and background-bash reference
 
-**접점은 entwurf, 집의 정책은 agent-config.** 현재 확인한 Entwurf **0.35.0**의 `--native-module`과 native BG 배지(0.34.0 도입)를 소비하는 env-first 레퍼런스 구현이다(2026-10-12). 2026-10-13부터 background 도구 결과는 SDK **1.2** `output` 계약만 따른다 — 아래 전제를 먼저 본다. durable을 한 번 만들고 같은 대화를 계속 다시 여는 사용을 위한 것으로, 두 번째 하네스나 Pi 확장 호환층이 아니다.
+**접점은 entwurf, 집의 정책은 agent-config.** 현재 확인한 Entwurf **0.36.0**(Pi SDK 1.2.0)의 `--native-module`과 native BG 배지(0.34.0 도입)를 소비하는 env-first 레퍼런스 구현이다(2026-10-14). background 도구 결과는 SDK **1.2** `output` 계약만 따르므로 0.36.0 이상이 필요하다 — 아래 전제를 먼저 본다. durable을 한 번 만들고 같은 대화를 계속 다시 여는 사용을 위한 것으로, 두 번째 하네스나 Pi 확장 호환층이 아니다.
 
 ## Launch and lifetime
 
-Prerequisite for the env + background aggregate `index.mjs`: an Entwurf durable carrier on the exact **Pi 1.2.0** SDK set. Since 2026-10-13 the background tools return the native `ToolExecutionResult.output` that SDK 1.2 hands the model, with no `content` fallback. The 1.1.0 set of published Entwurf 0.34.0–0.35.1 read `content`, and this module is not tested there. Today the 1.2.0 set exists only in the Entwurf #141 working tree that this host's `entwurf` resolves to (`~/.local/bin/entwurf` → checkout `run.sh`); npm latest 0.35.1 still declares 1.1.0 (read 2026-10-13). Entwurf owns the emitted app carrier, native footer and loader; agent-config installs none of them. `env.mjs` alone returns no tool results and still works on 0.32.0+. Upgrading ordinary Pi alone does not supply this durable app. The old fixed-XDG source-runtime route has no fallback.
+Prerequisite for the env + background aggregate `index.mjs`: an Entwurf durable carrier on the exact **Pi 1.2.0** SDK set. Since 2026-10-13 the background tools return the native `ToolExecutionResult.output` that SDK 1.2 hands the model, with no `content` fallback. Published Entwurf **0.36.0** is the first release on that set: npm latest, with its nine `@earendil-works/*` dependencies at exact 1.2.0 (read 2026-10-14). The 1.1.0 set of Entwurf 0.34.0–0.35.1 read `content`; this module is not tested there. Entwurf owns the emitted app carrier, native footer and loader; agent-config installs none of them. `env.mjs` alone returns no tool results and still works on 0.32.0+. Upgrading ordinary Pi alone does not supply this durable app. The old fixed-XDG source-runtime route has no fallback.
 
 From the repository that will own the conversation:
 
@@ -145,4 +145,10 @@ Source contract: [Entwurf #130](https://github.com/junghan0611/entwurf/issues/13
 - Measured, API-0: synthetic HOME/TMPDIR under `env -i`, against Entwurf checkout `d8cfc21` **plus its uncommitted #141 working tree**, with the SDK at 9/9 1.2.0. The files are those of `./run.sh test:pi-durable`.
   - Before the change, on 1.2 with the old `content`: 29/44. 11 background scenarios saw an empty tool result, e.g. `background.test.mjs:191` got `''` for `/^Started background task #\d+\./`. 4 ingress cases failed with `the root admission handed to attach has no onFailed function`.
   - After the change: 44/44.
-- Not measured: `output` under the 1.1.0 set, a vendor model turn, the TUI, and the operator's restart onto 1.2. That restart is pending GLG's manual stop/start. Processes already running keep the module and SDK they loaded.
+- Not measured: `output` under the 1.1.0 set, a vendor model turn, the TUI. Scoped post-restart BG text and garden dialogue were observed after GLG's manual restart; see [PI-DURABLE.md](../PI-DURABLE.md) 2026-10-13. This is not ordinary-Pi/native-Codex LIVE.
+
+### 2026-10-14 — Entwurf 0.36.0 publishes the 1.2.0 set
+
+- Read: tag `v0.36.0` = `daf8cab`, GitHub Release published 2026-10-13T21:22:35Z, the `ci` workflow on that commit `success`. npm latest is 0.36.0 (integrity `sha512-3aPk69Rm…244UwQ==`) and declares all nine `@earendil-works/*` members at exact 1.2.0. Its release notes state the same rule this module follows: `output` is the model channel and `content` is not read.
+- Measured, API-0: the `./run.sh test:pi-durable` files under `env -i` with synthetic HOME/TMPDIR, against the clean Entwurf checkout `9f33dd1` (`v0.36.0-1`; that one later commit touches only Herdr files) — **44/44**, skip 0. The test stub's `onFailed` now matches released `pi/pi-durable/bootstrap.mjs:347`.
+- Not done: an installed-npm 0.36.0 run (this host's `entwurf` still resolves to the checkout), a vendor model turn, the TUI, a restart. The release's own whole qualification and native-Codex scope are its receipts, not rerun here.

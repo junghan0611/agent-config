@@ -1,6 +1,6 @@
 # PI — 검수 매트릭스
 
-> **현재 읽기 안내 (2026-10-12):** 이 문서의1.0.0/10-02 격리 측정은 역사다. 현재 확인한 Entwurf0.35는 exact Pi1.1 SDK를 공급하지만 **ordinary Pi와 pi-durable은 별도 하네스**다. durable 공급·생활·native BG 최신 관측은 [PI-DURABLE.md](PI-DURABLE.md)10-12 절, 실제 소비자는 [pi-durable/README.md](pi-durable/README.md). 이 release 정렬에서 upstream/운영 Pi upgrade나 압축 성능 검수는 하지 않았다.
+> **현재 읽기 안내 (2026-10-14):** 이 문서의1.0.0/10-02 격리 측정은 역사다. 현재 확인한 Entwurf 0.36.0은 exact Pi 1.2.0 SDK를 공급하지만 **ordinary Pi와 pi-durable은 별도 하네스**다. durable 공급·생활·native BG 최신 관측은 [PI-DURABLE.md](PI-DURABLE.md)10-12·10-13·10-14 절, 실제 소비자는 [pi-durable/README.md](pi-durable/README.md). 운영 일반 Pi는 2026-10-13 pnpm 전역 1.2.0으로 맞췄다(PI-DURABLE 10-13 절, pi 실행 0). 압축 성능 검수는 하지 않았다.
 
 pi 1.0(coding agent)과 **pi-durable**(`@earendil-works/pi-durable`, 같은 날 실험 패키지로 출하)을
 **오래 사는 실무자의 바닥**으로 재는 작업면. 비교 대상은 우리 밑바닥 **entwurf** — garden-id ·
