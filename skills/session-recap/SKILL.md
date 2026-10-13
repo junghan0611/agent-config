@@ -67,7 +67,7 @@ python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-p, --project NAME` | all | Project filter (exact match). **Always specify.** |
+| `-p, --project NAME` | all | Project filter (exact match). **Always specify.** Outside HOME (`/disk-A/ops/<repo>`), NAME is the recorded `cwd` basename |
 | `-m, --messages N` | 20 | Last N messages per session |
 | `-s, --sessions N` | 1 | Last N sessions |
 | `-c, --chars N` | 300 | Max chars per message |

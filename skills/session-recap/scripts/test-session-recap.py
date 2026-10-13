@@ -489,5 +489,91 @@ class SessionCorpusTest(unittest.TestCase):
         self.assertIn("agent-config [pi:gpt@oracle]", corpus.stdout)
 
 
+
+class NonHomeProjectTest(unittest.TestCase):
+    """#26 — a session started outside HOME is found by its repo name.
+
+    The directory name encodes `/` and `-` alike, so `--disk-A-ops-shared-cluster--`
+    cannot say where the repo name starts. The session header's `cwd` can.
+    """
+
+    NATIVE = "2026-08-10T06-20-36-243Z_019fea54-8813-7905-9a89-f777aba5c3ef.jsonl"
+    NATIVE_2 = "2026-08-11T06-20-36-243Z_019fea54-8813-7905-9a89-f777aba5c3f0.jsonl"
+
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory(prefix="session-recap-nonhome-test-")
+        self.home = Path(self.tempdir.name)
+        self.sessions = self.home / ".pi" / "agent" / "sessions"
+
+    def tearDown(self):
+        self.tempdir.cleanup()
+
+    def write(self, dirname: str, cwd: str | None, name: str = NATIVE) -> Path:
+        path = self.sessions / dirname / name
+        ExactSessionFileTest._write_pi(path)
+        if cwd is not None:
+            rows = path.read_text().splitlines()
+            header = json.loads(rows[0])
+            header["cwd"] = cwd
+            rows[0] = json.dumps(header)
+            path.write_text("\n".join(rows) + "\n")
+        return path
+
+    def run_cli(self, *args: str) -> subprocess.CompletedProcess[str]:
+        env = os.environ.copy()
+        env["HOME"] = str(self.home)
+        env.pop("CLAUDECODE", None)
+        env[recap.CORPUS_ENV] = ""
+        return subprocess.run(
+            ["python3", str(SCRIPT), *args],
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def paths(self, project: str) -> list[str]:
+        result = self.run_cli("-p", project, "--source", "pi", "-s", "5",
+                              "--min-kb", "0", "--skip", "0", "--format", "json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return sorted(s["meta"]["path"] for s in json.loads(result.stdout))
+
+    def test_header_cwd_names_the_repo(self):
+        d = self.write("--disk-A-ops-shared-cluster--", "/disk-A/ops/shared-cluster").parent
+        self.assertEqual(recap._project_of(d), "shared-cluster")
+
+    def test_home_rule_is_unchanged(self):
+        d = self.write("--home-worker-repos-work-shared-cluster--",
+                       "/home/worker/repos/work/shared-cluster").parent
+        self.assertEqual(recap._project_of(d), "shared-cluster")
+
+    def test_unreadable_cwd_falls_back_to_the_encoded_name(self):
+        d = self.write("--srv-scratch--", None).parent
+        self.assertEqual(recap._project_of(d), "srv-scratch")
+
+    def test_symlink_and_real_path_meet_under_one_name(self):
+        real = self.write("--disk-A-ops-shared-cluster--", "/disk-A/ops/shared-cluster")
+        link = self.write("--home-worker-repos-work-shared-cluster--",
+                          "/home/worker/repos/work/shared-cluster", self.NATIVE_2)
+        self.assertEqual(self.paths("shared-cluster"), sorted([str(real), str(link)]))
+
+    def test_the_old_encoded_workaround_still_selects(self):
+        real = self.write("--disk-A-ops-shared-cluster--", "/disk-A/ops/shared-cluster")
+        self.assertEqual(self.paths("disk-A-ops-shared-cluster"), [str(real)])
+
+    def test_a_path_segment_is_not_a_project(self):
+        self.write("--opt-tools-bin--", "/opt/tools/bin")
+        miss = self.run_cli("-p", "tools", "--source", "pi", "--min-kb", "0", "--skip", "0")
+        self.assertEqual(miss.returncode, 1)
+        self.assertIn("세션 파일 없음", miss.stderr)
+        self.assertEqual(len(self.paths("bin")), 1)
+
+    def test_exact_selection_reports_the_repo_name(self):
+        real = self.write("--disk-A-ops-shared-cluster--", "/disk-A/ops/shared-cluster")
+        result = self.run_cli("--session-file", str(real))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("shared-cluster [pi:", result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

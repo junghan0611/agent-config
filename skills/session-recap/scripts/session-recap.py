@@ -68,6 +68,43 @@ def _is_excluded_project_dir(dirname: str) -> bool:
     return dirname.strip("-").startswith("tmp")
 
 
+def _header_cwd(subdir: Path) -> str | None:
+    """디렉토리 안 세션의 원래 CWD. 디렉토리 이름 인코딩은 `/`와 `-`를 구분하지 못한다.
+
+    pi 는 첫 줄(session 헤더)에, Claude Code 는 메시지 줄마다 `cwd` 를 적는다. 처음
+    읽히는 값 하나만 쓴다. 못 읽으면 None — 호출자는 디렉토리 이름으로 돌아간다.
+    """
+    for f in sorted(subdir.glob("*.jsonl")):
+        try:
+            with open(f, encoding="utf-8") as fh:
+                for _, line in zip(range(20), fh):
+                    try:
+                        row = json.loads(line)
+                    except ValueError:
+                        continue
+                    cwd = row.get("cwd") if isinstance(row, dict) else None
+                    if isinstance(cwd, str) and cwd.strip("/"):
+                        return cwd
+        except (OSError, UnicodeDecodeError):
+            continue
+    return None
+
+
+def _project_of(subdir: Path) -> str:
+    """세션 디렉토리의 프로젝트명.
+
+    home 아래는 `_extract_project` 의 이름 규칙을 따른다. home 밖(`/disk-A/ops/<repo>`
+    등)은 이름만으로 리포 경계를 알 수 없으므로 원래 CWD 의 basename 을 쓴다 (#26).
+    그래서 `~/repos/work/<repo>` symlink 로 시작하든 real path 로 시작하든 같은
+    `<repo>` 로 모인다.
+    """
+    dirname = subdir.name.strip("-")
+    if dirname == "delegate" or dirname.startswith("home-"):
+        return _extract_project(dirname)
+    cwd = _header_cwd(subdir)
+    return Path(cwd).name if cwd else dirname
+
+
 def _is_native_pi_session_file(filename: str) -> bool:
     """현행 pi 세션 파일명 — `<created-at>_<native session id>.jsonl`.
 
@@ -378,8 +415,7 @@ def resolve_session_file(session_file: str) -> tuple[float, Path, str, str]:
             continue
         if len(relative.parts) < 2:
             raise ValueError("--session-file must be inside a project session directory")
-        dirname = relative.parts[0].strip("-")
-        project = _extract_project(dirname)
+        project = _project_of(root.resolve() / relative.parts[0])
         return stat.st_mtime, path, project, source, device
 
     known = "~/.pi/agent/sessions or ~/.claude/projects"
@@ -426,9 +462,10 @@ def find_session_files(
             if _is_excluded_project_dir(subdir.name):
                 continue
             dirname = subdir.name.strip("-")
-            proj = _extract_project(dirname)
+            proj = _project_of(subdir)
 
-            if project and project != proj:
+            # 인코딩된 디렉토리 이름도 계속 받는다 (#26 이전의 우회 `-p disk-A-ops-<repo>`).
+            if project and project not in (proj, dirname):
                 continue
 
             # 후보 jsonl: top-level 항상. claude 는 UUID 하위폴더도(subagents 제외).
