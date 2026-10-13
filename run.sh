@@ -1936,8 +1936,9 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  JINA_API_KEY:   ${JINA_API_KEY:+SET (${#JINA_API_KEY}ch)}"
 
     section "Links"
-    echo "  Pi extension: $(readlink "$HOME/.pi/agent/extensions/semantic-memory" 2>/dev/null || echo '❌ not linked')"
-    echo "  Pi skills:    $(readlink "$HOME/.pi/agent/skills/pi-skills" 2>/dev/null || echo '❌ not linked')"
+    # Per-item links, counted the same way as the doctor Summary above (#16).
+    echo "  Pi ext:       $(ls -d "$HOME/.pi/agent/extensions"/*.ts 2>/dev/null | wc -l) extensions"
+    echo "  Pi skills:    $(ls -d "$HOME/.pi/agent/skills/pi-skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
     echo "  Pi theme:     $(cat "$HOME/.pi/agent/settings.json" 2>/dev/null | grep -oP '"defaultTheme":\s*"\K[^"]+' || echo 'default')"
     echo "  Claude conf:  $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged keyset (real file, co-owned w/ entwurf)' || echo '❌ absent'; })"
     echo "  Claude skills:$(readlink "$HOME/.claude/skills" 2>/dev/null || echo '❌ not linked')"
