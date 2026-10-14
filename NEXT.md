@@ -52,6 +52,8 @@
 
 # NOW
 
+- **10-14 이슈 수선 후속 검수 완료 (GLG 요청).** `ab9164a`의 원래 목적(리포 디렉터리 심볼릭 링크와 실경로에서 시작한 세션을 같은 이름으로 검색)을 실제 디렉터리 링크·자식 프로세스 CWD로 고정했다. HOME 밖 프로젝트 판독은 각 세션 자신의 `cwd`만 읽도록 보완해 인코딩 충돌·Claude UUID 중첩·정확 선택의 다른 파일 탐색을 막았다. 기존 HOME 이름·인코딩 이름 우회·skip/size 계약 유지. session-recap **40 tests PASS**(수정 전 첫 추가 5건 중 4건 실패 확인, 이후 자체 CWD 누락 회귀 1건 추가); `f0ecb97`의 실제 두 집계문은 격리 HOME에서 **3 tests PASS**, 표시 전용이라는 경계 유지. 재검증: `python3 -B skills/session-recap/scripts/test-session-recap.py`, `python3 -B tests/test-run-env-links.py`(전자는 `ANDENKEN_SESSION_CORPUS=''`, 둘 다 `PYTHONDONTWRITEBYTECODE=1`). 이 후속 수선 외 #28·#30은 계속 PAUSED이며 다음 GLG 요청 대기. live 세션·설정·DB·설치 변경 없음.
+
 - **에이전트 시맨틱 메모리 사용 품질 — [#30](https://github.com/junghan0611/agent-config/issues/30) (2026-10-13, 좌표27 PAUSED; 좌표15의 사용 평가 갈래).** [준비 완료·정정·재개 조건 댓글](https://github.com/junghan0611/agent-config/issues/30#issuecomment-6140137204)을 게시했고 readback으로 확인한다. GLG의 검색 UI가 아니라 얼개를 모르는 에이전트의 맥락 복원 접점: 사용/축 선택·질의 적합성·회수 품질·후속 판단 활용을 분리한다. andenken#14/#12는 관련 엔진 결함이며 이 소비자 평가와 구별; #15 durable source 경계는 그대로.
   - **준비 / Receipt:** GLG가 지정한 기존 조사 형제 `20261013T112752-19fb65`와 맥락·1276→824→715 방법 및 정정을 맞췄다(원작성자 receipt 상속, 필터 독립 재현 전). 기존 산출물·방법/정정·자료공백·카드 틀·후보12건은 비공개 `.agent-reports/issue30/preparation-19fb65/`에 보존했다. coordinator 직접 ignore 및 manifest14파일 전체hash PASS; manifest `f0328001…`, artifact manifest `d5732c7f…` 일치. 자료는 호스트 로컬이며 git 백업 아님. 후보715는 진단 혼입 가능한 잔여 호출, 잠정21건 채점은 현재 재질의/부분판독이라 품질 지표가 아니다. 새 Sonnet `20261013T123226-b486ea`는 GLG가 종료했고 그 정정본은 제한된 역사 사례로만 보존한다.
   - **Next (오늘 STOP):** GLG가 다시 열 때만 후보/자료 접근 범위(회사 세션 포함 여부)부터 정한다. 후보12건 중 회사5건 포함은 미판정; 아직 새 카드 실독·검색/replay·Opus 구현 없음. 기대맥락/당시 반환/후속 활용/oracle을 채운 뒤 질의 적합성·회수·활용을 따로 평가한다. 오늘은 이 댓글/좌표 정리의 정상 commit/push만 승인됐다.

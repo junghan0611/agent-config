@@ -25,6 +25,7 @@ import argparse
 import json
 import os
 import re
+import stat
 import sys
 from collections import deque
 from datetime import datetime, timezone
@@ -68,29 +69,28 @@ def _is_excluded_project_dir(dirname: str) -> bool:
     return dirname.strip("-").startswith("tmp")
 
 
-def _header_cwd(subdir: Path) -> str | None:
-    """디렉토리 안 세션의 원래 CWD. 디렉토리 이름 인코딩은 `/`와 `-`를 구분하지 못한다.
+def _header_cwd(session_file: Path) -> str | None:
+    """선택한 세션 자신의 CWD — 다른 파일을 대신 읽거나 디렉토리를 탐색하지 않는다.
 
     pi 는 첫 줄(session 헤더)에, Claude Code 는 메시지 줄마다 `cwd` 를 적는다. 처음
     읽히는 값 하나만 쓴다. 못 읽으면 None — 호출자는 디렉토리 이름으로 돌아간다.
     """
-    for f in sorted(subdir.glob("*.jsonl")):
-        try:
-            with open(f, encoding="utf-8") as fh:
-                for _, line in zip(range(20), fh):
-                    try:
-                        row = json.loads(line)
-                    except ValueError:
-                        continue
-                    cwd = row.get("cwd") if isinstance(row, dict) else None
-                    if isinstance(cwd, str) and cwd.strip("/"):
-                        return cwd
-        except (OSError, UnicodeDecodeError):
-            continue
+    try:
+        with open(session_file, encoding="utf-8") as fh:
+            for _, line in zip(range(20), fh):
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                cwd = row.get("cwd") if isinstance(row, dict) else None
+                if isinstance(cwd, str) and cwd.strip("/"):
+                    return cwd
+    except (OSError, UnicodeDecodeError):
+        return None
     return None
 
 
-def _project_of(subdir: Path) -> str:
+def _project_of(subdir: Path, session_file: Path) -> str:
     """세션 디렉토리의 프로젝트명.
 
     home 아래는 `_extract_project` 의 이름 규칙을 따른다. home 밖(`/disk-A/ops/<repo>`
@@ -101,7 +101,7 @@ def _project_of(subdir: Path) -> str:
     dirname = subdir.name.strip("-")
     if dirname == "delegate" or dirname.startswith("home-"):
         return _extract_project(dirname)
-    cwd = _header_cwd(subdir)
+    cwd = _header_cwd(session_file)
     return Path(cwd).name if cwd else dirname
 
 
@@ -415,7 +415,7 @@ def resolve_session_file(session_file: str) -> tuple[float, Path, str, str]:
             continue
         if len(relative.parts) < 2:
             raise ValueError("--session-file must be inside a project session directory")
-        project = _project_of(root.resolve() / relative.parts[0])
+        project = _project_of(root.resolve() / relative.parts[0], path)
         return stat.st_mtime, path, project, source, device
 
     known = "~/.pi/agent/sessions or ~/.claude/projects"
@@ -462,12 +462,10 @@ def find_session_files(
             if _is_excluded_project_dir(subdir.name):
                 continue
             dirname = subdir.name.strip("-")
-            proj = _project_of(subdir)
-
-            # 인코딩된 디렉토리 이름도 계속 받는다 (#26 이전의 우회 `-p disk-A-ops-<repo>`).
-            if project and project not in (proj, dirname):
+            # HOME 규칙은 파일을 읽지 않아도 이름이 확정된다. 기존 빠른 필터를 보존한다.
+            if (project and (dirname == "delegate" or dirname.startswith("home-"))
+                    and project not in (_extract_project(dirname), dirname)):
                 continue
-
             # 후보 jsonl: top-level 항상. claude 는 UUID 하위폴더도(subagents 제외).
             candidates = [f for f in subdir.iterdir() if f.suffix == ".jsonl"]
             if src == "claude":
@@ -488,7 +486,13 @@ def find_session_files(
                     st = f.stat()
                 except OSError:
                     continue
-                if st.st_size <= 0:
+                if not stat.S_ISREG(st.st_mode) or st.st_size <= 0:
+                    continue
+                # `/`와 `-` 인코딩 충돌로 한 bucket에 서로 다른 CWD가 있을 수 있다.
+                # 구조 필터를 통과한 각 파일만 읽는다. Claude UUID 하위폴더도 동일하다.
+                proj = _project_of(subdir, f)
+                # 기존 인코딩 이름으로 검색하던 우회도 유지한다 (#26).
+                if project and project not in (proj, dirname):
                     continue
                 results.append((st.st_mtime, f, proj, src, dev))
 

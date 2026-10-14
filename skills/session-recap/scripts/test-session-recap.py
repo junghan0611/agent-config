@@ -539,17 +539,17 @@ class NonHomeProjectTest(unittest.TestCase):
         return sorted(s["meta"]["path"] for s in json.loads(result.stdout))
 
     def test_header_cwd_names_the_repo(self):
-        d = self.write("--disk-A-ops-shared-cluster--", "/disk-A/ops/shared-cluster").parent
-        self.assertEqual(recap._project_of(d), "shared-cluster")
+        path = self.write("--disk-A-ops-shared-cluster--", "/disk-A/ops/shared-cluster")
+        self.assertEqual(recap._project_of(path.parent, path), "shared-cluster")
 
     def test_home_rule_is_unchanged(self):
-        d = self.write("--home-worker-repos-work-shared-cluster--",
-                       "/home/worker/repos/work/shared-cluster").parent
-        self.assertEqual(recap._project_of(d), "shared-cluster")
+        path = self.write("--home-worker-repos-work-shared-cluster--",
+                          "/home/worker/repos/work/shared-cluster")
+        self.assertEqual(recap._project_of(path.parent, path), "shared-cluster")
 
     def test_unreadable_cwd_falls_back_to_the_encoded_name(self):
-        d = self.write("--srv-scratch--", None).parent
-        self.assertEqual(recap._project_of(d), "srv-scratch")
+        path = self.write("--srv-scratch--", None)
+        self.assertEqual(recap._project_of(path.parent, path), "srv-scratch")
 
     def test_symlink_and_real_path_meet_under_one_name(self):
         real = self.write("--disk-A-ops-shared-cluster--", "/disk-A/ops/shared-cluster")
@@ -573,6 +573,92 @@ class NonHomeProjectTest(unittest.TestCase):
         result = self.run_cli("--session-file", str(real))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("shared-cluster [pi:", result.stdout)
+
+    def test_actual_directory_symlink_and_real_cwd_meet_under_one_name(self):
+        real_dir = self.home / "external" / "shared-cluster"
+        real_dir.mkdir(parents=True)
+        alias = self.home / "repos" / "work" / "shared-cluster"
+        alias.parent.mkdir(parents=True)
+        alias.symlink_to(real_dir, target_is_directory=True)
+        self.assertTrue(alias.is_symlink())
+        self.assertEqual(alias.resolve(), real_dir)
+        launched = subprocess.run(
+            ["python3", "-c", "import os; print(os.getcwd())"], cwd=alias,
+            text=True, capture_output=True, check=True, timeout=5,
+        )
+        self.assertEqual(Path(launched.stdout.strip()), real_dir)
+        # Synthetic store buckets avoid the unrelated /tmp scratch exclusion.
+        # Both recorded CWDs name real directories; one is an actual symlink.
+        real = self.write("--disk-A-ops-shared-cluster--", launched.stdout.strip())
+        link = self.write("--home-worker-repos-work-shared-cluster--",
+                          str(alias), self.NATIVE_2)
+        self.assertEqual(self.paths("shared-cluster"), sorted([str(real), str(link)]))
+
+    def test_each_session_owns_its_cwd_even_when_encoded_paths_collide(self):
+        first_cwd = "/disk-A/ops/shared-cluster"
+        second_cwd = "/disk/A/ops/shared/cluster"
+        def encode(cwd):
+            return "--" + cwd.strip("/").replace("/", "-") + "--"
+        self.assertEqual(encode(first_cwd), encode(second_cwd))
+        first = self.write(encode(first_cwd), first_cwd)
+        second = self.write(encode(second_cwd), second_cwd, self.NATIVE_2)
+        self.assertEqual(self.paths("shared-cluster"), [str(first)])
+        self.assertEqual(self.paths("cluster"), [str(second)])
+        result = self.run_cli("--session-file", str(second), "--format", "json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)[0]["meta"]["project"], "cluster")
+
+    def test_missing_cwd_does_not_borrow_a_siblings_cwd(self):
+        self.write("--srv-work-shared-cluster--", "/srv/work/shared-cluster")
+        target = self.write("--srv-work-shared-cluster--", None, self.NATIVE_2)
+        result = self.run_cli("--session-file", str(target), "--format", "json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)[0]["meta"]["project"],
+                         "srv-work-shared-cluster")
+
+    def test_exact_selection_does_not_open_an_unrelated_sibling(self):
+        target = self.write("--srv-work-shared-cluster--", "/srv/work/shared-cluster")
+        os.mkfifo(target.parent / "000-unrelated.jsonl")
+        env = {**os.environ, "HOME": str(self.home), recap.CORPUS_ENV: ""}
+        try:
+            result = subprocess.run(
+                ["python3", str(SCRIPT), "--session-file", str(target)],
+                env=env, text=True, capture_output=True, timeout=2,
+            )
+        except subprocess.TimeoutExpired:
+            self.fail("exact selection blocked while opening an unrelated sibling FIFO")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("shared-cluster [pi:", result.stdout)
+
+    def test_discovery_ignores_a_non_session_sibling_fifo(self):
+        target = self.write("--srv-work-shared-cluster--", "/srv/work/shared-cluster")
+        os.mkfifo(target.parent / "000-unrelated.jsonl")
+        env = {**os.environ, "HOME": str(self.home), recap.CORPUS_ENV: ""}
+        try:
+            result = subprocess.run(
+                ["python3", str(SCRIPT), "--source", "pi", "-p", "shared-cluster",
+                 "--skip", "0", "--min-kb", "0", "--format", "json"],
+                env=env, text=True, capture_output=True, timeout=2,
+            )
+        except subprocess.TimeoutExpired:
+            self.fail("discovery blocked while opening a non-session sibling FIFO")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)[0]["meta"]["path"], str(target))
+
+    def test_nested_nonhome_claude_uses_the_selected_files_cwd(self):
+        target = (self.home / ".claude" / "projects" / "-srv-work-shared-cluster"
+                  / "94563ccb-3897-40f8-901b-965169261da8" / "session.jsonl")
+        ExactSessionFileTest._write_claude(target)
+        rows = [json.loads(line) for line in target.read_text().splitlines()]
+        rows[0]["cwd"] = "/srv/work/shared-cluster"
+        target.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        result = self.run_cli("--source", "claude", "-p", "shared-cluster",
+                              "--skip", "0", "--min-kb", "0", "--format", "json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)[0]["meta"]["path"], str(target))
+        exact = self.run_cli("--session-file", str(target), "--format", "json")
+        self.assertEqual(exact.returncode, 0, exact.stderr)
+        self.assertEqual(json.loads(exact.stdout)[0]["meta"]["project"], "shared-cluster")
 
 
 if __name__ == "__main__":

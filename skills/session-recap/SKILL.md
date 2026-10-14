@@ -67,7 +67,7 @@ python3 {baseDir}/scripts/session-recap.py -p <PROJECT> -m 15
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-p, --project NAME` | all | Project filter (exact match). **Always specify.** Outside HOME (`/disk-A/ops/<repo>`), NAME is the recorded `cwd` basename |
+| `-p, --project NAME` | all | Project filter (exact match). **Always specify.** Outside HOME (`/disk-A/ops/<repo>`), NAME is the selected session's recorded `cwd` basename (including real paths behind directory symlinks) |
 | `-m, --messages N` | 20 | Last N messages per session |
 | `-s, --sessions N` | 1 | Last N sessions |
 | `-c, --chars N` | 300 | Max chars per message |
@@ -170,7 +170,9 @@ but holds no readable turns; nothing is printed to stdout, so you can never writ
 header for a session you did not actually read).
 
 The header contract is unchanged, plus one `파일:` line carrying the full path, so the
-answer rules below apply identically.
+answer rules below apply identically. Outside HOME, project names come from the selected
+file's own `cwd`, not a sibling file; this also applies to nested Claude sessions.
+Recorded CWDs need not exist on this machine. HOME naming rules are unchanged.
 
 ### Seam contract — what this flag does and does not join
 
