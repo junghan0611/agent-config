@@ -52,6 +52,8 @@
 
 # NOW
 
+- **OMP 10-14 관측 갈무리 — 실무 잠수함 효용은 확정하지 않고 두고 본다 (GLG 직접 판단).** 내부 위임·웹 세션 뷰가 장황하고 파악하기 어려우며 토큰 부담이 크다는 사용 경험(정량 비교 아님)을 `OMP.md` 10-14 절과 README에 반영했다. OMP Sol `20261014T090848-dde35e`의 v18.10.4 CLI·release 조사 보고는 상속 근거로 분리; 이 담당자는 durable↔OMP 확인 문자열 왕복만 직접 확인했다. OMP native task에서 pi-durable 선택면을 발견하지 못했다는 보고는 지원 불가능 증명이 아니며, GLG는 추가 지원 시 기능 중복이 있어 두고 볼 일로 판단했다. **다음은 새 GLG 요청 대기** — 복구/이동/browser 실험·durable 포트·자동 역할 활성화 없음. 키 부재로 DeepSeek OMP 프로필·기존 소스 링크 2개를 제거했고 MODELS 호출 명부도 정정했다. 다른 live 설정·키·소스 설치는 변경하지 않았다.
+
 - **10-14 이슈 수선 후속 검수 완료 (GLG 요청).** `ab9164a`의 원래 목적(리포 디렉터리 심볼릭 링크와 실경로에서 시작한 세션을 같은 이름으로 검색)을 실제 디렉터리 링크·자식 프로세스 CWD로 고정했다. HOME 밖 프로젝트 판독은 각 세션 자신의 `cwd`만 읽도록 보완해 인코딩 충돌·Claude UUID 중첩·정확 선택의 다른 파일 탐색을 막았다. 기존 HOME 이름·인코딩 이름 우회·skip/size 계약 유지. session-recap **40 tests PASS**(수정 전 첫 추가 5건 중 4건 실패 확인, 이후 자체 CWD 누락 회귀 1건 추가); `f0ecb97`의 실제 두 집계문은 격리 HOME에서 **3 tests PASS**, 표시 전용이라는 경계 유지. 재검증: `python3 -B skills/session-recap/scripts/test-session-recap.py`, `python3 -B tests/test-run-env-links.py`(전자는 `ANDENKEN_SESSION_CORPUS=''`, 둘 다 `PYTHONDONTWRITEBYTECODE=1`). 이 후속 수선 외 #28·#30은 계속 PAUSED이며 다음 GLG 요청 대기. live 세션·설정·DB·설치 변경 없음.
 
 - **에이전트 시맨틱 메모리 사용 품질 — [#30](https://github.com/junghan0611/agent-config/issues/30) (2026-10-13, 좌표27 PAUSED; 좌표15의 사용 평가 갈래).** [준비 완료·정정·재개 조건 댓글](https://github.com/junghan0611/agent-config/issues/30#issuecomment-6140137204)을 게시했고 readback으로 확인한다. GLG의 검색 UI가 아니라 얼개를 모르는 에이전트의 맥락 복원 접점: 사용/축 선택·질의 적합성·회수 품질·후속 판단 활용을 분리한다. andenken#14/#12는 관련 엔진 결함이며 이 소비자 평가와 구별; #15 durable source 경계는 그대로.

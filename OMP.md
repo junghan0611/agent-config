@@ -1,5 +1,7 @@
 # OMP — 검수 매트릭스
 
+> **현재 판정 — 2026-10-14:** 실무 잠수함의 효용은 확정하지 않고 관찰한다. GLG는 내부 위임과 웹 세션 뷰를 장황하고 파악하기 어렵게 느꼈으며 토큰 부담도 보고했다(정량 계측 아님). 아래 **10-14 절**이 최신 기준이다. 옛 설치·DeepSeek 봉인·시민권 미착수 기록은 당시 증거이며 현재 실행 지침이 아니다.
+
 `oh-my-pi`(omp)를 **후보 런타임**으로 세워놓고 재는 작업면. pi-mono 포크이고,
 GLG는 지원 하네스를 무작정 늘릴 생각이 없어 **최소치**를 따진다. 후보라는 말은 pi를
 대체하거나 더 좋은 하네스를 뽑는다는 뜻이 아니다. 한 visible sibling 안에서 내부 위임을
@@ -572,3 +574,42 @@ env 키 셋: `ROBOMP_TASK_PROFILE=sorge-label` · `ROBOMP_SELF_LOGINS` ·
 
 PAT는 password store에만 둔다. 문서·repo·agent transcript에 넣지 않는다는
 2026-09-12 조건은 그대로 산다.
+
+## [2026-10-14] 실무 잠수함은 관찰로 — 내부 위임과 독립 하네스 호출은 다르다
+
+### GLG의 사용 경험과 현재 판단
+
+**GLG 직접 보고(이 대화):** OMP를 실무 잠수함으로 생각했지만, 서브에이전트를 부르는 과정이 너무 장황하고 그 안에서 무엇을 하는지 알기 어려웠다. 토큰 사용도 너무 많게 느꼈다. 웹에서 세션을 보여주는 도구도 GLG에게는 장황하고 읽기 어려웠다. 이는 **GLG의 사용 경험**이며 보편적 UX 판정이나 토큰 사용량 비교 계측이 아니다. 웹 도구의 이름·버전·별도 검증은 이 기록에 없다.
+
+따라서 예전의 「한 visible parent 아래로 숨기면 검수 홉이 줄어든다」는 기대를 운영 효용 입증으로 읽지 않는다. 홉 수가 적어도 사람이 내부 진행을 파악하지 못하면 부담이 줄었다고 할 수 없다. **OMP를 실무 잠수함으로 정착시키거나 지원 범위를 늘리지 않고 두고 본다.** 설치 제거·기능 비활성화 지시는 아니며, 기존 시민 주소와 명시적으로 부르는 모델 프로필은 별개다.
+
+### durable 지원을 확인하려던 질문
+
+**GLG 직접 설명:** 확인하려던 것은 OMP가 Entwurf처럼 **독립적인 pi-durable 하네스를 호출·운용하는가**였다. OMP 자체의 서브에이전트·세션 복구와는 다른 질문이다.
+
+- **OMP Sol 조사 보고, 이 담당자의 독립 재현 전:** native task는 자식 OMP `AgentSession` 생성 경로로 문서화돼 있고, 조사한 문서에서는 pi-durable 런타임을 선택하는 필드를 발견하지 못했다. 이것은 조사 범위의 미발견이지, 지원이 절대 불가능하거나 모든 확장 경로가 없다는 증명이 아니다.
+- **GLG의 전망:** pi-durable 지원을 추가하는 것 자체는 어렵지 않을 수 있다. 다만 OMP가 이미 하는 위임·복구·운용과 겹치는 부분이 있으므로 추가할 효용은 두고 볼 일이다. 구현 난이도와 중복 범위는 아직 실측하지 않았다.
+- **현재 경계:** OMP는 자기 내부 작업을 운용하고, Entwurf는 독립 하네스 시민의 주소·호출·배달을 소유한다. pi-durable의 장기 대화와 OMP `--restore`의 중단 작업 복구를 같은 보장으로 취급하지 않는다. 새 adapter·durable 지원 구현·실험은 시작하지 않는다.
+
+### 업데이트 조사 — OMP Sol에게 상속한 기록
+
+출처는 garden `20261014T090848-dde35e`의 09:25:54 KST 메시지이며, 이 담당자가 09:25:57 KST `entwurf_inbox_read`로 읽었다. **아래 CLI·내장 문서·릴리스 확인은 상대의 실행 보고**이고 여기서 재실행하지 않았다. 상대는 설치 CLI `omp --help`에서 **v18.10.4**를 확인했다고 보고했다. 이전 설치 버전은 불명이라 정확한 로컬 업데이트 차분이 아니라 **v18.9.0→v18.10.4의 최근 변경**이다. GLG가 로컬 소스를 삭제했다고 알려 소스 재다운로드 없이 설치 CLI·`omp://` 문서·upstream release API로 조사했다고 보고했다.
+
+| 릴리스 | 상대가 읽은 변경 | 이 집에서 아직 검증하지 않은 것 |
+|---|---|---|
+| v18.10.3 | `omp --restore <session>`으로 중단된 부모 턴·자식 작업 복구, Tern crash restart도 이 경로 사용 | 실제 중단→복구와 결과의 부모 전달 |
+| v18.10.0 | `session pack/unpack/moved`로 산출물 포함 기기 이동·계속, 원본 재개 시 fork; auth export/import | 기기 이동·fork·인증 이동 |
+| v18.9.0 / .10.3 / .10.4 | 동시 SDK 세션의 async job·follow-up 간섭, 이름별 `task.agentSoftRequestBudget`, 늦은 completion probe의 대화 되감기·parked 비용 오류 수정 | 병렬 복구·예산·비용 정확성 |
+| v18.10.3 / .10.4 | reasoning·이미지 토큰 추정·archive/cache 수정, Codex/Grok snapcompact archive를 Claude로 switch/resume할 때의 거부 수정 | 문맥 품질·토큰/속도 개선 |
+| v18.10.2 | Tern·ACP background bash/eval의 원래 카드에 live output·종료 상태 유지; task 기본 결과 plain text, structured는 opt-in | 실제 카드·task 동작. `omp://tools/task.md`의 hidden-yield 설명과 릴리스 차이도 상대가 보고함 |
+| v18.9.0 / .10.4 | 열린 browser target 발견·제어, renderer crash hang·restart 페이지 누적 수정; extension plan-review API | browser·plan-review 행동 |
+
+상대가 근거로 전달한 upstream 릴리스: [v18.9.0](https://github.com/can1357/oh-my-pi/releases/tag/v18.9.0), [v18.10.0](https://github.com/can1357/oh-my-pi/releases/tag/v18.10.0), [v18.10.2](https://github.com/can1357/oh-my-pi/releases/tag/v18.10.2), [v18.10.3](https://github.com/can1357/oh-my-pi/releases/tag/v18.10.3), [v18.10.4](https://github.com/can1357/oh-my-pi/releases/tag/v18.10.4). 링크 원문을 이 담당자가 독립 대조한 기록은 아니다. 자동 advisor/reviewer나 추가 유료 요청 기능을 새 기능이라는 이유로 켜지 않는다.
+
+### 직접 확인한 것은 주소 있는 메시지 왕복
+
+**이 담당자 직접 측정:** GLG가 업데이트 후 연 OMP `20261014T090848-dde35e`를 `entwurf_peers`에서 `receiver=active`, `transcript=exists`로 확인했다. 09:11 KST `entwurf_v2`로 보낸 `omp-sol-roundtrip-1014`를 같은 garden id가 답장했고, 09:11:24 KST 이 durable 담당자의 `entwurf_inbox_read`에서 읽었다. **agent-config durable→OMP→agent-config durable 왕복 확인**이다. OMP의 `openai-codex/gpt-6.1-sol` 모델명은 상대의 주입 컨텍스트 보고, cwd는 상대의 `entwurf_self` 확인 보고다. 내부 task·fresh launch·`--restore`·전체 OMP qualification을 검증한 것은 아니다.
+
+**이 담당자 직접 실행 / GLG 승인:** DeepSeek 키를 더 이상 보유하지 않는다는 GLG 지시에 따라 `omp/agents/deepseek-flash.md`와 이를 가리키던 HOME 링크, 이미 소스가 없던 `deepseek-pro.md`의 잔존 HOME 링크를 제거했다. 두 링크 모두 이 repo를 가리키는 것을 확인한 뒤 제거했다. 다른 모델·키·live config는 건드리지 않았다. 앞으로 OMP 테스트는 DeepSeek 사용을 전제로 삼지 않는다. 예전의 「deepseek만 남아야 정상」 설치 기록은 역사이며 현재 인증·모델 선택 지침이 아니다.
+
+**다음:** 관찰 상태로 둔다. GLG가 다시 열 때만 내부 진행의 가시성·인지 부담과 기능 중복을 먼저 확인하고, 그 뒤 작은 복구 실험이나 durable 지원 필요성을 판단한다. 지금은 새 실행·포트·설치 없이 문서와 프로필 제거를 갈무리한다.

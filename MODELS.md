@@ -4,6 +4,8 @@
 
 ## Current rails — 2026-09-30
 
+**2026-10-14 correction (GLG):** the DeepSeek key is no longer available. DeepSeek is removed from the callable roster and OMP agent profiles; do not select it for tests or siblings. Other rail entries below retain their 09-30 evidence date.
+
 | Rail                | Used in                         | Choose for                           |
 |---------------------|---------------------------------|--------------------------------------|
 | Claude subscription | Claude Code, pi (`entwurf` ACP) | Opus / Sonnet; Fable only when named |
@@ -11,14 +13,13 @@
 | Grok subscription   | pi                              | Grok family                          |
 | Z.AI subscription   | pi                              | GLM family                           |
 | Upstage API         | pi                              | Korean work (`solar-pro4`)           |
-| DeepSeek API        | pi                              | DeepSeek Flash                       |
 
 A provider merely appearing in pi's live catalog is not permission to spend it. Do not choose a provider absent from this roster; OpenRouter is never an inference rail.
 
 ## Choose a rail
 
 1. Spend subscription and rolling-quota rails first: `zai`, `openai-codex`, `xai`, and Claude (`entwurf` / Claude Code). Consult their current quota when it matters.
-2. Use direct APIs only for a clear purpose: `upstage` for Korean work and `deepseek` for DeepSeek-specific work.
+2. Use direct APIs only for a clear purpose: `upstage` for Korean work. DeepSeek is unavailable (GLG, 2026-10-14).
 
 If GLG names neither a model nor a documented default for the requested backend, ask.
 
@@ -28,7 +29,6 @@ For a `pi` sibling, pass one exact `provider/model` pair from this curated list:
 
 ```text
 provider        model
-deepseek        deepseek-flash
 entwurf         claude-opus-5
 entwurf         claude-sonnet-5
 openai-codex    gpt-6-astra
