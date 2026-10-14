@@ -769,3 +769,34 @@ GLG가 Opus 구현과 이 세션 검수를 요청했다. 소비자 Claude Code O
 `[측정, API-0 — 합성 HOME/TMPDIR, env -i, vendor 0]` 대상은 clean한 Entwurf checkout `9f33dd1`(`v0.36.0-1`)이다. 태그 뒤의 한 커밋은 Herdr 파일만 바꾼다. `./run.sh test:pi-durable`과 같은 파일로 **44/44**, skip 0이었다. 10-13에 미커밋 bootstrap을 따라 넣었던 stub의 `onFailed`는 출하본 `pi/pi-durable/bootstrap.mjs:347`과 맞는다.
 
 하지 않은 것: npm으로 설치한 0.36.0 실행(이 호스트의 `entwurf`는 여전히 checkout을 가리킨다), vendor 모델 턴, TUI, 재시작. 릴리스의 전체 qualification과 native Codex 범위는 Entwurf의 영수증이며, 여기서 다시 돌리지 않았다.
+
+## [2026-10-14] 바깥에서 본 durable — 라이브러리이고, 붙인 쪽은 전부 앱을 썼다
+
+GLG의 질문 `[GLG 직접, 2026-10-14 이 세션]`: *"pi-durable을 붙이려면 대형하네스는 건들게 많아서 entwurf가 다듬을부분이 있지않을까하는 기대였어ㅡ 이런관점이지만 이게 작업에대해서 효율적인지는 않을수도 있거든."* 그리고 *"나는 pi 만드는 아르민, 마리오 계통에서 고민하는 편인것같다."* 같은 자리에서 [entwurf#143](https://github.com/junghan0611/entwurf/issues/143)을 *"지금 작업 간단하게 하고있어. 이정도 정도를 줄게"*라고 범위를 그었다.
+
+### upstream이 durable을 무엇으로 내놓았나 `[읽음 earendil-works/pi origin/main 63035734f, packages/durable/README.md]`
+
+- **pi 모노레포 안의 라이브러리다.** npm `@earendil-works/pi-durable`의 repository는 `earendil-works/pi`이고 버전이 pi와 같이 움직인다(1.0.0 … 1.2.0) `[측정 npm view, 2026-10-14]`. README 첫 줄: *"Experimental. The API changes without notice between releases."*
+- **확장은 프로세스가 소유한다.** README:130 *"Code the Harness runs, other than its built-in tasks, comes in named extensions installed in a registry your process owns."* README:91 *"Registry: the extensions this process installed. It can change while the Harness runs."*
+- **바닥이 아직 움직인다.** 10-11 durable code mode, 10-12 deferred tools·`tool_search`, 같은 날 Chord의 facet/service 런타임이 chord2 host runtime으로 교체됐다 `[읽음 git log -- packages/durable packages/chord]`. pi 릴리스는 1.0.2(10-04) → 1.1.0(10-07) → 1.2.0(10-12) `[측정 gh api releases]`. 이 집도 10-13에 SDK 1.2 `output` 채널 때문에 `2fe2662`로 고쳤다(위 10-13 절).
+
+### 누가 붙였나 `[측정 gh api repos · README 읽음, 2026-10-14]`
+
+- **큰 하네스는 아직 아무도 안 붙였다.** OpenRig는 pi를 `pi --mode rpc` + `pi_session_file` 재개 토큰으로 품는다(자세히는 [OPENRIG.md](OPENRIG.md)). Herdr `origin/HEAD`의 `durable` 언급은 pi-durable과 무관한 것뿐이다(Claude hook 상태 표현, ghostty 바인딩 주석, 플러그인 문서의 "durable state") `[측정 git grep -i durable]`. Hermes v0.22.0 릴리스 노트 Highlights에는 pi/durable이 없다(Highlights만 읽음).
+- **붙인 쪽은 전부 자기 앱을 썼다.** [pi-pocket](https://github.com/TannerMidd/pi-pocket) ★398 — *"built on Pi Durable"*, 웹·모바일, 여러 사람이 함께 쓰는 세션. [disler/durable-pi](https://github.com/disler/durable-pi) ★116 — 여러 기기의 durable agent를 웹 UI·TUI·curl로. [PiDurableKit](https://github.com/finnvoor/PiDurableKit) ★250 — JavaScriptCore 위 Swift API. 모두 10-04~10-08 사이에 생겼다. ([companion](https://github.com/The-Vibe-Company/companion) ★2.4k는 설명에 "powered by Pi … durable execution"이 있으나 2026-02 생성이라 pi-durable 위에 섰는지는 확인하지 않았다.)
+
+### 판단 — 기대는 맞는데 자리가 다르다 `[판단, 위 사실에서]`
+
+큰 하네스가 durable을 못 붙이는 이유는 크기보다 **durable이 CLI가 아니라 라이브러리**라는 데 있다. 붙인다는 것은 앱을 쓴다는 것이다. 그러니 "entwurf가 다듬을 부분"은 큰 하네스의 빈칸이 아니라 **앱 작성자의 몫**이다.
+
+GLG가 붙여 준 ChatGPT 앱 답변(10-09 무렵) `[상속: 이 세션에 붙여 준 원문]`은 #134의 TUI·runtime overlay 수정을 *"entwurf의 좁은 책임 범위에서 벗어나는 예외적인 공급 작업"*으로 보고 *"upstream에서 적절한 확장 인터페이스가 나오면 걷어낼 수 있어야"* 한다고 했다. upstream의 답은 이미 위에 있다 — 레지스트리는 프로세스를 쥔 쪽이 소유한다. 남의 durable 앱에 끼워 넣는 인터페이스가 따로 올 설계가 아니다. Entwurf 0.36.0이 app carrier를 자기 소스에서 내보내기 시작한 것은 예외가 아니라 pi-pocket과 같은 자리이고, 다른 것은 앱의 얼굴(웹·모바일 대신 garden id가 붙은 TUI)이다. `--native-module`은 그 레지스트리를 소비자(이 집 `pi-durable/index.mjs`)에게 건네는 entwurf의 입구다.
+
+#143이 그 자리의 실례다 `[상속: entwurf#143 본문·2026-10-14 기술 댓글 — opus/sol이 설치된 1.2.0 dist와 cab1b9f 소스를 읽음, 이 세션 재측정 0]`. Codex continuation이 꺼진 원인은 SDK가 아니라 Entwurf 소유 `harness-setup.ts:24-50`이 `transport`를 넘기지 않은 것이었고, SDK 타입은 이미 그 값을 받는다. 자동 compaction에 보존 기준(focus)을 넘길 접점이 없다는 것도, SDK가 정책을 앱에 남긴 경계다. 앱을 쓰는 쪽이 설정 배관을 진다.
+
+### 효율 — 밀착이 아니라 접점의 폭 `[판단]`
+
+비용은 붙이는 일보다 **upstream이 움직일 때마다 내는 세금**에서 나온다(위 8일 사이 세 릴리스, chord2 교체, 10-13 `output`). 지렛대는 더 붙는 것이 아니라 접점을 좁게 두는 것이다 — 지금의 exact SDK 9개, 소비자 쪽 native module 하나. 계통으로 보면 Hermes는 제품, OpenRig는 토탈 솔루션, Herdr는 레일과 생태계, 아르민·마리오는 프리미티브(pi 코어·durable·chord·codemode) 위에 각자 앱을 쓰게 하는 쪽이다. entwurf(얇은 공급) + 이 집(소비자 레퍼런스)의 분업은 마지막 계통에 선다.
+
+### 하지 않은 것
+
+pi-durable·OpenRig·Herdr·Hermes 설치나 실행, 테스트 실행, vendor 턴, #143 측정 재현. companion의 기반 확인.

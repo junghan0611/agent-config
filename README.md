@@ -366,7 +366,7 @@ What `setup` deliberately does **not** do: install entwurf (that is entwurf's ow
 
 Some questions cannot be answered by reading a project's README. *Does a runtime that generates its own skills from experience beat a human-authored skill set?* You only find out by standing both up on the same machine, giving them the same repeated task, and looking at what each wrote down afterwards.
 
-Eight subjects sit on this bench, and they ask different questions:
+Nine subjects sit on this bench, and they ask different questions:
 
 | Subject | Question | Standing |
 |---|---|---|
@@ -378,6 +378,7 @@ Eight subjects sit on this bench, and they ask different questions:
 | [Xirp](https://backstage.spotify.com/docs/xirp) (Spotify) | When one product owns the whole factory — sessions, worktrees, workflow status, institutional memory — what does it get that a three-part workshop does not? | **cannot be installed: macOS-only** — observation in [XIRP.md](XIRP.md) |
 | [pi 1.0](https://github.com/earendil-works/pi) | Our own floor reached 1.0. Where does it meet our compaction switch, autopilot/goal/decision-gate, codemode, and the extensions this repo loads? | **v1.0.0 source plus 2026-10-02 isolated API-0 checks**: ordinary Pi house tests 319 passed; durable library 851 passed / 2 host-assumption failures. Entwurf 0.36.0 now supplies a separate Pi 1.2.0 durable SDK set; no live install in this documentation cut — matrix in [PI.md](PI.md) |
 | [pi-durable](https://github.com/earendil-works/pi/tree/main/packages/durable) | A sibling whose garden id can hold one conversation for a month: what does a *resident* harness change about addressing, skill surface, supply, and what we can honestly observe? | **a separate harness, not a pi feature** — Entwurf 0.36.0 carrier + Pi 1.2.0 SDK; D2 delivery boundary; env-first BG tools/native badge and same-id resident use. Installed integration measured 2026-10-09 on 1.1; the 1.2 `output` consumer passed API-0 44/44 on the 0.36.0 checkout 2026-10-14 — [reference](pi-durable/README.md), [matrix](PI-DURABLE.md) |
+| [OpenRig](https://github.com/mvschwarz/openrig) | A rig that wraps Claude Code, Codex, Pi and OMP above Herdr — addressing a *position* (`<seat>@<rig>`) rather than an occupant, and carrying Pi headless over RPC: what does a total solution teach a narrow screwdriver? | **observation only, not installed** — `rig setup`/daemon write skill roots, statusLine and Codex hooks this repo co-owns with entwurf; v0.6.10 source read 2026-10-14 — [OPENRIG.md](OPENRIG.md) |
 
 
 This comparison belongs here, not in entwurf. **entwurf guarantees its own garden-id,
@@ -475,6 +476,8 @@ breaks assumptions written for session-shaped citizens — it already produced a
 this repo, where `entwurf-peek` dropped every durable record as schema-invalid and would then have
 reported a month-old resident as *"before its first turn"* (fixed 2026-10-06, 81 checks green).
 The 2026-10-06 D0/source-only snapshot remains history in that document; checked Entwurf 0.36.0 supplies the app carrier and still records **D2**. The 10-08 env restart and 10-09 aggregate reload/actual BG query are dated observations, not crash recovery, exactly-once delivery or a memory-quality benchmark. Skills share Pi's `loadSkills` door; classic Pi extensions still do not load. This repo's separate native module is the measured alternative, not a claim to reproduce the Pi extension ecosystem. The memory axis remains [andenken#15](https://github.com/junghan0611/andenken/issues/15); runtime supply, addressing, and native-module ingress belong to entwurf. Consumer policy and its reference implementation belong here.
+
+[OPENRIG.md](OPENRIG.md) is the ninth subject, an observation log like XIRP.md. OpenRig calls itself the layer above harnesses — *"A harness wraps a model. A rig wraps your harnesses"* — and sits on Herdr. It is the clearest outside contrast to this repo's floor on two axes: its address names the seat **position**, never the occupant, where a garden id names the citizen; and it runs Pi through its own runner over `pi --mode rpc`, with TUI-native Pi deferred to a separate future contract, where GLG's rule is that Pi stays visible as its own TUI. It does not carry pi-durable. GLG's 2026-10-14 reason for adding it is learning, not adoption: resume honesty as a named layer, re-derivation `grep`s inside its as-built docs, `compaction_strategy` as a declared seat property, and gate scripts paired with tests. Nothing is installed; its setup writes into files entwurf co-owns.
 
 [UNCLEBOB.md](UNCLEBOB.md) sits beside it but looks at a different surface: **what a harness
 uses to prove itself.** Robert C. Martin spent 2026 building SwarmForge — 331 commits, git
