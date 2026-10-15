@@ -6,8 +6,8 @@
 # RAIL — 현재 좌표
 
 원문·소비 스킬·독립검수·승인 snapshot1의103행실제색인/원문연결(1~3)은 `CHANGELOG.md v2026.10.15`로 갈무리했다. 전체대화수집/건강한hybrid검색인증은아니다.
-최종 합동검수·양쪽 tag/GHRelease·agenda(4)와 [#15 종료](https://github.com/junghan0611/andenken/issues/15)는 완료했다. source328b7f6/v2026.10.15,이집ad854fd/v2026.10.15-finish.1(기존4363866/v2026.10.15불변). 이후 GLG 요청대로 Entwurf 코디085719에 공개 근거·남은 제한·새 승인 경계를 전송했다. 컷 뒤 종료 기록은 CHANGELOG Unreleased에 남겼다.
-- [ ] **7. 인계 뒤 대기** ← CURRENT: 다음 진행의 공은 Entwurf 코디20261015T085719-9fc008에게 있다. 이 집은 새 GLG 요청까지 추가 실행0. 완료 근거는 공개#15/양쪽Release와 담당자문서20260312T174622. 귀환 시 해당 현행 기록을 먼저 읽고 옛 PAUSED나 종료 작업을 재생하지 않는다.
+최종 합동검수·양쪽 tag/GHRelease·agenda(4)와 [#15 종료](https://github.com/junghan0611/andenken/issues/15)는 완료했다. source328b7f6/v2026.10.15,이집ad854fd/v2026.10.15-finish.1(기존4363866/v2026.10.15불변). 이후 GLG 요청대로 공개 근거·남은 제한·새 승인 경계를 전송했다. 첫 수신자085719가 연결 Claude 형제임을 회신해, 정식 durable 코디20261007T132839-b22677로 직접 정정 전송했다. 컷 뒤 종료 기록은 CHANGELOG Unreleased에 남겼다.
+- [ ] **7. 인계 뒤 대기** ← CURRENT: 다음 진행의 공은 Entwurf durable 코디20261007T132839-b22677에게 있다(연결 형제085719와 구분). 이 집은 새 GLG 요청까지 추가 실행0. 완료 근거는 공개#15/양쪽Release와 담당자문서20260312T174622. 귀환 시 해당 현행 기록을 먼저 읽고 옛 PAUSED나 종료 작업을 재생하지 않는다.
 전체 증분·Oracle 반영(5)은 완료했다. 직접#2643/#2705/#2747/#2800: sessions109190/md11078/OpenClaw8076, 모두4096d·중복0, 세션/가든고아0. 양쪽corpus3513파일checksum오류0. durable103행양쪽보존·pending0,Oracle지정원문±1동일. 활성6봇clean(재회수시점),sup✓18만backup/prune·archives880보존. 새0.40운영FTS메타query9/0/20/primitivepanic0. 상세는 담당자문서20260312T174622의 전체증분영수증, private `.agent-reports/issue15/consumer-review.md`, `/tmp/andenken-full-incremental.YiGdsh/`. 원격준비와로컬을분리해MD만선행했고global은1회,강제rebuild/추가원문/재시작0.
 - [ ] **6. 세션 압축·구버전 상주 Pi 후속(andenken#16)** ← PAUSED(andenken 소유·자동 집행 없음): sessions는 앞선600s timeout 뒤 재시도하지 않아25 physical data files/4.7G. Oracle기존Pi2629092는0.15native캐시 유지,승인없는restart0. 새0.40CLI의실제FTS/3축검증PASS를그livePi건강으로확장하지않는다. OpenClawcompact는완료했으나15→16 physicalfiles/168→304M로공간감소아님(최종16<20). `_score`projection/legacyFTS경고·테스트의real0Bsync-lock mtime접촉fixture격리수선은andenken후속,추가실행없음.
 
@@ -62,7 +62,7 @@
 
 # NOW
 
-- **10-15 현재:** durable원문/소비스킬/실제103행·원문연결,전체세축증분·Oracle배포·verify까지완료했다. 최종109190/11078/8076행4096d,양쪽corpus3513checksum오류0,durablepending0. 새0.40프로세스FTS메타9/0/20/primitivepanic0. sessions압축25physicalfiles4.7G와기존OraclePi0.15cache는#16등의별도제한이다. GLG최신요청의최종Claude검수·양쪽tag/GHRelease·agenda·#15업데이트close를완료하고Entwurf코디085719에인계메시지전송완료,이후이쪽추가작업0. 정제검수artifact `.agent-reports/issue15/final-review-metadata.json`,운영정본andenken-embed. **범위사건:** andenken코디가구간밖검색snippet3개열람을보고해GLG고지/즉시중단했고이집/독립Opus는지정구간만봤다. 공유는metadata-only로제한,raw검색JSON/추가원문열람금지. 자동livegather/paidindex재실행/강제rebuild/재시작0,#30 PAUSED,FACTORY미접촉.
+- **10-15 현재:** durable원문/소비스킬/실제103행·원문연결,전체세축증분·Oracle배포·verify까지완료했다. 최종109190/11078/8076행4096d,양쪽corpus3513checksum오류0,durablepending0. 새0.40프로세스FTS메타9/0/20/primitivepanic0. sessions압축25physicalfiles4.7G와기존OraclePi0.15cache는#16등의별도제한이다. GLG최신요청의최종Claude검수·양쪽tag/GHRelease·agenda·#15업데이트close를완료하고정식Entwurf durable코디20261007T132839-b22677에인계메시지정정전송완료,이후이쪽추가작업0. 정제검수artifact `.agent-reports/issue15/final-review-metadata.json`,운영정본andenken-embed. **범위사건:** andenken코디가구간밖검색snippet3개열람을보고해GLG고지/즉시중단했고이집/독립Opus는지정구간만봤다. 공유는metadata-only로제한,raw검색JSON/추가원문열람금지. 자동livegather/paidindex재실행/강제rebuild/재시작0,#30 PAUSED,FACTORY미접촉.
 
 ## 이전 NOW — 변경 근거와 보류 레인 (10-15 위 현재 좌표가 우선)
 

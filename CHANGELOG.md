@@ -9,7 +9,7 @@
 
 ### 최종 종료와 공의 인계
 
-* **양쪽 공개 릴리즈 뒤 [andenken#15](https://github.com/junghan0611/andenken/issues/15)를 업데이트하고 완료로 닫았다.** source v2026.10.15=`328b7f6`, 이 집 후속 v2026.10.15-finish.1=`ad854fd`의 공개 Release·도장을 확인했다. Claude와 종료 본문의 snapshot 시점·비용·수동 lock 회수·출처가 섞인 답·source 파일 존재·FTS 진단 상태를 보완하고 기존 본문은 역사로 보존했다. #16은 OPEN이다. 새0.40 probe의 panic 미재현을 원인 진단이나 #16 종결로 확대하지 않는다. GLG 지시대로 완료 근거·남은 제한·새 승인 경계를 Entwurf 코디085719에 전송하고 이쪽 추가 실행을 멈췄다. 이 문단은 컷 이후 마감 기록이며 공개 태그를 이동하지 않는다.
+* **양쪽 공개 릴리즈 뒤 [andenken#15](https://github.com/junghan0611/andenken/issues/15)를 업데이트하고 완료로 닫았다.** source v2026.10.15=`328b7f6`, 이 집 후속 v2026.10.15-finish.1=`ad854fd`의 공개 Release·도장을 확인했다. Claude와 종료 본문의 snapshot 시점·비용·수동 lock 회수·출처가 섞인 답·source 파일 존재·FTS 진단 상태를 보완하고 기존 본문은 역사로 보존했다. #16은 OPEN이다. 새0.40 probe의 panic 미재현을 원인 진단이나 #16 종결로 확대하지 않는다. GLG 지시대로 완료 근거·남은 제한·새 승인 경계를 전송했다. 첫 수신자085719가 연결 Claude 형제임을 회신해 정식 Entwurf durable 코디20261007T132839-b22677로 직접 정정 전송했고 이쪽 추가 실행을 멈췄다. 이 문단은 컷 이후 마감 기록이며 공개 태그를 이동하지 않는다.
 
 ## v2026.10.15-finish.1 — 세 기억축 Oracle 반영과 인계 영수증
 
