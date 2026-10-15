@@ -6,9 +6,9 @@
 # RAIL — 현재 좌표
 
 원문·소비 스킬·독립검수·승인 snapshot1의103행실제색인/원문연결(1~3)은 `CHANGELOG.md v2026.10.15`로 갈무리했다. 전체대화수집/건강한hybrid검색인증은아니다.
-- [ ] **4. 양쪽 태그·GitHub Release** ← CURRENT: v2026.10.15, GLG 명시 승인. 정상 게이트/훅/도장. FTS degraded와compact미완료를제한으로명시하고cut.
-- [ ] **5. 전체 기억축 증분·Oracle 반영** — 이 담당자가 andenken-embed usual ask2+3+4만직렬실행. full rebuild 아님. 각축verify/publish+OraclecodeFF/CLI확인,scope밖원문열람금지.
-- [ ] **6. FTS/compact 후속(andenken)** — FTS arm Rustpanic→[]; vector/substring와승인원문은동작. #2263compact600s timeout(원인미확정),종료후verify4096d/107656unique/중복고아0/23frag4.7G. deadowner1096708와writer0확인후운영자stale락한번제거. 재실행/재임베딩/벤더패치안함. source의knownlimitation으로남기고정상전체증분과분리.
+- [ ] **4. 최종 합동검수→양쪽 tag·GitHub Release→#15 닫기→Entwurf 코디 인계** ← CURRENT: GLG가 전체증분완료뒤Claude합동검수·tagrelease·#15업데이트close,그뒤Entwurf코디로공을넘기라고직접요청했다. 기존독립Claude123300-a98cac에원문없는최종메타receipt로검수요청. source는5944185+문서마감→v2026.10.15,이집기존4363866/v2026.10.15는불변·새v2026.10.15-finish.1후보. 검수확정뒤정상hookcommit/push/tag/GHRelease/agenda,이쪽이#15최종업데이트close한번만수행하고코디085719에영수증·#16제한을인계한다. 원문추가·유료재실행·자동restart·새기능없음.
+전체 증분·Oracle 반영(5)은 완료했다. 직접#2643/#2705/#2747/#2800: sessions109190/md11078/OpenClaw8076, 모두4096d·중복0, 세션/가든고아0. 양쪽corpus3513파일checksum오류0. durable103행양쪽보존·pending0,Oracle지정원문±1동일. 활성6봇clean(재회수시점),sup✓18만backup/prune·archives880보존. 새0.40운영FTS메타query9/0/20/primitivepanic0. 상세는 담당자문서20260312T174622의 전체증분영수증, private `.agent-reports/issue15/consumer-review.md`, `/tmp/andenken-full-incremental.YiGdsh/`. 원격준비와로컬을분리해MD만선행했고global은1회,강제rebuild/추가원문/재시작0.
+- [ ] **6. 세션 압축·구버전 상주 Pi 후속(andenken#16)** ← 남은 운영 제한: sessions는 앞선600s timeout 뒤 재시도하지 않아25 physical data files/4.7G. Oracle기존Pi2629092는0.15native캐시 유지,승인없는restart0. 새0.40CLI의실제FTS/3축검증PASS를그livePi건강으로확장하지않는다. OpenClawcompact는완료했으나15→16 physicalfiles/168→304M로공간감소아님(최종16<20). `_score`projection/legacyFTS경고·테스트의real0Bsync-lock mtime접촉fixture격리수선은andenken후속,추가실행없음.
 
 승인 갱신(2026-10-15): GLG가 위 실사용 검수·새 Opus·양쪽 tag/release·전체 임베딩/회수·SQLite 활용 후속 고민을 요청했다. 기존 parked/Q1–Q7·전면 live 금지는 아래 역사이며, 이번 live 승인은 **현재 대화 DB의 snapshot 1개와 지정 주변 구간만**이다. 다른 live DB/원문 공개/파괴적 rebuild/훅 우회/운영 재시작은 승인 아님. 구현 조율자 `20261015T113054-877f91`(andenken), 여기 `20261007T104525-12d0ca`; 실제 전체 임베딩 실행자는 여기 한 손, 중복 실행 금지. 새 독립 Opus `20261015T123300-a98cac`, launch nonce `mux-fresh-call-322d11c0888310774ead47f0` callback 일치 확인. 승인된 private around JSON 한 구간만 전달. `FACTORY.draft.md` 미접촉. #30은 계속 PAUSED.
 
@@ -61,7 +61,7 @@
 
 # NOW
 
-- **10-15 현재:** 원문·소비 스킬·source/index/공통락·P1/P3와실제103행색인·원문연결검증 완료. FTS보조경로오류/compact미완료는알려진제한으로분리하고양쪽release→usual ask2+3+4 순서. 새구현범위추가없음. `semantic-memory`의 pi-durable filter/excerpt는 구현된 계약이며 자동 live gather는 아니다. global sync는 이미 색인된 durable 행·checkpoint·corpus를 함께 발행할 뿐 durable paid index를 호출하지 않는다. 스킬의 3축과 JSONL recap 경계·ID/시각/origin·non-TUI requestId 정책을 정합화했다. 운영 정본은 andenken `andenken-embed`의 explicit snapshot prelude이며 global을 tier2와 중복 실행하지 않는다. 상세 회귀는 CHANGELOG, private 영수증은 `.agent-reports/issue15/consumer-review.md`. 양쪽 release 후 가든·OpenClaw/Oracle 수렴, 담당자 문서와 최종 DM. 추가 live DB/공개 원문/파괴 rebuild/자동 재시작 없음. **범위사건:** andenken코디가raw검색결과파일의구간밖snippet3개를열람했다고보고,GLG에게고지/즉시중단. 이집/독립Opus는지정구간만열람. 이후공유는 `/tmp/andenken-approved-durable-lxk36zgs/search-source-metadata-only.json`만,raw파일전달/열람금지. #30 PAUSED.
+- **10-15 현재:** durable원문/소비스킬/실제103행·원문연결,전체세축증분·Oracle배포·verify까지완료했다. 최종109190/11078/8076행4096d,양쪽corpus3513checksum오류0,durablepending0. 새0.40프로세스FTS메타9/0/20/primitivepanic0. sessions압축25physicalfiles4.7G와기존OraclePi0.15cache는#16등의별도제한이다. GLG최신요청에따라최종Claude검수→양쪽tag/GHRelease→#15업데이트close→Entwurf코디085719인계가다음한수,이후이쪽추가작업0. 정제검수artifact `.agent-reports/issue15/final-review-metadata.json`,운영정본andenken-embed. **범위사건:** andenken코디가구간밖검색snippet3개열람을보고해GLG고지/즉시중단했고이집/독립Opus는지정구간만봤다. 공유는metadata-only로제한,raw검색JSON/추가원문열람금지. 자동livegather/paidindex재실행/강제rebuild/재시작0,#30 PAUSED,FACTORY미접촉.
 
 ## 이전 NOW — 변경 근거와 보류 레인 (10-15 위 현재 좌표가 우선)
 

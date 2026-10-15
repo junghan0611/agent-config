@@ -7,6 +7,18 @@
 
 ## Unreleased
 
+## v2026.10.15-finish.1 — 세 기억축 Oracle 반영과 인계 영수증
+
+### 전체 증분 운영과 Oracle 반영
+
+* **세 기억축의 정상 증분과 Oracle 발행·검증을 완료했다.** 세션42파일·2,567청크, 가든41파일·166청크를 처리했고 오류0이었다. 최종 sessions109,190/md11,078/OpenClaw8,076행은 모두4096차원·중복0, 세션·가든 원문고아0이었다. Oracle 새 CLI에서도 같은 결과를 확인했다. 양쪽 코퍼스3,513파일 체크섬은 mismatch/missing/untracked모두0이었다. 전면 삭제·재구축은 하지 않았다.
+* **OpenClaw의 최신성과 보존을 함께 확인했다.** mini·glg·bbot을 일반 증분으로 순차 갱신하고 재회수 시점 활성6봇의 clean을 확인했다. 직전 live 재확인3/3 unchanged 뒤 대체가 확인된18행만 백업·정리했으며 보관 대상880행은 유지했다. 압축도 실행했으나 physical data files15→16,168→304M여서 공간 감소라고 쓰지 않는다.
+* **durable103행과 원문 연결이 실제 후속 운영에서도 살아 있음을 확인했다.** 양쪽 source-filter count103, B.1 추가 pending0이었다. Oracle의 승인된 원문 ±1 구간은 최초 JSON과 같았다. 새 live durable 대화를 추가 수집하거나 기본 excerpt ±3으로 범위를 넓히지 않았다.
+* **0.40의 실제 운영 증거와 기존 런타임을 구별했다.** Andenken5944185가 push·Oracle 세팅됐고 새0.40프로세스에서 실제 pi-durable FTS 메타 질의는9/0/20건·primitive panic0이었다. legacy FTS·`_score` 투영 경고는 남았다. 기존 Oracle Pi의0.15메모리 캐시는 승인 없이 재시작하지 않았으므로 그 프로세스의 건강 인증은 아니다.
+* **세션 압축은 미완료 후속으로 남겼다.** 앞선600s timeout 뒤 재시도하지 않아 sessions25 physical data files·4.7G다([andenken#16](https://github.com/junghan0611/andenken/issues/16)). 이 제한을 증분·발행 성공과 혼동하지 않는다. 세션·가든 provider 추정은 합계 약$0.01이며 실제 청구액이나 OpenClaw 자체 색인 비용 합계는 아니다.
+* **운영 영수증을 기존 담당자 문서와 NEXT로 회수했다.** 원문·소비면 검수와 범위 사건의 기록은 이전 cut에 보존했고, 이번에는 세 축·Oracle·코퍼스와 남은 제한을 추가했다. 범위 사건 이후 metadata-only 공유를 유지하며 일부 검수자의 준수를 팀 전체 준수로 확대하지 않는다. #30은 PAUSED이며 `FACTORY.draft.md`는 건드리지 않았다.
+* **Claude와 최종 마감 문서를 교차 검수했다.** 원문 없는 운영 영수증13개와 실제 문서·코드를 대조했고 새로운 구현 수선은 필요 없었다. 낡은 NEXT의 보류 상태와 후속 release 절 누락을 함께 바로잡았다. 이 cut은 [Andenken v2026.10.15](https://github.com/junghan0611/andenken/releases/tag/v2026.10.15)의 소비·운영 측 후속 영수증이며 기존 공개 태그를 이동하지 않는다. 최종 경량 회귀는 recap40/env-links3/release-extractor7·bash syntax·diffcheck PASS였다.
+
 ## v2026.10.15 — durable 대화를 형제의 기억과 원문으로
 
 ### durable 대화 — 공유 기억과 동등한 형제의 원문 열람
