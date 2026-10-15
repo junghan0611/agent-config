@@ -33,6 +33,10 @@ entwurf pi-durable --continue \
 
 Entwurf imports and awaits this ordinary ESM **before importing the TUI/runtime**. Pi's durable runtime creates its provider runtime before installing extension objects, so env preparation must happen during ESM evaluation, not in a hook. Entwurf installs the default object after its own contact and guards cwd and identity across initialization. Its module ingress is trusted operator code, **not a sandbox**.
 
+### Input provenance for shared memory (2026-10-15)
+
+Consumer native modules must tag every non-TUI input they submit to a conversation/root with an explicit, namespaced `requestId`; reserve requestId-less input submissions for the TUI path. This module's reports use `bash-background-report:<taskId>`. When adding an input producer, document its prefix and coordinate its origin classification with Andenken's `REQUEST_ORIGINS`; an unknown prefix must remain unknown, not become GLG speech. This is a consumer rule, not a new Entwurf feature or an SDK-enforced authorship guarantee. Andenken's current human label is inferred from inspected input paths; a future untagged module would invalidate that inference.
+
 ### Optional explicit directory/filter ingress
 
 Entwurf 0.34.0 also supports `--native-module-dir /absolute/directory`, exclusive with `--native-module`. It reads only that operator-named directory's top-level `*.extension.mjs`, byte-order sorted; helpers/nonmatching files and subdirectories are not discovered recursively. Duplicate extension/tool names and realpath targets are refused. This is not ambient/default/env/settings/watch loading, and trusted ESM initialization does not roll back earlier import side effects on failure.

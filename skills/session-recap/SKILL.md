@@ -8,6 +8,14 @@ description: "Extract a compact recap from previous pi or Claude Code session JS
 Extract **only** user/assistant text from a session JSONL.
 **Never** `read` a raw JSONL directly — it dumps ~50KB of JSON noise into context.
 
+**pi-durable is not JSONL (2026-10-15).** This script does not discover or read its
+SQLite sessions; `--source all` does not include durable. For an approved closed
+snapshot, use Andenken's `durable:census` / `durable:read` directly;
+see `semantic-memory` § pi-durable for exact calls and safety boundaries. Do not
+pass `session.sqlite` to `--session-file`, invent `--source pi-durable`, or treat
+an entryId as a JSONL line. Durable search hits use semantic-memory's shared
+excerpt dispatch; this recap script remains a JSONL reader, not another SQL engine.
+
 **Multi-harness corpus**: handles pi and Claude Code sessions. The unset-source runtime
 fallback is Claude Code → `claude`, every other surface → `pi`; only those first two
 callers are truly harness-matched. Codex, Antigravity, and other third surfaces write

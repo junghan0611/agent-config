@@ -5,6 +5,15 @@
 
 # RAIL — 현재 좌표
 
+원문·소비 스킬·독립검수·승인 snapshot1의103행실제색인/원문연결(1~3)은 `CHANGELOG.md v2026.10.15`로 갈무리했다. 전체대화수집/건강한hybrid검색인증은아니다.
+- [ ] **4. 양쪽 태그·GitHub Release** ← CURRENT: v2026.10.15, GLG 명시 승인. 정상 게이트/훅/도장. FTS degraded와compact미완료를제한으로명시하고cut.
+- [ ] **5. 전체 기억축 증분·Oracle 반영** — 이 담당자가 andenken-embed usual ask2+3+4만직렬실행. full rebuild 아님. 각축verify/publish+OraclecodeFF/CLI확인,scope밖원문열람금지.
+- [ ] **6. FTS/compact 후속(andenken)** — FTS arm Rustpanic→[]; vector/substring와승인원문은동작. #2263compact600s timeout(원인미확정),종료후verify4096d/107656unique/중복고아0/23frag4.7G. deadowner1096708와writer0확인후운영자stale락한번제거. 재실행/재임베딩/벤더패치안함. source의knownlimitation으로남기고정상전체증분과분리.
+
+승인 갱신(2026-10-15): GLG가 위 실사용 검수·새 Opus·양쪽 tag/release·전체 임베딩/회수·SQLite 활용 후속 고민을 요청했다. 기존 parked/Q1–Q7·전면 live 금지는 아래 역사이며, 이번 live 승인은 **현재 대화 DB의 snapshot 1개와 지정 주변 구간만**이다. 다른 live DB/원문 공개/파괴적 rebuild/훅 우회/운영 재시작은 승인 아님. 구현 조율자 `20261015T113054-877f91`(andenken), 여기 `20261007T104525-12d0ca`; 실제 전체 임베딩 실행자는 여기 한 손, 중복 실행 금지. 새 독립 Opus `20261015T123300-a98cac`, launch nonce `mux-fresh-call-322d11c0888310774ead47f0` callback 일치 확인. 승인된 private around JSON 한 구간만 전달. `FACTORY.draft.md` 미접촉. #30은 계속 PAUSED.
+
+# 과거 좌표 — 10-14까지 (아래 CURRENT/PAUSED는 당시 상태)
+
 - [ ] **27. 에이전트 시맨틱 메모리 사용 품질 — [#30](https://github.com/junghan0611/agent-config/issues/30)** ← PAUSED: 준비자료 보존·해시 검증 완료, GLG가 다음에 후보/접근 범위를 정할 때 재개. 오늘 조사·구현 종료. 좌표15의 사용 평가 갈래; 아래 NOW와 준비 완료 댓글 참조.
 
 - [ ] **26. pi-durable 편집 안전성 장기관찰 — [#28](https://github.com/junghan0611/agent-config/issues/28)** ← PAUSED: Opus가 보고한 GLG17:1x 판정 — 지금 근거로 Hashline 도입/포트하지 않고 Pi 버전업을 기다리며 장기관찰. 격리 load smoke까지만, stale 비교 미실행. 기존 상주 세션/원4소스 유지. 아래 NOW.
@@ -51,6 +60,10 @@
 **10-14에 닫은 것:** #14 #16 #26 (수선 `a6459bb`·`f0ecb97`·`ab9164a`, push로 자동 닫힘), #1 #3 #5 #6 #10 #15 (진척 없는 제안·전제 소멸), #27 (durable이 entwurf 0.32→0.36으로 흡수돼 사전 리서치 단계가 지나감, 후속은 #28·#29·#30·andenken#15). #13은 [forge-config#1](https://github.com/junghan0611/forge-config/issues/1)로 옮겼다.
 
 # NOW
+
+- **10-15 현재:** 원문·소비 스킬·source/index/공통락·P1/P3와실제103행색인·원문연결검증 완료. FTS보조경로오류/compact미완료는알려진제한으로분리하고양쪽release→usual ask2+3+4 순서. 새구현범위추가없음. `semantic-memory`의 pi-durable filter/excerpt는 구현된 계약이며 자동 live gather는 아니다. global sync는 이미 색인된 durable 행·checkpoint·corpus를 함께 발행할 뿐 durable paid index를 호출하지 않는다. 스킬의 3축과 JSONL recap 경계·ID/시각/origin·non-TUI requestId 정책을 정합화했다. 운영 정본은 andenken `andenken-embed`의 explicit snapshot prelude이며 global을 tier2와 중복 실행하지 않는다. 상세 회귀는 CHANGELOG, private 영수증은 `.agent-reports/issue15/consumer-review.md`. 양쪽 release 후 가든·OpenClaw/Oracle 수렴, 담당자 문서와 최종 DM. 추가 live DB/공개 원문/파괴 rebuild/자동 재시작 없음. **범위사건:** andenken코디가raw검색결과파일의구간밖snippet3개를열람했다고보고,GLG에게고지/즉시중단. 이집/독립Opus는지정구간만열람. 이후공유는 `/tmp/andenken-approved-durable-lxk36zgs/search-source-metadata-only.json`만,raw파일전달/열람금지. #30 PAUSED.
+
+## 이전 NOW — 변경 근거와 보류 레인 (10-15 위 현재 좌표가 우선)
 
 - **OMP 10-14 관측 갈무리 — 실무 잠수함 효용은 확정하지 않고 두고 본다 (GLG 직접 판단).** 내부 위임·웹 세션 뷰가 장황하고 파악하기 어려우며 토큰 부담이 크다는 사용 경험(정량 비교 아님)을 `OMP.md` 10-14 절과 README에 반영했다. OMP Sol `20261014T090848-dde35e`의 v18.10.4 CLI·release 조사 보고는 상속 근거로 분리; 이 담당자는 durable↔OMP 확인 문자열 왕복만 직접 확인했다. OMP native task에서 pi-durable 선택면을 발견하지 못했다는 보고는 지원 불가능 증명이 아니며, GLG는 추가 지원 시 기능 중복이 있어 두고 볼 일로 판단했다. **다음은 새 GLG 요청 대기** — 복구/이동/browser 실험·durable 포트·자동 역할 활성화 없음. 키 부재로 DeepSeek OMP 프로필·기존 소스 링크 2개를 제거했고 MODELS 호출 명부도 정정했다. 다른 live 설정·키·소스 설치는 변경하지 않았다.
 

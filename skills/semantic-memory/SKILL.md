@@ -1,6 +1,6 @@
 ---
 name: semantic-memory
-description: "Meaning search over three separate axes — own pi/Claude sessions, the public garden, and OpenClaw bot memory — always naming which axis a hit came from. For OpenClaw this is the sole semantic-query door, replacing native memory_search. Use for past decisions, concept discovery, cross-lingual retrieval, and time/project slices. Start with 5, choose, then open. Exact title/person → denotecli; whole-day truth → timeline/day-query. Triggers: semantic memory, session search, knowledge search, bot memory, memory_search, what did the bot remember, 의미 검색, 과거 결정."
+description: "Meaning search over three separate axes — own pi/Claude/pi-durable sessions, the public garden, and OpenClaw bot memory — always naming which axis a hit came from. For OpenClaw this is the sole semantic-query door, replacing native memory_search. Use for past decisions, concept discovery, cross-lingual retrieval, and time/project slices. Start with 5, choose, then open. Exact title/person → denotecli; whole-day truth → timeline/day-query. Triggers: semantic memory, session search, knowledge search, bot memory, memory_search, what did the bot remember, 의미 검색, 과거 결정."
 ---
 
 # semantic-memory
@@ -34,8 +34,56 @@ bot on andenken#10).
 | Public-garden concept | `search-md "query" --limit 5` | Choose a document and open its path; `--full` widens snippets. |
 | What a bot said/remembers | `search-openclaw "query" --limit 5` · `--full` widens snippets | Invoke through this skill's `{baseDir}/semantic-memory`, not Andenken's `run.sh` alias. Name the axis and the hit's `agent` when you quote it. No dictcli expansion on this axis by design (andenken#12 open). Check `updated_at`: a supplied reader copy can be stale; no copy returns `state:"absent"` with exit 4 — see § Absent axis. |
 | Exact title/tag/person | `denotecli search "name" --max 5` | Semantic neighbors never prove exact existence. |
-| Chosen session context | `search-sessions "query" --with-excerpt --excerpt-limit 1` | Surrounding turns; raise to at most 3. Whole session: `session-recap --session-file <file>` — the `file` is a corpus path and joins as-is. |
+| Chosen session context | `search-sessions "query" --with-excerpt --excerpt-limit 1` | Surrounding context; raise to at most 3. JSONL session: `session-recap --session-file <file>`. Durable: `durable:read` below, never the JSONL recap reader. |
 | Health / maintenance | `status` (CLI) · then the `memory-sync` / `andenken-embed` **skills** | Check freshness; full maintenance is human-gated. |
+
+## pi-durable — explicit snapshot source and original context (2026-10-15)
+
+Andenken #15 adds source `pi-durable` and a separate closed-snapshot reader, not
+new semantic-memory subcommands. Use an Andenken checkout that includes this
+contract (`run.sh --help`); older machines do not acquire it from this document.
+Once snapshots are explicitly admitted and indexed, use
+`search-sessions "query" --source pi-durable --with-excerpt --excerpt-limit 1`.
+For an explicitly selected, approved **closed snapshot**, the direct reader is:
+
+| Intent | Direct Andenken call (not this skill's wrapper) |
+|---|---|
+| Counts, no entry text | `~/repos/gh/andenken/run.sh durable:census /abs/snapshot/session.sqlite --json` |
+| Original text around an entry | `~/repos/gh/andenken/run.sh durable:read /abs/snapshot/session.sqlite --around 12 --before 1 --after 1 --json` |
+| One conversation, paged | `~/repos/gh/andenken/run.sh durable:read /abs/snapshot/session.sqlite --conversation 1 --from 1 --limit 20 --json` |
+| Compare candidate admission policies, no entry text | `~/repos/gh/andenken/run.sh durable:plan /abs/snapshot/session.sqlite --json` |
+
+`--around` counts physical entries of that entry's conversation; it does not mix
+root/child conversations or materialize fork inheritance. Carry snapshot/session,
+conversationId, entryId, origin + basis; **entryId is not a JSONL line number**.
+Read `messages` for message boundaries, `omitted`/`truncated` for rendering limits,
+and `next.from` to continue a range. Origin `human` is input-path inference, not
+proof of authorship; an excerpt's `GLG` label means this inferred `origin=human`,
+not independently authenticated authorship. Compaction summaries are not GLG's original words.
+`answers` contains **submission IDs**, not entry IDs; the shared record ID pool has
+gaps, so do not pass them to `--around`. `answeredInputs` gives explicit
+submissionId → entryId + origin links; an excerpt also names inputs outside its
+window. Follow their entryId with `durable:read --around`, not their submissionId.
+Fork inheritance is named by
+`conversation.parent`: read the parent with `--conversation P --to AT` separately.
+Use entry order/`commitSeq` for sequence; a message timestamp is not proof of
+response completion time or latency. Keep at least one preceding entry when
+opening a hit: its context may be readable even when excluded from the index.
+
+The plan compares unsettled B/C policies; its counts, token estimates and proposed
+watermark prove neither embedding completion nor quality. Production indexing
+pins B.1, reports ambiguous/held entries and keeps raw reading independent.
+**No automatic live durable gather.** An authorized closed snapshot must first be
+admitted to the corpus and explicitly indexed via Andenken maintenance.
+`/memory-sync --global` publishes existing durable rows/checkpoints/corpus but does not collect
+new live durable turns or run `index:durable`. Ask the `andenken-embed` owner for
+that maintenance, not this search skill. CLI and Pi use the same excerpt dispatch:
+`unit=durable-entry`, hit `lineNumber=entryId` (JSONL keeps `unit=jsonl-line`).
+Do not send SQLite to `session-recap --session-file` or JSONL excerpt readers.
+Live paths, hardlinks, WAL headers and sidecars are refused (exit 3, named reason).
+Their absence does **not** prove a database is closed: use a known closed snapshot;
+never copy only a live main DB, bypass refusals, or snapshot a live DB without
+specific approval (even a read-only connection can touch shared-memory state).
 
 ## OpenClaw bot policy — one semantic-query interface
 
@@ -74,7 +122,7 @@ for another.
 
 | Axis | Track | What it is | Provenance to carry |
 |---|---|---|---|
-| sessions | `search-sessions` | pi / Claude Code transcripts of GLG's own work, every device | harness (`pi`/`claude`), device segment of `file`, project, date |
+| sessions | `search-sessions` | pi / Claude Code transcripts and explicitly admitted pi-durable snapshots of GLG's own work | harness (`pi`/`claude`/`pi-durable`), device segment of `file`, project, date; durable entryId and origin + basis |
 | garden | `search-md` | published notes (`notes/content`) | Denote ID / path |
 | openclaw | `search-openclaw` | chunks the OpenClaw bots embedded themselves (`memory` + `sessions` sources, 6 agents), harvested as-is with zero re-embedding | `agent` (glg/bbot/gpt/…), `source` (`memory`/`sessions`), path, `updated_at` |
 
@@ -227,7 +275,7 @@ hits are thin. Keep tracks separate and never compare their scores.
 
 ## Session options
 
-`--source pi|claude` · `--date-from ISO` · `--date-to ISO` ·
+`--source pi|claude|pi-durable` · `--date-from ISO` · `--date-to ISO` ·
 `--project a,b` · `--role user,assistant,compaction` · `--session-file PATH` ·
 `--session-file-contains TEXT` · `--mode semantic|hybrid|recent` ·
 `--with-excerpt` · `--excerpt-limit N`.
@@ -250,9 +298,9 @@ recover the other's. Measured 2026-09-03 by reading
 - The device says where a session was **collected**, not where it was created (the
   machines exchanged an `rsync -a` with mtimes preserved). Label with it; never rank
   or date with it.
-- The returned `file` is exactly what `session-recap --session-file` takes — that
-  seam is the reason no path is ever assembled by hand. `session-recap --device
-  <name>` is the place a device *filter* exists.
+- For JSONL hits, the returned `file` is exactly what `session-recap --session-file`
+  takes. Durable SQLite hits instead use the shared excerpt or `durable:read` above;
+  never pass them to recap. `session-recap --device <name>` filters JSONL copies.
 - A hit whose path lives under the other device is normal now, not a bug report. Say
   which machine it came from when you quote it.
 

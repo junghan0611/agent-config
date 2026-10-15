@@ -7,6 +7,34 @@
 
 ## Unreleased
 
+## v2026.10.15 — durable 대화를 형제의 기억과 원문으로
+
+### durable 대화 — 공유 기억과 동등한 형제의 원문 열람
+
+* **andenken#15의 목적을 두 갈래로 고정했다.** 귀중한 대화, 특히 GLG의 말을 임베딩에 담는 것과 동등한 형제들이 원문·주변 맥락을 직접 읽는 것이다. 코디가 상위 존재라서가 아니라 GLG의 시간이 한정돼 먼저 대화가 모이는 자리이기 때문이다. 구현은 andenken, 요구·소비면·독립 검수는 이 집이 맡고 Entwurf 기능은 추가하지 않았다.
+* **semantic-memory·session-recap·memory-sync와 AGENTS를 명시적 snapshot source 계약으로 맞췄다.** `pi-durable` source 필터와 공통 excerpt dispatch, submissionId/entryId 구분, 창 밖 answeredInputs 링크, fork·시각·origin 추론의 한계를 설명한다. SQLite를 JSONL recap에 넘기지 않는다. 자동 live gather는 없으며 승인된 닫힌 사본의 admit/index와 기존 행의 global publish를 구별한다. 공통 owner-token writer lock과 exit75, 남아 있는 sync-only flock, 이미 로드된 옛 Pi 코드의 운영 한계도 구분했다. `pi-durable/README`에는 비-TUI input의 namespaced requestId 생산 규칙을 소비자 계약으로 적었으며 SDK의 작성자 인증 보장이라고 주장하지 않는다.
+* **새 Opus와 실제 소비자 관점에서 교차 검수했다.** 다중 model 메시지 누락, 답변 연결, alias 변경의 중복 임베딩, 공유 writer, reset/cleanup 체크포인트 영구 누락, JSON stdout, 원문 발췌의 연결·실행 명령을 찾아 구현자와 보완했다. 10-15 최종 API-0 직접 재실행(#2030, exit0/21s)은 reader87/plan34/source82/lock26/publish7·type fence·root tsc·bash syntax·diffcheck PASS, 합성 alias 재현은 25행 유지/추가 임베딩0/명명 거부였다. 이것은 실제 검색 품질이나 전체 대화 수집 PASS가 아니다.
+* **발행의 거짓 성공과 삭제 중단의 누락 창을 닫았다.** Opus의 네트워크 없는 production-function stub에서 기존 rsync 실패가 뒤의 성공으로 가려지는 것을 실측했다. Andenken이 단계별 명시 실패 전파와 후속 중단을 보완했다. CLI·Pi reset, orphan cleanup, rebuild는 체크포인트를 먼저 무효화하고 행을 삭제한다. 최종 Opus는 두 수선을 수용했고, 이 집도 실패 주입·재처리·발행7건을 직접 재실행했다. 실제 Oracle 발행을 이 합성 gate만으로 PASS라고 하지는 않는다.
+* **승인된 실제 한 구간의 원문 맥락을 확인했다.** 이 집과 독립 Opus가 같은 비공개 closed-snapshot JSON 구간에서 GLG 원문과 코디 해석을 구별하고 두 목적을 복원했다. 이 집과 독립 Opus의 원문 판독은 승인 구간으로 한정했다. 별도로 andenken 코디가 검색 결과 파일을 열며 지정 구간 밖 스니펫3개를 읽은 범위 이탈이 보고됐다. 추가 DB 개방·공개 전송은 없었고 GLG에게 고지했다. 텍스트가 없는 metadata-only 공유 영수증으로 분리하고 추가 열람을 중단했다. 임의 폴더에서 절대경로 reader/census/plan 호출도 확인했다. 원문은 공개 릴리즈에 싣지 않는다.
+* **승인 사본 한 건을 실제 코퍼스로 회수하고 B.1 증분 색인을 실행했다.** 103행, provider 통계 2 calls·추정22,647 tokens·추정$0.00022647. 실제 청구 확정액은 아니다. 이후 verify는 4096d·107,656 unique rows(기존107,553+103), duplicate/orphan0이었다. ambiguous1·held1은 제외했고 snapshot 뒤 새 대화는 수집하지 않았다. 모든 durable의 수집 완료가 아니다. 전체 sessions·garden·OpenClaw 증분/Oracle 주기는 이 cut 다음 운영 단계다.
+* **실제 source-filter 검색과 승인 원문 연결을 한 사례로 확인했다.** consumer 스킬의 의미 질의는 `pi-durable`만5건을 반환했고 답변 e1133이1위, GLG 원문 e1130이4위였다. canonical corpus의 e1129/1130/1133은 승인 JSON과 텍스트·origin·conversationId가 같았다. 기본 shared excerpt ±3은 승인 ±1보다 넓어 production에서 실행하지 않았으며 합성 dispatch gate와 실제 reader 검증을 구별한다. 첫 검색의 FTS arm에는 Rust 오류가 있었고 vector/substring 결과는 반환됐다. `fallback:false`는 축 간 폴백 표시일 뿐 FTS 건강 증거가 아니다. 이 한 질의를 전체 검색 품질 인증으로 확대하지 않는다. **알려진 제한:** FTS Rust 오류는 미해결이다. 정상 fragment 압축도600s 내 끝나지 않아 중단했으며, 이후 verify는 동일107,656행·4096d·중복고아0/23fragments4.7G였다. 사라진 소유자·writer0 확인 뒤 stale lock만 운영자가 제거했다. 압축 완료나 전체 hybrid 검색 건강을 주장하지 않으며 재임베딩·벤더 패치로 범위를 늘리지 않았다.
+* **SQLite 후속을 현재 구현과 분리했다.** [agent-config#29 댓글](https://github.com/junghan0611/agent-config/issues/29#issuecomment-6184229377)에 안정적 인용 키·origin/시간 구간 읽기의 제안을 남겼다. 토픽 UI, 자동 snapshot, 상시 맥락 주입, recap SQL 리더를 이번 범위에 얹지 않았다. #30은 기존 연구자·자료를 보존한 채 PAUSED다.
+
+### 세션을 실제로 찾는 소비면
+
+* **HOME 밖·심볼릭 링크 프로젝트의 세션을 찾고 각 세션 자신의 cwd로 판독했다.** `ab9164a`·`bf01eec`. 다른 선택 세션이나 같은 인코딩 디렉터리의 cwd를 빌려 프로젝트를 추정하지 않는다. 기존 skip-before-size·HOME 이름 계약을 유지했다. 10-15 직접 재실행: session-recap 40 tests PASS.
+* **Pi 개별 링크를 환경 검사 집계에 포함했다.** `f0ecb97`. 표시 집계만 수정했고 10-15 격리 HOME 회귀 3 tests PASS.
+* **GitHub 문단을 한 줄로 쓰도록 맞추고 이슈판을 정리했다.** `a6459bb`·`3de8161`·`9642bcd`. 닫힌 수선·퇴역 제안과 열린 다음 손을 구별했다.
+
+### 이번 cut의 소비자 회귀
+
+* 최종 직접 회귀 #2205 exit0/31s: recap40·env-links3·native durable44/44(skip0)·peek115·release extractor7·bash syntax·diffcheck PASS. 이번 검수에서 운영 설치·재시작은 하지 않았다.
+
+### 하네스 관측과 호출 명부
+
+* **OpenRig를 관측 대상으로 기록했다.** `7312240`. `OPENRIG.md`와 pi-durable의 외부 시선을 추가했다. 소스 관찰이지 채택·설치·벤치마크 판정이 아니며 garden-id 주소와 보이는 하네스라는 운영 기준을 보존했다.
+* **OMP의 사용 부담과 DeepSeek 키 부재를 반영했다.** `bfff511`. 내부 위임/웹 세션 뷰의 장황함·토큰 부담은 GLG 경험이지 정량 비교가 아니다. DeepSeek 호출 명부·OMP 프로필을 퇴역했고 다른 운영 설정은 바꾸지 않았다.
+
 ## v2026.10.14 — Entwurf 0.36 출하, BG 도구 결과를 SDK 1.2 `output`으로
 
 ### 0.36 — 툴 결과의 채널이 바뀌었다

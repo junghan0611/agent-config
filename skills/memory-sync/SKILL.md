@@ -31,6 +31,23 @@ Steps 3) garden embedding (`sync:md`) and 4) OpenClaw harvest (`sync:openclaw`)
 are **not here** — they are the `andenken-embed` skill. This skill is one track:
 sessions.
 
+**pi-durable is an explicit snapshot source (2026-10-15, andenken#15).** Neither
+mode gathers live durable DBs or runs `index:durable`. Authorized closed snapshots
+are admitted/indexed separately through Andenken's `andenken-embed` maintenance
+contract. Global sync publishes their already indexed rows, durable checkpoint
+manifest and corpus copies; it does not establish coverage of new durable turns.
+`durable:plan` compares candidates without indexing. Reading is in `semantic-memory`
+§ pi-durable; never add live SQLite files to the JSONL gather/rsync path.
+
+All sessions writers now share Andenken's `.sessions-write.lock` owner-token
+contract, including sync/admit/index/cleanup/compact and newly loaded Pi reindex.
+At the common writer gate, busy/stale is a **named exit 75**, not success or
+permission to delete the lock. Busy: wait for the named writer to finish before a
+later serial retry. Stale: an operator checks that no writer runs, then manually
+removes that lock directory; never auto-reclaim it. Older
+already-loaded Pi code needs separate operational coordination; a build alone does
+not update its in-memory functions.
+
 ## Call
 
 ```bash
@@ -136,11 +153,18 @@ script.
 
 ## One synchronous call
 
-The script takes a **non-blocking flock** (`data/.sync-sessions.lock`): if another
-sync already holds it, the second run exits cleanly ("already running") instead of
-racing the LanceDB writer. An impatient re-call is safe — it just no-ops. Still
-prefer one synchronous call and wait. A `--global` holds the lock through the
-push and replicate, so a local call fired during it no-ops too.
+The script takes the shared **non-blocking sessions writer lock**
+(`data/.sessions-write.lock`, or the configured data root) after gather/authority
+checking and before DB status, holding it through verify/push/replicate. A competing
+writer at this gate exits **75** with `sessions-writer-busy` or
+`sessions-writer-stale-lock`; it does not wait or silently succeed. Node and Bash
+children re-enter only with the live owner's token. No automatic stale reclaim.
+The older **sync-only flock** (`data/.sync-sessions.lock`) still runs first:
+local-vs-sync coalesces successfully and global-vs-sync waits for its own pass.
+That sync-only behavior does not bypass the common gate shared with durable
+index/admit/cleanup/Pi. Step 0's JSONL gather precedes the common gate; exit75 does
+not mean that gather did nothing. Use one invocation and inspect its result
+before deciding whether a later retry is needed.
 
 To check by hand: `pgrep -af '[s]ync-sessions'` (self-match-safe).
 
