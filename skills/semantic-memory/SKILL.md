@@ -273,6 +273,16 @@ one axis.
 An unfiltered session search may append labeled MD fallback rows when session
 hits are thin. Keep tracks separate and never compare their scores.
 
+When the runtime reports FTS diagnostics, `diagnostics.fts.status` distinguishes
+`ok` (including a healthy zero), `unavailable`, `error`, and `not-run` (e.g. recent).
+`diagnostics.fallbackFts` describes MD's FTS only when that fallback ran.
+`degraded: true` means at least one attempted FTS leg failed or was unavailable;
+a later healthy leg does not erase it. `fallback` still means cross-axis result
+fallback, not FTS health. Older runtimes may omit these fields: omission is
+unknown, not healthy. These are FTS-leg signals, not whole-search quality or a
+certificate that every store operation succeeded. Pi also puts failures in the
+model-visible text; structured details alone are not a model warning.
+
 ## Session options
 
 `--source pi|claude|pi-durable` · `--date-from ISO` · `--date-to ISO` ·
