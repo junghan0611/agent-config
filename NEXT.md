@@ -5,11 +5,35 @@
 
 # RAIL — 현재 좌표
 
+- [x] **7. 공개 프로젝트의 집·README 정렬** ← CURRENT: GLG 직접 실화면 검수·최종 인수 완료. 이 집/Andenken source commit+push 승인, 홈페이지는 새 durable 코디 `20261016T103933-96efd0`에게 직접 commit+push 전담 인계.
+
+# NOW — 마감, 다음 작업은 새 요청부터
+
+- **GLG 판정:** 2026-10-16 직접 화면 확인 후 완성본 인수. 문서·HTML 검사만으로 시각 완료를 주장하지 않고 실제 브라우저로 함께 확인한다는 교훈을 홈페이지 AGENTS에 남겼다.
+- **마감 범위:** 이 집 README·PI-DURABLE 현재 안내·NEXT만 정상 훅으로 commit/push. Andenken 담당자 877f91은 자기 source 문서 commit/push. 공개 #16 최종 댓글은 이 집 한 손. 태그·추가 DB/API·운영 변경은 없다.
+- **홈페이지 인계:** `20261016T103933-96efd0`가 직접 commit/push. 본문4+공유 index2와 **필수 layout/CSS**, AGENTS/NEXT를 함께 인계했다. 이 집은 홈페이지 파일 편집·stage·commit·push를 더 하지 않는다. 기존 미발행 blog2개 제외, 배포 실행은 그 코디의 별도 계약을 따른다.
+- **최종 근거:** 기존 Opus a98cac이 GLG Chrome 같은 탭/688px/새로고침/주입0에서 6페이지 prose·색·넘침 및 KO3 keep-all을 확인(10:26:26 blocker0), 이후 GLG 직접 인수. 별도 회귀 #5181 PASS: `/tmp/agent-config-homepage-keepall.pjaoe9uy/receipt.json`, SHA `20127bb2bf7a20d4a275d6a544d83055ef947e1b07b12373d231005c32cd1098`; Hugo/Eval/JSON-LD·언어별 links·10파일 전후 SHA 일치. 넓은 desktop/light/다른 browser는 미측정.
+- **다음/금지:** 추가 실행 없이 마감 결과만 보고하고 정지. #30 PAUSED, FACTORY 미접촉. 홈페이지 코디의 인수·출하가 남아 있어도 이 집이 중복 수행하지 않는다.
+
+<details>
+<summary>집 검수 중 기록 — 아래 승인 대기·단계별 검증은 당시 이력</summary>
+
+- **범위:** homepage `content/projects/agent-config/index{,.ko}.md`, 공유 projects `_index{,.ko}.md`, 이 집 README·PI-DURABLE 현재 안내. Andenken leaf 2개는 그 집 담당자 877f91 소유, 공유 index 2개는 여기 단독 편집.
+- **반영:** 1KB·존재 대 존재는 공개키 원문으로 복원. 스킬 SSOT·연속성·안전/권한/비용·긴 작업·시험소 전체를 소개하고 #16은 날짜 붙은 사례 한 단락만. README 소유 경계·closed durable source·설치 설명·forge 심링크 교정, 옛 관측은 날짜대로 보존.
+- **다음:** GLG 화면 확인·발행 판단 대기. a98cac 실제 GLG Chrome 같은 탭/688px/새로고침/probe:false로 여섯 페이지 h2 30px/600/mt40·p mt24·quote선2·hero/버튼/카드색·overflow0 및 keep-all 후 KO3 p/h2/td/li·어절 단위 줄바꿈·overflow0 확인. KO/agent-config 탭을 GLG 확인용으로 남겼음. #5181 receipt `/tmp/agent-config-homepage-keepall.pjaoe9uy/receipt.json`은 별도 빌드 근거(10파일 SHA 전·후·후보 동일). 넓은 desktop/light/다른 browser는 미측정. ko/entwurf 가운뎃점이 줄 첫머리에 오는 건 비차단 기존 관찰/본문 수정0. 추가 Chrome·빌드·발행0, 배포는 별도 승인 후 homepage-first.
+- **10-16 실화면 원인/수선:** a98cac 실측: hextra-home wrapper에 `.content` 없어 h2=16px/400/margin0, p margin0, blockquote 선0. 줄바꿈과 무관. DOM 임시 검증안대로 homepage `layouts/hextra-home.html`에 v0.13.0 wrapper만 `content hextra-home-prose`로 바꾸고 기존 hook 유지; custom.css에 scoped `not-prose` color/border revert-layer 및 grid margin 추가. 직접 전 content 검색상 대상 6개, 본문 추가 수정0. 단순 `.content`만 추가하면 hero/버튼 색이 깨져 예외 보존 필요. #5001의 소스·태그 PASS를 시각 해결로 잘못 간주했음을 정정. 실제 파일 반영본 Chrome 재확인 전 완료 주장하지 않는다.
+- **10-16 포맷 수선:** GLG가 고정 폭 fill-column 개행 대신 브라우저 자동 줄바꿈을 명시. 우리 leaf 2개는 문단당 소스 한 줄·문단 사이 빈 줄 하나로 변경, hero `<br>`도 제거. 공백과 br 제거 외 원문 동일을 이전 후보와 비교 확인했고 diff-check PASS. homepage AGENTS에 해당 작성 원칙만 추가(배포 관련 옛 문구는 미접촉).
+- **포맷 수선 후 검증:** #5001 exit0/3s, `/tmp/agent-config-homepage-reflow.AhmlYQ/{receipt.json,verify.log,project-smoke.log}` 직접 read. 정확8파일 SHA 전·후·후보 동일/4leaf 공백·br 제외 원문 동일. 네 렌더 페이지 모두 p22 유지, br0(기존 agent-config2/andenken1). Hugo EN40/KO113·Eval·JSON-LD·양언어 meta/links/cards 모두 PASS. DOM 태그 검수이며 새 실제 브라우저 화면 관찰 주장은 아님. 새 commit/push/deploy0.
+- **포맷 수선 전 최종 검증:** #4884 exit0/3s, `/tmp/agent-config-homepage-final.2pKP1P/{receipt.json,verify.log,project-smoke.log}` 직접 read. HEAD `87940b5cfe520b35c7910102798475dde9ec512c` + 정확 6content overlay/기존 Entwurf2 총8파일 SHA 전·후·후보 일치. Hugo EN40/KO113, Eval·JSON-LD, 양집 canonical/source/description/steward/Entwurf/언어전환 및 양언어 3card PASS. receipt SHA `41c5c6867ab4a8e9356f0d520bdf00fa02260af96154a0d8e12c5e3d385047d0`. 테마 head hreflang은 양쪽 모두 없음(언어전환 링크는 있음); 이번에 global SEO/theme 변경0. 기존 3개 deprecation 경고 유지. 중간 #4762/#4634는 역사일 뿐 최종 근거 아님. 양 repo diff-check PASS.
+- **금지:** 기존 미발행 blog `20260804T094556{,.ko}.md` 제외·미접촉. 새 commit/push/deploy·설치·유료 API·DB 작업 승인 없음. #30 PAUSED/FACTORY 미접촉. 아래는 이전 기억축 작업의 종료 근거이며 재실행 명령이 아니다.
+
+</details>
+
 원문·소비 스킬·독립검수·승인 snapshot1의103행실제색인/원문연결(1~3)은 `CHANGELOG.md v2026.10.15`로 갈무리했다. 전체대화수집/건강한hybrid검색인증은아니다.
 최종 합동검수·양쪽 tag/GHRelease·agenda(4)와 [#15 종료](https://github.com/junghan0611/andenken/issues/15)는 완료했다. source328b7f6/v2026.10.15,이집ad854fd/v2026.10.15-finish.1(기존4363866/v2026.10.15불변). 이후 GLG 요청대로 공개 근거·남은 제한·새 승인 경계를 전송했다. 첫 수신자085719가 연결 Claude 형제임을 회신해, 정식 durable 코디20261007T132839-b22677로 직접 정정 전송했다. 컷 뒤 종료 기록은 CHANGELOG Unreleased에 남겼다.
 인계(7)는 정식 Entwurf durable 코디20261007T132839-b22677이 직접 수신·gh재확인했다(연결 형제085719와 구분). 전체 다음 진행의 공은 그쪽에 유지한다. 이후 GLG가 이 집에 별도 #16 공동검수·마감 요청을 새로 했다. #15/출하/전체증분을 재생하지 않는다.
 전체 증분·Oracle 반영(5)은 완료했다. 직접#2643/#2705/#2747/#2800: sessions109190/md11078/OpenClaw8076, 모두4096d·중복0, 세션/가든고아0. 양쪽corpus3513파일checksum오류0. durable103행양쪽보존·pending0,Oracle지정원문±1동일. 활성6봇clean(재회수시점),sup✓18만backup/prune·archives880보존. 새0.40운영FTS메타query9/0/20/primitivepanic0. 상세는 담당자문서20260312T174622의 전체증분영수증, private `.agent-reports/issue15/consumer-review.md`, `/tmp/andenken-full-incremental.YiGdsh/`. 원격준비와로컬을분리해MD만선행했고global은1회,강제rebuild/추가원문/재시작0.
-- [ ] **6. #16 운영 완료 — 승인된 문서 마감·인계** ← CURRENT: 10-16 08:54 Oracle교체·paired발행·양쪽검증과독립metadata인수완료. GLG가이후정상전체증분가능여부를확인하고**양쪽commit/push**를명시승인해검증된코드가아닌최신운영문서만정상훅으로마감한다. 완료사실은CHANGELOG Unreleased/담당자문서/공개#16에회수. source는원래#16acceptance와종결요청의충족여부를대조해판정한다. 다음새실행은없으며Oracle공간정리·backup처분은GLG몫. 새tag·build/deploy·재시작·재임베딩·cleanup추정0. 실행andenken877f91/Opus583c57,이집독립검수·전체코디b보고/FACTORY미접촉/#30PAUSED.
+- [x] **6. #16 운영·문서 마감 완료** — 10-16 08:54 Oracle교체·paired발행·양쪽검증과독립metadata인수PASS,GLG승인으로이집c7e7baa(09:10)/andenken c83958a(09:17)정상commitpush·agenda완료. #16CLOSED/completed(09:18:24) GitHubAPI직접확인/정식Entwurf b22677최종보고·담당자노트회수済. #15closed/#30PAUSED・FACTORY미접촉. Oracle約2.24GB공간정리·3832backup처분은GLG몫/새106MB다음normal대상. 아래는종료근거이며자동재실행명령아님.
   - **완료:** 원본FTS수선+16CPU압축1회(논리15→1) 뒤 정상증분10files/1293chunks/errors0/27+1API/약401Ktokens・추정$0.004(실청구아님). 최종 양쪽 sessions109509/MD11078/OpenClaw8104 모두4096d·중복0,세션고아0/2878원문파일존재. Oracle sessions v3846/IDhash12d35736308e5e31/pi24959·claude84447·durable103/두manifest·corpus정합PASS. child全closed/양측lease·lock실해제/현재stage·aside·failed잔여0. 이번아침발행은API0.
   - **보류 해소:** GLG가Oracle舊세션replica만삭제後교체/낮은잔여수용·사후공간정리직접담당을승인. 08:26동일oldinode만삭제→8.466GB전송557.6s/全treeSHA검증. run1은동일manifest해시의JSON키순서비교결함으로08:39공개前STOP22(공동정적검수누락/데이터손상아님). 같은stage2100369만controlledRESUME1회,재전송0payload→08:54:09NOREPLACE공개/08:54:38최종PASS. 조회불가27m56s/Oracle최종free2237882368B(약2.24GB)·정리는GLG몫. 정상증분後논리2/small1/FTS unindexed1293은새tail이며재압축·벡터재임베딩필요claim0.
   - **범위:** paired発行은검증된v3846고정시점이며아침새live10files約106MB는未gather/未embed・다음normal대상. durable103은기존단일승인snapshot만/신규admit0. corpus3519=JSONL3518+closedSQLite1/양쪽3metadata・census同・Oracle全manifest SHA-c PASS(소스全파일fresh재hash와구분). 현source/Oracle DB76files8.466GB treeSHA同;compact前後전체rowdecode값동일이나loadedPi·wholequality인증과구분. OpenClaw활성6clean+inactive1은야간회수시점/FTSindex없음은별도관측,upstream비용未측정. 물리공간회수claim0. #16종결은원래acceptance대조후source담당판정,GLG새commitpush승인으로양집마감진행(새tag/deploy권한아님).

@@ -28,7 +28,15 @@ upstream 소스를 공유한다는 사실이 두 하네스의 런타임·저장�
 
 ---
 
-> **현재 안내 (2026-10-12):** Entwurf **0.35.0** core와 별도 Herdr plugin0.35 snapshot이 출하됐다. carrier + exact Pi **1.1.0** SDK 9개·native BG/명시 ingress는 유지되고, 직접 읽은 registry archive의 core4가0.34/P6 공급과 byte-equal이다. 소비자 commit/push·pdc 전환·GLG 실제 재개/BG 조회는 닫혔다. 새 Herdr demo는 **ordinary Pi↔native Claude Code**이지 durable fresh-target 지원이나 기억 성능 검수가 아니다. 아래 날짜별 D0/옛 SDK/PARTIAL/freeze는 역사로 보존한다. 최신 상태는 마지막10-12 절, 사용은 [pi-durable/README.md](pi-durable/README.md), 셸 함수는 [루트 README](README.md#shell-aliases-bashrclocal).
+> **현재 안내 (2026-10-16):** 기억축 [andenken#15](https://github.com/junghan0611/andenken/issues/15)는 승인된 닫힌 snapshot의 `pi-durable` source·원문 reader 범위로 완료됐다. 원본 FTS 수선과 paired Oracle 발행까지 검수한 [#16](https://github.com/junghan0611/andenken/issues/16)도 종결됐다. 이는 모든 live durable의 자동 수집이나 기억 성능 인증이 아니다. 공급자 source는 이제 Entwurf **0.37.0**이며 `--resume` 선택기·프로젝트 스킬 경로 수선을 기록한다. 이번 문서 갱신으로 새 설치·재시작·SDK 테스트를 수행하지 않았다. 소비 API/0.36 측정과 현재 supplier-source 사실은 [루트 README](README.md#entwurf-surface-reference), 실제 사용 계약은 [pi-durable/README.md](pi-durable/README.md)를 먼저 본다. 아래 Q1–Q7·미연결·옛 공급 상태는 **그 날짜의 역사**다.
+
+## [2026-10-16] 기억축에 닿은 별도 하네스 — 생애주기와 수집 범위는 다르다
+
+- 이 집은 `pi-durable`을 별도 하네스로 대우하고 스킬·native env/BG 소비 계약과 실사용 검수를 맡는다. runtime·접점은 entwurf, 색인·원문 reader는 andenken 소유다. 같은 upstream이나 도구 이름이 그 경계를 합치지 않는다.
+- 승인된 **닫힌 snapshot 한 건의 durable103행**이 source-filter와 출처별 원문 접근으로 이어졌다. 세션·가든·봇 축에서 행·차원·발행 정합을 확인했고, 양쪽 세션 v3846/109509행·durable103·4096d·manifest/corpus 검수도 완료했다(전체 검색 유용성과 OpenClaw FTS 관찰은 별도). 근거는 이 집 CHANGELOG와 공개 #15/#16이며 이번 문서 편집에서 DB를 재열지 않았다. 이것은 살아 있는 모든 durable 원문을 수집했다는 뜻도, 전후 기억 품질을 비교했다는 뜻도 아니다.
+- 최신으로 읽은 공급자 source는 Entwurf `5e1e629`/0.37.0이다. cwd 안에서 고르는 `--resume`와 가장 최근 **생성된** 대화를 여는 `--continue`, native 도구 스키마와 일반 bridge roster를 구분한다. supplier의 새 기능·release 근거를 이 집의 새 live 측정 PASS로 승격하지 않는다. 0.36/Pi1.2 소비 증거와 앞선1.1 fixture는 각 날짜대로 남긴다.
+
+> **당시 안내 (2026-10-12, 역사):** Entwurf **0.35.0** core와 별도 Herdr plugin0.35 snapshot이 출하됐다. carrier + exact Pi **1.1.0** SDK 9개·native BG/명시 ingress는 유지되고, 직접 읽은 registry archive의 core4가0.34/P6 공급과 byte-equal이다. 소비자 commit/push·pdc 전환·GLG 실제 재개/BG 조회는 닫혔다. 새 Herdr demo는 **ordinary Pi↔native Claude Code**이지 durable fresh-target 지원이나 기억 성능 검수가 아니다. 아래 날짜별 D0/옛 SDK/PARTIAL/freeze는 역사로 보존한다. 최신 상태는 마지막10-12 절, 사용은 [pi-durable/README.md](pi-durable/README.md), 셸 함수는 [루트 README](README.md#shell-aliases-bashrclocal).
 
 ## 상태 — 2026-10-06
 
