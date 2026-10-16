@@ -7,7 +7,16 @@
 
 ## Unreleased
 
-### #16 진단과 퇴근 인계 — 원본 수선은 집에서 판단
+### #16 원본 복구·정상 증분·Oracle 복제본 교체 완료 — 10-15~16
+
+* **옛 FTS의 자동 전환 실패를 명시적인 색인 재생성으로 해결했다.** 생성 자료와 실제 사본에서 같은 실패/복구 후보를 검증한 뒤, GLG 승인으로 andenken Opus가 원본 FTS를 재생성하고 전체16논리CPU로 optimize1회를 실행했다. 원본109347행·ID집합·source·durable103·4096차원을 유지하면서 논리 fragment15→1로 성공했다. 벡터 재임베딩 API는0이었다. 내부Rust unwrap의 정확한 필수조건까지 밝혔다는 뜻은 아니다. 신형FTS를 옛0.15가 읽지 못하는 소형검증 결과와0.40의 현재 runtime 관측을 구분했다.
+* **정상 전체 증분을 마치고 원격 발행의 용량 보류를 따로 남겼다.** 세션10파일/1293청크/error0,27색인API+1dim preflight,약401Ktokens·약$0.004추정(실청구아님)이었다. 최종 sessions109509/MD11078/OpenClaw8104행은4096d이며, MD와OpenClaw는 야간 양쪽 verify·발행까지 완료했다. OpenClaw는 정상identity 증분·재회수 후 live재확인한 sup-confirmed2행만 백업·prune했고, upstream 호출·비용은 미측정으로 세션 추정액과 합치지 않았다. durable103은 기존 승인snapshot 한 건이며 자동 live수집은 없다.
+* **Oracle 세션 복제본 교체로 남은 발행을 완료했다.** GLG가 낮은 최종여유를 알고 기존 Oracle세션인덱스만 삭제·교체하도록 승인했으며, 별도 공간정리는 본인이 맡았다. 양쪽 writer/sync locks와 원격 lease로 source v3846을 고정하고, 허용된 기존 inode만 제거한 뒤 숨김 사본에8.466GB를 전송했다. 양manifest를 먼저 검증하고 동일사본을 NOREPLACE승격했다. 최종 양쪽109509distinct/ID집합hash/103durable/4096d·두manifest·DB76파일 전체treeSHA가 같고 중복고아0/원문2878파일존재를 확인했다. corpus3519개 inventory와3metadata가 같고 Oracle전체 MANIFEST.sha256 검증도 통과했다.
+* **중간 비교기 결함과 복구를 숨기지 않았다.** 임시 실행기가 같은manifest해시의JSON키순서를 값 차이로 오인해 공개 전에 STOP22했다. 공동정적검수에서 놓친 결함이며 전송 데이터 손상은 아니었다. 키순서 독립 비교와 동일staging inode강제guard를 고쳐 controlled resume1회로 재전송0payload 상태를 재검증·공개했다. Oracle 세션 조회불가는08:26:13~08:54:09 총27분56초였고, 최종 children·양쪽 locks/lease는 모두 정리됐다. 이 임시 실행기·원문·비공개artifact는 Git에 넣지 않는다.
+* **이후의 정상 증분과 남은 운영 경계를 명확히 했다.** 추가 제품코드 변경·전면 삭제/재임베딩 없이 복구했고, 이후 정상 증분·읽기와 양쪽 발행까지 검증했다. 그렇다고 향후 모든버전·모든검색품질을 보장하지 않는다. Oracle최종여유 약2.24GB의 후속정리와 v3832보존backup 처분은GLG담당이며, 그backup을 후속 정상증분 위로 자동복원하지 않는다. 새live10파일 약106MB는 이번 v3846고정발행에 포함하지 않았고 다음 정상증분 대상으로 남겼다. 논리압축은 공간회수가 아니고 FTS unindexed1293의 새tail은 벡터 미임베딩분이 아니다. loadedPi·전체검색품질·OpenClawFTS는 별도 미측정 경계다.
+* **독립 검수와 인계를 완료했다.** 이 집은 운영·유료실행을 중복하지 않고 Opus의 원문 없는 영수증 전체·SHA·권한·보존본 동일과 실행기 정적계약을 직접 확인했으며, 실무 수치는 구현자 측정으로 귀속했다. 최종 source/Oracle DBtree SHA는2363541c19788b39423c7b30d14393795962bf7343978c466124417e6cd55153, 교체 run2 metadata SHA는c4782c6a586acb46f4cbd9c8f835f8b0993d0c064ef80d986f06b33dff40bfa3이다. 공개#16·NEXT·담당자문서와 정식 Entwurf코디b22677에 완료근거·중간실패·한계·후속범위를 회수했다. GLG의 양쪽 commit/push승인으로 문서만 마감하며 새tag·release·dist배포·재시작을 추정하지 않는다. 오전GLG시청중이므로 중복DM0이었다.
+
+### #16 진단과 퇴근 인계 — 10-15 오후, 원본 수선은 집에서 판단
 
 * **정상 FTS 0건과 실패를 구분하는 소비자 계약을 문서화했다.** 새 source의 `diagnostics.fts`·`degraded`와 cross-axis fallback의 뜻을 설명하며, 옛 runtime에 필드가 없다는 이유로 정상이라고 판단하지 않는다. 래퍼 코드는 바꾸지 않았다. Andenken의 격리 fixture·안전 진단·논리/물리 측정 수선은 이 집의 직접 API-0 회귀에서 PASS였고 임시 compiled gate는 구현자의 영수증으로 구분했다. 커밋은 dist 배포나 상주 runtime 갱신이 아니다.
 * **승인된 8CPU 실제 압축의 새 실패를 진단으로 남겼다.** 4.8초 만에 legacy FTS 자동 재색인 경로에서 native panic이 났다. 이후 직접 읽기 전용 검증은109190행·4096차원·중복/고아0·durable103·두manifest유지·FTS3질의9/0/20정상을 확인했다. 논리15개는 그대로이고 물리25→27개/약4.7→6.6GiB로 증가했다. CPU 부족·시간 초과·압축 완료라고 해석하지 않았다.
