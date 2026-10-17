@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# summarize on subscription rails only. Every metered API key is dropped before exec:
+# media transcription tries Groq first whenever GROQ_API_KEY is set, and CLI backends
+# (claude, codex, grok) would otherwise prefer an API key over their subscription login.
+# Model choice and the CLI allowlist live in ~/.summarize/config.json.
+exec env \
+	-u OPENROUTER_API_KEY -u GROQ_API_KEY \
+	-u GEMINI_API_KEY -u GOOGLE_GENERATIVE_AI_API_KEY -u GOOGLE_API_KEY \
+	-u OPENAI_API_KEY -u OPENAI_BASE_URL -u ANTHROPIC_API_KEY \
+	-u XAI_API_KEY -u Z_AI_API_KEY -u ZAI_API_KEY \
+	-u NVIDIA_API_KEY -u NGC_API_KEY -u MINIMAX_API_KEY \
+	-u FIRECRAWL_API_KEY -u APIFY_API_TOKEN -u ELEVENLABS_API_KEY \
+	-u ASSEMBLYAI_API_KEY -u FAL_KEY -u DEEPGRAM_API_KEY \
+	summarize "$@"
