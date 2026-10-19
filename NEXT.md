@@ -5,11 +5,26 @@
 
 # RAIL — 현재 좌표
 
-- [x] **8. 10-19 전체 임베딩 완료 검수·소비 문서 수선** ← CURRENT: 실행·양쪽 최소 감사·교차검수·설명 수선 완료. GLG가 Oracle 동기화 확인 후 양쪽 commit/push 명시 승인. source 마감 후 정지, 추가 운영·새 durable admission 없음.
+- [x] **9. #31/#17 판단 근거의 적격성 — 기존 readback 연결(P0)** ← CURRENT: 기존 명령을 skill API·소비 규약에 연결 완료. API0 fixture76/76·실제 CLI 합성 양성/거절시험·코디 최종 crossreview blocker0. GLG가 이 집 commit/push와 Oracle git pull을 명시 승인. 양집 push 확인 뒤 Oracle source만 ff-only 갱신하고 GLG가 B에게 전달할 차례로 마감. 새 엔진/clock/claim-state 구현은 미승인.
+
+- [x] **8. 10-19 전체 임베딩 완료 검수·소비 문서 수선** — 실행·양쪽 최소 감사·교차검수·설명 수선 완료. GLG가 Oracle 동기화 확인 후 양쪽 commit/push 명시 승인. source 마감 후 정지, 추가 운영·새 durable admission 없음.
 
 - [x] **7. 공개 프로젝트의 집·README 정렬** — GLG 직접 실화면 검수·최종 인수 완료. 이 집/Andenken source commit+push 승인, 홈페이지는 새 durable 코디 `20261016T103933-96efd0`에게 직접 commit+push 전담 인계.
 
-# NOW — 10-19 전체 임베딩 검수
+# NOW — 기존 원문 읽기 문을 바로 쓰기
+
+- **출발:** GLG가 [#31 c4](https://github.com/junghan0611/agent-config/issues/31#issuecomment-6258910758)와 [Andenken#17](https://github.com/junghan0611/andenken/issues/17) 파악을 요청. 16/16은 한 subject·4사례에 git/grep/기존 이슈까지 허용한 결과이며 semantic-only/currentness 증명이 아님. claim의 실재·이번 판단 근거 적격성·행동 권한을 구분하는 논의로 정렬했다. 아직 미사용 decision-gate의 향후 전제이지 새 게이트 승인 아님.
+- **GLG 방향:** '원문도 변조 가능하지만, semantic hit가 애매하면 동기화된 세션을 파싱해 앞뒤 읽는 간단한 문이 좋다. 크게 발명할 필요 없이 그렇게 해보자.' 새 체계보다 **search → source/file/line → 허용 원문 readback → 필요시 확대/현행 정본·Git 확인**을 먼저 연결한다.
+- **변경:** 이 집 `skills/semantic-memory/SKILL.md`만 P0 최소 수정. 기존 `andenken/run.sh excerpt:session <file> <line>`을 API에 직접 명시, 재검색 없는 주변 읽기/물리 JSONL 줄수/범위·truncation·missing·mismatch/인용≠채택·readback≠변조방지·축별 권한 경계를 기록했다. 새 wrapper/스키마/필드/sidecar/기능 등록0. Durable는 승인된 닫힌 snapshot entry, OC memory는 workspace 파일, JSONL corpus와 혼동하지 않는다.
+- **검증:** 문서 metadata/fence/diff gate PASS. 기존 CLI를 `/tmp/agent-config-readback.zMsmGs/`의 합성 Claude JSONL5행에 실행해 center3/범위1–5·화자·인용/뒤 철회문 보존·truncatedfalse 확인; 같은 합성원문의 line99와 없는 파일은 각각 exit1/성공 stdout 없음 확인. 실제 세션/DB/network/embedding0. 기존 `./run.sh test:excerpt` fixture #5891 exit0/1s·76passed0failed (`/home/junghan/.pi/durable-background/1792385673034-aff6c605.log`). 코디877f91이 최종diff·합성결과·76개 로그·negative 오류문구까지 직접 읽고 13:57:57 blocker0 최종 인수(중복 실행0). 합성 파싱 PASS는 모델의 판단/원문 진위 검증 PASS가 아니다.
+- **공개 회수:** GLG 요청으로 [#31 c5](https://github.com/junghan0611/agent-config/issues/31#issuecomment-6260069262)에 P0 사용법·검증 범위·B에게의 기존 경로 안내·적격성 논의를 댓글로 남기고 API 본문 일치 확인. #31 OPEN/parked·ball:glg 불변, #17 새 댓글0. B가 실제 읽었거나 그 환경의 파일/런너를 썼다는 측정은 아님.
+- **다음/금지:** GLG 명시 승인으로 이 집 skill/NEXT를 정상 commit/push·agenda 마감하고 Andenken 담당자의 push 확인 후, 이 집 한 손으로 Oracle 양쪽 repo를 tracked-clean 확인→git pull --ff-only→원격/로컬 HEAD 및 skill SHA 대조한다. dirty면 보존·보고하며 stash/reset/force0. 새 build/reload/실험/임베딩은 없고, GLG가 이후 B에게 직접 알린다. 문제의 clock/currentness 관측·권위/채택 설계는 논의 상태로 유지. 다른 구현담당 Opus583c57은 코디 경유 계획만, 지금 code GO0. #31 parked/#17 proposed/ball:glg 변경0, 새 query/SSH/원문 수집/등록/paid/commitpush0. FACTORY 미접촉.
+
+# RECENT — 10-19 오전 임베딩 마감
+
+양집 source push 완료: agent-config `d3a5e508c8b639890d11116959316d4936737057`, Andenken `73837187081632cda31e271850b426e4ac9faf3c`; 정상 훅·09:37 도장·HEAD/origin/remote 일치 직접 확인. 아래는 당시 검수 기록이며 새 재실행 지시가 아니다.
+
+## 10-19 전체 임베딩 검수
 
 - **역할:** GLG가 전체 임베딩은 기존 Opus `20261019T090544-262682`에 맡기고, 완료 후 이 집에 통지·최근 pi-durable 포함 검수 수정을 요청했다. Andenken 코디 `20261015T113054-877f91`은 engine/운영 계약 라우팅. 이 집은 소비 문서·기존 로그/영수증 검수만, DB/SSH/paid/원문 SQLite/새 transcript 직접 실행·열람0.
 - **현재:** usual2→3→4와 T2 global catch-up1 종료 보고. 직접 로그 대조상 final sessions112207/4096d/orphan0, md11139/4096d/orphan0, OC8577/4096d/duplicate0(OC 원문경로는 검사 안 함). T2 뒤 로컬 변경은 시점상 후속 replica lag를 지지하나 actor 미상, 특정 Pi PID 탓하지 않음. 190 indexer calls+2별도dimprobe/약$0.025는 알려진 작업의 추정이며, 미상 local job·OC upstream usage/실청구는 미측정.
