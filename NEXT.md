@@ -5,9 +5,23 @@
 
 # RAIL — 현재 좌표
 
-- [x] **7. 공개 프로젝트의 집·README 정렬** ← CURRENT: GLG 직접 실화면 검수·최종 인수 완료. 이 집/Andenken source commit+push 승인, 홈페이지는 새 durable 코디 `20261016T103933-96efd0`에게 직접 commit+push 전담 인계.
+- [x] **8. 10-19 전체 임베딩 완료 검수·소비 문서 수선** ← CURRENT: 실행·양쪽 최소 감사·교차검수·설명 수선 완료. GLG가 Oracle 동기화 확인 후 양쪽 commit/push 명시 승인. source 마감 후 정지, 추가 운영·새 durable admission 없음.
 
-# NOW — 마감, 다음 작업은 새 요청부터
+- [x] **7. 공개 프로젝트의 집·README 정렬** — GLG 직접 실화면 검수·최종 인수 완료. 이 집/Andenken source commit+push 승인, 홈페이지는 새 durable 코디 `20261016T103933-96efd0`에게 직접 commit+push 전담 인계.
+
+# NOW — 10-19 전체 임베딩 검수
+
+- **역할:** GLG가 전체 임베딩은 기존 Opus `20261019T090544-262682`에 맡기고, 완료 후 이 집에 통지·최근 pi-durable 포함 검수 수정을 요청했다. Andenken 코디 `20261015T113054-877f91`은 engine/운영 계약 라우팅. 이 집은 소비 문서·기존 로그/영수증 검수만, DB/SSH/paid/원문 SQLite/새 transcript 직접 실행·열람0.
+- **현재:** usual2→3→4와 T2 global catch-up1 종료 보고. 직접 로그 대조상 final sessions112207/4096d/orphan0, md11139/4096d/orphan0, OC8577/4096d/duplicate0(OC 원문경로는 검사 안 함). T2 뒤 로컬 변경은 시점상 후속 replica lag를 지지하나 actor 미상, 특정 Pi PID 탓하지 않음. 190 indexer calls+2별도dimprobe/약$0.025는 알려진 작업의 추정이며, 미상 local job·OC upstream usage/실청구는 미측정.
+- **최종 감사:** `/tmp/andenken-audit-20261019/{receipt.json,audit.mts}` 全read·코드 대조·JSON 단언·SHA 직계산 PASS, receipt SHA `b5bd89a10fa51f0df9f3e2d4c14c445729fc347c9f77588a4117205305809d85`. 지정 실행자만 API0로 09:27:07~09 양쪽 durable103/total112207/version3930·4manifest 전체 SHA 전후/양쪽 동일·본인 lock획득/정상해제·exit0 측정. 이 집과 코디는 artifact만 검수/재실행0. .ts CJS 변환 실패는 코드 실행 전, .mts 재실행은 감사 코드 호환성 수선으로 별도 기록. 본문·벡터·원문 SQLite·provider0. 새 사본 편입 없음, 전체 payload byte 동일이나 검색 유용성 인증 아님.
+- **다음:** GLG 10-19 명시 승인대로 이 집 skill/NEXT와 Andenken 설명1문구/NEXT를 각 담당자가 정상 훅으로 commit/push·agenda 마감한 뒤 정지. 최근 live durable 대화까지 편입하려면 대상·닫힌 사본 승인부터 별도 요청을 받아야 한다. 실제 push SHA는 Git remote와 종료 보고가 정본이며 새 태그·배포·reload는 이번 범위 밖.
+- **수선 완료:** `skills/semantic-memory/SKILL.md` 3곳만 교정: 현 source HEAD와 별도 검사한 compiled로 입증 안 되는 Pi startup warm/native freshness 보장 제거, Pi도 CLI로 OpenClaw 접근 가능함 명시. frontmatter/fence/API표기/diff gate PASS·코디 crossreview blocker0. Andenken은 감사 후 index.ts 도구 설명 `14d temporal decay`만 실제 no-age-decay와 일치시킴. 이 집도 git HEAD 대비 그 문자열1회 치환 외 변경 없고 recencyHalfLifeDays:0 유지됨을 직접 검증. 코디 tsc --noEmit/diff gate PASS 보고, dist 불변·새 build/deploy/reload0. source code와 기동 산출물을 같은 빌드라고 추정하지 않는다.
+- **근거:** `/tmp/embed-{t2,t2b,t3,t4,t4b,t4-incr,t4-final,t4-prune-apply}-20261019.log` 직접 read. `/tmp/embed-receipts-20261019.txt`는 실행자가 tool 출력을 옮겨 적은 상속 근거이며 원본 transcript는 열지 않음. OC native fragments15→1/physical22→16·330→323M 별도. 기존 up∖held7은 원인 미확인: 두 delta의 written+unchanged=exported, dropped줄 없음. raw7행/벡터/credential값 읽지 않음.
+- **금지/남은 것:** 추가 sync/paid/FTS 수선/강제 cleanup/3832복구/신규 snapshot/원문 범위 확대0. 실제 부족·구 reader·lock충돌·불일치는 해당 축만 HOLD. GLG가 양쪽 commit/push를 명시 승인했으므로 검증된 skill+NEXT만 마감하고 결과 보고. FACTORY/#30 미접촉.
+
+# RECENT — 이전 집 공개 마감
+
+## 10-16 당시 마감 기록
 
 - **GLG 판정:** 2026-10-16 직접 화면 확인 후 완성본 인수. 문서·HTML 검사만으로 시각 완료를 주장하지 않고 실제 브라우저로 함께 확인한다는 교훈을 홈페이지 AGENTS에 남겼다.
 - **마감 범위:** 이 집 README·PI-DURABLE 현재 안내·NEXT만 정상 훅으로 commit/push. Andenken 담당자 877f91은 자기 source 문서 commit/push. 공개 #16 최종 댓글은 이 집 한 손. 태그·추가 DB/API·운영 변경은 없다.

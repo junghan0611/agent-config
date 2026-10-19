@@ -28,7 +28,7 @@ bot on andenken#10).
 
 | Intent | Call | Next move |
 |---|---|---|
-| Past decision/conversation | `search-sessions "query" --limit 5` | Inspect top 3–5; Pi native callers also receive a local freshness receipt. |
+| Past decision/conversation | `search-sessions "query" --limit 5` | Inspect top 3–5; check index/source freshness before claiming recent coverage. |
 | Known time/project | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode recent` | Caller supplies a half-open ISO window; no embed/BM25/dictcli. |
 | Meaning in known slice | `search-sessions "query" --project andenken --date-from ISO --date-to ISO --mode hybrid --limit 5` | Structured filters first, semantic rank second. |
 | Public-garden concept | `search-md "query" --limit 5` | Choose a document and open its path; `--full` widens snippets. |
@@ -153,12 +153,7 @@ Rules that follow:
   the axis from the question, never from a miss on another axis. This holds
   for the pi tools too, where an agent picks the tool by judgment.
 
-**This table is the CLI surface.** The pi extension exposes a different surface:
-its tools are `session_search` and `knowledge_search` only (andenken `index.ts`,
-read by the andenken steward 2026-09-03), and there is **no openclaw tool in pi
-yet** — a sibling inside pi cannot reach that axis until andenken adds
-`openclaw_search` (open item on andenken#13). Do not assume the table above is
-callable from pi.
+**This table is the CLI surface.** The checked Pi extension registers `session_search` and `knowledge_search`, not a dedicated OpenClaw tool (andenken `index.ts` at `ef45713`, read 2026-10-19). A Pi agent can still reach OpenClaw through this skill's `search-openclaw` CLI, just like other harnesses. No native shortcut does not mean no capability; do not invent a native tool registration.
 
 The `search-openclaw` subcommand and the `openclaw.lance` track shipped in
 andenken on 2026-09-03 (andenken#13, "착수 완료" comment): 4,651 chunks imported of
@@ -219,14 +214,7 @@ one axis.
    time/project signals. MD recovers durable public interpretation; it has no
    production time/project query axis. OpenClaw recovers what the bots said and
    kept, keyed by agent.
-2. **Pi freshness is warm-on-demand.** On the index-authority Pi host,
-   `session_start` requests one detached **local** refresh and native
-   `session_search` can top it up; a result can be one sync behind and carries
-   the freshness line. It never waits, starts a timer, or publishes to Oracle.
-   Other harnesses keep explicit `memory-sync` when fresh-now is required (not
-   `semantic-memory memory-sync` — that is not a subcommand). OpenClaw bots do
-   not sync the harvest: they inspect `updated_at` and use current `memory/`
-   files when it is stale. A stale absence is not a ranking miss.
+2. **Freshness is explicit and source-dependent.** Search reads the admitted index, not every live turn. Do not assume Pi startup or native search refreshes it: Andenken source at HEAD `ef45713` and the separately inspected local compiled extension contain no automatic warm/top-up call (read 2026-10-19; no rebuild performed). This does not identify other extensions, already-loaded code or scheduled jobs. When GLG requests a session refresh, use the separate `memory-sync` skill, not `semantic-memory memory-sync`; local refresh and Oracle publication are different scopes. Durable turns still require an explicitly approved closed snapshot and admission/indexing. OpenClaw bots check `updated_at` and current workspace files, not harvest/index commands. A stale absence is not a ranking miss.
 3. **Start at 5.** MD keeps the same 40-candidate pool for limits up to 10, so 5
    lowers reading cost without shrinking findability. Widen only after reading
    the first screen and refining concrete names or terms.
