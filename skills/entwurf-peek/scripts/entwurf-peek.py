@@ -1542,7 +1542,7 @@ def verbs_for(liveness: str, backend: str, precheck: str) -> str:
     if liveness == "alive":
         return "send"
     if liveness == "unprobed":
-        return "send?"  # rail(mailbox/native-push/reject)은 dispatch 때 결정된다
+        return "unverified — inspect with entwurf peer-facts"
     if backend not in RESUMABLE_BACKENDS:
         return "fresh (same-id resume 없음)"
     if precheck == "ok":
@@ -1707,15 +1707,16 @@ def cmd_situation(args) -> int:
     lines.append("")
     lines.append("  * = transcript가 아니라 record가 말한 model (resume은 transcript를 따른다)")
     lines.append("  판단 재료 경계:")
-    lines.append("   · liveness SSOT는 entwurf_peers다. 위 표는 같은 socket 축의 로컬 미러다.")
+    lines.append("   · Live-target lookup: entwurf peer-facts (full owner observations); this table mirrors sockets only.")
+    lines.append("   · Match exact cwd and requested backend/context; -p is a substring filter, not target identity.")
     lines.append("   · placement(tmux server/window/pane)는 여기 없다 — launch receipt 또는 peer self-report만이 근거다.")
     lines.append("   · state는 transcript last-event 추정이다. 사실이 필요하면 그 창을 직접 보거나 물어라.")
     lines.append("   · 행이 보인다는 것은 dispatch 초대가 아니다. 무엇을 부를지는 GLG가 정한다.")
     if args.durable:
         lines.append("  장수 시민 창 경계:")
         lines.append("   · 활동 = 관측한 store 파일 쓰기 시각 max(session.sqlite, -wal). online도, 마지막 대화 시각도 아니다.")
-        lines.append("   · online은 entwurf_peers의 receiver 열이 SSOT다. 이 표는 미러하지 않는다.")
-        lines.append("     (2026-10-13 관측: 설치된 entwurf의 peers는 최신 32행만 보여 오래된 durable은 거기서도 빠진다.)")
+        lines.append("   · Durable receiver status: entwurf peer-facts (full owner observations); not mirrored here.")
+        lines.append("     The MCP peers text may omit older IDs; an old ID can still have an active receiver.")
         lines.append("   · 담당 역할은 record에 없다. durable이라는 사실은 담당자 임명이 아니라 물어볼 후보라는 뜻이다.")
     print("\n".join(lines))
     return 0

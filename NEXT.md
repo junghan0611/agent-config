@@ -5,13 +5,30 @@
 
 # RAIL — 현재 좌표
 
-- [x] **9. #31/#17 판단 근거의 적격성 — 기존 readback 연결(P0)** ← CURRENT: 기존 명령을 skill API·소비 규약에 연결 완료. API0 fixture76/76·실제 CLI 합성 양성/거절시험·코디 최종 crossreview blocker0. GLG가 이 집 commit/push와 Oracle git pull을 명시 승인. 양집 push 확인 뒤 Oracle source만 ff-only 갱신하고 GLG가 B에게 전달할 차례로 마감. 새 엔진/clock/claim-state 구현은 미승인.
+- [x] **10. “옆의 라이브 형제” 선택 계약 수선** ← CURRENT: 소비측 수선·RED119/5→GREEN119/0·Opus262682 동일 후보 최종검수 blocker0 완료. 영문 호출규약/홈 원칙/실제 CLI 안내/회귀를 맞췄다. GLG가 검수·실사용 확인 후 5파일 정상 commit/push를 명시 승인했다. 새 owner observer/join·owner패치·분신0, owner 후속은 별도 판단 대기.
+
+- [x] **9. #31/#17 판단 근거의 적격성 — 기존 readback 연결(P0)** — 기존 명령을 skill API·소비 규약에 연결 완료. API0 fixture76/76·실제 CLI 합성 양성/거절시험·코디 최종 crossreview blocker0. GLG가 이 집 commit/push와 Oracle git pull을 명시 승인. 양집 push 확인 뒤 Oracle source만 ff-only 갱신하고 GLG가 B에게 전달할 차례로 마감. 새 엔진/clock/claim-state 구현은 미승인.
 
 - [x] **8. 10-19 전체 임베딩 완료 검수·소비 문서 수선** — 실행·양쪽 최소 감사·교차검수·설명 수선 완료. GLG가 Oracle 동기화 확인 후 양쪽 commit/push 명시 승인. source 마감 후 정지, 추가 운영·새 durable admission 없음.
 
 - [x] **7. 공개 프로젝트의 집·README 정렬** — GLG 직접 실화면 검수·최종 인수 완료. 이 집/Andenken source commit+push 승인, 홈페이지는 새 durable 코디 `20261016T103933-96efd0`에게 직접 commit+push 전담 인계.
 
-# NOW — 기존 원문 읽기 문을 바로 쓰기
+# NOW — “옆에 불러둔 오푸스”는 현재 라이브인 기존 상대
+
+- **신고:** GLG가 homeagent-config 코디의 응답을 전달: 최근32 목록에 말씀한 ID가 누락됐고, `unsupported/receiver=none/모델미확인`인 후보를 대상이라고 간주해 보냈다가 start-key 문구가 포함된 거절을 받았다는 보고. 신고 내용은 상속 사실이며 그 당시 화면/거절 원본은 이 집이 재측정하지 않았다. GLG의 “옆”은 현재 라이브 세션이라는 뜻이다.
+- **직접 확인/수선:** 10-21 14:21 `entwurf_peers`도 older1608/latest32를 표시했다. Entwurf `scripts/peer-facts.ts`와 renderer/fact type을 직접 읽어 **기존 무제한 owner JSON 조회**가 있음을 확인(이집 Python mirror/새 API 아님). `home/AGENTS.md`에 live-target 의도·전체목록 경로·불명확하면 중단/현재ID 확인·과거 기록 대체 금지를 넣고, `skills/entwurf-peek/SKILL.md`에 discovery trigger·실제 호출·same-cwd 정확 필터·rail별 근거/unknown 경계를 추가했다. home AGENTS 실링크도 직접 확인했다.
+- **검증/검수:** #6133 exit0/3s, `/tmp/agent-config-live-peer-check.U0j6C2/peer-facts.json` 1640/diag0: old75e83f Claude와 old1fcee9 durable는 active, new89ec36/newb4d041은 none/absent. #6163 기존 fixture exit0/4s·115checks0failed (`/home/junghan/.pi/durable-background/1792560313672-c9f9f297.log`). 이 green은 기존 visibility 계약의 회귀 확인이지 새 live-target 선택 검증 완료가 아니다. GLG가 Opus를 다시 연 뒤 별도 최신 `entwurf peer-facts` 직접 측정 `/tmp/agent-config-review-peers.hH9vP8.json`: 1640 peers/diagnostics0, 신고된 옛 `75e83f`도 현재 receiveractive/transcriptexists. 같은 cwd agent-config의 active Claude 유일 후보262682에 GLG 명시 요청대로 검수 메시지를 보내 실제 회신까지 받았다(후속 원문에서 본인 Opus5.5 자기보고·최종 검수 확인). modelnull은 Opus 증거로 쓰지 않고 이 자리의 연속성·GLG 지정 맥락으로 요청했으며 본인 모델/자리 확인을 부탁했다. 새 호출규약절은 GLG 요청대로 영어, home 협업원칙은 한글. 과거 수선 원문은 아래의 선택된 JSONL 한 창만 읽었으며, 라이브/무관 파일 원문·live SQLite·fresh/resume·store 수선0.
+- **과거 수선 범위:** 직접 git 확인: 5c3d67c(10-06)는 enum/null transcript·durable 경로, 294d6be(10-13)는 durable-only 무제한 창/WAL mtime. 수선 전 Python1520–24는 socket만 알고 self-fetch receiver를 관측하지 않으며 unprobed→send?와 기본 최근창은 유지됐다. owner 전체 CLI는 f9cea1d(09-15)부터 존재했다. 과거 visibility 수선의 완료와 live-target 선택 경로 미연결을 구분하고, 원신고 당시 start-key 거절의 원인은 아직 원본으로 확정하지 않는다. 과거세션 검색 #6203 완료 뒤 선택한 10-13 Claude 원문382를 기존 excerpt로 읽었다(`/tmp/agent-config-durable-history-readback.json`,380–385/truncfalse): 당시에도 online은 Still open, peers32 경계는 owner 후속으로 보고했다고 명시되어 있었다. 원문은 `-p agent-config`가 homeagent-config에도 부분매치함을 별도 미결로 남겼다. 구체어 2차검색 #6291도 완료: 같은 10-13 원문382와 당시 요청 요약9가 다시 회수됐다. 당시 보드 보존/발견과 연락 분리 요청과 현재 수선 범위를 구분한다(새색인/liveSQLite0).
+- **동일 시점 표시 재현:** 위 #6133 캡처를 owner의 실제 순수 `renderEntwurfPeers`에 입력해 old75/old1f는 full payload active지만 human text에는 없고, new89/newb4는 none인데 human text에 있음을 assert PASS. 새 probe/원문 읽기/전송 없이 같은 관측으로 재현한 목록 절단 사례다.
+- **추가 진단 구멍:** owner checkout f9dd41b의 `entwurf-deliverability.ts:62–68,210전후`는 marker 부재/다른 nativeID도 ownerAlivefalse로 내려 같은 start-key-mismatch 문구를 낸다. TS원문 순수leaf에 두 합성case를 주입해 process probe0인데 해당문구 반환/안전거절 유지 직접 확인했다. 초기 compiled 경로는 dist부재로 실행전 실패; source-only 검사이며 설치본/원신고 실제거절 재현은 아니다. 원오류문구를 start-key 실제측정으로 단정하지 말아야 함을 Opus 검수에 추가했다.
+- **검수 후 보완:** Opus가 self-report로 본인 Opus5.5/262682를 확인하고 F1–F6를 회신. 정확 cwd/backend·긍정 rail근거·유일한 후보면 모델 metadata null에도 첫 응답 자기보고로 확인하도록 영문 규약/홈 원칙을 보완했다(모델이 핵심인 일은 본 작업 전 확인). receiver-inactive의 포괄 start-key 문구를 실제 비교 측정으로 읽지 않는다. 문서의 실제 shell 예시를 stub CLI로 실행해 정상·exit3·잘못된 schema 세 경우와 임시파일 cleanup 확인. 새 label/footer assertion 4개와 기존 expected1개 수선으로 RED #6348은119checks5failed, footer가 rowlabel로 위장 green 되지 않게 고유prefix로 강화한 재실행도119/5 확인(`/tmp/agent-config-live-selection-red.log`). 그 뒤 producer3곳만 고쳐 label을 `unverified — inspect with entwurf peer-facts`, default/durable footer를 전체 owner 사실 조회·정확cwd 안내로 바꿨다. GREEN #6388 exit0/3s·119checks0failed+diffcheck PASS (`/home/junghan/.pi/durable-background/1792561446507-551de614.log`). 동일 Opus가 최종diff를 읽고 직접119/0·diffcheck를 재실행해 14:45:57 blocker0 인수, 14:47에 동결4파일 SHA 앞16자까지 재확인했다. AST/docs/diffcheck PASS. owner receiver join/부분매치 변경은 안 한다.
+- **다음/금지:** GLG의 명시 승인대로 검수한 5파일만 정상 commit/push·agenda 도장으로 마감하고 새 요청을 기다린다. reviewer의 nonblocking 관찰 n1(owner receiver fact와 peers text의 주어), n2(native-push는 peer-facts만으로 alive 확인 불가), n3(기존 확인ID도 현재 관측과 짝짓기)은 후속 참고이며 추가 패치는 하지 않았다. owner의 omission 문구에 전체CLI 안내·원인별 진단 정밀화는 별도 소유 개선안으로 구분한다. 문서 보완만으로 실제 라이브 판정 결함까지 해결됐다고 닫지 않는다. `peer-facts`가 생존/상대 일치를 확인하지 못하면 현존 런타임을 죽었다고 결론내리지 않는다. model unknown을 Opus 증거로 쓰지 않고 native-push에 self-fetch 조건을 강요하지 않는다. 이번 commit/push는 승인됐으나 Oracle 반영·새 owner 구현은 요청 범위가 아니다. FACTORY/#30 미접촉.
+
+# RECENT — 10-19 readback 마감
+
+agent-config `28be170e950a62d0a62196e44b6a151e179ea72e`, Andenken `1a8f9a3e70618a936581ebb53c9f28118fe337d3` 정상 push·도장 후 Oracle 각 ff-only 갱신과 HEAD/SKILL SHA 일치 확인 완료. [#31 c5](https://github.com/junghan0611/agent-config/issues/31#issuecomment-6260069262)도 발행 상태로 수정·본문 일치 확인. 다음은 당시 기록이지 새 commit/push/운영 승인이 아니다.
+
+## 기존 원문 읽기 문을 바로 쓰기
 
 - **출발:** GLG가 [#31 c4](https://github.com/junghan0611/agent-config/issues/31#issuecomment-6258910758)와 [Andenken#17](https://github.com/junghan0611/andenken/issues/17) 파악을 요청. 16/16은 한 subject·4사례에 git/grep/기존 이슈까지 허용한 결과이며 semantic-only/currentness 증명이 아님. claim의 실재·이번 판단 근거 적격성·행동 권한을 구분하는 논의로 정렬했다. 아직 미사용 decision-gate의 향후 전제이지 새 게이트 승인 아님.
 - **GLG 방향:** '원문도 변조 가능하지만, semantic hit가 애매하면 동기화된 세션을 파싱해 앞뒤 읽는 간단한 문이 좋다. 크게 발명할 필요 없이 그렇게 해보자.' 새 체계보다 **search → source/file/line → 허용 원문 readback → 필요시 확대/현행 정본·Git 확인**을 먼저 연결한다.

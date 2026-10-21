@@ -244,6 +244,10 @@ def main():
               "resume" not in ep.verbs_for("dormant", "pi", "no-transcript").split("(")[0], True)
         check("unprobed backend never offers resume",
               "resume" in ep.verbs_for("unprobed", "claude-code", "ok"), False)
+        check("unprobed self-fetch points to full owner facts",
+              "entwurf peer-facts" in ep.verbs_for("unprobed", "claude-code", "ok"), True)
+        check("unprobed native-push does not advertise send?",
+              "send?" in ep.verbs_for("unprobed", "codex", "identity-unverified"), False)
         # each blocked precheck names ITS OWN cause; lumping them is a false reason
         reasons = {ep.verbs_for("dormant", "pi", r) for r in ep.PRECHECK_BLOCKED}
         check("blocked reasons are distinct", len(reasons), len(ep.PRECHECK_BLOCKED))
@@ -424,8 +428,9 @@ def main():
               ep.durable_store_path({**drec, "cwd": ""}), None)
         check("pi with no transcript keeps the old reason",
               ep.record_activity({**drec, "backend": "pi"})["precheck"], "no-transcript")
-        check("durable is not resumable under the same id",
-              ep.verbs_for("unprobed", "pi-durable", "durable-native-store"), "send?")
+        check("unprobed durable points to owner facts, not send or resume",
+              ep.verbs_for("unprobed", "pi-durable", "durable-native-store"),
+              "unverified — inspect with entwurf peer-facts")
 
         # ── durable 활동 = max(db, -wal) mtime. -shm은 읽기에도 움직이므로 세지 않는다 ──
         import time as _time
@@ -543,10 +548,14 @@ def main():
         check("default text carries the bridge with store-wide total", "전체 2" in bridge, True)
         check("bridge scopes -p separately", "-p repo-a: 1" in bridge, True)
         check("bridge command has no -p", bridge.rstrip().endswith("situation --durable"), True)
+        check("default footer directs live-target lookup to full owner facts",
+              "Live-target lookup: entwurf peer-facts" in txt, True)
         dtxt = run_sit("--durable").stdout
         check("--durable text says role is unknown", "담당 역할: 알 수 없음" in dtxt, True)
         check("--durable text does not call file mtime online",
               "online도, 마지막 대화 시각도 아니다" in dtxt, True)
+        check("durable footer exits the truncated-list dead end",
+              "Durable receiver status: entwurf peer-facts" in dtxt, True)
 
         # ── 기본 limit 24를 넘는 durable 무리: --durable은 전부, 명시 limit은 자른다 ──
         # 그리고 헤더는 실효 창을 적는다 — 잘린 표를 「limit 무관」이라 적으면 전부로 읽힌다.

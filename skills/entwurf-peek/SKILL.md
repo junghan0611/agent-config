@@ -1,6 +1,6 @@
 ---
 name: entwurf-peek
-description: "지금 어느 형제가 어디서 무엇을 하는 중인지 한 장으로 세우고, 다음 한 수(살아있는 형제에게 보낼지 · 잠든 형제를 같은 id로 되세울지 · 새 형제를 열지)를 고를 재료를 주는 판단 도우미. `situation`이 meta-record(사실)와 transcript(추정)를 같은 평면에 올리고, `peek`이 한 세션 안을 들여다본다. 실행은 하지 않는다 — 부르는 것은 entwurf_v2 / entwurf_resume_call / entwurf_fresh_call이고, 무엇을 부를지는 GLG가 정한다. placement(tmux server/window/pane) 사실의 출처가 아니다. 트리거: '누가 뭐 하고 있지', '분신 현황', '지금 살아있는 형제', 'situation', 'entwurf-peek', '누구한테 맡길까', '다시 부를까', 'peek session', '분신 추적', '누구한테 물어볼까', 'durable 형제', '장수 시민'."
+description: "지금 어느 형제가 어디서 무엇을 하는 중인지 한 장으로 세우고, 다음 한 수(살아있는 형제에게 보낼지 · 잠든 형제를 같은 id로 되세울지 · 새 형제를 열지)를 고를 재료를 주는 판단 도우미. `situation`이 meta-record(사실)와 transcript(추정)를 같은 평면에 올리고, `peek`이 한 세션 안을 들여다본다. 실행은 하지 않는다 — 부르는 것은 entwurf_v2 / entwurf_resume_call / entwurf_fresh_call이고, 무엇을 부를지는 GLG가 정한다. placement(tmux server/window/pane) 사실의 출처가 아니다. 트리거: '옆에 있는 오푸스', '옆에 불러둔 형제', '누가 뭐 하고 있지', '분신 현황', '지금 살아있는 형제', 'situation', 'entwurf-peek', '누구한테 맡길까', '다시 부를까', 'peek session', '분신 추적', '누구한테 물어볼까', 'durable 형제', '장수 시민'."
 ---
 
 # entwurf-peek — 지금 누가 어디서 무엇을 하는가
@@ -48,6 +48,36 @@ entwurf repo가 아니라 여기(범용 스킬)에 산다.
 verb를 실제로 부르는 절차와 receipt 읽는 법은 **`entwurf-dev` 스킬**이 진다
 (`~/repos/gh/entwurf/.claude/skills/entwurf-dev/`). 이 스킬은 그 앞의 **판단 재료**만
 만든다. 둘은 같은 계약의 앞뒤다.
+
+## Select the existing LIVE peer, not an unverified substitute
+
+When GLG says **“the Opus I opened beside you”**, resolve the currently running existing citizen. This is a target-selection request, not permission to infer a tmux pane, resume a dormant conversation, or create a replacement. An old garden ID may be live after reopening; creation date does not establish liveness either way.
+
+1. Read `entwurf_peers`. `older entries omitted` means **partial coverage**, not absence. Do not pick another visible record merely because the requested citizen is missing.
+2. Use the following **existing owner CLI** for full observations. It is **not a subcommand of `entwurf-peek.py`**. `entwurf/scripts/peer-facts.ts` uses the same provider/renderer without the MCP observation limit; callers must not reconstruct its store/probe rules.
+
+```bash
+# Read-only; no transcript body, send, resume, or fresh call.
+# Capture once, then filter this same observation; use the caller's installed roots.
+(
+  set -eu
+  FACTS=$(mktemp)
+  trap 'rm -f -- "$FACTS"' EXIT
+  entwurf peer-facts > "$FACTS"
+  jq -e '.schemaVersion == 1' "$FACTS" > /dev/null
+  jq -c '.diagnostics[]' "$FACTS" >&2
+  # Replace /absolute/project with the requested project's exact absolute cwd.
+  jq -c --arg cwd '/absolute/project' \
+    '.peers[] | select(.cwd == $cwd) | {gardenId,backend,liveness,receiver,model}' "$FACTS"
+  # Exact known id instead: jq --arg id "$GID" '.peers[] | select(.gardenId == $id)' "$FACTS"
+)
+```
+
+3. Match the **exact absolute cwd, requested backend/context, and current rail-specific evidence**. Use a known backend from the request/context; do not infer one from a model nickname alone. Pi socket `alive` and self-fetch `receiver=active` are positive observations. Within the matching scope, positive rail evidence takes precedence over recency. A new record with `receiver=none` and `transcript=absent` is not evidence that it is the window GLG just reopened. `-p` is a substring filter: `-p agent-config` also matches `homeagent-config`; it cannot establish the exact target. Native-push receiver `n/a` is a separate rail, not an inactive mailbox; use that rail's owner-defined probe/dispatch rather than imposing a mailbox condition.
+4. **A unique live candidate in the exact requested scope permits identity confirmation; missing model metadata is not a reason for permanent HOLD.** Prefer a garden ID explicitly identified by GLG or already verified in the ongoing exchange. Otherwise, when exactly one candidate matches cwd/backend/context and has positive rail evidence, ask that candidate to self-report its current model and role in its first reply. For model-critical work, confirm this before sending the substantive task. Mark the answer as self-report, not an owner-facts measurement. `model=null` neither proves nor disproves Opus. If live candidates are multiple, absent, or otherwise unverified, ask GLG for the current garden ID or clarification instead of guessing or messaging several candidates.
+5. Never substitute an unverified/dormant target or silently resume/fresh-open one. A receiver-inactive refusal containing `start-key mismatch` does **not by itself prove a measured start-key mismatch**: the current generic reason also covers absent/foreign receiver markers. Re-observe owner `receiver` facts and any cause-specific evidence; preserve an unknown cause when evidence does not distinguish it. Do not remove the guard or try other historical IDs. Observation-to-dispatch races remain; dispatch keeps its final refusal authority.
+
+`situation` is a supplementary caller-side mirror, not a substitute for the owner's observations. `unprobed` is displayed as `unverified — inspect with entwurf peer-facts`, not as an invitation to send; it proves neither liveness nor a match to GLG's requested peer.
 
 ## 두 identity 축 — 조인이 없으면 아무것도 안 맞는다
 
@@ -142,7 +172,7 @@ model 뒤 `*`  transcript가 아니라 record가 말한 model (resume은 transcr
 임명으로 읽지 않는다** (JSON `role: null`). online 여부도 이 창은 모른다 — `entwurf_peers`의
 `receiver` 열이 SSOT인데, peers는 최신 32행만 보여 오래된 durable은 거기서도 아직 안 보인다
 (현 설치의 관측 경계: entwurf `pi-extensions/lib/entwurf-peers-render.ts:44`
-`ENTWURF_PEERS_RENDER_LIMIT = 32`, 2026-10-13 읽음·peers 출력 실측 — 정책이 아니라 그날의 사실).
+`ENTWURF_PEERS_RENDER_LIMIT = 32`, 2026-10-13 읽음·peers 출력 실측 — 정책이 아니라 그날의 사실). **Use the existing `entwurf peer-facts` CLI above for full owner observations** (source checked: `scripts/peer-facts.ts`, 2026-10-21). Missing rows in the MCP table do not imply that no full-query interface exists.
 헤더의 `since … · limit …`은 **실효 창**이다: `since 없음`(이 모드에 기본 없음) · `since 무관 (-a)` ·
 `since Ns`, `limit 없음` · `limit N`. `limit N`이 보이면 그 표는 잘린 것이다.
 
@@ -151,7 +181,7 @@ verb 열의 뜻:
 | 표시 | 뜻 |
 |---|---|
 | `send` | `entwurf_v2 fire-and-forget`으로 지금 닿는다 |
-| `send?` | 전달은 시도할 수 있으나 rail(self-fetch mailbox / native-push / reject)은 dispatch 때 결정된다. `unsupported`는 mailbox 보장이 아니다 |
+| `unverified — inspect with entwurf peer-facts` | No positive live observation here. Read the owner's full facts and resolve the requested identity first; native-push does not inherit a mailbox requirement. |
 | `resume \| fresh` | dormant pi이고 아래 precheck를 통과했다 |
 | `fresh (<사유> → resume 불가)` | dormant pi인데 precheck가 막혔다. **사유는 뭉뚱그리지 않는다** |
 | `fresh (same-id resume 없음)` | claude-code 등 — `target-not-pi` |

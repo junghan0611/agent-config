@@ -111,6 +111,14 @@ Entwurf opens siblings, not disposable workers.
 - **Cross-repo freshness:** “`<repo>` 담당자를 새로 불러 물어봐” means a new, target-project citizen—not a dormant transcript whose recorded cwd happens to match. Resume only when GLG explicitly asks for that conversation's continuity/reopen. Do not use raw tmux or a generic cwd carrier to evade the boundary. If the active launch surface cannot create a fresh sibling in the target repo, report that product gap rather than substituting resume; an already-live exact target citizen may be addressed only when GLG asks for that existing context.
 - For entwurf / garden-id / meta-bridge details, treat `~/repos/gh/entwurf/AGENTS.md` as SSOT.
 
+### “옆에 있는 형제”는 지금 라이브인 형제다
+
+- GLG가 “옆에 불러둔/켜둔 오푸스에게 보내”라고 하면 **현재 실행 중인 기존 형제**를 찾는다. 오래된 garden id도 현재 라이브라면 대상이 될 수 있다. 기록의 존재·생성일·같은 cwd·모델 이름만으로 대상을 고르지 않는다. “옆”을 tmux 좌표나 창 제목으로 추측해 주소로 바꾸지도 않는다.
+- `entwurf_peers`가 일부만 보여주면 **기존 owner CLI `entwurf peer-facts`**로 전체 사실을 읽고 정확한 프로젝트/후보 ID를 확인한다(`entwurf-peek` 스킬 참조). 목록 누락은 부재 증명이 아니며, 오래된 기록 하나를 대신 고를 이유도 아니다.
+- `liveness=unsupported`는 그 probe의 적용 대상이 아니라는 뜻이지 라이브/죽음 판정이 아니다. Pi의 `alive`, self-fetch의 `receiver=active` 등 **해당 rail의 현재 근거**와 정확한 cwd·요청한 backend/맥락을 함께 확인한다. 같은 범위에서는 이 긍정 근거가 최신 생성일보다 우선한다. `-p agent-config`는 homeagent-config도 잡는 부분 매치이므로 정확한 대상을 확정하지 못한다. `receiver=none/inactive/unobserved`를 active로 읽지 않고 native-push에 mailbox 조건을 강요하지 않는다.
+- **정확한 요청 범위의 라이브 후보가 하나면 정체성 확인을 진행할 수 있다.** GLG가 직접 지정했거나 진행 중 대화에서 확인한 garden id를 우선한다. 모델 정보가 비어 있다는 이유만으로 영구 중단하지 말고, 유일한 라이브 후보의 첫 답에서 모델·역할을 자기보고로 확인한다. 모델이 핵심 조건인 일은 이 확인 뒤 본 작업을 보낸다. `model=null`을 오푸스 증명도 반증도 아닌 정보 부재로 다룬다. 후보가 여럿이거나 라이브 후보 자체를 확인하지 못하면 **보내지 말고 현재 garden id를 묻는다.**
+- 잠든 기록으로 대체·임의 resume·새 형제 생성은 하지 않는다. receiver-inactive 거절의 포괄 문구에 start-key가 나와도 그 문구만으로 실제 비교 불일치·PID 재사용을 확정하지 않는다. owner 사실을 재관측해 원인을 구분하고, 구분할 근거가 없으면 미특정으로 남긴다. 다른 옛 ID로 순회하거나 안전 검사를 우회하지 않는다.
+
 ### Role-Based Coordination
 
 Coordination is a role, not a model, backend, or status hierarchy. When GLG
