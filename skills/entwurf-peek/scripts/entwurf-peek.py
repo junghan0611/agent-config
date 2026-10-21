@@ -1102,10 +1102,12 @@ LIVE_RECORD_SCHEMA = 3
 META_CITIZEN_BACKENDS = (
     "claude-code", "antigravity", "codex", "copilot", "omp", "pi-durable", "pi",
 )
-# `meta-session.ts:347-357` — strict keyset. 여분 key는 coerce하지 않고 record를 버린다.
+# Strict V3 keyset; #147 adds only attachIncarnation (owner meta-session.ts:479-552,
+# L2 0771eacf). It is an arm revision, not identity/liveness/authorization.
+# Unknown keys still fail closed; a known-field reader upgrade never rewrites records.
 META_IDENTITY_KEYS = frozenset({
     "schemaVersion", "gardenId", "backend", "nativeSessionId", "cwd",
-    "model", "transcriptPath", "createdAt", "recordUpdatedAt",
+    "model", "transcriptPath", "createdAt", "recordUpdatedAt", "attachIncarnation",
 })
 _NONEMPTY_FIELDS = ("nativeSessionId", "cwd", "createdAt", "recordUpdatedAt")
 _NULLABLE_FIELDS = ("model", "transcriptPath")
@@ -1142,7 +1144,12 @@ def parse_record_v3(raw: str) -> tuple[dict | None, str | None]:
         v = obj.get(field)
         if v is not None and (not isinstance(v, str) or not v):
             return None, f"{field}는 string 또는 null이어야 한다 ({v!r})"
-    return obj, None
+    # The one optional V3 key: normalize absence to null, never trim/coerce it.
+    incarnation = obj.get("attachIncarnation")
+    if incarnation is not None and (not isinstance(incarnation, str)
+                                    or re.fullmatch(r"[0-9a-f]{32}", incarnation) is None):
+        return None, f"attachIncarnation은 null 또는 32자리 소문자 hex여야 한다 ({incarnation!r})"
+    return {**obj, "attachIncarnation": incarnation}, None
 
 
 def read_store_record_file(path: Path) -> str:

@@ -293,6 +293,39 @@ def main():
                 "nativeSessionId": "n1", "cwd": "/x", "model": None, "transcriptPath": None,
                 "createdAt": "t", "recordUpdatedAt": "t"}
         check("well-formed v3 record has no defect", parse_defect(base), None)
+
+        # Entwurf #147: V3 gains one nullable arm revision, NOT a new identity.
+        # An omitted field normalizes to null; present values are exact lower hex.
+        parsed_old, old_err = ep.parse_record_v3(json.dumps(base))
+        check("absent attachIncarnation normalizes to null without changing identity",
+              (parsed_old, old_err), ({**base, "attachIncarnation": None}, None))
+        incarnation = "0123456789abcdef0123456789abcdef"
+        for label, value in (("null", None), ("32 lower hex", incarnation)):
+            body = {**base, "attachIncarnation": value}
+            parsed_arm, arm_err = ep.parse_record_v3(json.dumps(body))
+            check(f"attachIncarnation accepts {label} and preserves the record",
+                  (parsed_arm, arm_err), (body, None))
+            check(f"store certifies attachIncarnation {label}", parse_defect(body), None)
+        for backend in ep.META_CITIZEN_BACKENDS:
+            body = {**base, "backend": backend, "attachIncarnation": incarnation}
+            check(f"attachIncarnation is a schema field for {backend}, not a rail gate",
+                  ep.parse_record_v3(json.dumps(body)), (body, None))
+        invalid_incarnations = (
+            ("uppercase", "ABCDEF0123456789ABCDEF0123456789"),
+            ("31 chars", "a" * 31), ("33 chars", "a" * 33),
+            ("trailing newline", "a" * 32 + "\n"),
+            ("trailing CRLF", "a" * 32 + "\r\n"),
+            ("leading space", " " + "a" * 32),
+            ("non-hex", "g" * 32), ("unicode digits", "０" * 32),
+            ("empty", ""), ("true", True), ("false", False),
+            ("number", 0), ("float", 1.5), ("array", []), ("object", {}),
+        )
+        for label, value in invalid_incarnations:
+            parsed_bad, bad_err = ep.parse_record_v3(json.dumps({**base, "attachIncarnation": value}))
+            check(f"attachIncarnation refuses {label} with a field-specific defect",
+                  (parsed_bad, bool(bad_err and "attachIncarnation" in bad_err)), (None, True))
+        check("known attachIncarnation does not permit other unknown keys",
+              "stray" in (parse_defect({**base, "attachIncarnation": incarnation, "stray": 1}) or ""), True)
         check("omp is a certified v3 citizen", parse_defect({**base, "backend": "omp"}), None)
         check("missing nativeSessionId is a defect",
               "nativeSessionId" in (parse_defect({**base, "nativeSessionId": ""}) or ""), True)
@@ -320,6 +353,24 @@ def main():
                                      "createdAt": "t", "recordUpdatedAt": "t", "stray": "foreign"}))
         kept_r = {r["gardenId"] for r in ep.certify_records()[0]}
         check("schema-invalid rival does not quarantine the healthy record", good in kept_r, True)
+        rival.unlink()
+
+        # Malformed arm revisions must be dropped BEFORE native-id uniqueness.
+        # Conversely a valid revision must never hide a real identity duplicate.
+        arm_rival = {**base, "gardenId": "20260604T110200-cccccc",
+                     "nativeSessionId": "native-good"}
+        for label, value in invalid_incarnations:
+            rival.write_text(json.dumps({**arm_rival, "attachIncarnation": value}))
+            arm_kept, arm_defects = ep.certify_records()
+            check(f"invalid arm rival ({label}) cannot quarantine the healthy citizen",
+                  (good in {r["gardenId"] for r in arm_kept},
+                   any(x.startswith(rival.name) and "attachIncarnation" in x for x in arm_defects)),
+                  (True, True))
+        rival.write_text(json.dumps({**arm_rival, "attachIncarnation": incarnation}))
+        arm_kept, arm_defects = ep.certify_records()
+        check("valid arm revision does not bypass native-id uniqueness",
+              ({good, arm_rival["gardenId"]} & {r["gardenId"] for r in arm_kept},
+               any("one-to-one" in x for x in arm_defects)), (set(), True))
         rival.unlink()
 
         # two records claiming one transcript → no owner is picked

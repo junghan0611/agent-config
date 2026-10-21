@@ -5,7 +5,9 @@
 
 # RAIL — 현재 좌표
 
-- [x] **10. “옆의 라이브 형제” 선택 계약 수선** ← CURRENT: 소비측 수선·RED119/5→GREEN119/0·Opus262682 동일 후보 최종검수 blocker0 완료. 영문 호출규약/홈 원칙/실제 CLI 안내/회귀를 맞췄다. GLG가 검수·실사용 확인 후 5파일 정상 commit/push를 명시 승인했다. 새 owner observer/join·owner패치·분신0, owner 후속은 별도 판단 대기.
+- [ ] **11. Entwurf #147 V3 `attachIncarnation` strict mirror 호환** ← CURRENT: source+synthetic·설치 소스 경로 확인 완료, 독립 검수 인수(코디 보고). 코디68bd94가 전한 GLG step2 범위로 exact3파일 로컬 commit GO, push 금지. 3개 live record 한정 CLI 없음으로 실제 읽기는 미실행.
+
+- [x] **10. “옆의 라이브 형제” 선택 계약 수선** — 소비측 수선·RED119/5→GREEN119/0·Opus262682 동일 후보 최종검수 blocker0 완료. 영문 호출규약/홈 원칙/실제 CLI 안내/회귀를 맞췄다. GLG가 검수·실사용 확인 후 5파일 정상 commit/push를 명시 승인했다. 새 owner observer/join·owner패치·분신0, owner 후속은 별도 판단 대기.
 
 - [x] **9. #31/#17 판단 근거의 적격성 — 기존 readback 연결(P0)** — 기존 명령을 skill API·소비 규약에 연결 완료. API0 fixture76/76·실제 CLI 합성 양성/거절시험·코디 최종 crossreview blocker0. GLG가 이 집 commit/push와 Oracle git pull을 명시 승인. 양집 push 확인 뒤 Oracle source만 ff-only 갱신하고 GLG가 B에게 전달할 차례로 마감. 새 엔진/clock/claim-state 구현은 미승인.
 
@@ -13,7 +15,15 @@
 
 - [x] **7. 공개 프로젝트의 집·README 정렬** — GLG 직접 실화면 검수·최종 인수 완료. 이 집/Andenken source commit+push 승인, 홈페이지는 새 durable 코디 `20261016T103933-96efd0`에게 직접 commit+push 전담 인계.
 
-# NOW — “옆에 불러둔 오푸스”는 현재 라이브인 기존 상대
+# NOW — Entwurf #147 소비측 최소 호환 checkpoint (2026-10-22)
+
+- **승인/범위:** Entwurf 코디 `20261014T212756-68bd94`의 08:31 KST 전달: GLG가 “1 끝나면 2하고 main에 올리자” 승인, step2의 이 집 범위는 strict mirror source+synthetic 및 실제 loader 소스 경로 확인까지. 코디 전달 승인으로 인수했으며 commit/push는 보류한다. owner 계약은 `meta-session.ts:479–552`, L2 `0771eacf`; 최신 owner checkpoint `a9c9459`/CI green은 코디 보고 상속이며 이 집 운영 검증이 아니다.
+- **직접 수선/검증:** `entwurf-peek.py`에 알려진 키 1개만 추가, absent→null 및 present null/정확32 lowerhex 검증. `test-discovery.py`는 RED **163 checks/13 failed** → GREEN **163 checks/0 failed**; 정상 arm 값·모든 backend·비정상 타입/길이/문자/newline·다른 unknown key 거절·invalid rival 배제·valid native 중복 거절 포함. 기존 same-fd/O_NOFOLLOW/regular-file/filename/uniqueness 구현은 그대로다. 로그 `/tmp/agent-config-attach-incarnation-{red,green}.log`, `git diff --check` PASS.
+- **실제 소스 연결:** `~/.pi/agent/skills/pi-skills/entwurf-peek`는 이 repo의 `skills/entwurf-peek/` 링크. source와 설치 경유 스크립트 SHA256 모두 `f01bbb32e8d553ff34ce40cc10ccf3533856ae3dc6c4762a0b1211d01d51c182`; test `c0f91a4004e48d400fb7dcfd88c33d62678579b805505ec530d14cfa70526b96`. 파일 기반 CLI이므로 다음 호출이 같은 소스를 읽는 경로 증거이지, live store 호환·기존 장기 프로세스 재적재 완료 증거는 아니다.
+- **독립 검수/commit 범위:** 08:42 KST 코디68bd94 회신을 상속: Astra B0/D0, source/test hash·symlink 직접 대조; 코디 #17959도163/0 재현. 기존 model/transcriptPath 누락 시 mirror None 허용 vs TS 거절은 이번 delta 밖 O1로 분리하며 전체 parser 동등성 PASS로 확대하지 않는다. exact3파일(source/test/NEXT) 정상 local commit GO, push 금지. 설치 경유 모듈의 격리 HOME/in-memory 4-case 판독도 직접 PASS.
+- **실제 읽기 한계/Next:** 코디가 지정한 검증 시민3개의 metadata만 읽는 조건을 확인했으나 현재 CLI의 `cmd_situation`→`certify_records`, `read_records`→`certify_records`는 전체 store scan이다(`entwurf-peek.py:1179,1255,1574`). 별도 per-record CLI/부분 certification을 발명하지 않고 live 읽기는 미실행으로 회신한다. 로컬 커밋 checkpoint를 전달한 뒤 push/후속 범위 판정을 기다린다. record 수정/삭제/fresh-cut/identity 교체/owner join 복제·설치·재시작·노트북 동기화·추가 형제 없음. 하네스 동향 조사 보고서는 ignored `.agent-reports/20261021-harness-trends.md`에만 있고 추적 문서 반영은 미승인이다.
+
+# RECENT — 10-21 라이브 형제 선택 수선
 
 - **신고:** GLG가 homeagent-config 코디의 응답을 전달: 최근32 목록에 말씀한 ID가 누락됐고, `unsupported/receiver=none/모델미확인`인 후보를 대상이라고 간주해 보냈다가 start-key 문구가 포함된 거절을 받았다는 보고. 신고 내용은 상속 사실이며 그 당시 화면/거절 원본은 이 집이 재측정하지 않았다. GLG의 “옆”은 현재 라이브 세션이라는 뜻이다.
 - **직접 확인/수선:** 10-21 14:21 `entwurf_peers`도 older1608/latest32를 표시했다. Entwurf `scripts/peer-facts.ts`와 renderer/fact type을 직접 읽어 **기존 무제한 owner JSON 조회**가 있음을 확인(이집 Python mirror/새 API 아님). `home/AGENTS.md`에 live-target 의도·전체목록 경로·불명확하면 중단/현재ID 확인·과거 기록 대체 금지를 넣고, `skills/entwurf-peek/SKILL.md`에 discovery trigger·실제 호출·same-cwd 정확 필터·rail별 근거/unknown 경계를 추가했다. home AGENTS 실링크도 직접 확인했다.
