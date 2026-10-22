@@ -5,17 +5,18 @@
 
 # RAIL — 현재 좌표
 
-- [ ] **11. Entwurf #147 V3 `attachIncarnation` strict mirror 호환** ← CURRENT: 로컬 `a5a075b`·163/0·독립 검수 인수. 코디68bd94의 추가 승인으로 기존 전체 metadata certification 1회 직접 실행: 1847 records/defects0, 지정3개 수용 PASS. 최소 문서수선도 독립 검수 인수·로컬 docs checkpoint로 마감, push 승인 대기.
+- [x] **11. Entwurf #147 strict mirror 호환·재개 문서 마감** — `a5a075b`·`e007e01`, 독립 검수와 합성163/0·승인된 metadata1회 관측을 `CHANGELOG.md v2026.10.22`에 갈무리했다. 닫힌 좌표7–10도 같은 cut에 회수했다.
+- [ ] **12. 노트북의 안전한 버전 짝 전환** ← CURRENT: **GLG가 전환 시점을 정할 때까지 대기.** Entwurf v0.41.0 출하본과 검증된 agent-config `v2026.10.22`를 함께 가져가되 오늘 작업 환경을 먼저 보존한다. 아직 노트북 pull/install/sync/restart 승인 없음.
 
-- [x] **10. “옆의 라이브 형제” 선택 계약 수선** — 소비측 수선·RED119/5→GREEN119/0·Opus262682 동일 후보 최종검수 blocker0 완료. 영문 호출규약/홈 원칙/실제 CLI 안내/회귀를 맞췄다. GLG가 검수·실사용 확인 후 5파일 정상 commit/push를 명시 승인했다. 새 owner observer/join·owner패치·분신0, owner 후속은 별도 판단 대기.
+# NOW — 출하된 버전 짝은 준비하고, 노트북 전환은 기다린다
 
-- [x] **9. #31/#17 판단 근거의 적격성 — 기존 readback 연결(P0)** — 기존 명령을 skill API·소비 규약에 연결 완료. API0 fixture76/76·실제 CLI 합성 양성/거절시험·코디 최종 crossreview blocker0. GLG가 이 집 commit/push와 Oracle git pull을 명시 승인. 양집 push 확인 뒤 Oracle source만 ff-only 갱신하고 GLG가 B에게 전달할 차례로 마감. 새 엔진/clock/claim-state 구현은 미승인.
+- **마감:** GLG가 npm 출하 확인 뒤 이 집 tag-release를 직접 요청했다. Entwurf v0.41.0 GitHub Release·npm version/integrity metadata를 직접 읽었고, 이 cut의 소비 회귀는 native durable44/44(skip0)·peek163/0·recap40·env-links3·release-extractor7·shell syntax·diffcheck PASS다. 설치·업그레이드·운영 재시작이나 공급자 전체 qualification을 재실행한 것은 아니다.
+- **다음 한 걸음:** GLG가 노트북의 오늘 작업을 끝내고 전환 시점을 명시하면 Entwurf 개발자 설치의 출하 ref와 agent-config `v2026.10.22`를 짝지어 가져가 확인한다. 그전에는 노트북 pull/install/sync/restart·중간 후보 배포를 하지 않는다. 전환 시각·실행 담당·실행 범위는 새 요청으로 정한다.
+- **보존할 경계:** #28/#30 parked·FACTORY 미접촉. 기존 parser의 model/transcriptPath 누락 처리 차이는 별도 관찰이며 전체 TS/Python 동등성으로 승격하지 않는다. 하네스 근황 보고서는 `.agent-reports/20261021-harness-trends.md`에만 있고 추적 문서 반영은 별도 요청 대기. live snapshot·재임베딩·새 모델/CLI 시험·자동 종료는 열지 않는다.
 
-- [x] **8. 10-19 전체 임베딩 완료 검수·소비 문서 수선** — 실행·양쪽 최소 감사·교차검수·설명 수선 완료. GLG가 Oracle 동기화 확인 후 양쪽 commit/push 명시 승인. source 마감 후 정지, 추가 운영·새 durable admission 없음.
+# RECENT — 출하 전 10-22 호환 checkpoint의 근거
 
-- [x] **7. 공개 프로젝트의 집·README 정렬** — GLG 직접 실화면 검수·최종 인수 완료. 이 집/Andenken source commit+push 승인, 홈페이지는 새 durable 코디 `20261016T103933-96efd0`에게 직접 commit+push 전담 인계.
-
-# NOW — Entwurf #147 소비측 최소 호환 checkpoint (2026-10-22)
+아래는 날짜 붙은 검수 이력이다. 당시의 commit/push 보류는 이번 GLG tag-release 요청으로 마감됐으며, 운영·노트북 전환 승인으로 확대하지 않는다. 완료 요지는 `CHANGELOG.md v2026.10.22`가 정본이다.
 
 - **승인/범위:** Entwurf 코디 `20261014T212756-68bd94`의 08:31 KST 전달: GLG가 “1 끝나면 2하고 main에 올리자” 승인, step2의 이 집 범위는 strict mirror source+synthetic 및 실제 loader 소스 경로 확인까지. 코디 전달 승인으로 인수했으며 commit/push는 보류한다. owner 계약은 `meta-session.ts:479–552`, L2 `0771eacf`; 최신 owner checkpoint `a9c9459`/CI green은 코디 보고 상속이며 이 집 운영 검증이 아니다.
 - **직접 수선/검증:** `entwurf-peek.py`에 알려진 키 1개만 추가, absent→null 및 present null/정확32 lowerhex 검증. `test-discovery.py`는 RED **163 checks/13 failed** → GREEN **163 checks/0 failed**; 정상 arm 값·모든 backend·비정상 타입/길이/문자/newline·다른 unknown key 거절·invalid rival 배제·valid native 중복 거절 포함. 기존 same-fd/O_NOFOLLOW/regular-file/filename/uniqueness 구현은 그대로다. 로그 `/tmp/agent-config-attach-incarnation-{red,green}.log`, `git diff --check` PASS.
@@ -87,7 +88,7 @@ agent-config `28be170e950a62d0a62196e44b6a151e179ea72e`, Andenken `1a8f9a3e70618
 </details>
 
 원문·소비 스킬·독립검수·승인 snapshot1의103행실제색인/원문연결(1~3)은 `CHANGELOG.md v2026.10.15`로 갈무리했다. 전체대화수집/건강한hybrid검색인증은아니다.
-최종 합동검수·양쪽 tag/GHRelease·agenda(4)와 [#15 종료](https://github.com/junghan0611/andenken/issues/15)는 완료했다. source328b7f6/v2026.10.15,이집ad854fd/v2026.10.15-finish.1(기존4363866/v2026.10.15불변). 이후 GLG 요청대로 공개 근거·남은 제한·새 승인 경계를 전송했다. 첫 수신자085719가 연결 Claude 형제임을 회신해, 정식 durable 코디20261007T132839-b22677로 직접 정정 전송했다. 컷 뒤 종료 기록은 CHANGELOG Unreleased에 남겼다.
+최종 합동검수·양쪽 tag/GHRelease·agenda(4)와 [#15 종료](https://github.com/junghan0611/andenken/issues/15)는 완료했다. source328b7f6/v2026.10.15,이집ad854fd/v2026.10.15-finish.1(기존4363866/v2026.10.15불변). 이후 GLG 요청대로 공개 근거·남은 제한·새 승인 경계를 전송했다. 첫 수신자085719가 연결 Claude 형제임을 회신해, 정식 durable 코디20261007T132839-b22677로 직접 정정 전송했다. 컷 뒤 종료 기록은 CHANGELOG v2026.10.22에 갈무리했다.
 인계(7)는 정식 Entwurf durable 코디20261007T132839-b22677이 직접 수신·gh재확인했다(연결 형제085719와 구분). 전체 다음 진행의 공은 그쪽에 유지한다. 이후 GLG가 이 집에 별도 #16 공동검수·마감 요청을 새로 했다. #15/출하/전체증분을 재생하지 않는다.
 전체 증분·Oracle 반영(5)은 완료했다. 직접#2643/#2705/#2747/#2800: sessions109190/md11078/OpenClaw8076, 모두4096d·중복0, 세션/가든고아0. 양쪽corpus3513파일checksum오류0. durable103행양쪽보존·pending0,Oracle지정원문±1동일. 활성6봇clean(재회수시점),sup✓18만backup/prune·archives880보존. 새0.40운영FTS메타query9/0/20/primitivepanic0. 상세는 담당자문서20260312T174622의 전체증분영수증, private `.agent-reports/issue15/consumer-review.md`, `/tmp/andenken-full-incremental.YiGdsh/`. 원격준비와로컬을분리해MD만선행했고global은1회,강제rebuild/추가원문/재시작0.
 - [x] **6. #16 운영·문서 마감 완료** — 10-16 08:54 Oracle교체·paired발행·양쪽검증과독립metadata인수PASS,GLG승인으로이집c7e7baa(09:10)/andenken c83958a(09:17)정상commitpush·agenda완료. #16CLOSED/completed(09:18:24) GitHubAPI직접확인/정식Entwurf b22677최종보고·담당자노트회수済. #15closed/#30PAUSED・FACTORY미접촉. Oracle約2.24GB공간정리·3832backup처분은GLG몫/새106MB다음normal대상. 아래는종료근거이며자동재실행명령아님.

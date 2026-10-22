@@ -7,6 +7,32 @@
 
 ## Unreleased
 
+## v2026.10.22 — Entwurf 0.41 호환 스킬과 라이브 형제 선택
+
+### strict reader와 재개 안내 — 정상 identity를 보존하며 소비면을 맞췄다
+
+* **V3 `attachIncarnation`을 엄격하게 읽도록 맞췄다.** `a5a075b`. 알려진 키 하나만 추가하고 absent는 null, present는 null 또는 정확히 32자리 소문자 hex만 허용한다. 다른 unknown key 거절, 같은 fd의 regular-file/O_NOFOLLOW 검사, filename/body 일치, native ID 유일성 및 schema-invalid rival 배제 순서는 유지했다. arm revision은 identity·liveness·사용자 권한이 아니다. record 수정·삭제·fresh-cut으로 우회하지 않았다.
+* **합성 회귀와 실제 metadata 읽기의 범위를 구별했다.** 수정 전 새 fixture를 포함한 163 checks 중 13개가 실패했고, 최소 수선 뒤 163/0이었다. 독립 검수와 Entwurf 코디의 별도 163/0 재현은 그들의 영수증으로 인수했다. 별도 승인된 설치 스킬 경유 기본 `certify_records` 1회는 1,847 records/defects 0, 지정 검증 시민 3개 수용이었다(Pi/durable arm null, CC arm 32lowerhex). 전사·SQLite·프로세스 생존이나 전체 rollout 검증이 아니다. 기존 nullable model/transcriptPath 누락 처리의 TS와 Python 차이는 이번 delta 밖 관찰로 남겨 전체 parser 동등성을 주장하지 않았다.
+* **owner 기능과 로컬 precheck의 범위를 분리했다.** `e007e01`. Entwurf는 tmux에서 Pi/Claude Code same-id resume을 지원하지만, 이 mirror의 socket/transcript 기반 resume 추천은 Pi-local이다. CC의 unprobed/inactive는 dead 증거가 아니며 owner의 fresh record·matching dead-owner arm 검사는 기계적 적격성이지 operator 요청 권한이 아니다. CC 재개가 옛 model/permission 옵션을 복원한다는 오독도 막았다. Python classifier·liveness는 확장하지 않았다.
+* **라이브 형제를 찾는 기존 전체 조회 경로를 연결했다.** `63b6aa1`. MCP의 최신 32행에서 빠졌다고 부재로 판단하지 않고 `entwurf peer-facts`로 정확 cwd·backend·현재 rail 근거를 확인한다. model null은 정보 부재이며 유일한 라이브 후보의 자기보고로 정체성을 확인한다. `send?`는 owner 사실 조회를 요구하는 미확인 표기로 바꿨고, old-ID 대체·임의 재개·포괄 start-key 오류의 원인 단정을 막았다. 당시 119/5→119/0 및 Opus 교차검수는 해당 변경의 날짜 붙은 근거다.
+
+### 기존 문을 바로 쓰는 기억·일상 스킬
+
+* **선택한 검색 히트에서 기존 원문 읽기로 돌아가는 문을 드러냈다.** `d3a5e50`·`28be170`. CLI file/line과 Pi native sessionFile/lineNumber를 기존 Andenken `excerpt:session`에 연결했다. JSONL의 물리 줄과 durable snapshot entry ID를 혼동하지 않고, 인용·채택·현재 판단 적격성과 행동 권한을 구별한다. 검색을 되풀이하거나 새 그래프·reader·인덱스를 만들지 않았다. Pi startup freshness/native capability의 과한 설명도 실제 계약으로 좁혔다.
+* **gog 일상 호출과 재인증 절차를 분리했다.** `9cda4e9`. v0.45.0 명령 표를 정리하고 OAuth 재인증·Oracle 토큰 복사의 별도 `AUTH.md`와 helper를 남겼다. 개인 grant의 제약과 실제 갱신 범위를 구별하며, 이 release에서 재인증이나 토큰 복사를 재실행하지 않았다.
+* **호스트 summarize는 구독 CLI 레일만 사용하도록 정리했다.** `cc86f92`. 실행 전 종량 API 키를 지우는 wrapper와 Pi/Codex/Claude/Grok 호출 안내를 반영했다. 봇의 bundled extract→기존 턴 요약과 호스트 경로는 별개이며 공유 scrubber 변경이 봇에도 미치는 운영 결합을 유지한다. 이 cut에서 모델·전사·웹 추출을 새로 호출하지 않았다.
+* **공개 프로젝트 소개와 기억축 운영 마감을 회수했다.** `0c5ffc6` 등. README·PI-DURABLE의 공개 집 소개를 정렬하고, 시각 검수·소스 검수·다른 담당자의 배포 책임을 구별했다. 아래 #16 및 #15 종료 절은 직전 태그 이후 쌓인 운영·복구 영수증이며 당시 수치와 미측정 범위를 보존했다.
+
+### 출하와 전환 경계
+
+* **Entwurf v0.41.0 GitHub Release와 npm 0.41.0 게시 metadata를 읽었다(10-22).** 공급자가 공개한 릴리스의 source/CI/LIVE/cut별 제외 범위는 [Entwurf v0.41.0](https://github.com/junghan0611/entwurf/releases/tag/v0.41.0)의 원 영수증이다. 이 집에서 npm archive 바이트 동일성·공급자 전체 qualification·모든 하네스 운영 수용을 새로 검증한 것은 아니다. Copilot native 검증의 명시 보류/RED와 agy의 이번 컷 제외를 PASS로 바꾸지 않는다.
+* **이 태그는 agent-config 스킬/문서 snapshot이다.** 새 Entwurf/Pi 설치·빌드·재시작·재임베딩은 수행하지 않는다. 노트북은 오늘 작업 환경을 보존하며, GLG가 별도로 전환 시점을 정한 뒤 출하된 Entwurf 개발자 설치와 이 검증된 스킬 버전을 함께 가져간다. 태그·푸시가 노트북 pull/install/sync/restart의 자동 승인은 아니다.
+* **미완료를 함께 출하하지 않았다.** 하네스 근황 조사 보고서는 ignored artifact에만 있고 추적 문서 반영은 별도 판단 대기다. #28·#30의 parked 연구, 원문/권한/운영 후속, 모든 장기 프로세스의 새 스킬 발견·재적재는 이 cut의 완료 항목이 아니다.
+
+### 이번 cut의 직접 회귀
+
+* **Entwurf v0.41.0 clean checkout `5349392`에서 소비자 offline 회귀를 실행했다.** native durable **44/44, skip 0**(faux 모델·합성 HOME·약34초), entwurf-peek **163 checks/0 failed**, session-recap **40 tests**, env-links **3 tests**, release extractor **7 tests** 모두 PASS였다. shell syntax와 diffcheck도 PASS다. 운영 원문·live SQLite·새 벤더 모델 턴은 쓰지 않았으며, npm 설치본 실행이나 공급자 LIVE/전체 qualification 재측정으로 확대하지 않는다. source/test/SKILL의 검수된 해시는 유지했다.
+
 ### #16 원본 복구·정상 증분·Oracle 복제본 교체 완료 — 10-15~16
 
 * **옛 FTS의 자동 전환 실패를 명시적인 색인 재생성으로 해결했다.** 생성 자료와 실제 사본에서 같은 실패/복구 후보를 검증한 뒤, GLG 승인으로 andenken Opus가 원본 FTS를 재생성하고 전체16논리CPU로 optimize1회를 실행했다. 원본109347행·ID집합·source·durable103·4096차원을 유지하면서 논리 fragment15→1로 성공했다. 벡터 재임베딩 API는0이었다. 내부Rust unwrap의 정확한 필수조건까지 밝혔다는 뜻은 아니다. 신형FTS를 옛0.15가 읽지 못하는 소형검증 결과와0.40의 현재 runtime 관측을 구분했다.
