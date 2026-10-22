@@ -160,7 +160,7 @@ python3 {baseDir}/scripts/entwurf-peek.py <subcommand> [options]
 🟢 alive     control socket이 답한다 → 지금 전달 가능
 ⚫ dormant   socket backend(pi)인데 socket이 없다 → 잠들었다
 ➖ unprobed  control-socket probe가 없는 backend(claude-code 등) → 여기서는 모른다
-model 뒤 `*`  transcript가 아니라 record가 말한 model (resume은 transcript를 따른다)
+model 뒤 `*`  transcript가 아니라 record가 말한 model (Pi resume identity는 transcript를 따른다)
 ```
 
 **최근 창과 장수 시민 창은 다른 질문이다.** 기본 표는 「지금 누가 움직이나」이고 since·limit이
@@ -178,15 +178,19 @@ model 뒤 `*`  transcript가 아니라 record가 말한 model (resume은 transcr
 
 verb 열의 뜻:
 
+**Local recommendation is not the full owner capability.** The resume rows below describe this mirror's bounded **Pi socket/transcript precheck**. Entwurf supports same-id **Pi and Claude Code** resume in **tmux**; resume inside Herdr refuses. This mirror does not certify CC dormancy (`entwurf-peek.py:1089–1093,1527–1557`; owner `resume-launch-identity.ts:32,81–148`, Entwurf `AGENTS.md § Citizen Identity and Dispatch`).
+
 | 표시 | 뜻 |
 |---|---|
 | `send` | `entwurf_v2 fire-and-forget`으로 지금 닿는다 |
-| `unverified — inspect with entwurf peer-facts` | No positive live observation here. Read the owner's full facts and resolve the requested identity first; native-push does not inherit a mailbox requirement. |
-| `resume \| fresh` | dormant pi이고 아래 precheck를 통과했다 |
-| `fresh (<사유> → resume 불가)` | dormant pi인데 precheck가 막혔다. **사유는 뭉뚱그리지 않는다** |
-| `fresh (same-id resume 없음)` | claude-code 등 — `target-not-pi` |
+| `unverified — inspect with entwurf peer-facts` | No positive live observation here. Read the owner's full facts and resolve the requested identity first; native-push does not inherit a mailbox requirement. CC rows take this branch, not a local dormant verdict. |
+| `resume \| fresh` | Pi-local recommendation: socket 관측상 dormant Pi이고 아래 transcript precheck를 통과했다. 실행 승인이 아니다. |
+| `fresh (<사유> → resume 불가)` | Pi-local precheck가 막혔다. **사유는 뭉뚱그리지 않는다.** |
+| `fresh (same-id resume 없음)` | Legacy local branch label outside the Pi recommendation set, **not proof that Entwurf lacks same-id resume**. Normal CC rows are `unprobed` and return the owner-facts guidance above. |
 
-precheck 사유는 여섯이고 각각 다른 사실이다.
+For CC, `unprobed` or `receiver=inactive/none/unobserved` does **not** prove a dead CLI. Only the owning `entwurf_resume_call` checks fresh record/receiver facts and the committed, matching dead-owner arm binding for conclusive **mechanical eligibility**. That check does not grant operator authority: an explicit operator request is separate. This skill neither reconstructs that check nor starts a resume; owner refusal remains final. CC resume does not restore its former model or permission options.
+
+아래 여섯 사유는 각 행의 transcript/저장소 관측 결과다. 이들을 **resume 추천 필터로 쓰는 범위만 Pi-local**이다.
 
 | 사유 | 뜻 |
 |---|---|
@@ -197,9 +201,9 @@ precheck 사유는 여섯이고 각각 다른 사실이다.
 | `identity-unverified` | id를 **확인하지 못했다** — 문법 미지원 backend(antigravity/codex)이거나 tail에서 id를 못 찾았다 |
 | `durable-native-store` | `pi-durable` — transcript가 **없는 레일**이다. 대화는 native SQLite(`session.sqlite`)에 있고 이 스킬은 열지 않는다. 경로만 계산해 보여준다 |
 
-이것은 entwurf `resume-launch-identity.ts:100-143`이 던지는 조건을 **미리 읽은 것**이다.
-`ok`는 성공 보장이 아니라 **거짓일 때 resume을 권하지 않기 위한 필터**다. 통과한 뒤에도
-entwurf는 아래를 더 보고 거절할 수 있다.
+Pi에 대해서는 transcript 기반 launch 조건을 **로컬에서 미리 읽는 제한된 필터**로 쓴다.
+`ok`는 성공 보장이나 CC의 dead-owner 증명이 아니다. Pi precheck를 통과한 뒤에도
+entwurf는 아래 **Pi launch 조건**을 더 보고 거절할 수 있다.
 
 ```text
 addressability          store 전역 rival (readAddressableMetaIdentity)
@@ -330,8 +334,9 @@ python3 {baseDir}/scripts/entwurf-peek.py map -p agent-config -a --since 7200
   단순 오표기가 아니라 **가장 오래 산 시민을 가장 어린 시민으로 보고하는 일**이다.
   본문을 읽는 손은 아직 없다 — live durable DB를 RO로라도 여는 것은 andenken#15 Q6가
   승인하지 않았고, main만 cp하면 전손이라는 측정이 거기 있다.
-- **model은 transcript 우선**: record의 `model`은 덮어써질 수 있고 resume은 transcript에
-  박힌 identity를 따른다. record에서 온 값은 `*`로 표시한다.
+- **model은 transcript 우선**: record의 `model`은 덮어써질 수 있고 **Pi resume**은 transcript에
+  박힌 identity를 따른다. CC resume은 옛 model/permission 옵션을 복원하지 않는다.
+  record에서 온 값은 `*`로 표시한다.
 - **record store는 남의 authority**: 읽기만 한다. 쓰지 않고, 지우지 않고, peers와
   어긋나면 peers를 따른다. certification 계약은 복제하되(그래야 사실면이 갈라지지
   않는다) **읽는 시점의 복제라 SSOT가 바뀌면 여기가 먼저 낡는다** — 계약이 어긋나

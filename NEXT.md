@@ -5,7 +5,7 @@
 
 # RAIL — 현재 좌표
 
-- [ ] **11. Entwurf #147 V3 `attachIncarnation` strict mirror 호환** ← CURRENT: source+synthetic·설치 소스 경로 확인 완료, 독립 검수 인수(코디 보고). 코디68bd94가 전한 GLG step2 범위로 exact3파일 로컬 commit GO, push 금지. 3개 live record 한정 CLI 없음으로 실제 읽기는 미실행.
+- [ ] **11. Entwurf #147 V3 `attachIncarnation` strict mirror 호환** ← CURRENT: 로컬 `a5a075b`·163/0·독립 검수 인수. 코디68bd94의 추가 승인으로 기존 전체 metadata certification 1회 직접 실행: 1847 records/defects0, 지정3개 수용 PASS. 최소 문서수선도 독립 검수 인수·로컬 docs checkpoint로 마감, push 승인 대기.
 
 - [x] **10. “옆의 라이브 형제” 선택 계약 수선** — 소비측 수선·RED119/5→GREEN119/0·Opus262682 동일 후보 최종검수 blocker0 완료. 영문 호출규약/홈 원칙/실제 CLI 안내/회귀를 맞췄다. GLG가 검수·실사용 확인 후 5파일 정상 commit/push를 명시 승인했다. 새 owner observer/join·owner패치·분신0, owner 후속은 별도 판단 대기.
 
@@ -21,7 +21,8 @@
 - **직접 수선/검증:** `entwurf-peek.py`에 알려진 키 1개만 추가, absent→null 및 present null/정확32 lowerhex 검증. `test-discovery.py`는 RED **163 checks/13 failed** → GREEN **163 checks/0 failed**; 정상 arm 값·모든 backend·비정상 타입/길이/문자/newline·다른 unknown key 거절·invalid rival 배제·valid native 중복 거절 포함. 기존 same-fd/O_NOFOLLOW/regular-file/filename/uniqueness 구현은 그대로다. 로그 `/tmp/agent-config-attach-incarnation-{red,green}.log`, `git diff --check` PASS.
 - **실제 소스 연결:** `~/.pi/agent/skills/pi-skills/entwurf-peek`는 이 repo의 `skills/entwurf-peek/` 링크. source와 설치 경유 스크립트 SHA256 모두 `f01bbb32e8d553ff34ce40cc10ccf3533856ae3dc6c4762a0b1211d01d51c182`; test `c0f91a4004e48d400fb7dcfd88c33d62678579b805505ec530d14cfa70526b96`. 파일 기반 CLI이므로 다음 호출이 같은 소스를 읽는 경로 증거이지, live store 호환·기존 장기 프로세스 재적재 완료 증거는 아니다.
 - **독립 검수/commit 범위:** 08:42 KST 코디68bd94 회신을 상속: Astra B0/D0, source/test hash·symlink 직접 대조; 코디 #17959도163/0 재현. 기존 model/transcriptPath 누락 시 mirror None 허용 vs TS 거절은 이번 delta 밖 O1로 분리하며 전체 parser 동등성 PASS로 확대하지 않는다. exact3파일(source/test/NEXT) 정상 local commit GO, push 금지. 설치 경유 모듈의 격리 HOME/in-memory 4-case 판독도 직접 PASS.
-- **실제 읽기 한계/Next:** 코디가 지정한 검증 시민3개의 metadata만 읽는 조건을 확인했으나 현재 CLI의 `cmd_situation`→`certify_records`, `read_records`→`certify_records`는 전체 store scan이다(`entwurf-peek.py:1179,1255,1574`). 별도 per-record CLI/부분 certification을 발명하지 않고 live 읽기는 미실행으로 회신한다. 로컬 커밋 checkpoint를 전달한 뒤 push/후속 범위 판정을 기다린다. record 수정/삭제/fresh-cut/identity 교체/owner join 복제·설치·재시작·노트북 동기화·추가 형제 없음. 하네스 동향 조사 보고서는 ignored `.agent-reports/20261021-harness-trends.md`에만 있고 추적 문서 반영은 미승인이다.
+- **문서 O1(09:31 KST 코디68bd94 승인, 09:35 독립 검수 B0/D0/O2 인수 — 코디 보고):** `entwurf-peek/SKILL.md`만 owner Pi/CC same-id resume(tmux-only·Herdr 거절)과 mirror의 Pi-local precheck를 분리해 최소 정정; CC unprobed/inactive≠dead, owner의 fresh record/committed matching dead-arm 확인은 기계적 적격성이지 operator 요청 권한이 아님, CC model/permission 복원 없음 명시. classifier/source/test 동결·실행/CLI/store/native 없음. 코디가 SKILL+NEXT 2개 문서만 정상 local commit GO, push/agenda0; legacy branch 도달 불가·영한 혼재는 기존 관찰로만 분리.
+- **실제 metadata 읽기/Next:** 최초3개 한정 CLI는 없다고 보고한 뒤, 08:46 KST 코디68bd94가 기존 `certify_records`의 전체 metadata 읽기1회를 별도 승인했다. 설치 경유 모듈/기본 store/bytecode off로 해당 함수만1회 호출: **1847 records, defects0, 지정3개 수용3/3 PASS**. PD/Pi는 schema3+arm null, CC는 schema3+32lowerhex; source/test SHA 불변. filename/native uniqueness는 기존 전체 certification 경로 유지. liveness/process/proc/vendor/transcript/SQLite 조회0, record/marker 쓰기0. 정상 훅 local commit `a5a075b` 뒤 NEXT 관측을 갱신했고, 이후 별도 승인된 SKILL+NEXT 문서 checkpoint로 마감한다. push 없이 코디 후속 판정을 기다린다. record 삭제/fresh-cut/identity 교체/owner join 복제·설치·재시작·노트북 동기화·추가 형제 없음. 하네스 동향 보고서는 ignored `.agent-reports/20261021-harness-trends.md`에만 있으며 추적 문서 반영은 미승인이다.
 
 # RECENT — 10-21 라이브 형제 선택 수선
 
