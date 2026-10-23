@@ -5,10 +5,22 @@
 
 # RAIL — 현재 좌표
 
-- [x] **11. Entwurf #147 strict mirror 호환·재개 문서 마감** — `a5a075b`·`e007e01`, 독립 검수와 합성163/0·승인된 metadata1회 관측을 `CHANGELOG.md v2026.10.22`에 갈무리했다. 닫힌 좌표7–10도 같은 cut에 회수했다.
-- [ ] **12. 노트북의 안전한 버전 짝 전환** ← CURRENT: **GLG가 전환 시점을 정할 때까지 대기.** Entwurf v0.41.0 출하본과 검증된 agent-config `v2026.10.22`를 함께 가져가되 오늘 작업 환경을 먼저 보존한다. 아직 노트북 pull/install/sync/restart 승인 없음.
+- [x] **13. pipefail 아래 서버 판정 오분류 수선 (2026-10-23)** — `run.sh`·격리 회귀15개 수선 완료, env-links3/syntax/diff PASS. GLG의 직접 commit/push 요청으로 정상 마감. 실제 설정 변경·setup 없음. Entwurf 후보는 기존 코디68bd94가 인수했으며 별도 GLG 승인 후 그 집에서 처리한다. Prime은 미진행.
 
-# NOW — 출하된 버전 짝은 준비하고, 노트북 전환은 기다린다
+- [x] **11. Entwurf #147 strict mirror 호환·재개 문서 마감** — `a5a075b`·`e007e01`, 독립 검수와 합성163/0·승인된 metadata1회 관측을 `CHANGELOG.md v2026.10.22`에 갈무리했다. 닫힌 좌표7–10도 같은 cut에 회수했다.
+- [ ] **12. 노트북의 안전한 버전 짝 전환** ← CURRENT: 승인 대기 — **GLG가 전환 시점을 정할 때까지 대기.** Entwurf v0.41.0 출하본과 검증된 agent-config `v2026.10.22`를 함께 가져가되 오늘 작업 환경을 먼저 보존한다. 아직 노트북 pull/install/sync/restart 승인 없음.
+
+# NOW — 노트북 전환은 GLG 시점 결정 대기
+
+- **다음 한 걸음:** 서버 판정 수선은 검증·commit/push 요청까지 마감했다. 노트북 전환·setup·추가 규약/횡단 수선은 새 GLG 요청 전까지 하지 않는다. Entwurf 후보는 코디68bd94가 인지·라우팅했으며 우리가 대신 고치지 않는다.
+
+# RECENT — 서버 판정의 SIGPIPE·생산자 실패 구분 (2026-10-23)
+
+- **원 근거/범위:** GLG가 B의 workspace-bbot#1/sorge 검토를 보여주고, Entwurf 코디 전달과 우리 코드 수선을 직접 요청했다. private 원문은 읽기만 했고 공개 이슈로 옮기지 않았다. Prime은 더 업데이트하지 않는다는 GLG 판단으로 미진행. Entwurf 후보5개는 원검토의 소스상 후보로, 현재 실제 오작동5건이라고 주장하지 않고 코디68bd94에게 전달했다.
+- **직접 재현/수선:** 기존 함수만 추출한 합성 HOME에서 작은 custom list로 `PIPESTATUS=141,0`·developer 오판3/3, 주석만인 list로 별도 `1,0`·오판3/3. 서버 profile은 builtin 정확 비교, device list는 생산자를 먼저 완전히 받고 상태 검사 후 here-string/builtin 비교로 변경했다. empty/comment-only list의 grep 무일치 오류는 awk 필터로 제거했다. 반환0=server/1=developer/2=read error를 분리하고 preflight·Pi overlay·Claude settings의 실제 선택블록3곳에서 오류2를 developer로 소비하지 않고 전파한다.
+- **검증/Next:** 새 `tests/test-server-device.py`는 실제 함수/선택블록만 읽어 임시 HOME에서 실행한다. 초기13 tests의 RED는12 failure events, 수선·추가 literal/blank-profile 회귀 후 **15 tests PASS**, 기존 env-links **3 tests PASS**, bash syntax/diffcheck PASS. 실제 setup/설정 병합·설치·노트북·원격 repo 수정은0. 변경은 run.sh/test/NEXT로 한정하며 GLG가 직접 commit/push를 요청해 정상 훅으로 마감한다. 추가 실행 없이 새 요청을 기다린다. 공통 규약/다른 리포 일괄수선은 열지 않는다.
+
+# RECENT — 10-22 출하 버전 짝과 노트북 전환 경계
 
 - **마감:** GLG가 npm 출하 확인 뒤 이 집 tag-release를 직접 요청했다. Entwurf v0.41.0 GitHub Release·npm version/integrity metadata를 직접 읽었고, 이 cut의 소비 회귀는 native durable44/44(skip0)·peek163/0·recap40·env-links3·release-extractor7·shell syntax·diffcheck PASS다. 설치·업그레이드·운영 재시작이나 공급자 전체 qualification을 재실행한 것은 아니다.
 - **다음 한 걸음:** GLG가 노트북의 오늘 작업을 끝내고 전환 시점을 명시하면 Entwurf 개발자 설치의 출하 ref와 agent-config `v2026.10.22`를 짝지어 가져가 확인한다. 그전에는 노트북 pull/install/sync/restart·중간 후보 배포를 하지 않는다. 전환 시각·실행 담당·실행 범위는 새 요청으로 정한다.

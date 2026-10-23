@@ -481,22 +481,44 @@ current_forge_profile() {
 server_devices_list() {
   printf '%s\n' "$SERVER_DEVICES"
   if [ -f "$SERVER_DEVICES_FILE" ]; then
-    grep -v '^[[:space:]]*#' "$SERVER_DEVICES_FILE" | sed '/^[[:space:]]*$/d'
+    # Empty/comment-only files are valid, not a grep no-match failure.
+    awk '!/^[[:space:]]*(#|$)/' "$SERVER_DEVICES_FILE"
   fi
 }
 
 # True when this machine is a server.
 # 1순위: ~/.current-forge-profile 이 존재하면 그 값만 보고 판정한다 (forge host = server).
 # 2순위: forge profile 이 없을 때만 device-name allowlist 로 fallback.
+# Returns 0=server, 1=developer, 2=read error (callers must propagate it).
 is_server_device() {
-  local profile device
-  profile="$(current_forge_profile)"
-  if [ -n "$profile" ]; then
-    printf '%s\n' $SERVER_PROFILES | grep -Fxq "$profile"
-    return
+  local profile device devices allowed
+  if ! profile="$(current_forge_profile)"; then
+    fail "cannot read forge profile for server selection"
+    return 2
   fi
-  device="$(cat "$HOME/.current-device" 2>/dev/null || echo unknown)"
-  server_devices_list | grep -Fxq "$device"
+  if [ -n "$profile" ]; then
+    for allowed in $SERVER_PROFILES; do
+      [ "$allowed" = "$profile" ] && return 0
+    done
+    return 1
+  fi
+  device=unknown
+  if [ -f "$HOME/.current-device" ]; then
+    if ! device="$(cat "$HOME/.current-device")"; then
+      fail "cannot read current device for server selection"
+      return 2
+    fi
+  fi
+  # Drain the producer and check its status BEFORE matching. Under pipefail,
+  # producer | grep/rg -q can report SIGPIPE after a successful early match.
+  if ! devices="$(server_devices_list)"; then
+    fail "cannot read server device allowlist"
+    return 2
+  fi
+  while IFS= read -r allowed; do
+    [ "$allowed" = "$device" ] && return 0
+  done <<< "$devices"
+  return 1
 }
 
 # Go src subdirectory within each repo
@@ -557,6 +579,8 @@ setup_preflight() {
     if is_server_device; then
       ok "device: $(cat "$HOME/.current-device") (server)"
     else
+      local server_rc=$?
+      [ "$server_rc" -eq 1 ] || return "$server_rc"
       ok "device: $(cat "$HOME/.current-device") (developer)"
     fi
   else
@@ -1102,6 +1126,9 @@ setup_links() {
   if is_server_device; then
     PI_OVERLAY="_server"
     log "device=$(cat "$HOME/.current-device" 2>/dev/null || echo server) → server overlay (keyset-merge)"
+  else
+    local server_rc=$?
+    [ "$server_rc" -eq 1 ] || return "$server_rc"
   fi
   local PI_SETTINGS_FILE
   PI_SETTINGS_FILE=$(mktemp) || { fail "settings: mktemp failed"; return 1; }
@@ -1243,6 +1270,8 @@ setup_links() {
     log "device=$DEVICE → server settings (keyset-merge, co-ownable real file)"
     merge_settings "$SCRIPT_DIR/claude/settings.server.json" "$HOME/.claude/settings.json"
   else
+    local server_rc=$?
+    [ "$server_rc" -eq 1 ] || return "$server_rc"
     merge_settings "$SCRIPT_DIR/claude/settings.fragment.json" "$HOME/.claude/settings.json"
   fi
   ensure_link "$SCRIPT_DIR/claude/settings.local.json"  "$HOME/.claude/settings.local.json"
