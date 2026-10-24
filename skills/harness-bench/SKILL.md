@@ -1,6 +1,6 @@
 ---
 name: harness-bench
-description: "하네스 리서치 장기 관측소 — agent-config 루트의 대문자 하네스 문서(HERMES / OMP / OUROBOROS / HERDR / PRIME / YEGGE / UNCLEBOB / XIRP / PI / PI-DURABLE / OPENRIG)를 상태·증거로 갱신한다. 채택·성능·좋고 나쁨 판정이 아니다. RLM 기억, native 형제 delivery/UX 대칭성, 역할이 아닌 다른 학교 모델과의 협업, 스펙 전 탐색 대화, 그리고 그 하네스가 무엇으로 자기를 증명하는가(검증면 — 테스트 배치·게이트 자기검증·문서계약)를 본다. 스킬 주입·라이브 setup 금지. 트리거: '하네스 리서치', 'HERMES', 'OMP.md', 'OUROBOROS', 'HERDR', 'PRIME', 'prime-agent', 'YEGGE', 'UNCLEBOB', '밥 마틴', 'CRAP', 'XIRP', 'PI.md', 'PI-DURABLE', 'pi-durable', 'OPENRIG', 'openrig', '독립 하네스', '하네스 명부', '검증면', '테스트 배치', '게이트', '벤치', '대문자 문서', 'harness bench', 'harness research'."
+description: "하네스 리서치 장기 관측소 — agent-config 루트의 대문자 하네스 문서(HERMES / OMP / OUROBOROS / HERDR / PRIME / YEGGE / UNCLEBOB / XIRP / PI / PI-DURABLE / OPENRIG / LETTA)를 상태·증거로 갱신한다. 채택·성능·좋고 나쁨 판정이 아니다. RLM 기억, native 형제 delivery/UX 대칭성, 역할이 아닌 다른 학교 모델과의 협업, 스펙 전 탐색 대화, 그리고 그 하네스가 무엇으로 자기를 증명하는가(검증면 — 테스트 배치·게이트 자기검증·문서계약)를 본다. 스킬 주입·라이브 setup 금지. 트리거: '하네스 리서치', 'HERMES', 'OMP.md', 'OUROBOROS', 'HERDR', 'PRIME', 'prime-agent', 'YEGGE', 'UNCLEBOB', '밥 마틴', 'CRAP', 'XIRP', 'PI.md', 'PI-DURABLE', 'pi-durable', 'OPENRIG', 'openrig', 'LETTA', 'Letta', 'MemGPT', 'FrontierMemory', 'LoCoMo', 'LongMemEval', '독립 하네스', '하네스 명부', '검증면', '테스트 배치', '게이트', '벤치', '대문자 문서', 'harness bench', 'harness research'."
 user_invocable: true
 ---
 
@@ -74,6 +74,7 @@ Keep these five lenses together:
   `pi-durable/README.md`; 실제 같은-id/env 재개는 `PI-DURABLE.md` 2026-10-08 절,
   installed BG 접점은10-09 절, 0.35 registry equality·사용 경험/기억 품질 경계는10-12 절, SDK 1.2 `output` 전환은10-13 절.
   Herdr plugin0.35의 Pi↔native Claude demo를 durable 설치/fresh-target 지원으로 승격하지 않는다. 기존 Pi 확장 rail의 지원으로 오독하지 않는다.
+- **`LETTA.md` pairs product and evaluation, not runtime and memory engine.** Read Letta Code and FrontierMemory separately: the latter tests downstream task benefit from learned memory. Compare the publication experiment with the pinned public protocol before quoting corpus sizes, attempts, controls or costs. Cross-check LoCoMo/LongMemEval primary sources rather than inheriting the publisher's account of earlier benchmarks. Relate retrieval, memory refinement and native lineage to Andenken and Entwurf #151 without turning the comparison into implementation authority. No benchmark execution, gated dataset download or private-corpus export is implied.
 - **One advantage per subject — `protocol.md`.** When a run day comes, exercise only what each harness pushes; protocol.md names it plus the turn and isolation it needs. The rail is chosen that day from `MODELS.md`, not frozen here.
 
 README table `Subject / Question / Standing` is the index. A table row without a sibling `NAME.md` is not a license to invent one.

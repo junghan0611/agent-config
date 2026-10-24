@@ -5,14 +5,24 @@
 
 # RAIL — 현재 좌표
 
+- [x] **14. LETTA / FrontierMemory 관측 등록 (2026-10-24)** ← CURRENT: LETTA.md/README/skill 등록·구조검수·Opus754cad 공동읽기 마감. 핵심 소스/합성 검사 범위를 코디도 재대조, 12:15 Opus가 새 절의 범위 과장없음 확인. GLG가 이번 문서4파일의 commit/push를 명시 승인했다. 정상 마감 뒤 Andenken과의 후속 대화 요청 대기. 실제 벤치마크·설치·임베딩0.
+
 - [x] **13. pipefail 아래 서버 판정 오분류 수선 (2026-10-23)** — `run.sh`·격리 회귀15개 수선 완료, env-links3/syntax/diff PASS. GLG의 직접 commit/push 요청으로 정상 마감. 실제 설정 변경·setup 없음. Entwurf 후보는 기존 코디68bd94가 인수했으며 별도 GLG 승인 후 그 집에서 처리한다. Prime은 미진행.
 
 - [x] **11. Entwurf #147 strict mirror 호환·재개 문서 마감** — `a5a075b`·`e007e01`, 독립 검수와 합성163/0·승인된 metadata1회 관측을 `CHANGELOG.md v2026.10.22`에 갈무리했다. 닫힌 좌표7–10도 같은 cut에 회수했다.
-- [ ] **12. 노트북의 안전한 버전 짝 전환** ← CURRENT: 승인 대기 — **GLG가 전환 시점을 정할 때까지 대기.** Entwurf v0.41.0 출하본과 검증된 agent-config `v2026.10.22`를 함께 가져가되 오늘 작업 환경을 먼저 보존한다. 아직 노트북 pull/install/sync/restart 승인 없음.
+- [ ] **12. 노트북의 안전한 버전 짝 전환** ← PAUSED: 승인 대기 — **GLG가 전환 시점을 정할 때까지 대기.** Entwurf v0.41.0 출하본과 검증된 agent-config `v2026.10.22`를 함께 가져가되 오늘 작업 환경을 먼저 보존한다. 아직 노트북 pull/install/sync/restart 승인 없음.
 
-# NOW — 노트북 전환은 GLG 시점 결정 대기
+# NOW — FrontierMemory를 함께 읽고 LETTA.md에 관측을 축적
 
-- **다음 한 걸음:** 서버 판정 수선은 검증·commit/push 요청까지 마감했다. 노트북 전환·setup·추가 규약/횡단 수선은 새 GLG 요청 전까지 하지 않는다. Entwurf 후보는 코디68bd94가 인지·라우팅했으며 우리가 대신 고치지 않는다.
+- **요청/소유:** GLG가 workspace-glgdot git log의 Letta 대화를 읽고 하네스벤치에 LETTA.md를 등록하라고 요청했다. 그 리포는 비공개임을 직접 확인, 원문은 여기 전재하지 않는다. 이후 GLG가 FrontierMemory가 이번 대화 중심이며 Andenken과 기억축을 논의하려던 자료라고 보완하고, 새 Opus를 불러 함께 읽자고 명시했다. 이 집은 문서 편집, Opus는 공개자료 독립 조사/비평만이며 source-owner 변경·실험은 없다.
+- **직접 읽은 근거:** 공개 Letta Code75d7921/package0.34.23, FrontierMemory49bea0f/package0.1.0·benchmark1.0의 README/tree/규칙/기억형식/검증·연결 소스, 공식 발표글, Berkeley MemGPT/Letta 회사 기원, #151 본문+댓글2건. 임시 공개근거 `/tmp/letta-bench-20261024/`. 발표665 trajectories·Fig2 1attempt·dreaming제외비용과 현행README674·3attempt·공식독립3runs를 구분했다. 기존 LoCoMo/LongMemEval의 범위/포화 주장과 verifier 적격성은 교차검토 중; 순위를 재현한 것은 아니다.
+- **초안/검증:** LETTA.md에 제품과 벤치마크·기원·5렌즈·#151/Andenken 논의 좌표를 넣고, README 열번째 subject와 harness-bench skill 발견문구/경계를 연결했다. status/show가 LETTA를 observe/2026-10-24로 인식함을 직접 확인. 신규 스킬/링크/설치 경로는 없다. README10행/LETTA1행·skill description685자/trigger·참조정의/코드펜스/비공개원문미전재·CURRENT1개·diffcheck를 직접 검사해 PASS. 고정한 Andenken README 좌표와 UTF-8/8MiB 원래 평가 범위도 재확인했다. Opus 견해를 원문/형제 보고/코디 직접 재현으로 구분해 추가했으며, 새 절 범위 확인을 요청했다. source6개 gitblob hash 일치·합성 bundle partial metadata/음성대조·발표 HTML aria70점을 코디도 직접 확인했다.
+- **fresh 상관:** Claude Code 구독의 승인된 `opus`로 fresh-call1회, 요청cwd `/home/junghan/repos/gh/agent-config`, launch window@4/pane%4/session$1, nonce `mux-fresh-call-aec20127a61ef395f9ee9890`. launch 자체와 별도로 exact nonce callback이 11:53:57에 도착한 원본을12:08 inbox에서 읽어 sender `20261024T115350-754cad`로 상관했고,12:01 독립 보고도 수신했다(모델Opus5.5는자기보고). 재시도/최신peers 추측/기존262682로 대체0. 전달된 첫 task는 public blog/repo/기존평가 비평의 read-only 연구이며 파일수정·추가분신·모델벤치·데이터셋·개인본문·SSH·liveSQLite·issue게시·commitpush 금지.
+- **다음/금지:** 실제수신한독립보고 `/tmp/opus-fm-754cad/REPORT.md`를읽고근거를대조했다. LoCoMo/LME는갱신·보류도포함;원논문은OpusREAD·공식README는코디도READ, LME-V2는추가미해결. source6개blobmatch후stdlib임시fixture의 partial memorymeta에서problems[]/가짜reward3/3과allmissing시mismatch음성대조재현. 공식제출수용/실제taskpass/발표거짓으로확대하지않는다. LETTA새공동절만Opus에게최종범위확인을요청했고,12:15:09 회신에서 범위과장없음 확인, memory내발췌검색가능/adapter확장점가능/effort차이를반복변동폭으로못봄을공동정리했다. 이로써이번등록·연구는마감하고GLG와Andenken이논의할질문을짧게보고한다. Andenken 담당자 신규 호출/구현·bench adapter·실제 평가·데이터 수집은 아직 실행하지 않았다. 이번 문서4파일은 GLG 명시 승인대로 정상 commit/push·agenda 마감한다. Oracle 반영·설치·실제compact/fork는 요청 범위가 아니다. version짝 전환은 여전히 GLG 시점 결정 대기, FACTORY/#28/#30 보존.
+
+# RECENT — 10-23 전체 임베딩 중단 보고 인수
+
+- GLG가 Sonnet의 중단 보고를 전달: T2 global35/49에서 SIGTERM/exit143, Oracle index/manifest/corpus 발행 전, T3/T4미시작, 남은 프로세스없음·락빈파일잔류라 삭제안함. 이 집이 재측정한 것은 아닌 실행자 보고이며 다음 실행의 미완구간만 처리/약$0.01 설명도 미검증이다. 새 전체임베딩 요청 전 재개·락삭제·감사·SSH·paid실행0. 기존 노트북 전환 승인과도 별개다.
 
 # RECENT — 서버 판정의 SIGPIPE·생산자 실패 구분 (2026-10-23)
 
