@@ -11,17 +11,22 @@ if (!code) {
 	process.exit(1);
 }
 
+let connectTimer;
 const b = await Promise.race([
 	puppeteer.connect({
 		browserURL: "http://localhost:9222",
 		defaultViewport: null,
 	}),
-	new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000)),
+	new Promise((_, reject) => {
+		connectTimer = setTimeout(() => reject(new Error("timeout")), 5000);
+	}),
 ]).catch((e) => {
 	console.error("✗ Could not connect to browser:", e.message);
 	console.error("  Run: browser-start.js");
 	process.exit(1);
 });
+// A pending timer keeps node alive after disconnect, delaying exit until it fires.
+clearTimeout(connectTimer);
 
 const p = (await b.pages()).at(-1);
 
