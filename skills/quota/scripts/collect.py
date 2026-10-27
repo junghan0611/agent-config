@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect the four active model rails into one normalized snapshot.
+"""Collect the three active model rails into one normalized snapshot.
 
 This is the single source of truth: quota.py (text), --watch (TUI) and
 serve.py (web) all render *this* dict and never call a vendor endpoint
@@ -25,7 +25,7 @@ we derive it as resets_at - window_seconds.
 the display never overstates it:
     rolling  -- vendor returns a relative countdown (codex)
     period   -- vendor returns explicit start/end (grok)
-    anchor   -- absolute reset instant only; period length inferred (claude, zai)
+    anchor   -- absolute reset instant only; period length inferred (claude)
 
 Never prints a raw token. Credentials are read from local files straight
 into request headers and discarded.
@@ -46,10 +46,6 @@ KST = datetime.timezone(datetime.timedelta(hours=9))
 
 def _iso(dt):
     return dt.astimezone(datetime.timezone.utc).isoformat()
-
-
-def _from_ms(ms):
-    return _iso(datetime.datetime.fromtimestamp(ms / 1000, tz=datetime.timezone.utc))
 
 
 def _from_s(s):
@@ -80,39 +76,6 @@ def gauge(key, label, used_pct, resets_at=None, used=None, limit=None,
         "window_seconds": window_seconds, "window": window, "basis": basis,
         "active": active, "note": note,
     }
-
-
-def collect_zai():
-    tok = _q._load_json(_q.PI_AUTH)["zai"]["key"]
-    _, body = _q._get(
-        "https://api.z.ai/api/monitor/usage/quota/limit",
-        headers={"Authorization": tok, "Accept-Language": "en-US,en",
-                 "Content-Type": "application/json"},
-    )
-    data = json.loads(body)["data"]
-    gauges = []
-    for l in data.get("limits", []):
-        # unit 3 = hours, unit 6 = weeks; `number` is how many of them.
-        n = l.get("number") or 1
-        if l.get("unit") == 3:
-            key, window, label, secs = "5h", f"{n}h", f"{n}h", n * H
-        elif l.get("unit") == 6:
-            key, window, label, secs = "weekly", "7d", "weekly", n * 7 * D
-        else:
-            key = window = label = f"u{l.get('unit')}n{l.get('number')}"
-            secs = None
-        # `usage` is the LIMIT, `currentValue` is what has been spent.
-        # nextResetTime is ABSENT while the window is untouched (0% used).
-        reset = l.get("nextResetTime")
-        gauges.append(gauge(
-            key, label, l.get("percentage"),
-            resets_at=_from_ms(reset) if reset else None,
-            used=l.get("currentValue"), limit=l.get("usage"),
-            unit="credit", window=window, basis="anchor",
-            window_seconds=secs, active=bool(l.get("currentValue")),
-            note=None if reset else "untouched window — vendor sends no reset time",
-        ))
-    return {"plan": data.get("level"), "gauges": gauges}
 
 
 CODEX_PLAN_LABELS = {
@@ -271,7 +234,6 @@ def _age(entry, now):
 RAILS = [
     ("claude", collect_claude),
     ("codex", collect_codex),
-    ("zai", collect_zai),
     ("grok", collect_grok),
 ]
 

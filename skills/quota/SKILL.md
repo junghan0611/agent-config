@@ -1,6 +1,6 @@
 ---
 name: quota
-description: "네 개 활성 모델 구독(rail)의 남은 쿼터를 한 번에 조회 — Z.AI GLM 5시간/주간 크레딧, ChatGPT Pro/Codex의 plan-provided 윈도우, Claude 5h/7d 윈도우, Grok SuperGrok weekly credit usage. Copilot은 사용 중단으로 수집하지 않는다. GLG가 다음 분신을 어느 rail로 보낼지 결정할 때 쓴다. Use when: '쿼터', '얼마 남았', '남은 크레딧', '어디로 보낼까', 'quota', 'usage', 'how much is left', 'which rail', 'rate limit check'."
+description: "세 개 활성 모델 구독(rail)의 남은 쿼터를 한 번에 조회 — ChatGPT Pro/Codex의 plan-provided 윈도우, Claude 5h/7d 윈도우, Grok SuperGrok weekly credit usage. Copilot은 사용 중단으로 수집하지 않는다. GLG가 다음 분신을 어느 rail로 보낼지 결정할 때 쓴다. Use when: '쿼터', '얼마 남았', '남은 크레딧', '어디로 보낼까', 'quota', 'usage', 'how much is left', 'which rail', 'rate limit check'."
 user_invocable: true
 ---
 
@@ -20,14 +20,14 @@ python3 {baseDir}/scripts/quota.py --json     # 정규화 스냅샷
 ./run.sh quota:json            # 정규화 스냅샷
 ```
 
-네 active rail을 GET해서 한 화면에 정렬한다. 과거 이력도, 알림도 아니다 — **지금 이 순간의 상태**만
+세 active rail을 GET해서 한 화면에 정렬한다. 과거 이력도, 알림도 아니다 — **지금 이 순간의 상태**만
 답한다. 스크립트가 숫자를 찍으면, 에이전트가 그걸 읽어 GLG에게 산문으로 설명한다.
 
 ## 구조 — 수집 1개, 렌더러 3개
 
 ```
 scripts/railauth.py   자격증명 로딩 · HTTP · grok OIDC 갱신
-scripts/collect.py    5 rail GET → 정규화 스냅샷  ← 유일한 진실
+scripts/collect.py    3 rail GET → 정규화 스냅샷  ← 유일한 진실
 scripts/render.py     막대 · 리셋 시계 · 텍스트 레이아웃 (TUI와 웹이 공유)
 scripts/quota.py      1회 / --watch(TUI) / --json
 scripts/serve.py      127.0.0.1 웹 + /api/snapshot.json
@@ -55,7 +55,7 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
                "resets_at","window","basis","active","note"}]}]}
 ```
 
-네 active vendor 화면이 전부 같은 물건이다 — **레이블 + 퍼센트 + (선택) 사용/한도 + 리셋 시각**.
+세 active vendor 화면이 전부 같은 물건이다 — **레이블 + 퍼센트 + (선택) 사용/한도 + 리셋 시각**.
 차이는 단위뿐(요청 수 / 크레딧 / 퍼센트만).
 
 ## 리셋 기준 — rail마다 다르다
@@ -66,7 +66,6 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 |---|---|---|---|---|
 | claude | 7d | 월 06:59:59 | `anchor` | 절대 시각만 옴. 5h/7d/7d-scoped 셋이 같은 경계 |
 | codex | plan-provided (현재 Pro: 7d primary) | 응답 `reset_at` | `rolling` | product tier가 아니라 응답 window이 정본 |
-| zai | 7d | 목 14:36 | `anchor` | `nextResetTime` 절대 시각 |
 | grok | 7d | 금 18:11 | `period` | `currentPeriod.start/end` 명시 |
 `basis`는 **엔드포인트가 실제로 알려준 것만** 기록한다. 절대 시각 하나만 오는 rail을
 "롤링"이라 단정하지 않는다(`anchor`). 그래서 화면은 항상 요일과 남은 시간을 같이 찍는다 —
@@ -81,7 +80,6 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 |---|---|---|---|---|---|
 | codex | 7d | 17% | 49% | **2.9배** | 하루 만에 사흘치를 태움 |
 | claude | 7d Fable | 18% | 28% | 1.5배 | 약간 앞섬 |
-| zai | 7d | 71% | 69% | **1.0배** | 69%가 찼지만 **딱 페이스** |
 
 - 막대의 `┃`(웹은 파란 세로선)가 **기간 경과 지점**. 채움이 마커를 넘어가면 앞당겨 쓴 것.
 - 화면 문구는 전부 영어다(레이블·요일·카운트다운). 이 문서만 한국어다.
@@ -104,7 +102,7 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 
 ## 화면이 지키는 것
 
-- **요일**: 월·월·목·금·1일로 흩어져 있어 요일 없이는 파악이 안 된다
+- **요일**: rail마다 리셋 요일이 달라 요일 없이는 파악이 안 된다
 - **남은 시간**: `5일 17시간 뒤`
 - **`active` 표시(●)**: 지금 실제로 물리고 있는 창. claude `is_active`, codex primary 등
 - **배속과 경과 마커**: 위 절 참조. 절대 퍼센트만으로는 판단이 뒤집힌다
@@ -113,7 +111,6 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 
 | rail | 무엇을 재나 | 엔드포인트 |
 |---|---|---|
-| zai | GLM Coding Plan Lite — 5시간 윈도우 + 주간 크레딧 풀 | `GET api.z.ai/api/monitor/usage/quota/limit` |
 | codex | ChatGPT Pro / Codex — endpoint가 준 primary·secondary window 사용률 | `GET chatgpt.com/backend-api/wham/usage` |
 | claude | Claude Code 구독 — `limits[]` (5h 세션 · 7d 전체 · 7d 모델별) | `GET api.anthropic.com/api/oauth/usage` |
 | grok | SuperGrok **주간** credit 사용률 (`creditUsagePercent`) | `GET cli-chat-proxy.grok.com/v1/billing?format=credits` |
@@ -138,13 +135,13 @@ access token 이 만료됐거나 401 이면 스크립트가 `https://auth.x.ai/o
 
 토큰은 파일에서 읽어 요청 헤더로 바로 흘려보내고 절대 출력/로그하지 않는다.
 
-- `~/.pi/agent/auth.json` — `zai`(`key`), `openai-codex`(`access` + `accountId`)
+- `~/.pi/agent/auth.json` — `openai-codex`(`access` + `accountId`)
 - `~/.claude/.credentials.json` — `claudeAiOauth.accessToken`
 - `~/.grok/auth.json` — OIDC scope 키 아래 `key` / `refresh_token` / `expires_at` / `oidc_client_id` / `oidc_issuer` (grok weekly billing 전용)
 
 ## 취약점 — 정직하게
 
-네 엔드포인트 중 **공식 문서에 실린 것은 없다**. 전부 각 벤더의 공식 CLI/앱이 내부적으로
+세 엔드포인트 중 **공식 문서에 실린 것은 없다**. 전부 각 벤더의 공식 CLI/앱이 내부적으로
 때리는 걸 관찰해서 찾은 것 — 벤더가 언제든 바꿀 수 있다. 실패는 개별 rail 단위로 격리된다:
 한 엔드포인트가 죽어도 `UNAVAILABLE — <이유>`만 찍고 나머지는 계속 진행한다.
 
@@ -167,11 +164,6 @@ access token 이 만료됐거나 401 이면 스크립트가 `https://auth.x.ai/o
   있으므로 `plan_type`과 primary/secondary window를 응답 그대로 읽는다.** GLG의 ChatGPT Pro
   승격(2026-09-10) 직후 receipt는 `plan_type:"prolite"`, `7d primary`, 0%였다; 화면은 이
   내부 식별자를 `ChatGPT Pro (prolite)`로 보인다.
-- **zai**: 응답 필드(`unit`/`number`가 윈도우 길이를 인코딩하는 방식, `percentage`가 잔량이
-  아니라 소진율이라는 것)는 Z.AI 문서 어디에도 없다 — 실제 응답과 벽시계를 대조해서 역추론한 것.
-  앱 화면 리셋 시각은 베이징시(UTC+8) — quota.py KST가 정확한 한국 시각이고 앱보다 1시간 늦게 보인다(크레딧 숫자는 일치).
-  **`usage`가 한도이고 `currentValue`가 실사용이다**(이름이 반대로 읽힌다). 그리고 창이
-  0% 소진이면 `nextResetTime` 필드 자체가 오지 않는다 — 필수 취급하면 rail 전체가 죽는다.
 - **grok**: `cli-chat-proxy.grok.com` 은 grok CLI 전용 프록시. access token ~6h 만료;
   refresh 실패 시 `UNAVAILABLE — HTTP 401` 로 보이며, 그때는 `grok` CLI 를 한 번 띄워
   auth.json 을 갱신하면 된다. `creditUsagePercent` 필드명/의미는 문서화되어 있지 않다.
@@ -186,6 +178,6 @@ access token 이 만료됐거나 401 이면 스크립트가 `https://auth.x.ai/o
 - **이력**: 스냅샷을 `~/.local/share/quota/quota.db`(sqlite)에 append. 스키마가 이미
   시계열이라 스파크라인·소진 속도·"이 속도면 언제 벽" 예측이 따라온다.
   seam은 이미 있다 — `serve.py`가 갱신할 때마다 `~/.local/share/quota/last.json`을 쓴다.
-- **귀속(누가 얼마나 썼나)**: **이 네 엔드포인트로는 원리적으로 안 나온다.** 계정 총합만
+- **귀속(누가 얼마나 썼나)**: **이 세 엔드포인트로는 원리적으로 안 나온다.** 계정 총합만
   준다. 귀속은 하네스 로그(Claude Code JSONL, codex 로그, pi 세션)에서 따로 와야 하고,
   시간축으로 조인하는 별개 테이블이다. 섞으면 1단계가 무너진다.
