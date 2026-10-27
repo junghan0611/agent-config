@@ -6,19 +6,19 @@
 
 # RAIL — 현재 좌표
 
-- [x] **17. browser-eval 최소 수선·독립 검수** — 구현·검수 결과를 후보 `CHANGELOG.md v2026.10.27`로 이관. 실제 Chrome 검증은 아님.
-- [x] **18. 세 기억축 통상 증분·Oracle 반영** — 코디가 양쪽 검증·발행을 인수한 닫힌 운영 결과만 후보 CHANGELOG로 이관. #18 용량 분석과는 별개.
-- [x] **19. 현행 모델 명부·quota 정리** — Terra500K/셸 매핑·Z.AI 제거와 오프라인11/11·코디 검수를 후보 CHANGELOG로 이관. 실제 auth/cache/shell/runtime은 미변경.
-- [ ] **20. README·CalVer 출하 준비 (2026-10-27)** ← CURRENT: **준비본 완료·코디 최종검수→출하 실행.** 후보 `v2026.10.27`, baseline `v2026.10.22`. 코디가 전달한 GLG의 ‘너가 검토되면 커밋푸시 태그릴리즈 쭉 가라’ 명시 승인에 따라 코디 최종검수 뒤 commit/push/tag/GitHub Release/stamp로 이어간다. 실제 Git 출하는 코디가 정상 훅과 commit·tag-release 스킬로 전담하며 준비 담당자는 stage/commit/push하지 않는다. 담당자 Org는 실제 반영 완료·export 미확인이다. 홈페이지는 코디의 별도 GLG 직접 승인으로 한영 문서 검증·commit/push/도장까지 완료 보고를 받았고 production 배포는 미확인이다. 이 집 출하의 대기 게이트가 아니다.
+- [x] **17–19. 일상 도구·현재 모델·기억 운영 마감** — browser 수선, Terra500K/셸 매핑·quota Z.AI 제거, 세 축 통상 증분·Oracle 반영을 `CHANGELOG.md v2026.10.27`에 갈무리했다. 실제 Chrome/live quota/전체 검색 품질 인증은 아니다.
+- [x] **20. README·CalVer 출하 (2026-10-27)** — 정상 훅 commit/push 및 [v2026.10.27 GitHub Release](https://github.com/junghan0611/agent-config/releases/tag/v2026.10.27) 완료. 태그 snapshot은 `59849ed6a716dd9953c8ece18211bce4bfdd2d23`이며 이 NEXT 마감은 그 뒤 문서 커밋이다.
+- [ ] **21. 다음 범위 결정** ← CURRENT: GLG의 새 요청 대기. 이번 출하·임베딩을 반복하거나 설치/재시작/분석을 자동 시작하지 않는다.
 - [ ] **15. #18 STOP·보류 레인 보존** ← PAUSED: 새 요청 전 분석·삭제·재처리 없음. Cloudflare(옛16)·운영 버전 전환(옛12)·기존 연구도 이번 출하 승인과 분리한다.
 
-현재 좌표: 17–19 구현/운영 검수 완료 → 20 코디 최종검수 → 승인된 commit/push/tag/GitHub Release/stamp. GLG 재승인을 다시 기다리는 gate가 아니다. 닫힌 서버 판정·Letta·기억 목적 정렬은 이번 후보 CHANGELOG, strict mirror 마감은 기존 `v2026.10.22`에 있다.
+현재 좌표: 17–20 완료 → 21 새 요청 대기. 닫힌 서버 판정·Letta·기억 목적·현재 도구·문서 정합은 `v2026.10.27`, strict mirror 마감은 `v2026.10.22`에 있다. 도장은 release 스킬의 agenda 기록으로 확인한다.
 
-# NOW — v2026.10.27 코디 최종검수 뒤 Make
+# NOW — v2026.10.27 출하 완료; 다음 요청 대기
 
-- **Next:** 코디가 루트/native README·후보 CHANGELOG·공개 NEXT와 비공개 작업메모 보존을 최종검수한 뒤, GLG의 최신 명시 승인으로 commit/push/tag/GitHub Release/stamp까지 실행한다. 충돌·훅·출하 검사는 commit·tag-release 스킬대로 하고 실패를 우회하지 않는다. 준비 담당자는 편집권을 코디에게 돌려주고 실제 stage/commit/push를 실행하지 않는다.
-- **범위:** `v2026.10.22..HEAD`의 실제5커밋(920e888·5bf7ced·9720cf8·724979f·d78728f; 현재 HEAD d78728f), 검수된 browser-eval·MODELS/quota, 이번 루트/native README/문서정합. native README의 현행 공급은 Entwurf owner 계약으로 연결하고 0.36/SDK1.2 검증은 날짜 붙은 역사로 보존했다. 새1.4 API-0 44/44는 별도 좁은 측정이며 전체1.4 수용·모든 loaded bytes는 미검증이다. 후보 태그 `v2026.10.27`은 준비 시점 local/remote 모두 미존재. 태그 충돌은 실행 직전 다시 확인한다.
-- **검증:** 오프라인 native44/44(skip0, 0.45 checkout/1.4 SDK), peek163/0, recap40, server15, env-links3, release extractor7, quota11, browser5를 직접 재실행해 PASS. README 문서/47 named-set·7 helper stub argv와 공개 CHANGELOG 과거 절 불변·노트 추출도 PASS. 이 목록은 운영 runtime·실제 Chrome·live quota·공급자 전체 출하 인증이 아니다.
+- **Next:** 재실행할 출하 작업은 없다. 새 요청이 오면 해당 범위를 정하고 시작한다. #18 분석 STOP과 아래 PAUSED를 보존하며 note export·운영 설치·재시작·임베딩을 추정하지 않는다.
+- **출하 영수증:** 코디 background 작업이 정상 훅 문서 commit `59849ed`·main/tag push·GitHub Release 공개(isDraft=false)를 완료했다. 당시 원격 main/tag가 모두 `59849ed6a716dd9953c8ece18211bce4bfdd2d23`임을 직접 확인했다. 태그 이동/우회는 없다. 후속 NEXT 마감은 코드·태그 내용을 바꾸지 않는다.
+- **범위:** `v2026.10.22..v2026.10.27`의 실제6커밋: 기존3개와 browser `724979f`, models/quota `d78728f`, 문서/릴리즈 준비 `59849ed`. root/native README는 현행 Entwurf owner 공급 계약과 날짜별 0.36/SDK1.2·0.45/SDK1.4 검증을 구분한다. 전체1.4 수용·모든 loaded bytes의 인증은 아니다.
+- **검증:** Sol이 오프라인 native44/44(skip0, 0.45 checkout/1.4 SDK), peek163/0, recap40, server15, env-links3, release extractor7, quota11, browser5를 재실행했고 코디가 실행 원문을 읽어 확인했다. 코디도 quota11/browser5/별도 모의 종료 비교와 release extractor7·공개면/보존 해시 검사를 직접 수행해 PASS. README 문서/47 named-set·7 helper stub argv와 공개 CHANGELOG 과거 절 불변·노트 추출도 PASS. 이 목록은 운영 runtime·실제 Chrome·live quota·공급자 전체 출하 인증이 아니다.
 - **별도 문서 checkpoint:** 코디의 2026-10-27 보고를 인수했다. 기존 담당자 Denote `20260312T174622`에 Opus 압축v2가 반영됐고, 코디가 denotecli로 current-report 헤딩72/ARCHIVE108·본문·lastmod11:02를 직접 확인했다는 근거다(이 준비 담당자의 독립 Org 열람 아님). ARCHIVE 전후 불변·중복 없음은 Opus의 hash/diff 보고이며 코디의 독립 동일성 검사와 구분한다. 현재 역할·이웃집 경계·판단 중심의 노트로, 버전/커밋로그를 싣지 않았다. **Org 원본 수정은 이 리포 Git 릴리즈 파일이 아니며 export·Org commit/push·공개 출하는 미실행/별도 대기**다. 홈페이지 코디는 최종 root/native README 해시를 직접 재대조하고 격리 Hugo/Eval/HTML 검증 및 한영 desktop-dark 상단 시각 관찰을 마친 뒤, 그쪽 GLG 직접 검수·승인으로 `junghan0611/homepage`의 `8c2e04f` commit/push/도장을 완료했다고 보고했다. 이집은 소개 원문과 격리 검증 로그를 직접 읽었고 출하 사실은 코디 보고로 인수했다. production 배포·가든 note export는 미확인이며 이 CalVer 태그의 자동 포함/완료가 아니다.
 - **보존:** MODELS/quota/browser 패치 동결. 실제 auth/cache/shell/runtime·설치·추가 형제·유료 호출은 이번 준비 밖. Opus의 담당자 문서·homepage 조율은 별도 레인이며 여기서 대신 수정하지 않는다.
 
@@ -31,11 +31,11 @@
 
 # RECENT — 2026-10-27 닫힌 일의 공개 요약
 
-- **닫힌 결과:** browser-eval 최소 수선·독립 검수, Terra500K/현행 셸 매핑·quota Z.AI 제거, 세 기억축 통상 증분·Oracle 반영은 후보 [CHANGELOG v2026.10.27](CHANGELOG.md#v20261027--entwurf-045-소비면-경험-기억과-현재-모델-명부)에 갈무리했다. 재실행할 작업이 아니다.
+- **닫힌 결과:** browser-eval 최소 수선·독립 검수, Terra500K/현행 셸 매핑·quota Z.AI 제거, 세 기억축 통상 증분·Oracle 반영은 [CHANGELOG v2026.10.27](CHANGELOG.md#v20261027--entwurf-045-소비면-경험-기억과-현재-모델-명부)에 갈무리했다. 재실행할 작업이 아니다.
 - **검증:** browser5·별도 모의12-case와 quota11 검사 및 코디 재검수를 인수했다. 임베딩은 실행자 로그를 코디가 읽어 양쪽 검증·발행을 확인한 결과이며, 새 문서 준비에서 실행한 것은 아니다. 실제 Chrome·live quota·전체 검색 품질·총청구액은 인증하지 않는다.
 - **실협업:** durable caller→native Claude Code Opus·Pi Sol·native Claude Code Sonnet의 정확 callback·요청회신·후속 산출물 인수와 Entwurf 코디의 실제 회신을 관측한 범위의 일차 수용이다. 전 rail·장기·crash/recovery·exactly-once나 모든 loaded bytes의0.45 인증은 아니다. Grok/ACP는 이번 관측에서 실행하지 않았다.
 - **증거 보존:** 오늘 작성한 닫힌 작업메모만 비공개0700 영수증에 정확히 보존하고 위치·해시를 코디에게 전달했다. 전사/SQLite를 export하거나 기존 조사자산을 이동·삭제한 것이 아니다. 오늘 새로 정리한 공개 NEXT 블록에는 운영 주소·nonce·mailbox 이름·로컬/private 경로를 싣지 않는다.
-- **다음:** 위 NOW의 코디 최종검수→승인된 Git 출하와 별도 홈페이지/노트 공개 gate만 남는다. #18 용량 분석 STOP·기존 보류는 아래 그대로다.
+- **다음:** 이 집 Git 출하는 완료됐다. 홈페이지 commit/push도 그쪽 코디 보고로 인수했으나 production 배포·노트 export는 미확인이다. 새 요청 없는 추가 실행은 없다. #18 용량 분석 STOP·기존 보류는 아래 그대로다.
 
 # RECENT — 2026-10-25 STOP 마감 좌표
 
