@@ -2,21 +2,42 @@
 
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
-> **STOP — 2026-10-25 18:25 KST:** GLG가 Andenken main에서 중지·마감·공유·기록을 요청했다는 전달을 인수했다. 새 검수·분석·실험은 멈춘다. 아래 이전 GO는 역사 기록이며 재개 권한이 아니다. 재개는 GLG의 새 요청 뒤에만.
+> **Andenken #18 STOP — 2026-10-25 18:25 KST:** 해당 분석은 계속 중지다. 아래 이전 GO는 재개 권한이 아니다. 2026-10-27 GLG가 새로 요청한 RAIL17(browser helper 협업)·RAIL18(통상 증분 임베딩)은 별도 범위이며, 용량 분석 재개가 아니다.
 
 # RAIL — 현재 좌표
 
-- [ ] **16. Cloudflare — 브라우저 설정을 CLI 재현 절차로 회수 (2026-10-25)** ← PAUSED: **최종 인계 영수증 수신 완료**(17:33:41). Andenken #18 stem과 분리해 기존 `skills/cloudflare/SKILL.md`의 일반화된 CLI 절차·옛 Access 상태 설명을 owner 검토할 차례다. 설치판 `cf 1.0.0-beta.5` 기준이며 최신 upstream/계정 재검증은 아니다. **별도 leaf: browser-tools/browser-eval.js 성공 후 잔류 5초 timer 후보**도 함께 인수했다. 소스 READ만 했고 수선·재현 테스트는 아직 미승인/미실행. 비공개 운영값은 제외하며, 새 계정 조작·스킬 수선·테스트는 미승인이다. 이번 요청은 좌표 문서의 commit/push만 승인한 것이다. 아래 **Cloudflare CLI 재현성** 인수 항목 참조. Andenken #18 CURRENT와는 별도 레인.
+- [x] **17. browser-eval 최소 수선·독립 검수** — 구현·검수 결과를 후보 `CHANGELOG.md v2026.10.27`로 이관. 실제 Chrome 검증은 아님.
+- [x] **18. 세 기억축 통상 증분·Oracle 반영** — 코디가 양쪽 검증·발행을 인수한 닫힌 운영 결과만 후보 CHANGELOG로 이관. #18 용량 분석과는 별개.
+- [x] **19. 현행 모델 명부·quota 정리** — Terra500K/셸 매핑·Z.AI 제거와 오프라인11/11·코디 검수를 후보 CHANGELOG로 이관. 실제 auth/cache/shell/runtime은 미변경.
+- [ ] **20. README·CalVer 출하 준비 (2026-10-27)** ← CURRENT: **준비본 완료·코디 최종검수→출하 실행.** 후보 `v2026.10.27`, baseline `v2026.10.22`. 코디가 전달한 GLG의 ‘너가 검토되면 커밋푸시 태그릴리즈 쭉 가라’ 명시 승인에 따라 코디 최종검수 뒤 commit/push/tag/GitHub Release/stamp로 이어간다. 실제 Git 출하는 코디가 정상 훅과 commit·tag-release 스킬로 전담하며 준비 담당자는 stage/commit/push하지 않는다. 담당자 Org는 실제 반영 완료·export 미확인이다. 홈페이지는 코디의 별도 GLG 직접 승인으로 한영 문서 검증·commit/push/도장까지 완료 보고를 받았고 production 배포는 미확인이다. 이 집 출하의 대기 게이트가 아니다.
+- [ ] **15. #18 STOP·보류 레인 보존** ← PAUSED: 새 요청 전 분석·삭제·재처리 없음. Cloudflare(옛16)·운영 버전 전환(옛12)·기존 연구도 이번 출하 승인과 분리한다.
 
-- [ ] **15. 경험 기억·Andenken #18 분석 (2026-10-25)** ← CURRENT: **STOP 마감 / 재개는 GLG 새 요청 대기.** 목적·역할 기록 / E0·공식 metadata 분류 / 3 immutable 회수배치를 남겼다. old 합성 선택4 관측이나 전체 guard FAIL·fresh0, 삭제가능량 미확정. 상세는 아래 NOW/RECENT.
-- [x] **14. LETTA / FrontierMemory 관측 등록 (2026-10-24)** — `5bf7ced` 정상 commit/push, 로컬/원격 SHA 일치·agenda 도장 완료. 공개 소스/합성 검사만, 실제 벤치마크·설치·임베딩0.
+현재 좌표: 17–19 구현/운영 검수 완료 → 20 코디 최종검수 → 승인된 commit/push/tag/GitHub Release/stamp. GLG 재승인을 다시 기다리는 gate가 아니다. 닫힌 서버 판정·Letta·기억 목적 정렬은 이번 후보 CHANGELOG, strict mirror 마감은 기존 `v2026.10.22`에 있다.
 
-- [x] **13. pipefail 아래 서버 판정 오분류 수선 (2026-10-23)** — `run.sh`·격리 회귀15개 수선 완료, env-links3/syntax/diff PASS. GLG의 직접 commit/push 요청으로 정상 마감. 실제 설정 변경·setup 없음. Entwurf 후보는 기존 코디68bd94가 인수했으며 별도 GLG 승인 후 그 집에서 처리한다. Prime은 미진행.
+# NOW — v2026.10.27 코디 최종검수 뒤 Make
 
-- [x] **11. Entwurf #147 strict mirror 호환·재개 문서 마감** — `a5a075b`·`e007e01`, 독립 검수와 합성163/0·승인된 metadata1회 관측을 `CHANGELOG.md v2026.10.22`에 갈무리했다. 닫힌 좌표7–10도 같은 cut에 회수했다.
-- [ ] **12. 노트북의 안전한 버전 짝 전환** ← PAUSED: 승인 대기 — **GLG가 전환 시점을 정할 때까지 대기.** Entwurf v0.41.0 출하본과 검증된 agent-config `v2026.10.22`를 함께 가져가되 오늘 작업 환경을 먼저 보존한다. 아직 노트북 pull/install/sync/restart 승인 없음.
+- **Next:** 코디가 루트/native README·후보 CHANGELOG·공개 NEXT와 비공개 작업메모 보존을 최종검수한 뒤, GLG의 최신 명시 승인으로 commit/push/tag/GitHub Release/stamp까지 실행한다. 충돌·훅·출하 검사는 commit·tag-release 스킬대로 하고 실패를 우회하지 않는다. 준비 담당자는 편집권을 코디에게 돌려주고 실제 stage/commit/push를 실행하지 않는다.
+- **범위:** `v2026.10.22..HEAD`의 실제5커밋(920e888·5bf7ced·9720cf8·724979f·d78728f; 현재 HEAD d78728f), 검수된 browser-eval·MODELS/quota, 이번 루트/native README/문서정합. native README의 현행 공급은 Entwurf owner 계약으로 연결하고 0.36/SDK1.2 검증은 날짜 붙은 역사로 보존했다. 새1.4 API-0 44/44는 별도 좁은 측정이며 전체1.4 수용·모든 loaded bytes는 미검증이다. 후보 태그 `v2026.10.27`은 준비 시점 local/remote 모두 미존재. 태그 충돌은 실행 직전 다시 확인한다.
+- **검증:** 오프라인 native44/44(skip0, 0.45 checkout/1.4 SDK), peek163/0, recap40, server15, env-links3, release extractor7, quota11, browser5를 직접 재실행해 PASS. README 문서/47 named-set·7 helper stub argv와 공개 CHANGELOG 과거 절 불변·노트 추출도 PASS. 이 목록은 운영 runtime·실제 Chrome·live quota·공급자 전체 출하 인증이 아니다.
+- **별도 문서 checkpoint:** 코디의 2026-10-27 보고를 인수했다. 기존 담당자 Denote `20260312T174622`에 Opus 압축v2가 반영됐고, 코디가 denotecli로 current-report 헤딩72/ARCHIVE108·본문·lastmod11:02를 직접 확인했다는 근거다(이 준비 담당자의 독립 Org 열람 아님). ARCHIVE 전후 불변·중복 없음은 Opus의 hash/diff 보고이며 코디의 독립 동일성 검사와 구분한다. 현재 역할·이웃집 경계·판단 중심의 노트로, 버전/커밋로그를 싣지 않았다. **Org 원본 수정은 이 리포 Git 릴리즈 파일이 아니며 export·Org commit/push·공개 출하는 미실행/별도 대기**다. 홈페이지 코디는 최종 root/native README 해시를 직접 재대조하고 격리 Hugo/Eval/HTML 검증 및 한영 desktop-dark 상단 시각 관찰을 마친 뒤, 그쪽 GLG 직접 검수·승인으로 `junghan0611/homepage`의 `8c2e04f` commit/push/도장을 완료했다고 보고했다. 이집은 소개 원문과 격리 검증 로그를 직접 읽었고 출하 사실은 코디 보고로 인수했다. production 배포·가든 note export는 미확인이며 이 CalVer 태그의 자동 포함/완료가 아니다.
+- **보존:** MODELS/quota/browser 패치 동결. 실제 auth/cache/shell/runtime·설치·추가 형제·유료 호출은 이번 준비 밖. Opus의 담당자 문서·homepage 조율은 별도 레인이며 여기서 대신 수정하지 않는다.
 
-# NOW — STOP 마감; GLG 재개 요청 대기
+## PAUSED — 살아 있는 보류는 후보 CHANGELOG로 닫지 않는다
+
+- **#18/옛15:** 용량 분석 STOP 유지. old 전체 guard FAIL/fresh0와 참조 union 밖 bytes의 비삭제량 경계를 보존한다. 아래 10-25 영속마감 기록과 owner의 PAUSE를 읽은 뒤 GLG의 새 요청이 있어야 재개한다.
+- **Cloudflare/옛16:** 최종 인계는 수신했지만 스킬 owner 검토·CLI/계정 조작·테스트는 미승인이다. helper 수선만 별도로 닫혔으며 계정/Access 정책 재조회로 확대하지 않는다.
+- **버전 전환/옛12:** GLG의 0.45.0 설치·검증 보고는 인수했지만 이 집이 모든 실행 중인 loaded bytes/다른 기기를 인증한 것은 아니다. 옛0.41 짝 전환 문구는 아래 당시 기록이며 새 pull/install/sync/restart 지시가 아니다. 다음 운영 전환은 별도 요청을 기다린다.
+- **기존 연구:** #28/#30·FACTORY 및 아래 역사 좌표의 열린 후속은 그대로 보류다. OMP의 범위 밖 GLM 프로필도 이번 MODELS/quota 제거만으로 실행 가능 rail이 되지 않는다.
+
+# RECENT — 2026-10-27 닫힌 일의 공개 요약
+
+- **닫힌 결과:** browser-eval 최소 수선·독립 검수, Terra500K/현행 셸 매핑·quota Z.AI 제거, 세 기억축 통상 증분·Oracle 반영은 후보 [CHANGELOG v2026.10.27](CHANGELOG.md#v20261027--entwurf-045-소비면-경험-기억과-현재-모델-명부)에 갈무리했다. 재실행할 작업이 아니다.
+- **검증:** browser5·별도 모의12-case와 quota11 검사 및 코디 재검수를 인수했다. 임베딩은 실행자 로그를 코디가 읽어 양쪽 검증·발행을 확인한 결과이며, 새 문서 준비에서 실행한 것은 아니다. 실제 Chrome·live quota·전체 검색 품질·총청구액은 인증하지 않는다.
+- **실협업:** durable caller→native Claude Code Opus·Pi Sol·native Claude Code Sonnet의 정확 callback·요청회신·후속 산출물 인수와 Entwurf 코디의 실제 회신을 관측한 범위의 일차 수용이다. 전 rail·장기·crash/recovery·exactly-once나 모든 loaded bytes의0.45 인증은 아니다. Grok/ACP는 이번 관측에서 실행하지 않았다.
+- **증거 보존:** 오늘 작성한 닫힌 작업메모만 비공개0700 영수증에 정확히 보존하고 위치·해시를 코디에게 전달했다. 전사/SQLite를 export하거나 기존 조사자산을 이동·삭제한 것이 아니다. 오늘 새로 정리한 공개 NEXT 블록에는 운영 주소·nonce·mailbox 이름·로컬/private 경로를 싣지 않는다.
+- **다음:** 위 NOW의 코디 최종검수→승인된 Git 출하와 별도 홈페이지/노트 공개 gate만 남는다. #18 용량 분석 STOP·기존 보류는 아래 그대로다.
+
+# RECENT — 2026-10-25 STOP 마감 좌표
 
 - **중지 근거/라우팅:** 18:25 Andenken main877f91이 그집 GLG의 STOP·마감·공유·기록 및 노트북 종료 의도를 전달했다. 이집도 추가검수/분석/실무요청을 중지하고 회신했다. 실무코디877f91/실무Sol1da287/이집소비자·평가교차검수의 역할은 보존한다. 새 실행gate/코드수정/검사·범위확대는 하지 않는다.
 - **남은 결론:** 캡처된 v4069/236세대의 현재기본15개 2,380,140,544B / 과거세대전용19개 2,129,797,120B / fragment union밖4개 3,896,492,032B. 마지막은 **삭제가능량·실제회수량이 아니다**. live현재버전/외부권위·진행중작업/복구보호·검색품질은 인증하지 않았다.
@@ -54,23 +75,9 @@
 - **GLG의 후속 직접 방향:** 단순 사실/하루 조회가 아니라 현재 고민에서 과거의 고민·조건·선택 과정을 원문 앞뒤로 이어 읽는 기억에 관심이 있다. '힣이라면'을 모사하는 데 멈추지 않고, 더 좋은 낯선 답도 GLG가 이해·검토·수용할 수 있어야 하며 인간의 성장과 판단 변화 자체를 기억한다. 기존 벤치도 함께 검토하고 필요하면 관심 포인트를 확장 비교군으로 논의할 수 있다. 이는 확장벤치 구축/실행 승인이 아니다. `AGENTS.md`·`ROADMAP.md`에 반영(미커밋), 원문 전체와 코디 해석을 분리해 Sol f828fe에 후속 read-only 검토를 요청했고 native-push delivered. 14:10:34 후속 회신 `2026-10-25T05-10-34-839Z-8ec085.msg`를 수신했다. Sol은 평가 단위를 정답 문항에서 근거를 되짚으며 판단을 발전시키는 대화/사건으로 넓힐 가능성을 제안했다. 과거 복원/현재 전이/공동 검토를 나누고, 이해·동의·수정채택·실행·후일유용성을 서로 다른 사건으로 남기자는 제안이다. 원형 벤치와 확장 평가를 분리하고, 미래 누설·동기 창작·과거 모방/아첨·최신답 절대화·모델 자체 수용판정을 경계한다. 근거 READ/초록2편의 저자 보고는 Sol 조사 상속이며 코디 독립검증은 아니다. 핵심 질문 후보는 '좋은 기억 덕분에 이번 대화에서 새로 검토할 수 있게 된 것은 무엇인가?'이다. 아직 평가표/과제셋/채택 결정은 없고 GLG와 논의한다. 후속 조사도 여기서 마감했다는 회신이다. 개인 데이터 접근/과제셋 작성/벤치 수정·실행 요청은 없다.
 - **실행 경계:** 이번 것은 역할 기준 정렬이다. 현행 운영 변경·새 측정/SSH/DB·삭제/재처리·복제·벤치 실행·새 형제 생성·이번 변경의 commit/push 승인으로 확대하지 않는다. 위의 기존 Sol에게 전달할 선행 리서치만 GLG가 별도로 요청했다. 노트북 버전 전환도 기존 승인 대기를 유지한다.
 
-# RECENT — LETTA / FrontierMemory 공개자료 공동읽기와 출하 (2026-10-24)
-
-- **요청/소유:** GLG가 workspace-glgdot git log의 Letta 대화를 읽고 하네스벤치에 LETTA.md를 등록하라고 요청했다. 그 리포는 비공개임을 직접 확인, 원문은 여기 전재하지 않는다. 이후 GLG가 FrontierMemory가 이번 대화 중심이며 Andenken과 기억축을 논의하려던 자료라고 보완하고, 새 Opus를 불러 함께 읽자고 명시했다. 이 집은 문서 편집, Opus는 공개자료 독립 조사/비평만이며 source-owner 변경·실험은 없다.
-- **직접 읽은 근거:** 공개 Letta Code75d7921/package0.34.23, FrontierMemory49bea0f/package0.1.0·benchmark1.0의 README/tree/규칙/기억형식/검증·연결 소스, 공식 발표글, Berkeley MemGPT/Letta 회사 기원, #151 본문+댓글2건. 임시 공개근거 `/tmp/letta-bench-20261024/`. 발표665 trajectories·Fig2 1attempt·dreaming제외비용과 현행README674·3attempt·공식독립3runs를 구분했다. 기존 LoCoMo/LongMemEval의 범위/포화 주장과 verifier 적격성은 교차검토 중; 순위를 재현한 것은 아니다.
-- **초안/검증:** LETTA.md에 제품과 벤치마크·기원·5렌즈·#151/Andenken 논의 좌표를 넣고, README 열번째 subject와 harness-bench skill 발견문구/경계를 연결했다. status/show가 LETTA를 observe/2026-10-24로 인식함을 직접 확인. 신규 스킬/링크/설치 경로는 없다. README10행/LETTA1행·skill description685자/trigger·참조정의/코드펜스/비공개원문미전재·CURRENT1개·diffcheck를 직접 검사해 PASS. 고정한 Andenken README 좌표와 UTF-8/8MiB 원래 평가 범위도 재확인했다. Opus 견해를 원문/형제 보고/코디 직접 재현으로 구분해 추가했으며, 새 절 범위 확인을 요청했다. source6개 gitblob hash 일치·합성 bundle partial metadata/음성대조·발표 HTML aria70점을 코디도 직접 확인했다.
-- **fresh 상관:** Claude Code 구독의 승인된 `opus`로 fresh-call1회, 요청cwd `/home/junghan/repos/gh/agent-config`, launch window@4/pane%4/session$1, nonce `mux-fresh-call-aec20127a61ef395f9ee9890`. launch 자체와 별도로 exact nonce callback이 11:53:57에 도착한 원본을12:08 inbox에서 읽어 sender `20261024T115350-754cad`로 상관했고,12:01 독립 보고도 수신했다(모델Opus5.5는자기보고). 재시도/최신peers 추측/기존262682로 대체0. 전달된 첫 task는 public blog/repo/기존평가 비평의 read-only 연구이며 파일수정·추가분신·모델벤치·데이터셋·개인본문·SSH·liveSQLite·issue게시·commitpush 금지.
-- **다음/금지:** 실제수신한독립보고 `/tmp/opus-fm-754cad/REPORT.md`를읽고근거를대조했다. LoCoMo/LME는갱신·보류도포함;원논문은OpusREAD·공식README는코디도READ, LME-V2는추가미해결. source6개blobmatch후stdlib임시fixture의 partial memorymeta에서problems[]/가짜reward3/3과allmissing시mismatch음성대조재현. 공식제출수용/실제taskpass/발표거짓으로확대하지않는다. LETTA새공동절만Opus에게최종범위확인을요청했고,12:15:09 회신에서 범위과장없음 확인, memory내발췌검색가능/adapter확장점가능/effort차이를반복변동폭으로못봄을공동정리했다. 이로써이번등록·연구는마감하고GLG와Andenken이논의할질문을짧게보고한다. Andenken 담당자 신규 호출/구현·bench adapter·실제 평가·데이터 수집은 아직 실행하지 않았다. 이번 문서4파일은 GLG 명시 승인으로 `5bf7ced` 정상 commit/push·agenda 마감했다. Oracle 반영·설치·실제compact/fork는 요청 범위가 아니다. version짝 전환은 여전히 GLG 시점 결정 대기, FACTORY/#28/#30 보존.
-
 # RECENT — 10-23 전체 임베딩 중단 보고 인수
 
 - GLG가 Sonnet의 중단 보고를 전달: T2 global35/49에서 SIGTERM/exit143, Oracle index/manifest/corpus 발행 전, T3/T4미시작, 남은 프로세스없음·락빈파일잔류라 삭제안함. 이 집이 재측정한 것은 아닌 실행자 보고이며 다음 실행의 미완구간만 처리/약$0.01 설명도 미검증이다. 새 전체임베딩 요청 전 재개·락삭제·감사·SSH·paid실행0. 기존 노트북 전환 승인과도 별개다.
-
-# RECENT — 서버 판정의 SIGPIPE·생산자 실패 구분 (2026-10-23)
-
-- **원 근거/범위:** GLG가 B의 workspace-bbot#1/sorge 검토를 보여주고, Entwurf 코디 전달과 우리 코드 수선을 직접 요청했다. private 원문은 읽기만 했고 공개 이슈로 옮기지 않았다. Prime은 더 업데이트하지 않는다는 GLG 판단으로 미진행. Entwurf 후보5개는 원검토의 소스상 후보로, 현재 실제 오작동5건이라고 주장하지 않고 코디68bd94에게 전달했다.
-- **직접 재현/수선:** 기존 함수만 추출한 합성 HOME에서 작은 custom list로 `PIPESTATUS=141,0`·developer 오판3/3, 주석만인 list로 별도 `1,0`·오판3/3. 서버 profile은 builtin 정확 비교, device list는 생산자를 먼저 완전히 받고 상태 검사 후 here-string/builtin 비교로 변경했다. empty/comment-only list의 grep 무일치 오류는 awk 필터로 제거했다. 반환0=server/1=developer/2=read error를 분리하고 preflight·Pi overlay·Claude settings의 실제 선택블록3곳에서 오류2를 developer로 소비하지 않고 전파한다.
-- **검증/Next:** 새 `tests/test-server-device.py`는 실제 함수/선택블록만 읽어 임시 HOME에서 실행한다. 초기13 tests의 RED는12 failure events, 수선·추가 literal/blank-profile 회귀 후 **15 tests PASS**, 기존 env-links **3 tests PASS**, bash syntax/diffcheck PASS. 실제 setup/설정 병합·설치·노트북·원격 repo 수정은0. 변경은 run.sh/test/NEXT로 한정하며 GLG가 직접 commit/push를 요청해 정상 훅으로 마감한다. 추가 실행 없이 새 요청을 기다린다. 공통 규약/다른 리포 일괄수선은 열지 않는다.
 
 # RECENT — 10-22 출하 버전 짝과 노트북 전환 경계
 

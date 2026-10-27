@@ -1,10 +1,12 @@
 # pi-durable — native env/hide and background-bash reference
 
-**접점은 entwurf, 집의 정책은 agent-config.** 현재 확인한 Entwurf **0.36.0**(Pi SDK 1.2.0)의 `--native-module`과 native BG 배지(0.34.0 도입)를 소비하는 env-first 레퍼런스 구현이다(2026-10-14). background 도구 결과는 SDK **1.2** `output` 계약만 따르므로 0.36.0 이상이 필요하다 — 아래 전제를 먼저 본다. durable을 한 번 만들고 같은 대화를 계속 다시 여는 사용을 위한 것으로, 두 번째 하네스나 Pi 확장 호환층이 아니다.
+**접점은 entwurf, 집의 정책은 agent-config.** `--native-module`과 native BG 배지를 소비하는 env-first 레퍼런스 구현이다. 현행 runtime/SDK 공급 계약은 [Entwurf의 native durable 설치 안내](https://github.com/junghan0611/entwurf/blob/v2026.10.27-herdr.0.45.0/README.md#native-durable-pi-durable)가 소유한다 — 2026-10-27 읽은 source는 **0.45.0 / Pi SDK 1.4.0**이다. 이 집은 버전을 pin하거나 runtime/SDK를 설치하지 않는다. durable을 한 번 만들고 같은 대화를 계속 다시 여는 사용을 위한 것으로, 두 번째 하네스나 Pi 확장 호환층이 아니다. 공급 계약·날짜 붙은 소비자 검사·이미 실행 중인 loaded runtime의 인증은 서로 다르다.
 
 ## Launch and lifetime
 
-Prerequisite for the env + background aggregate `index.mjs`: an Entwurf durable carrier on the exact **Pi 1.2.0** SDK set. Since 2026-10-13 the background tools return the native `ToolExecutionResult.output` that SDK 1.2 hands the model, with no `content` fallback. Published Entwurf **0.36.0** is the first release on that set: npm latest, with its nine `@earendil-works/*` dependencies at exact 1.2.0 (read 2026-10-14). The 1.1.0 set of Entwurf 0.34.0–0.35.1 read `content`; this module is not tested there. Entwurf owns the emitted app carrier, native footer and loader; agent-config installs none of them. `env.mjs` alone returns no tool results and still works on 0.32.0+. Upgrading ordinary Pi alone does not supply this durable app. The old fixed-XDG source-runtime route has no fallback.
+Prerequisite for the env + background aggregate `index.mjs`: an Entwurf durable installation meeting the supplier's [current native setup contract](https://github.com/junghan0611/entwurf/blob/v2026.10.27-herdr.0.45.0/docs/setup-clean-host.md#2b-optional-native-durable-pi-durable). The source read on 2026-10-27 supplies nine exact Pi **1.4.0** SDK members; version selection, coherence and installation belong to Entwurf, not a second pin in this consumer. The tools return native `ToolExecutionResult.output`, with no `content` fallback. Entwurf owns the emitted app carrier, native footer and loader; agent-config installs none of them. Upgrading ordinary Pi alone does not supply this durable app. The old fixed-XDG source-runtime route has no fallback.
+
+**Historical checkpoint — 2026-10-14:** Entwurf **0.36.0** was the then-published release on the exact Pi **1.2.0** SDK set. The `output` model channel introduced in 1.2 required this consumer's 2026-10-13 repair, and API-0 **44/44, skip0** was measured against the 0.36.0 checkout on 10-14. The earlier 1.1 set read `content`; that old receipt is not a test of today's `output` consumer on 1.1. `env.mjs` alone returns no tool results and had a separate 0.32.0+ contract. These are dated observations, not today's supply requirement or retroactive 1.4 results.
 
 From the repository that will own the conversation:
 
@@ -64,7 +66,7 @@ A `case` or `if` is **not evaluated**. Assignments inside all branches are extra
 
 Every reopen must attach the same aggregate/task definition. A session opened with `env.mjs` alone cannot execute this task's phases; previously created work can remain pending until its definition is installed again.
 
-The stock durable app does not itself supply these consumer tool names; the Pi extension `pi-extensions/background-bash.ts` cannot load there (ExtensionAPI factory, `setStatus`, `sendMessage`). `background-bash.mjs` gives the model the same two tool names on native primitives only: a durable task, its commits, and the owning conversation's inbox. There is no manager, watcher, queue, or ExtensionAPI layer. Both tools return `{ output, details }`, the SDK 1.2 model channel. The report keeps the input draft's own `content` field.
+The stock durable app does not itself supply these consumer tool names; the Pi extension `pi-extensions/background-bash.ts` cannot load there (ExtensionAPI factory, `setStatus`, `sendMessage`). `background-bash.mjs` gives the model the same two tool names on native primitives only: a durable task, its commits, and the owning conversation's inbox. There is no manager, watcher, queue, or ExtensionAPI layer. Both tools return `{ output, details }`, using the native `output` model channel introduced in SDK 1.2. The report keeps the input draft's own `content` field.
 
 | Tool | Contract |
 |---|---|
@@ -156,3 +158,9 @@ Source contract: [Entwurf #130](https://github.com/junghan0611/entwurf/issues/13
 - Read: tag `v0.36.0` = `daf8cab`, GitHub Release published 2026-10-13T21:22:35Z, the `ci` workflow on that commit `success`. npm latest is 0.36.0 (integrity `sha512-3aPk69Rm…244UwQ==`) and declares all nine `@earendil-works/*` members at exact 1.2.0. Its release notes state the same rule this module follows: `output` is the model channel and `content` is not read.
 - Measured, API-0: the `./run.sh test:pi-durable` files under `env -i` with synthetic HOME/TMPDIR, against the clean Entwurf checkout `9f33dd1` (`v0.36.0-1`; that one later commit touches only Herdr files) — **44/44**, skip 0. The test stub's `onFailed` now matches released `pi/pi-durable/bootstrap.mjs:347`.
 - Not done: an installed-npm 0.36.0 run (this host's `entwurf` still resolves to the checkout), a vendor model turn, the TUI, a restart. The release's own whole qualification and native-Codex scope are its receipts, not rerun here.
+
+### 2026-10-27 — current supplier contract and a separate API-0 receipt
+
+- Supplier source read: core `v0.45.0` (`191e425`) and the separate `v2026.10.27-herdr.0.45.0` snapshot (`c9b3c4b`) supply the Pi1.4 SDK set. The 0.45 milestone centralizes extracted agent guidance in `ENTWURF.json`; it does not introduce a new tool, permission or routing algorithm. Aligning this README's old current-supply wording is consumer documentation drift repair, not a new 0.45 capability or a runtime upgrade here.
+- New scoped measurement: `./run.sh test:pi-durable` against that already-built checkout and its Pi1.4 SDK passed **44/44, skip0** with synthetic HOME, faux models, test-owned storage and child processes. This is a fresh source-checkout API-0 regression; the 0.36/1.2 and earlier 1.1 receipts above are unchanged history.
+- Not measured here: every running host's acquisition source/loaded bytes, an installed-npm 0.45 consumer run, a live operator-TTY/vendor-model scenario, or the whole 1.4 runtime/SDK acceptance surface. This scoped regression does not certify those axes. No runtime/SDK install, configuration edit or operator restart was performed.

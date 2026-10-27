@@ -7,6 +7,34 @@
 
 ## Unreleased
 
+## v2026.10.27 — Entwurf 0.45 소비면, 경험 기억과 현재 모델 명부
+
+### 기억의 목적과 시험소의 역할
+
+* **기억축을 기술이 아니라 목적에서 나눴다.** `9720cf8`. agent-config는 전체 기억축의 생성·활용과 외부 평가를, Andenken은 기억자산의 가벼운 검색 표현을 맡는다. 원문 앞뒤에서 과거의 고민·조건·선택을 되짚고 현재 판단과 인간의 성장에 활용하는 관심을 AGENTS·ROADMAP에 남겼다. 과거 답 모사나 단순 사실 회수만으로 목적 달성을 주장하지 않으며, 임베딩 고수·폐기나 새 벤치 실행을 결정한 것은 아니다.
+* **Letta Code와 FrontierMemory를 열 번째 관측 대상으로 등록했다.** `5bf7ced`. `LETTA.md`·README·harness-bench가 제품, 기억 정련, 검색, native durability와 시민 계보를 구별한다. 공개 소스와 독립 공동읽기·작은 합성 검사로 발표 실험과 현행 공개 프로토콜의 조건 차이를 확인했으며, 순위 재현·설치·실제 모델 벤치마크나 채택은 하지 않았다.
+
+### 일상 도구의 최소 수선과 현행 명부
+
+* **pipefail 아래 서버 판정의 거짓 developer 폴백을 고쳤다.** `920e888`. allowlist 생산자를 끝까지 받아 성공 여부를 먼저 확인하고 literal 비교하며, 빈 목록·주석만인 목록을 정상 처리한다. 반환값 server/developer/read-error를 분리하고 preflight·Pi·Claude 선택 블록이 읽기 오류를 전파한다. 격리 HOME에서 실제 함수·선택 블록을 검증하며 setup이나 live 설정은 바꾸지 않았다.
+* **browser-eval의 성공 뒤 잔류 연결 타이머를 해제했다.** `724979f`. Promise.race가 취소하지 않는 5초 타이머를 저장하고 연결 성공 직후 clearTimeout하는 최소 변경이다. 브라우저 없는 모의 성공 경로에서 HEAD 약5초→수선본 수십ms, 동일 stdout/exit0을 코디와 독립 검수자가 각각 확인했다. 5개 회귀 및 별도 12-case 비교에서 연결 timeout·거절·탭 부재·평가 오류·출력·긴 비동기 평가의 기존 경계를 확인했다. 실제 Chrome·로그인 계정·프로필에서의 통합 검증은 아니다.
+* **MODELS를 현재 호출 명부로 맞췄다.** `d78728f`. Pi 목록에서 `openai-codex/gpt-6.1-terra`의500K context·128K max output·thinking/images를 확인하고, GLG 제공 pit=Terra/medium·pis=Sol/medium·pish=Sol/high 매핑과 공통 인자 전달을 반영했다. 별도 `openai` provider의 동명272K와 혼동하지 않는다. MODELS에는 변경경위나 폐기모델 tombstone을 남기지 않았고 실제 셸 파일은 바꾸지 않았다.
+* **종료된 Z.AI 구독을 quota 활성 계약에서 제거했다.** `d78728f`. 전용 자격증명 접근·endpoint·파싱·rail 등록과 문서/도움말을 제거하되 Codex의 공통 PI_AUTH와 Claude/Codex/Grok 동작은 보존했다. 구 zai 캐시가 있어도 활성 수집·JSON·텍스트·TUI·웹으로 되살아나지 않음을 오프라인 검사했다. 실제 자격증명·키·캐시 파일 삭제, live quota API 호출이나 실행 중인 옛 프로세스의 재적재는 하지 않았다. Upstage의 현행 명부 역할도 유지했다.
+
+### Entwurf 0.45 소비면과 실제 협업
+
+* **루트·native 소비자 README를 공급자0.45.0 계약과 맞췄다.** 공개 CHANGELOG·AGENTS·API에서 ENTWURF.json의 추출된 지침 정본, bridge9개/Pi7active+2hidden/durable8개, Pi1.4 SDK, Pi/Claude Code의 보이는 same-id resume·명시 요청 전용 retire, agy native-push pause를 읽었다. 도구 수·생명주기·rail 안내는 과거부터 쌓인 소비자 문서 드리프트의 수선이며, 0.45의 지침 중앙화가 새 도구·권한·라우팅 변경은 아님을 명시했다. native README의 현행 공급은 owner 계약에 연결하고 0.36/SDK1.2의44/44는 역사로 보존했다. 이번1.4 API-0는 별도 날짜의 좁은 검사이지 모든 loaded bytes나 전체1.4 수용 인증이 아니다. skills47개와 명명집합47개의 양쪽 차집합0, 현재 모델과 기억축·소유 경계도 확인했다. 버전을 pin하거나 공급자의 설치·runtime 설정을 가져오지 않았다.
+* **실제 일감으로 호출·회신·후속업무의 일차 수용을 관측했다.** GLG의 설치 보고 뒤 durable caller→native Claude Code Opus·Pi Sol·native Claude Code Sonnet에서 정확 callback, 요청·회신, helper 구현·독립 검수, 모델/quota 후속 구현과 임베딩 결과 인수까지 이어졌다. 코디의 관측 보고와 Entwurf 코디의 실제 인수회신을 근거로 삼았다. 전 rail·장기·crash/recovery·exactly-once·기억 품질이나 모든 loaded bytes의0.45.0 인증으로 확대하지 않는다. Grok/ACP는 이번 관측에서 실행하지 않았다.
+
+### 닫힌 기억 운영과 남은 경계
+
+* **명시 요청된 세 축 통상 증분과 Oracle 반영을 마쳤다.** 실행자 운영로그를 코디가 교차검수해 sessions118,313/md11,183/OpenClaw9,619행의 양쪽 검증·발행을 인수했다. 첫 sessions provider timeout은 해당 실행의 publish를 중단시켰고, 승인된 동일 명령의 직렬 재시도 뒤 완료했다. md 후보 중15개의 정상0chunk 제외도 확인했다. 전면 재구축이나 새 live durable snapshot 수집이 아니며, timeout 원인·실제 총청구액·전체 검색 품질을 인증하지 않는다. 이 문서 준비에서 임베딩을 재실행하지 않았다.
+* **Andenken #18 용량 분석은 STOP으로 남겼다.** 목적 정렬·metadata 분류·검사자산 보존까지와 실행 미완료를 구별한다. 합성 old의 선택4 관측은 전체 trace guard 실패를 뒤집지 않으며 fresh는 실행하지 않았다. 참조 union 밖 bytes는 삭제가능량·실제 회수량이 아니고, 보호·검색 품질·현재 live 상태의 인증도 아니다. 새 분석·삭제·GC·optimize·재처리·벤치 실행은 새 요청 없이는 재개하지 않는다. Cloudflare 후속과 기존 보류 연구도 이 cut의 실행완료로 옮기지 않았다.
+
+### 준비본의 직접 오프라인 검증
+
+* native env/BG 소비자44/44(skip0, Entwurf0.45.0 checkout/Pi1.4 SDK·합성 HOME·faux 모델), entwurf-peek163/0, session-recap40, 서버 판정15, env-links3, release extractor7, quota11, browser-eval5를 확인했다. README shell 예제의 stub argv·공백 인자 전달, 로컬 Markdown 링크·펜스·skill named-set, shell/Python syntax·diffcheck도 검사했다. 이들은 새 설치·벤더 모델 턴·실제 Chrome·live quota·공급자의 전체 release qualification을 대신하지 않는다.
+
 ## v2026.10.22 — Entwurf 0.41 호환 스킬과 라이브 형제 선택
 
 ### strict reader와 재개 안내 — 정상 identity를 보존하며 소비면을 맞췄다
