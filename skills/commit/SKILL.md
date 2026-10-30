@@ -19,6 +19,9 @@ Create a git commit for the current changes using a concise Conventional Commits
 - Do NOT include breaking-change markers or footers.
 - Do NOT add sign-offs (no `Signed-off-by`).
 - Do NOT add AI attribution (no `Generated with Claude`, `Co-Authored-By: Claude`, etc.). Keep the log clean.
+- Add a plain body sentence for the work device and known participating garden IDs: `Worked on <device> with <garden-id>, <garden-id>.` Read the device from `~/.current-device`; this names the current work environment, not every participant's machine. It is a trail back to the conversations and an expression of responsibility and thanks, not model attribution or a `Key: value` trailer.
+- List your own garden ID when known, then the IDs of siblings already known to have taken part in this change (including discussion or review). IDs only: no model names. Never search sessions or records just to fill this list; omissions are fine and do not block a commit.
+- If no IDs are known, write `Worked on <device>.` using the actual device value. If the device file is unavailable, omit the device rather than guess; write `Worked with <garden-id>, <garden-id>.` when IDs are known. If neither is known, omit the sentence. Do not rewrite old commits to backfill it.
 - Commit only by default. Push only when GLG explicitly requests `push` or `commit + push` in the
   current session. A commit request alone never implies push; commits may be batched before one
   push so the agenda timeline stays useful.

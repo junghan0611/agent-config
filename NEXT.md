@@ -6,19 +6,19 @@
 
 # RAIL — 현재 좌표
 
-- [x] **17–19. 일상 도구·현재 모델·기억 운영 마감** — browser 수선, Terra500K/셸 매핑·quota Z.AI 제거, 세 축 통상 증분·Oracle 반영을 `CHANGELOG.md v2026.10.27`에 갈무리했다. 실제 Chrome/live quota/전체 검색 품질 인증은 아니다.
-- [x] **20. README·CalVer 출하 (2026-10-27)** — 정상 훅 commit/push 및 [v2026.10.27 GitHub Release](https://github.com/junghan0611/agent-config/releases/tag/v2026.10.27) 완료. 태그 snapshot은 `59849ed6a716dd9953c8ece18211bce4bfdd2d23`이며 이 NEXT 마감은 그 뒤 문서 커밋이다.
-- [ ] **21. Cloudflare 공통 가이드·도구 버전 (2026-10-28)** ← CURRENT: **준비본·문서 기반 실검수 완료, GLG commit/push 승인.** 홈페이지 코디의 GLG 인계로 기존 스킬을 수선했고 그쪽의 beta.24 읽기 전용 실검수·영향면 재검수를 인수했다. GLG는 로컬 cf/wrangler 업데이트도 명시 요청했다. 이번 출하는 공통 가이드 2파일과 NEXT만이며 배포 pin/trigger 변경·재배포·권한확대·자동재시도·태그는 별도다.
-- [ ] **15. #18 STOP·보류 레인 보존** ← PAUSED: 새 요청 전 분석·삭제·재처리 없음. Cloudflare(옛16)·운영 버전 전환(옛12)·기존 연구도 이번 출하 승인과 분리한다.
+- [x] **17–22. 닫힌 도구·기억 운영·소비면·협업 규칙** — 기존 출하는 `CHANGELOG.md v2026.10.27`, Cloudflare 가이드·커밋의 기기/garden ID 규칙은 `v2026.10.30` 절로 갈무리했다. 새 실행 승인이 아니다.
+- [ ] **23. README/docs 정리·CalVer 출하 (2026-10-30)** ← CURRENT: 편집·협업 검수·직접 오프라인 검사 완료. 요청된 `v2026.10.30`의 공개 Release·원격 main/tag·도장 확인 후 새 요청 대기. 이미 출하됐으면 반복하지 않는다.
+- [ ] **15. #18 STOP·보류 레인 보존** ← PAUSED: 새 요청 전 분석·삭제·재처리 없음. Cloudflare 프로젝트 후속·운영 전환·기존 연구는 이번 문서 출하와 별개다.
 
-현재 좌표: 17–20 완료 → 21 가이드·로컬 CLI 갱신·교차검수 완료 → 승인된 3파일 commit/push 및 도장 → 새 요청 대기. 닫힌 서버 판정·Letta·기억 목적·현재 도구·문서 정합은 `v2026.10.27`, strict mirror 마감은 `v2026.10.22`에 있다. 도장은 release 스킬의 agenda 기록으로 확인한다.
+현재 좌표: 17–22 완료 → 23 출하 확인 → 새 요청 대기. #18 STOP·운영 전환·기존 연구 보류는 그대로다.
 
-# NOW — Cloudflare 공통 가이드: 검수 완료·승인된 출하
+# NOW — v2026.10.30 출하 확인 뒤 대기
 
-- **목적:** GLG는 Workers Paid를 Entwurf→Cloudflare 위 pi-durable 검증과 외부 확장 Worker 구성 때문에 구독했다고 직접 강조했다. 가든 배포 사고는 기능 부재를 단정하는 사례가 아니라, 실패 뒤 조회·판단·조치 범위를 살필 출발점이다. 프로젝트 고유의 하네스/SiWC grant/DO/Access·배포 계약은 cloudflare-agents가 소유한다.
-- **현재/다음:** GLG가 `skills/cloudflare/SKILL.md`·새 `BUILDS.md`·이 NEXT의 3파일 commit/push를 명시 승인했다. 정상 훅으로 출하하고 성공 뒤 agenda 도장 1회. 다음 세션은 해당 커밋·원격 main·도장을 확인하며, 완료돼 있으면 재출하 없이 새 요청을 기다린다. 추가 API·형제 호출·태그는 필요 없다.
-- **검증/읽을 곳:** `BUILDS.md § Verification scope`에 editor 오프라인 검증과 홈페이지 peer의 beta.24 문서 기반 live 관측을 구분했다. audit flat-array/cursor 공백의 첫 BLOCKED를 보존하고 로그 시각 기반 좁은 창·GraphQL subshell 수선 후 영향면 PASS를 받았다. 코디는 공유 SUMMARY/Recheck를 직접 읽었고 원시 private는 열지 않았다. 최종 편집은 승인 주체·peer 관측 표기뿐이며 문서/합성 검사를 재통과했다.
-- **버전/권한:** GLG 승인으로 NixOS pnpm의 cf1.0.0-beta.24·wrangler4.154.0 갱신 완료(exit0/버전 확인). global 최신화는 CI exact pin 변경이나 사고 해결의 증거가 아니다. telemetry live·과거 deployments 창·audit 전체 coverage는 미검증. 사이트 설정/배포/pin·권한·OAuth·모델/grant·주기 관측은 미승인이고 #18 분석 STOP을 유지한다.
+- **다음:** [v2026.10.30 Release](https://github.com/junghan0611/agent-config/releases/tag/v2026.10.30)·원격 main/tag·agenda 영수증을 먼저 확인한다. GLG가 정상 commit/tag/push·GitHub Release·도장까지 요청했으므로 미완료 단계만 마감하며, 공개돼 있으면 재태그·재출하·중복 도장/DM 없이 대기한다. 이번 완료 DM은 GLG의 직접 요청이다.
+- **범위/읽을 곳:** `CHANGELOG.md v2026.10.30`, README와 docs7개, 홈 커밋 규칙·commit 스킬. 긴 설명과 날짜별 관측은 재배치했고 대문자 bench 문서와 native 레퍼런스는 제자리에 둔다. 활성 Markdown 진입점의 링크만 목적지로 맞췄다. Cloudflare 가이드는 이전 commit `f05f103`의 출하 내용이며 계정 조작을 재실행하지 않았다.
+- **검수 근거:** Opus `20261030T124152-00543e`의 구현·수정 동결 회신을 인수했고 코디가 README/docs 해시8개를 직접 대조했다. 원문442개 비공백 줄은 링크·헤딩 수준과 명시한 위치어 수정을 정규화한 뒤 누락0, 원 외부URL·셸 코드블록 보존, Bash fence3개 syntax PASS, 로컬 링크/anchor 오류0, tracked/named skills47/47·양쪽 차집합0이다. README651→191줄/102,271→20,886B.
+- **직접 API-0:** 현존 Entwurf checkout `c9b3c4b`/Pi1.4 SDK에서 native44/44·skip0, peek163/0, recap40, server15, env-links3, release extractor7, quota11, browser mock5 PASS. 문서 출하는 운영 TTY·모든 loaded bytes·새 공급자 qualification의 인증이 아니다.
+- **경계:** runtime/SDK/셸 설정·setup·설치·재시작·임베딩·live API·Prime/새 harness 조사·team.json 자동수선·과거 참여자 조사·추가 형제 호출은 하지 않는다. 역할은 이번 작업 한정이며 형제의 commit/push 권한으로 확대하지 않는다.
 
 # RECENT — 2026-10-27 출하 완료 (아래는 당시 마감 기록)
 

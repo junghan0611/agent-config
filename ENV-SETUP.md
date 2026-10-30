@@ -47,7 +47,7 @@ entwurf pi-durable --continue \
 - `ENOENT`만 정상 read no-op이며 다른 읽기 실패는 기동을 거부한다. 값·원문을 출력하지 않는다.
 - 확인한 Entwurf 0.36.0 패키지가 자체 소스에서 생성한 app carrier + exact Pi 1.2.0 SDK 9개·native BG 배지를 공급한다(2026-10-14). 이 집은 SDK·런타임을 설치하지 않으며, 이 정보 정렬에서 live 셸도 변경하지 않는다. 10-09 승인된 pdc-only 전환은 완료됐다. `--continue`에는 fresh-only provider/model/width를 붙이지 않고, 매번 모듈/task 정의를 명시한다.
 
-15/15 API-0 검증 및 실제 같은-id 재개·bash 자식 숨김 확인(2026-10-08). 엄격 파서의 실제 기동 실패와 수선은 [PI-DURABLE.md](PI-DURABLE.md)에 보존했다. [전체 레퍼런스 계약과 증거 한계](pi-durable/README.md), [셸 헬퍼](README.md#shell-aliases-bashrclocal), `./run.sh test:pi-durable-env`.
+15/15 API-0 검증 및 실제 같은-id 재개·bash 자식 숨김 확인(2026-10-08). 엄격 파서의 실제 기동 실패와 수선은 [PI-DURABLE.md](PI-DURABLE.md)에 보존했다. [전체 레퍼런스 계약과 증거 한계](pi-durable/README.md), [셸 헬퍼](docs/setup.md#shell-aliases-bashrclocal), `./run.sh test:pi-durable-env`.
 
 ## Telegram (분신 에이전트)
 

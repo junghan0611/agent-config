@@ -8,7 +8,7 @@
 
 This is a front door, not a manual. It is written for someone who wants to see **what one operator actually runs day to day** — not for someone about to install a framework. Four things to hold before the first table.
 
-**1. This repo is not a harness.** Pi and the native harnesses own execution; [`entwurf`](https://github.com/junghan0611/entwurf) is their narrow screwdriver — the dispatch substrate through which independent harnesses address one another by **garden id**. Its [releases](https://github.com/junghan0611/entwurf/releases) and installation contract live there; the versioned observations below are dated evidence, not an install pin owned here. agent-config is the resident side: the **skills SSOT** plus the **시험소 (proving ground)** where config is hardened on a real daily surface before promotion to its proper owner. Tables below describe consumer responsibilities and observed working surfaces, not a new universal harness contract.
+**1. This repo is not a harness.** Pi and the native harnesses own execution; [`entwurf`](https://github.com/junghan0611/entwurf) is their narrow screwdriver — the dispatch substrate through which independent harnesses address one another by **garden id**. Its [releases](https://github.com/junghan0611/entwurf/releases) and installation contract live there; the versioned observations in [`docs/`](docs/) are dated evidence, not an install pin owned here. agent-config is the resident side: the **skills SSOT** plus the **시험소 (proving ground)** where config is hardened on a real daily surface before promotion to its proper owner. Tables here and in [`docs/`](docs/) describe consumer responsibilities and observed working surfaces, not a new universal harness contract.
 
 **2. A quiet repo is a healthy one.** The end state is a thin skills SSOT plus a test bench. The volume of change alone does not show health or progress; CHANGELOG records closed work, not how much remains unproven. Do not read the skill count as a feature list; the identity is the working method, not the tool count.
 
@@ -17,8 +17,8 @@ This is a front door, not a manual. It is written for someone who wants to see *
 | You came for | Read |
 |---|---|
 | *What can these agents actually do?* | [§ Skills](#skills-skills) · [§ Semantic Memory](#semantic-memory--andenken) |
-| *How does context survive a new session?* | [§ Why This Exists](#why-this-exists) · [§ Session Management](#session-management--new--recall) |
-| *Is any of this measured, or just asserted?* | [§ Agent Runtime Bench](#agent-runtime-bench) · [OMP.md](OMP.md) · [MODELS.md](MODELS.md) |
+| *How does context survive a new session?* | [§ Why This Exists](#why-this-exists) · [§ Session Management](docs/memory-and-sessions.md#session-management--new--recall) |
+| *Is any of this measured, or just asserted?* | [§ Agent Runtime Bench](docs/runtime-bench.md#agent-runtime-bench) · [OMP.md](OMP.md) · [MODELS.md](MODELS.md) |
 
 **4. Sentences here try to carry their evidence.** Where a claim was measured, the receipt is named — a date, a host, a file, a version. Where it is inherited or still open, it says so. A sentence that cannot name one of those is a hypothesis, including in this document. This is the same rule the agents working in this repo are held to.
 
@@ -39,28 +39,7 @@ They are not competing harnesses: entwurf is the destination for proven integrat
 
 **The resident's report and its archive:** [§agent-config: 스킬 SSOT와 시험소 — 멀티하네스 이후](https://notes.junghanacs.com/botlog/20260312T174622) is this repo's 담당자 문서 (resident's note) in the digital garden. Its current report leads with the role, neighboring ownership boundaries and judgments that guide the work; the earlier chronology is preserved under **ARCHIVE**. This README is the consumer-facing front door, while that note explains the resident's present stance without making the reader traverse the whole history first.
 
-### The bench is self-sufficient
-
-A proving ground that can only install what it already believes in is not a proving ground. This repo's `run.sh` stands up, pins, and tears down the things it evaluates **on its own** — including whole agent runtimes that compete with the stack it currently runs. Nothing about that path routes through entwurf, pi, or any harness under test.
-
-That self-sufficiency is what lets the subject matter widen. The bench started at "does this skill load in five harnesses"; it now asks whether a runtime that writes its own skills beats a human-authored set, whether one sibling with an internal team costs the operator fewer inspection points than three visible ones, and — on the arm being built here rather than installed — whether a Lisp workspace can stand up an RLM loop that a Python REPL currently carries. See [§ Agent Runtime Bench](#agent-runtime-bench). The rule that makes those answers worth anything is boring and strict: **the subject is version-pinned and installed small**, so a re-run means the same thing twice.
-
-## Official Reference Surface for entwurf
-
-If `entwurf` asks “what does a real consumer look like?”, this repo is the answer.
-
-| Surface | Owned by | Reference in this repo |
-|---------|----------|------------------------|
-| ACP backend bridge | `entwurf` | supplier-owned runtime/wiring; `pi/settings.json` keeps the consumer policy and skill-plugin reference, not the bridge installation |
-| MCP servers (`entwurf-bridge`) | `entwurf` | **not wired here** — entwurf's own install writes `entwurfProvider.mcpServers` and records its stable bin |
-| Entwurf install / auth / setup | `entwurf` | **not consumer-installed here** — this repo clones the source for dogfooding and hands install to entwurf's own `./run.sh setup`; a consumer install here would weaken entwurf's release gate |
-| Claude skill plugin farm | pair boundary | this repo builds one consumer layout at `~/.pi/agent/claude-plugin/`, then points `entwurf` at it |
-| Skills / prompts / themes / profile | `agent-config` | SSOT in `skills/`, `commands/`, `pi-themes/`, `home/AGENTS.md` |
-| Consumer install/update policy | `agent-config` | `run.sh setup` / server-device upgrade path |
-| Durable native module | `agent-config` | [`pi-durable/index.mjs`](pi-durable/index.mjs): env/hide first, then native background-bash tools returning `output`. Entwurf **0.45.0 / Pi 1.4.0** supplies the carrier and persistent BG badge. API-0 **44/44**, skip0, against the 0.45.0 checkout/1.4 SDK (2026-10-27); the earlier 0.36.0/1.2 and installed scripted-faux 0.34.0/1.1 receipts keep their dates. [Reference implementation, owner supply contract and dated receipts](pi-durable/README.md) |
-| Production verification | pair boundary | day-to-day use here, bridge invariants in `entwurf` |
-
-In short: **entwurf defines the bridge contract; agent-config proves the contract against lived use.**
+The consumer-side surface table, the durable native module and dated supplier checkpoints: [docs/entwurf-consumer.md](docs/entwurf-consumer.md).
 
 ## Why This Exists
 
@@ -80,262 +59,64 @@ The result is a reproducible route back to context: a shared stance, tools with 
 
 > Part of the [-config ecosystem](#the--config-ecosystem) by [glg @junghan0611](https://github.com/junghan0611)
 
-### Harness Support
+## Where the Detail Lives
 
-| Harness | Memory | Skills | Notes |
-|---------|--------|--------|-------|
-| **pi + entwurf** | `semantic-memory` skill; Pi-native shortcuts only where Andenken is separately registered | full skill set on the host; the Claude ACP overlay gets this repo's explicit skill-plugin farm | SDK isolation (`settingSources: []`); skills injected via `entwurfProvider.skillPlugins`, not ambient host-global links |
-| **pi + direct Anthropic provider** | same `semantic-memory` skill; optional existing Andenken package supplies `session_search` / `knowledge_search` | full skill set | Direct provider — available, not the current default |
-| **Claude Code** | andenken skill (CLI wrapper) | full skill set | CLAUDE.md + hooks; `entwurf-bridge` MCP available; settings tuned to mirror entwurf overlay (`autoMemoryEnabled: false`, binary/external tools deny-listed); `permissions.defaultMode: bypassPermissions` — agent-config owns the native key, entwurf owns the ACP overlay's |
-| **Codex CLI** | skill surface; entwurf-owned MCP wiring | full skill set | `~/.codex/skills/` from SSOT; agent-config supplies initial non-Entwurf config defaults, while entwurf owns MCP/env and the `thread-title` atom in the regular live file. Verified as a garden citizen from a direct session |
-| **Antigravity CLI (`agy`)** | skills here; settings/MCP owned by entwurf | full skill set | `~/.gemini/antigravity-cli/skills` from SSOT; `settings.json` + `mcp_config.json` are entwurf-owned. Legacy native-push citizen, **paused in Entwurf 0.45.0 (#152)**: dispatch and registration refuse before probing; no mailbox, no fresh launch, and no receive claim from this cut |
-| **Copilot CLI** | skill surface only from this repo | full skill set | `~/.copilot/skills` → `skills/` (directory symlink). `settings.json` / birth plugin / statusLine are entwurf-owned (`install-copilot-bridge`, `install-copilot-statusline`). Entwurf's first-party receiver rings an announce-only doorbell; the citizen drains its mailbox with `entwurf_inbox_read`. This cut does not re-certify its native rail |
-| **Kiro CLI** (optional) | skill surface only from this repo | full skill set when installed | `~/.kiro/skills` → `skills/` when `kiro-cli` is on `PATH`. Kiro is intentionally not an entwurf citizen; its settings, agents, and sessions remain Kiro-owned. |
-| **OMP** (`omp`, oh-my-pi) | custom task-agent catalog from this repo; bridge configuration from entwurf | **deliberately no shared skills** | **Under observation (GLG, 2026-10-14)**, not an established working submarine: one visible OMP parent can call its in-process agents, but GLG finds the delegation and web session view verbose and hard to follow, with a high perceived token burden (not a measured comparison). See [OMP.md](OMP.md). `omp/agents/*.md` is linked by `./run.sh setup:links` into `~/.omp/agent/agents/`; profiles bind only a name to a model and “Assist the GLG-requested sibling.” Its built-in automatic roles (`reviewer`, `scout`, `security-reviewer`, `sonic`, `task`) are disabled; a new harness gets the same default. Entwurf owns `install-omp-bridge` / `install-omp-receive` / `install-omp-config`; `~/.omp/skills` remains absent. |
-| **pi-durable** (separate native harness) | its own SQLite conversation store; **explicitly admitted closed snapshots** are now searchable as `source: pi-durable` ([andenken#15](https://github.com/junghan0611/andenken/issues/15), completed 2026-10-15), not automatic live collection | **full skill set, with no new link** — the durable app calls the same `loadSkills({cwd, agentDir, skillPaths, includeDefaults:true})` pi does (read at `experimental/durable/prompt.ts:34` @v1.0.4), so `~/.pi/agent/skills` reaches it | Entwurf **0.45.0** supplies its emitted app/TUI carrier and nine exact **Pi 1.4.0** SDK members (supplier source read 2026-10-27); no operator runtime source checkout or old fixed-XDG runtime is required. Classic Pi extensions still do not load. This repo supplies an explicit native env/hide + background-bash aggregate, not an ExtensionAPI shim. `semantic-memory` remains the skill door; its Pi-only registerTool shortcuts are absent. Same-id `--continue --native-module` restart measured on 2026-10-08; [reference](pi-durable/README.md), [matrix and receipts](PI-DURABLE.md). |
-| **OpenClaw** | andenken skill (same SSOT via symlink) | full skill set | settings / Nix store mount |
+This page is the front door. The longer operating notes, ownership boundaries and dated observations live under [`docs/`](docs/), moved there without rewriting and with their original headings so existing anchors keep their names.
 
-**OpenCode is not used.** It once appeared in this table and in the fan-out list, but `run.sh` never wires it — there is no `~/.config/opencode/skills` link and no OpenCode branch anywhere in setup. The rows have been removed rather than left as an aspiration; a harness this repo does not actually reach should not be advertised as supported.
+| Document | What it holds |
+|---|---|
+| [docs/entwurf-consumer.md](docs/entwurf-consumer.md) | The consumer-side reference for `entwurf`: who owns which surface, the durable native module, the bridge verbs this repo consumes, and dated supplier checkpoints (0.45.0, 0.35.0) |
+| [docs/harness-surfaces.md](docs/harness-surfaces.md) | Per-harness memory/skill/ownership table, Claude Code as a native Pi surface (settings co-ownership, `bypassPermissions` boundary), the local entwurf skill-plugin layout, Codex/Antigravity/Copilot splits, and `pi/` settings |
+| [docs/pi-extensions.md](docs/pi-extensions.md) | Every Pi extension, the skill-vs-extension boundary, third-party Pi packages, and the reasoning behind `heartbeat`, `autopilot` and `background-bash` |
+| [docs/skills.md](docs/skills.md) | Linked skills, binary skills and their provenance gate, web-search and code-surface notes, and the LSP-style skill doc principle |
+| [docs/memory-and-sessions.md](docs/memory-and-sessions.md) | The andenken memory axes, `/new` + `/recall` session continuity, compaction surfaces, and the public-verification policy for session evidence |
+| [docs/runtime-bench.md](docs/runtime-bench.md) | Why the bench is self-sufficient and the ten bench subjects, with links to each root `NAME.md` matrix |
+| [docs/setup.md](docs/setup.md) | What `./run.sh setup` does and deliberately does not do, and the shell helper examples (`pia`, `pit`, `pdt`, `pdc`, …) |
 
-[andenken](https://github.com/junghan0611/andenken)'s session index now distinguishes `source: pi | claude | pi-durable`. The durable source requires a separately authorized closed snapshot; initial coverage is one admitted conversation, not all live durable sessions. Shared excerpts dispatch by source, and durable entry IDs are not JSONL line numbers. `session-recap` remains JSONL-only. [semantic-memory](skills/semantic-memory/SKILL.md), [session-recap](skills/session-recap/SKILL.md) and [memory-sync](skills/memory-sync/SKILL.md) preserve those different contracts. Other harnesses can share skill access without their native transcripts having a first-class indexed source tag.
+Former README sections keep their anchor names here, so an old `README.md#…` link still lands on a pointer:
+
+| Former README section | Now in |
+|---|---|
+| <a id="official-reference-surface-for-entwurf"></a>Official Reference Surface for entwurf | [docs/entwurf-consumer.md](docs/entwurf-consumer.md#official-reference-surface-for-entwurf) |
+| <a id="durable-native-module--env-first-background-tools-and-native-badge-entwurf-0340"></a>Durable Native Module — env first, background tools and native badge (Entwurf 0.34.0+) | [docs/entwurf-consumer.md](docs/entwurf-consumer.md#durable-native-module--env-first-background-tools-and-native-badge-entwurf-0340) |
+| <a id="entwurf-surface-reference"></a>entwurf Surface Reference | [docs/entwurf-consumer.md](docs/entwurf-consumer.md#entwurf-surface-reference) |
+| <a id="supplier-source-checkpoint--0450-read-2026-10-27"></a>Supplier source checkpoint — 0.45.0 (read 2026-10-27) | [docs/entwurf-consumer.md](docs/entwurf-consumer.md#supplier-source-checkpoint--0450-read-2026-10-27) |
+| <a id="dated-supplier-observation--0350-a-visible-screwdriver-not-a-new-hierarchy"></a>Dated supplier observation — 0.35.0, a visible screwdriver, not a new hierarchy | [docs/entwurf-consumer.md](docs/entwurf-consumer.md#dated-supplier-observation--0350-a-visible-screwdriver-not-a-new-hierarchy) |
+| <a id="harness-support"></a>Harness Support | [docs/harness-surfaces.md](docs/harness-surfaces.md#harness-support) |
+| <a id="claude-code-as-native-pi-surface"></a>Claude Code as Native Pi Surface | [docs/harness-surfaces.md](docs/harness-surfaces.md#claude-code-as-native-pi-surface) |
+| <a id="pi-config-pi"></a>Pi Config (`pi/`) | [docs/harness-surfaces.md](docs/harness-surfaces.md#pi-config-pi) |
+| <a id="entwurf-skill-plugin-agent-config-local-layout"></a>entwurf Skill Plugin (agent-config local layout) | [docs/harness-surfaces.md](docs/harness-surfaces.md#entwurf-skill-plugin-agent-config-local-layout) |
+| <a id="heartbeat--the-clock-is-the-cheap-half"></a>`heartbeat` — the clock is the cheap half | [docs/pi-extensions.md](docs/pi-extensions.md#heartbeat--the-clock-is-the-cheap-half) |
+| <a id="autopilot--silence-is-a-trigger-never-a-grant"></a>`autopilot` — silence is a trigger, never a grant | [docs/pi-extensions.md](docs/pi-extensions.md#autopilot--silence-is-a-trigger-never-a-grant) |
+| <a id="background-bash--why-it-exists"></a>`background-bash` — why it exists | [docs/pi-extensions.md](docs/pi-extensions.md#background-bash--why-it-exists) |
+| <a id="session-management--new--recall"></a>Session Management — `/new` + recall | [docs/memory-and-sessions.md](docs/memory-and-sessions.md#session-management--new--recall) |
+| <a id="public-verification--sessions-as-evidence"></a>Public Verification — Sessions as Evidence | [docs/memory-and-sessions.md](docs/memory-and-sessions.md#public-verification--sessions-as-evidence) |
+| <a id="the-bench-is-self-sufficient"></a>The bench is self-sufficient | [docs/runtime-bench.md](docs/runtime-bench.md#the-bench-is-self-sufficient) |
+| <a id="agent-runtime-bench"></a>Agent Runtime Bench | [docs/runtime-bench.md](docs/runtime-bench.md#agent-runtime-bench) |
+| <a id="the-third-subject-is-one-glg-is-building"></a>The third subject is one GLG is building | [docs/runtime-bench.md](docs/runtime-bench.md#the-third-subject-is-one-glg-is-building) |
+| <a id="shell-aliases-bashrclocal"></a>Shell Aliases (`~/.bashrc.local`) | [docs/setup.md](docs/setup.md#shell-aliases-bashrclocal) |
+
+Root `NAME.md` bench files ([OMP.md](OMP.md), [PI-DURABLE.md](PI-DURABLE.md), [HERDR.md](HERDR.md), …), [MODELS.md](MODELS.md) and [pi-durable/README.md](pi-durable/README.md) stay where they are.
 
 ## What's Here
 
+### Harnesses
+
+The same `skills/` SSOT reaches pi (+ entwurf), Claude Code, Codex CLI, Antigravity CLI, Copilot CLI, Kiro CLI (optional) and OpenClaw; pi-durable reads it through Pi's own skill loader; OMP deliberately receives no shared skills. OpenCode is not used. Memory, skills and ownership per harness: [docs/harness-surfaces.md § Harness Support](docs/harness-surfaces.md#harness-support).
+
 ### Semantic Memory → [andenken](https://github.com/junghan0611/andenken)
 
-Semantic memory has graduated to its own repo: **[andenken](https://github.com/junghan0611/andenken)** — "recollective thinking" (Heidegger).
-
-| Tool | DB | Purpose |
-|------|-----|---------|
-| `session_search` / sessions skill axis | sessions.lance | pi/Claude Code records plus explicitly admitted closed pi-durable snapshots |
-| `knowledge_search` / `search-md` | md.lance | Public digital garden export (`~/repos/gh/notes/content`) — agent-facing knowledge axis |
-| `semantic-memory` OpenClaw axis | openclaw.lance | Private bot records, explicitly labeled and never a fallback from another axis |
-
-Sessions and md embed through **OpenRouter Qwen3-Embedding-8B at 4096d**, with LanceDB vector/FTS retrieval. OpenClaw's independently computed compatible vectors are harvested, not re-embedded by this repo; row/vector publication is not a whole-hybrid quality certificate. FTS diagnostics distinguish a healthy zero from failure, not overall search usefulness. The Gemini embedding path is retired — `gemini-embeddings.ts` and `GeminiProvider` survive in andenken only as an unreferenced back-compat shim, and no preset selects them.
-
-Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and the md knowledge surface fires with dictcli query expansion. The older org embedding track is disabled in production; use `denotecli` for exact/raw Denote lookups. Loading strategy per harness lives in the Harness Support table above.
+Sessions, the public garden export and private OpenClaw bot memory are three separately labeled axes owned by andenken; agent-config owns the consumer doors (`semantic-memory`, `session-recap`, `memory-sync`). Details: [docs/memory-and-sessions.md](docs/memory-and-sessions.md#semantic-memory--andenken).
 
 ### Pi Extensions ([`pi-extensions/`](pi-extensions/))
 
-| Extension | Purpose |
-|-----------|---------|
-| `background-bash.ts` | `bash_background` — run a slow command without blocking; the agent is re-invoked with its exit code and output when it finishes |
-| `@ogulcancelik/pi-session-recall` | Pi-local past-session literal search + focused session question; its raw extension is filtered because `session_search` belongs to andenken |
-| `review.ts` | `/review` — review a PR, base branch, commit, uncommitted changes, or a folder |
-| `goal.ts` | `/goal` — long-running objective mode; keeps continuing itself until the objective is met or a budget is hit |
-| `decision-gate.ts` | When a `goal` turn declares itself `blocked`, run **one isolated consult turn** to dig without continuing the resident (Sol may share its subscription), and leave the result as a single custom JSONL entry — not conversation inflow. The entry carries which axes were searched, which hits came back, and which the sibling actually cited, so "did this help?" stays answerable later ([#24](https://github.com/junghan0611/agent-config/issues/24)). Which model digs is the operator's call — `/decision-gate model <provider/id>` for the goal path in this session, `DECISION_GATE_MODELS` in `~/.env.local` for both goal and autopilot; default consult is `openai-codex/gpt-6.1-sol` at medium, including when Sol is resident; Copilot is excluded. It digs; it does not open the gate |
-| `heartbeat.ts` | `/heartbeat 10m` — wake this session on a timer; the tick instruction makes it look up grounds and leave them where a reader can find them before taking one step. Off until a human types it, dies with the session |
-| `autopilot.ts` | `/autopilot on [10m 20m]` — in an armed coordinator session, a turn that ends with `waiting_for(kind:"glg", question)` starts a clock: GLG silent 10m → one DM; 20m more → one decision-gate consult, then a second DM and a provisional-verdict panel. Advisory only — no continuation, no tool authority. Off hides `waiting_for` from model tools until a human arms it; dies with the session |
-| `continue.ts` | `shift+alt+enter` — send "continue" when the agent has stopped |
-| `raw-paste.ts` | Keep an unmarked multi-line paste from being submitted line by line. pi accepts a paste only with bracketed-paste markers, and Termux over tmux does not always send them; this coalesces an ESC-free burst of two or more line breaks into one paste, and restores tmux's re-encoded control bytes inside a marked one. `/rawpaste` reports which of the two fired |
-| `env-loader.ts` | Load `~/.env.local` at session start |
-| `hide-providers.ts` | Keep skill-only keys (OpenRouter, HF, Google, Groq) out of pi so their 440 models stay out of the picker — see [MODELS.md](MODELS.md) |
-| `upstage-provider.ts` | Register Upstage Solar as an OpenAI-compatible provider |
-| `context.ts` | `/context` — show loaded extensions, skills, context usage |
-| `glg-footer.ts` | Footer signature — device + cwd + branch + **model id** on line 1, which degrades from the left so a narrow i3wm tile keeps the model name |
-| ~~`go-to-bed.ts`~~ | **Disabled 2026-09-08** — blocked every tool 00:00-04:59, so autonomous sessions and entwurf's overnight tests stalled. Kept as `go-to-bed.ts.disabled` |
-| `peon-ping.ts` | Sound notifications |
-| `gemini-image-gen.ts` | Gemini image generation (nanobanana) |
-| `session-breakdown.ts` | Session cost breakdown |
-| `whimsical.ts` | Personality touches |
-
-**Boundary, not shrinkage.** A skill is the cross-harness door; a Pi extension is the local lifecycle/provider/TUI hand. Do not duplicate ordinary capability into a Pi-only extension when the skill can travel, but do support an extension when it can touch a Pi turn in a way a CLI cannot. `semantic-memory` remains the canonical example of the former: its skill works everywhere, while Pi-native `session_search` / `knowledge_search` are convenience. Pi-local session recall is the latter: its value is precisely inside Pi's session lifecycle. Compaction itself is left to Pi's built-in text summarization.
-
-Supported third-party Pi packages are tracked in [`pi/packages.json`](pi/packages.json). `./run.sh setup` — therefore a fresh oracle too — runs `setup:pi-packages`: it installs a missing package or runs Pi's extension-only update for an installed one. Sources are intentionally unpinned, so setup receives upstream extension releases; package code is not silently copied into this repo. It deliberately does not merge a `packages[]` array into settings because Pi and entwurf co-own that live surface.
-
-One package filter is deliberate: andenken owns semantic `session_search`, while upstream session-recall also names its literal `rg` tool `session_search`. The manifest loads its package code but filters that raw extension; [`session-recall-compat.ts`](pi-extensions/session-recall-compat.ts) loads it as `session_literal_search` and preserves `session_query`. [`./run.sh test:pi-packages`](run.sh) is the install seam: it loads Pi without an LLM call, proves those three recall tools retain their owners, and asserts that the retired Codex-native package is absent and `session_before_compact` is unique to entwurf's lifecycle observer. This prevents an accidental local or package compaction override from displacing Pi's built-in summary. Local extensions follow the same boundary: `review`, `goal`, and `continue` hook Pi's turn loop; `background-bash` receives process completion; `heartbeat` and `autopilot` own in-process timers; `raw-paste` owns stdin parsing.
-
-#### `heartbeat` — the clock is the cheap half
-
-이 시계는 게이트(`decision-gate`)·`dm`과 한 세트다. 목적: **판단 근거를 찍지 말고 뒤져보게 하는 것.** 깨어난 턴이 기억축·시간축을 본인이 찾든 형제를 부르든 뒤지고, 근거가 있으면 한 걸음, 없으면 DM 한 통. 그게 힣의 자율주행 루프다.
-
-`/heartbeat 10m` arms a timer that wakes this session and runs one turn. Every harness has that much; Claude Code and Copilot ship it as "proceed if no answer" / autopilot, and GLG keeps those off for one reason — proceeding with no grounds. The refusal is not of the clock but of the blank: *"왜 내 기억도 안쳐다보고 무슨 근거로 진행을 하냐는거야"* (2026-09-09). We have the memory and time axes, so a woken turn can look, record what it found, and then move.
-
-So the tick prompt is the product, not the timer. Its step order is the contract: look up grounds → leave them where a reader who never opens the session can find them → take exactly one step → if there were no grounds, stop and say where you looked → and only then, if nothing needs attention, `HEARTBEAT_OK`. The silence token comes last on purpose. openclaw measured the inverse: 1330 heartbeats, 529 consecutive `NO_REPLY`, 6-8 tokens a turn — the prompt's own right answer arrived before any judgement did, and designed silence became indistinguishable from reflex silence from outside.
-
-What it deliberately is not: no job store, no scheduler class, no daemon, no residency. prime-agent's heartbeat is daemon-only by construction (`in-process-agent-connection.ts:264` throws `"Heartbeats require daemon mode"`), and its `scheduled-jobs.json` is state whose loss would erase registered work — the shackle test this repo applies elsewhere. We took the syntax (`/heartbeat [--every <interval>] [--steer|--follow-up] [instruction]`, 10s floor) and two policies (busy means **drop** the tick, never stack it; `steer`/`follow_up` as a field), and none of the code.
-
-Two consequences worth knowing before using it. **It is off until a human types it and it dies with the session** — `session_start` disarms on every reason including `resume`, which is the only thing standing between "every pi session on this machine loads this file" and "sessions that wake themselves with nobody asking". And **`--steer` cannot actually interrupt a running turn here**: pi's extension surface exposes `isIdle()` alone, whose expression is `!_isAgentRunActive && !isCompacting` — two states behind one boolean — and steering into a compaction is the unsafe case prime-agent names, so both modes wait for a plainly idle session.
-
-`/heartbeat status` states both in one line each, and this section is where their reasoning lives. That split is deliberate: the panel is four lines total (state, instruction, the two facts) because a status view that wraps to ten rows stops being read, which would lose the very facts it was widened to carry.
-
-Who digs is closed (2026-09-09): this turn *or* a sibling — both allowed. The tick prompt names three hands: `semantic-memory` (memory), `timeline` (time), `entwurf_fresh_call` / `entwurf_v2` (sibling). How to narrow each axis lives in that skill's own doc. A miss pages GLG once via skill `dm` for this armed heartbeat, not every tick. That one-DM budget assumes earlier ticks (and that DM) are still in the session context; if compaction drops that span, the same miss can fire twice. Still open, and still not decided in the code: where the record lands ([#24](https://github.com/junghan0611/agent-config/issues/24) 열린 결정 2). The prompt requires the property, not the path.
-
-#### `autopilot` — silence is a trigger, never a grant
-
-GLG 2026-09-28 (journal week39): *"욜로로 가다가 glg가 판단좀해줘라고 남겼는데? 답이 없으면 dm으로 보내고, 그래도 답이 없으면 decision-gate가 열려서 기억축으로 내가 판단했음직한 것을 찾고 … dm으로 메시지를 보내줘야지."* The pilot implements the first three steps of that sentence and deliberately not the fourth ("proceed").
-
-| Step | What fires it | What it does |
-|---|---|---|
-| arm | a human types `/autopilot on [<ask> <gate>]` | enables the `waiting_for` model tool and adds one system-prompt paragraph asking the coordinator to declare it when it stops; `/autopilot off` hides the tool again |
-| clock | the **latest settled turn** declared `waiting_for(kind:"glg", question)` | starts `ask` (default 10m). A question-shaped reply with no declaration only shows a status hint — a settled turn is not by itself a GLG question; the coordinator may be waiting on a sibling (`peer`) or a background task (`local`), which it checks through `entwurf_peers` / `bash_background_check` itself |
-| DM #1 | `ask` of silence, session idle | one DM via skill `dm` (`dm.sh --as pi/<model> --stdin`). If it fails, the cycle **holds** — an unasked silence never opens the gate |
-| gate | `gate` (default 20m) more silence | one `runConsult` from `decision-gate.ts` (env/default candidate, shared dig budget and receipt; `/decision-gate model` session override is goal-only), then DM #2 and a verdict panel. A verdict needs `outcome:ok`, a `PROVISIONAL:` line and ≥1 resolved cited hit; otherwise it is a *hold* ("no grounds — waiting") |
-
-Cancellation: GLG's **interactive** input (rpc steers and extension input are not GLG); a later settled turn that declares `none`/`peer`/`local` or declares nothing; `/autopilot off`/re-arm; any session boundary or tree navigation (the latter also hides transcript-restored tools). In-flight DM/consult results that return after a cancellation are recorded as stale and publish nothing — no DM #2, no panel; a running consult is aborted. A verdict panel already left is not deleted — it is what the resident reads when GLG answers "그대로 해/아니" — but once GLG has spoken after it (or the cycle was withdrawn) it reaches the model under a `HISTORICAL` header.
-
-Budgets are the **session's**, not the arm's: 4 DMs (two cycles) and the consult cap of 3 shared with decision-gate's goal path. They are counted from session entries, so `/autopilot off` → `on`, reload and resume do not refill them. Every step leaves an `autopilot` custom entry; the consult leaves its usual `decision-gate-consult` receipt with `trigger.kind:"autopilot"`.
-
-**Why there is no "proceed" (the boundary question stays GLG's).** The file has no `tool_call` hook and every `sendMessage` is `triggerTurn:false`: nothing is executed on a verdict, so the boundary of provisional authority does not exist yet. Adding it needs GLG to choose a boundary model — zero execution vs an allowlist of active tools with bash fully blocked and unknown tools failing closed. A regex deny list is not a boundary (cross-review 2026-09-28, `openai-codex/gpt-6-sol`): it misses indirection, scripts written to disk, and arbitrary custom tools. Silence never grants push, public dispatch or destructive acts.
-
-Runtime shape: `autopilot.ts` imports `./decision-gate.ts`; pi resolves that from the **symlink's** directory, so both files must be linked side by side (the `pi-extensions/*.ts` glob in `run.sh setup` does that). `./run.sh test:autopilot` runs the stub regression (timers, races, budgets, session boundary, one real `runConsult` on a stub side session — no DM, no model call) and a load smoke against the installed pi. A live DM or paid consult test needs GLG's separate approval.
-
-**See it run: `./run.sh demo:autopilot`** (2026-09-28, GLG asked for a visible dummy call so the scenario does not read as abandoned). Two receipts, kept apart on purpose. (1) `tests/autopilot.demo.ts` — the real `autopilot.ts` state machine and the real `decision-gate` `runConsult` over a stub side session: DM #1/#2 go through the real `dm.sh --dry-run` (zero Telegram), the consult receipt says `trigger:autopilot · model:demo/stub-sibling`, its one dig fails closed on a missing skills dir (zero embedding calls), and the outcome is an honest **hold** — a verdict would need a real cited hit, and faking one would stage authority. Everything is `[DEMO]`-labeled and stays in memory: no session file, nothing for andenken to harvest as real consult evidence. (2) `tests/autopilot.rpc.test.ts` — the installed `pi` binary in an isolated `PI_CODING_AGENT_DIR` with both files symlinked as in production: `/autopilot` and `/decision-gate` register, `/autopilot on|status|off` run, no assistant turn. It also proves that linking `autopilot.ts` alone fails. Both are measured evidence that the bridge and the loader work; neither is evidence of GLG's judgment, a real DM, or a paid consult.
-
-Installed narrowly on thinkpad (2026-09-28): one symlink `~/.pi/agent/extensions/autopilot.ts` → this repo, beside the existing `decision-gate.ts` link — the same shape `run.sh setup` produces on other machines. It loads in pi processes started after that, disarmed; revert with `rm ~/.pi/agent/extensions/autopilot.ts`.
-
-One gap Fable's review named: `/decision-gate model …` is a per-session selector held inside `decision-gate.ts`, and autopilot calls `resolveCandidateSource(null)` — so an autopilot consult uses `DECISION_GATE_MODELS` or the built-in order, not a model chosen with `/decision-gate model`.
-
-#### `background-bash` — why it exists
-
-pi's built-in bash tool is synchronous only. A slow `pnpm check` therefore either blocks the whole turn or gets parked in tmux, and parked work needs a human to come back and look at it. The observed failure mode is the agent announcing "I'll run pnpm check" and then ending the turn, waiting on a keystroke. Claude Code does not have this problem: `run_in_background` plus a completion notification re-invokes the model.
-
-pi has no completion hook — but it does not need one. `pi.sendMessage(..., { triggerTurn: true })` may be called from **any** async callback, and `agent-session.ts` explicitly runs a continuation for messages queued after a turn ends ("queued by agent_end extension handlers"). So the child process's `exit` handler queues the result and triggers a turn; if a turn is already running it is delivered as a follow-up. `goal.ts` uses the same mechanism from `agent_end`. The footer shows `⏳ n tasks` while anything is pending.
-
-Two things learned the hard way, recorded so they are not re-derived: spawn through pi's own `getShellConfig()` (it returns `bash -c`, and a login shell sources a profile that injects OSC escape bytes into model context), and `detached: true` + `process.kill(-pgid, …)` (signalling only the bash pid leaves a pipeline's descendants running).
-
-External Pi packages have two ownership paths: andenken remains the cross-harness `semantic-memory` skill and entwurf self-registers its citizen surface; supported Pi-only packages are tracked in [`pi/packages.json`](pi/packages.json), installed or updated through `setup:pi-packages`. None are merged directly into this repo's settings reference.
-
-### Durable Native Module — env first, background tools and native badge (Entwurf 0.34.0+)
-
-**entwurf는 접점을 공급하고, 이 집은 실제 소비자를 증명한다.** [`pi-durable/env.mjs`](pi-durable/env.mjs) is the reference implementation: an ordinary ES module initializes environment variables **before** the durable TUI/runtime and provider discovery, then exports a native `{ name: "agent-config-env" }` object. No SDK value import, classic Pi extension shim, plugin manager, or runtime installation is added here.
-
-It reads the home `~/.env.local` only, follows the existing Pi loader's assignment-reading semantics, preserves existing values (including an explicit empty string), leaves citizen identity/cwd untouched, and removes the four skill-only provider keys from the parent environment. It does **not** execute shell code or evaluate `case` branches. Skills needing a hidden key read the home file themselves. Full contract and API-0 verification: [`pi-durable/README.md`](pi-durable/README.md); ready-to-use `pdt` / `pds` / `pdc`: [§ Shell Aliases](#shell-aliases-bashrclocal).
-
-**Background commands — supplied in Entwurf 0.34.0 (2026-10-09).** [`pi-durable/index.mjs`](pi-durable/index.mjs) evaluates `env.mjs` first and installs one native object, `agent-config`, carrying `bash_background` / `bash_background_check`: a long command returns a task id at once, the conversation can be idle, and a native follow-up reports the result. Recovery reports `interrupted` rather than replaying arbitrary shell. Entwurf owns the **protected `⏳ n tasks` badge** and lifetime graph observation; hiding `/tasks` does not hide ongoing work, and narrow panes use an ASCII active marker. The count is live native tasks, not a guarantee that all OS processes ended successfully. The actual installed-candidate integration exercised both SDK tools, hidden-panel badge, completion and two same-id reopens with scripted faux; its four core files are byte-identical through accepted M3 and the published npm artifact. Vendor autonomous selection and GLG's physical TTY remain unmeasured, not a new release blocker. GLG authorized `pdc` to use `index.mjs` on 2026-10-09; env-only `env.mjs` remains available. Contract, receipts and optional explicit directory/filter loading: [`pi-durable/README.md`](pi-durable/README.md).
-
-**The incident is part of the reference.** A stricter first parser passed 15 synthetic checks but refused the real home file's `case` line during restart. It was repaired by returning to Pi's reading policy, not by adding a shell interpreter. A comparator now runs the live Pi parser on the same synthetic corpus; the repaired module also passed a value-free read-only check against the real file. GLG then reopened the same garden id with `--continue --native-module`; the native argv and the bash child's missing provider keys were measured on 2026-10-08. Earlier failures and evidence scopes remain in [PI-DURABLE.md](PI-DURABLE.md).
-
-### entwurf Surface Reference
-
-This repo is the **official consumer reference** for the `entwurf` surface.
-
-| entwurf surface | Where this repo consumes it |
-|---|---|
-| backend provider (`entwurfProvider`) | supplied by entwurf; `pi/settings.json` retains this consumer's skill-plugin reference |
-| MCP bridge (`entwurf-bridge`) | entwurf's installer owns the live wiring; not declared in this repo's settings reference |
-| `entwurf_v2` / `entwurf_peers` / `entwurf_self` / `entwurf_inbox_read` / `entwurf_fresh_call` / `entwurf_resume_call` / `entwurf_retire_call` / `entwurf_callback` / `entwurf_register_native` | supplier's nine-verb bridge contract; host offerings differ, and already-loaded tool lists are not refreshed by editing this README |
-| skill plugin injection | `run.sh setup` builds this repo's local plugin root and points settings at it |
-| install / version pin | **entwurf's own `./run.sh`** — this repo pins nothing on its behalf |
-
-So when `entwurf` changes, this is the first consumer that should stay green.
-
-**Seven backend identities, one address layer (supplier source 0.45.0, read 2026-10-27).** Claude Code, Copilot CLI, **OMP**, and **pi-durable** are self-fetch citizens; Codex uses native-push; pi supplies control sockets. Antigravity's native-push identity remains readable but dispatch/registration are **paused (#152)** before any probe. The static capability map still labels durable **D2** and the others D6; the supplier's [dated delivery matrix](https://github.com/junghan0611/entwurf/blob/v0.45.0/DELIVERY.md) carries separate demonstrated run evidence. Neither is a rank or a whole-cut certificate. `entwurf_fresh_call` opens `pi` / `claude-code` / `copilot` / `omp` / `codex` / `pi-durable` in tmux, or `pi` / `claude-code` in Herdr. Codex requires the operator-owned app-server. A launch receipt is not delivery: match the exact nonce in the sibling's zero-argument `entwurf_callback` and take its garden id from the callback sender envelope, then address it with `entwurf_v2`.
-
-`entwurf_resume_call {target}` visibly reopens a proven-dormant **Pi or Claude Code** citizen under the same id in tmux, submits no prompt and returns separate launch/observation receipts; it refuses inside Herdr. Claude Code does not regain its old model/permission flags. `entwurf_retire_call {target}` is a separate guarded attempt **only for the human operator's explicitly requested target/action**; Pi's shutdown ACK is not process exit, and an unknown outcome never licenses automatic retry. Durable is a caller of these verbs, not their resume/retire target. Its local `entwurf pi-durable --continue` selects this cwd's newest-created session; `--resume` is a cwd-local interactive chooser, not a bridge garden-id selector. No delivery verb secretly starts or resumes a process.
-
-**The seventh backend is released, and it is not a pi variant.** The first packaged carrier and env ingress shipped in [0.32.0 / #130](https://github.com/junghan0611/entwurf/issues/130). The **0.36.0 checkpoint** (2026-10-14) emits the app/TUI carrier from Entwurf-owned source on the Pi 1.2.0 SDK set and keeps the native BG/file-or-directory ingress introduced in 0.34.0. This repo supplies the env-first background-bash aggregate. Since 2026-10-13 its tools return SDK 1.2 `output` and need 0.36.0+; its 1.2 evidence is API-0 44/44 against the 0.36.0 checkout plus a scoped post-restart BG observation, while the 2026-10-09 installed fixture stays dated 1.1 evidence. Its operating scenario is **create once, keep reopening the same conversation**, rather than fresh-call propagation; modules are not auto-discovered or saved as a launch profile. Its longer lifetime already exposed two consumer-side assumptions in `entwurf-peek` (fixed 2026-10-06, 81 checks). [PI-DURABLE.md](PI-DURABLE.md) preserves early D0 observations separately from D2 and the dated same-id reload receipts.
-
-### Supplier source checkpoint — 0.45.0 (read 2026-10-27)
-
-The [0.45.0 source contract](https://github.com/junghan0611/entwurf/blob/v0.45.0/CHANGELOG.md) at `191e425` centralizes the extracted model-facing guidance in root `ENTWURF.json`: MCP descriptions, durable short variants and named static reject/receipt clauses share one strict reader and preserved pre-extraction oracles. It changes **no wire value, routing algorithm, tool or permission**. The tool counts and lifecycle/rail corrections in this README repair drift accumulated before 0.45; they are not new capabilities shipped by its guidance milestone. Bootstrap, protocol envelopes, receipt syntax, slot-bearing and Herdr hints, and ACP text retain their code owners. Guidance revision is separate from release version; this repo neither copies that payload nor owns a user-prompt override for it.
-
-The supplier's [current install contract](https://github.com/junghan0611/entwurf/blob/v2026.10.27-herdr.0.45.0/README.md) and separate [Herdr snapshot](https://github.com/junghan0611/entwurf/releases/tag/v2026.10.27-herdr.0.45.0) name core **0.45.0**, Pi **>=1.4.0 <1.5**, nine exact **1.4.0** SDK members and Claude Code **>=2.1.306**. Herdr locks its own npm runtime and wires only Pi/Claude Code; it does not fresh-open durable. Installation source, an already-loaded process and a working collaboration are separate evidence. Reading this source does not install or restart anything, certify every loaded byte, or re-run the supplier's package/LIVE/release acceptance. agent-config pins no Entwurf version.
-
-**Consumer API-0, 2026-10-27:** `./run.sh test:pi-durable` passed **44/44, skip0** against the already-built 0.45.0 checkout and its Pi1.4 SDK: synthetic HOME, faux model, test-owned storage and child processes only. This is a source-checkout consumer regression, not an installed-npm, operator-TTY, vendor-model or all-loaded-runtime test. The native-module reference README links the supplier's current supply contract and keeps separate dated receipts for 0.36/1.2 and this 0.45/1.4 regression. Neither document pins or installs an SDK here.
-
-**Resident collaboration, 2026-10-27:** following GLG's installation report, a durable caller opened native Claude Code Opus, Pi Sol and native Claude Code Sonnet for actual work. The coordinator matched exact callbacks, exchanged requests/replies, assigned follow-up work and accepted the resulting helper repair, independent review, model/quota update and incremental memory publication. The Entwurf coordinator acknowledged this scoped report. This is a first acceptance of those observed collaboration legs, **not** all-rail, long-haul, crash/recovery, exactly-once, memory-quality or all-loaded-bytes 0.45.0 certification. Grok and ACP were not exercised in this observation.
-
-### Dated supplier observation — 0.35.0, a visible screwdriver, not a new hierarchy
-
-The [renewed Herdr demo](https://github.com/junghan0611/entwurf/blob/v0.35.0/README.md) shows **ordinary Pi ↔ native Claude Code**: callback → addressed task → native Bash → reply. Independent sessions keep their own runtime and garden id; a coordinator is a temporary role, not their parent. The separate plugin locks npm core 0.35.0 but still wires only **pi / Claude Code** and puts no Entwurf bins on PATH. It neither installs nor fresh-opens `pi-durable`; durable's local `pdc` and the direct tmux route remain distinct. Source changes in 0.34.1/0.34.2 also repaired plugin ownership preflight, no-ledger deactivation and plugin-runtime doctor expectations; upgrading a host remains an explicit owner operation, never this repo's cleanup side effect.
-
-GLG's [2026-10-12 public account](https://wikidocs.net/blog/@junghanacs/33151/) says giving the screwdriver to durable feels more comfortable, while memory quality is **not evaluated** and human judgment remains the bottleneck. That is lived-use evidence, not a claim of speed or superior recall. The new GIF is not a durable-Herdr or background-badge test.
-
-At that dated 0.35 checkpoint, qualification avoided redundant BODY runs only for certified untouched TOML find spans, not every plugin/data edit. The [core release checkpoint](https://github.com/junghan0611/entwurf/releases/tag/v0.35.0) records successful four-job floor CI and artifact Docker evidence, but whole-940 qualification and native Codex LIVE are **explicitly unmeasured per-cut exceptions**, not PASS. The [plugin checkpoint](https://github.com/junghan0611/entwurf/releases/tag/v2026.10.12-herdr.0.35.0) separately records npm/public-ref install and ordinary CI with an automatic BODY SKIP. These are supplier-publication receipts read here, not reruns by agent-config.
-
-The tool row above is the upstream MCP contract, not a promise that every running host has reloaded it. At source 0.45.0, a Pi citizen offers **seven active + two hidden** verbs (`inbox_read` and `register_native` are hidden); the durable contact offers **eight**, including `resume_call` and `retire_call` alongside `self`, `peers`, `v2`, `inbox_read`, `callback` and `fresh_call`, all under `entwurf_*`. The 2026-10-08 six-tool durable observation is historical, not the current supplier offering. The contact uses the bridge internally. The bridge surface is the **v2** one. The v1 trio (`entwurf` / `entwurf_resume` / `entwurf_send`) was removed in a hard cut (entwurf `CHANGELOG.md` #50) and no longer exists anywhere — a doc row naming those tools is stale, not a fallback. Note also that `session_search` / `knowledge_search` never came from this bridge: they are andenken's pi-native `registerTool` surface.
-
-There is deliberately **no release-pin row** here. This repo does not carry an entwurf version constant, an install spec, or a tracking ref — `setup_repos` clones the source for dogfooding and stops there. It does not even declare entwurf as a pi package any more: entwurf's own `./run.sh install` registers it as a user-scope citizen in `~/.pi/agent/settings.json`, and `remove-user-scope` is the inverse. Install, auth, and version selection belong to that side, because a consumer that pins its own copy weakens the release gate it is supposed to exercise.
-
-Spec, verification harnesses, and the sync/async contract remain in [entwurf `AGENTS.md` § Entwurf Orchestration](https://github.com/junghan0611/entwurf/blob/main/AGENTS.md).
-
-### Claude Code as Native Pi Surface
-
-When entwurf isn't the path (operator chooses native Claude Code, or the 2026-06-15 Anthropic billing shift puts more sessions on direct Claude Code), `claude/settings.fragment.json` (workstation) and `claude/settings.server.json` (server) keep the native session as close to entwurf's ACP overlay as possible.
-
-`~/.claude/settings.json` is **co-owned** with entwurf's meta-bridge installer (keysets *intended* to be disjoint — see the warning below). On workstations `setup` therefore **merges** the agent-config keyset (`settings.fragment.json`) into the live file instead of symlinking it — a symlink is whole-file ownership and the next writer's atomic rename would silently clobber the other side. agent-config owns hooks / language / 개인취향 toggles / `enabledPlugins.*@claude-plugins-official` / **`permissions.defaultMode`**; entwurf owns `permissions.allow/deny` / `statusLine` / B-lite single-driver scalars / meta wiring (`enabledPlugins.entwurf-meta-receive`, `extraKnownMarketplaces`). The `permissions` object is split down the middle and stays disjoint: the fragment carries `defaultMode` alone and jq's recursive object merge leaves entwurf's `allow`/`deny` arrays untouched. The SSOT for entwurf's side is `entwurf.install-state.json`, and entwurf ships the preventive check: `./run.sh check-keyset-overlap <fragment>` from the entwurf repo names every colliding key. Server devices take the same keyset-merge path (`run.sh` merges `settings.server.json` into the live file — it is **not** a symlink), and they do carry a meta-bridge: oracle's install-state owns 17 settings keys plus `mcpServers.entwurf-bridge` in `~/.claude.json` (measured 2026-09-01 — `python3 scripts/meta-bridge-state.py check` from the entwurf repo).
-
-**The keyset is disjoint again (2026-09-01).** `check-keyset-overlap` went 2 → 0 for `settings.fragment.json` and 18 → 2 for `settings.server.json`. The server file had carried entwurf's whole keyset from the pre-merge single-owner era — `statusLine`, `extraKnownMarketplaces.meta-bridge-local`, `enabledPlugins.entwurf-meta-receive`, `cleanupPeriodDays` and the B-lite scalars — and two of those copies had gone stale: the `statusLine.command` still named `~/.claude/statusline.sh` and the marketplace `.assembled` path still named `~/repos/gh/entwurf/pi/meta-bridge/`, both locations entwurf has since moved from (live values: `entwurf/scripts/meta-bridge-statusline.sh`, `~/.local/share/entwurf/meta-bridge/`). EXISTING-WINS meant the stale copies never reached the live file, which is exactly the silent shape [`5b9c75c`](https://github.com/junghan0611/agent-config/commit/5b9c75c) called a drift bomb. The remaining 2 collisions are `permissions.allow`/`deny`, **kept on purpose**: entwurf's ledger records one added item there (`allow: ["mcp__entwurf-bridge__*"]`, `deny: []`), so the arrays are substantially ours, and under `permissions.defaultMode: "bypassPermissions"` they are inert anyway. `permissions.defaultMode` is **not** among the collisions — the pin below is clean. Run the guard before adding any key to either file.
-
-| Axis | entwurf overlay | agent-config Claude Code |
-|---|---|---|
-| `permissions.defaultMode` | `"bypassPermissions"` (read at `pi-extensions/lib/acp/overlay.ts:122` @`48dcc9a`, 2026-10-12) | `"bypassPermissions"` |
-| auto-memory | `autoMemoryEnabled: false` + empty `projects/` tree | same — per-cwd `memory/` kept empty |
-| binary tools (PlanMode / Worktree) | not exposed | deny-listed |
-| external surface tools (AskUserQuestion / Task* / Cron*) | not exposed | deny-listed |
-| plugin farm | none | `enabledPlugins` false for all |
-| MCP entwurf bridge | `entwurf-bridge` mounted | `mcp__entwurf-bridge__*` allowed |
-| operator hooks | empty (`hooks: {}`) | `peon-ping` retained (deliberate) |
-
-**`permissions.defaultMode: "bypassPermissions"` — two surfaces that must carry the same value.** Both `settings.fragment.json` (workstation) and `settings.server.json` (server) pin the key here as of 2026-08-08. **This is the operator-owned native authority choice, paired with an isolated ACP-owned setting** — see the settled boundary below. The older `default` mismatch is historical; the current overlay is paired.
-
-Two surfaces, because there are two config reads. Native Claude Code reads `~/.claude/settings.json`. An ACP peer does **not**: `claude-agent-acp` reads through `CLAUDE_CONFIG_DIR`, which entwurf's overlay redirects at a pi-owned directory whose `settings.json` the overlay authors itself ([`pi-extensions/lib/acp/overlay.ts`](https://github.com/junghan0611/entwurf), `overlaySettingsJson()`). A peer session therefore never sees this repo's value at all. **If the two surfaces disagree, the failure is silent and asymmetric** — the operator's own sessions run bypass while every peer still stalls on a skill edit, which reads as "entwurf is broken" rather than "one config key is unpaired."
-
-**Historical failure, not the current overlay setting:** an allow-list alone did not substitute for bypass. The earlier overlay premise — "`default` auto-passes every exposed tool" — missed Claude Code's **hardcoded `.claude/` write guard** (reported from v2.1.79 at [claude-code#36497](https://github.com/anthropics/claude-code/issues/36497); upstream issue status was not rechecked in this cut). The retained v2.1.226 measurement: under `default` + full allow-list an edit to `~/.claude/skills/…/SKILL.md` prompts (`Yes, and allow Claude to edit its own settings for this session`) and the session **blocks until a human answers** — and the prompt's only escape hatch is scoped `for this session`, so there is no durable opt-out. Under `bypassPermissions` the same edit passes silently, as does a write to `~/.claude/` itself. That was the skill-edit stall; today's overlay pins bypassPermissions and no new vendor measurement was run here.
-
-`merge_settings` is EXISTING-WINS, so this pin only **fills** the key on a device that lacks it. A device already carrying `"default"` keeps it and `setup` emits a divergence warning instead — clear the key from the live file to let the new default land.
-
-**The split is deliberate and settled (2026-08-08, with entwurf's steward) — this key stays here.** The dividing line is blast radius, not key tidiness:
-
-| Layer | Owner | Why |
-|---|---|---|
-| Native Claude Code, operator-wide | **agent-config / operator** | `~/.claude/settings.json` governs *every* native session. `bypassPermissions` is the same authority as `--dangerously-skip-permissions`, so a public package must not switch it on as a side effect of installing a plugin and a mailbox. Turning global YOLO on is the operator's own act. |
-| ACP child runtime, isolated | **entwurf overlay** | The child is sealed off by `CLAUDE_CONFIG_DIR` and never reads the file above, so the value has to be pinned again in `overlay.ts`. entwurf also constrains the callable-tool surface and owns the unattended turn, so the risk stays inside its own sandbox. |
-
-entwurf's meta-bridge deliberately does **not** claim `permissions.defaultMode`: its `smoke-meta-keyset-guard.sh` fixture lists the key as a legitimate consumer-owned field ("`permissions.defaultMode` … must NOT trip the guard"). Reading its ownership of `permissions.allow/deny` as an argument that it should own `defaultMode` too gets the boundary backwards — those constrain which tools exist, this one decides how much authority the operator hands the whole machine.
-
-Entwurf claiming the native key later would be a policy change, not a one-line addition: managed-scalar entry, install/uninstall snapshot and restore, keyset-guard update, removal from this repo in the same beat, explicit opt-in for public installs, and clean-host docs carrying the warning. Not scheduled.
-
-**The warning-key asymmetry is also retired in source (read 2026-10-12 @`48dcc9a`).** The earlier package pinned `skipDangerousModePermissionPrompt: true` while declining to own global YOLO; thinkpad/oracle then entered bypass without a warning. Current `scripts/meta-bridge-state.py:90–128` puts that key in `RETIRED_SETTINGS_SCALARS`, not `MANAGED_SETTINGS_SCALARS`: an old owned ledger entry permits one-shot relinquishment, while a bare matching live value is not provenance. The warning and authority now belong to the operator. This resolves the old source-level ‘unresolved’ claim; neither host's live setting nor retirement journey was rechecked or modified here.
-
-Aside from the hook channel, the two surfaces are interchangeable. This is the resident-side counterpart to **Asymmetric Mitsein** (비대칭 공존) — pi can spawn or message native Claude Code without the native surface drifting from pi conventions. Both halves of the harness pair stay aligned regardless of which one the operator is sitting in.
+Local Pi lifecycle, provider and TUI hands — `background-bash`, `review`, `goal`, `decision-gate`, `heartbeat`, `autopilot`, `raw-paste` and others. A skill is the cross-harness door; a Pi extension is the local lifecycle/provider/TUI hand. Table and reasoning: [docs/pi-extensions.md](docs/pi-extensions.md).
 
 ### Skills ([`skills/`](skills/))
 
 47 skills (tracked directory and named-set equality rechecked 2026-10-27, both 47, both set differences empty; the list below names all 47). A machine may also carry an untracked local symlink — `butlercli` does on the workstation — which the `*/` glob counts but this number does not. Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query, timeline), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (dm, slack-latest, jiracli, telegram), code surface (forge — linked, owned by forge-config), work workbench (plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli, subtract, evidence-closure), entwurf (entwurf-peek), cross-repo care (sorge — linked, owned by its own repo), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), harness bench (harness-bench), tools (emacs, tmux, diskspace, cloudflare — drives the installed official `cf` and `wrangler`, keeps only `cf-doctor` for token coverage, quota).
 
-**Linked skills: one repo owns it, this one only connects.** `skills/sorge` is a *relative symlink* into [`sorge`](https://github.com/junghan0611/sorge)`/.claude/skills/sorge` — the SKILL.md exists exactly once, in the repo whose facts it depends on, and editing it there reaches every harness at once. agent-config keeps no copy and has nothing to re-sync. `run.sh` clones such repos (`LINKED_SKILL_REPOS`) so the link is never dangling, and **`update` pulls them too** — a stale clone would freeze that one skill while every other repo moves, which is precisely the failure the design exists to prevent. Portability is structural rather than lucky: the link is *relative* (`../../sorge/…`), and `ensure_repo` clones into `~/repos/gh`, so it resolves identically on every machine. A missing target degrades safely — a dangling symlink does not match bash's `*/` glob, so pi's per-skill loop skips it instead of erroring (measured 2026-09-04). `skills/forge` is the same shape, into [`forge-config`](https://github.com/junghan0611/forge-config)`/.claude/skills/forge`. It was this repo's own counter-example until 2026-09-04: documented as a thin pointer to `forge-config` while 361 lines actually lived here, so nobody could tell which side was true. What made the split visible was the commit log — every one of the five dates that touched `bin/forge` touched `SKILL.md` too, one change costing two commits in two repos. Repo name and skill name need not match (`forge-config` owns `forge`); `LINKED_SKILL_NAMES` carries that mapping. Do not re-open the shape that was closed.
-
-**Binary skills: agent-config owns the skill surface, alone.** For skills backed by a sibling-repo CLI (denotecli, bibcli, gitcli, lifetract), this repo owns **both** the `SKILL.md` and the deployed binary; the sibling repo holds **code only** and its own `deploy` never writes into the skill directory. Two owners means nobody knows which one is true. `run.sh setup:build` gates each install behind the sibling repo's test suite and refuses uncommitted sources, then writes [`skills/.provenance.json`](skills/.provenance.json) — per tool: `vcs_revision`, `src_tree`, and the installed binary's `sha256`. A snapshot whose tools cannot be named is not reproducible, it only looks it. The gate only guards `setup:build`, though — a sibling repo's own `build <dir>` can write into `skills/` and bypass both checks, which happened on 2026-09-04. So `./run.sh doctor:bins` re-derives the answer from the binary itself: wrong arch, source newer than the deploy, and a sha that disagrees with `.provenance.json` are each named separately, because only the first one is loud. (`dictcli` is the open gap: GraalVM native-image doesn't ride the Go gate, so it carries no provenance yet.)
-
-**Web search:** `exa-search` is the default for web questions, crawling, intent queries and code-context retrieval. `brave-search` is a fallback when its free-volume, country or freshness controls earn the extra surface; its free plan allows only one request per second, so Brave calls are not parallelized. Paid search and provider usage retain explicit cost awareness.
-
-**Code surface:** `forge` is the **code-side sibling of botment** — same single-bot identity (`glg-bot`), same footer-signature model, same closed-loop instinct, but pointed at self-hosted Forgejo instead of remark42. **v1.5 박힘** (2026-05-27): `bin/forge` 5-command (`list-open` / `state` / `comment` / `label-add` / `issue-create`), multi-profile (oracle: `forge.junghanacs.com` 가동 / work: 회사 인스턴스 가동), machine identity SSOT 분리 (`~/.current-forge-profile`), footer 자동 조립, mutating stderr observability. SSOT 는 [`forge-config`](https://github.com/junghan0611/forge-config) — 이 repo 의 `skills/forge` 는 그 정본을 가리키는 상대 심링크이며 별도 SKILL.md 사본을 두지 않는다. 로드맵: [forge-config #1](https://github.com/junghan0611/forge-config/issues/1) (transferred out of this repo).
-
-**Skill doc principle (LSP pattern):** Agents don't read full docs. Each `SKILL.md` has a single API table at the top — function/command + args + example. English body, Korean description only. Target: <100 lines, <4KB. Like LSP autocomplete: see the signature, call immediately.
-
-### Pi Config ([`pi/`](pi/))
-
-| File | Purpose |
-|------|---------|
-| `settings.json` | The single pi settings **reference**: `_common` plus `_workstation` / `_server` overlays, with `_`-prefixed keys carrying the prose. `setup` resolves one overlay and **merges** the result — never symlinks, because the pi runtime co-owns the live file |
-| `keybindings.json` | Custom keybindings |
-| `claude-plugin.json` | Manifest used by this repo's local entwurf Claude plugin root |
-
-This repo is a place to **look a setting up**, not a live config store. The merge is EXISTING-WINS, so editing `pi/settings.json` provisions a fresh machine and only *warns* on a running one — to change a running one, edit `~/.pi/agent/settings.json`. `pi/settings.server.json` was folded in on 2026-08-06: with entwurf's `packages[]` entry and the runtime's `lastChangelogVersion` both removed as not-ours, its only remaining divergence was `defaultThinkingLevel`, and a whole second copy of a file for one scalar is a file that drifts.
-
-### entwurf Skill Plugin (agent-config local layout)
-
-entwurf runs Claude with `settingSources: []` (SDK isolation), so `~/.claude/skills/` is **not** auto-discovered. The bridge's install contract — plugin shape, `skillPlugins`, fail-fast validation — is documented upstream in entwurf's README §Custom Skills.
-
-What this repo does is narrower: `run.sh setup` builds **one local consumer layout** under `~/.pi/agent/claude-plugin/` (manifest + per-skill symlinks back to `agent-config/skills/`) and points this repo's pi settings at that path. That path is an agent-config convention, not a entwurf contract.
-
-Adding a new skill here still works the same way: drop it into `agent-config/skills/<name>/SKILL.md` and re-run `./run.sh setup`. The same SSOT fans out to pi, Claude Code, the entwurf Claude plugin, Codex, Antigravity, and Copilot when its runtime/home is present. When `kiro-cli` is installed, it also links Kiro's personal root at `~/.kiro/skills/`.
-
-> `~/.gemini/` is Antigravity's home, not Gemini CLI's. The standalone `gemini` binary is gone from this machine and its legacy surface (`~/.gemini/settings.json`, `~/.gemini/skills/`) was retired 2026-08-06 — but `~/.gemini/antigravity-cli/` and `~/.gemini/config/` are live and must survive any cleanup of that directory.
-
-Codex's `config.toml` is materialized as a **regular file**, never linked. `agent-config` supplies only its initial non-Entwurf defaults and preserves an existing regular file byte-for-byte; entwurf's `run.sh setup` subsequently owns the MCP/env boundary and the `thread-title` status atom (and their inverse). Do not add either Entwurf atom to `codex/config.toml` here.
-
-For Antigravity direct mode, `run.sh setup` wires only the skills path. Both `settings.json` and `mcp_config.json` are **not** wired from here — `entwurf`'s `install-agy-bridge` / `install-agy-statusline` adapters own them: they adopt or create a regular file and record the bare `entwurf-bridge` / `entwurf-agy-statusline` stable bins. A symlink from this repo makes those adapters REFUSE.
-
-The same split now covers Claude Code's own status line. `claude/statusline.sh` and its `~/.claude/statusline.sh` symlink were removed 2026-09-01: `statusLine` is an entwurf-owned key (`meta-bridge-statusline.sh`), the repo copy was unreferenced once that key left the fragments, and a stale script sitting on the path entwurf had moved off is how the last drift bomb was built. Do not re-add it — open the entwurf repo to change how the status line renders.
-
-The same ownership split applies to Copilot CLI: `run.sh setup` links only `~/.copilot/skills` (directory symlink to SSOT). `~/.copilot/settings.json`, the birth plugin marketplace unit, and statusLine stay with entwurf (`install-copilot-bridge` / `install-copilot-statusline`). Do not symlink Copilot settings from this repo.
-
-`settings.json` was linked from here until 2026-08-13. It caused a silent regression loop: every `setup:links` pushed the live file — carrying entwurf's exact permission grants and statusLine — aside as `.bak.YYYYMMDD` and replaced it with the repo copy, so agy lost its entwurf wiring until the next `install-agy-*` run (observed twice each on thinkpad and oracle). agy also replaces the file rather than following a symlink when it saves settings, so the link never survived anyway. Skills stay ours; settings and MCP do not.
-
-Because Antigravity and Codex do not expose the same repo-managed custom command-file surface as pi / Claude Code, selected high-value commands can also be translated into thin wrapper skills (current prototypes: `skills/command-recall/`, `skills/command-glgimage/`). `command-glgimage` now bundles a zero-dependency Gemini REST CLI, so Claude Code and other harnesses can generate exact-prompt document figures to a requested path without pi's native `generate_image` tool; GLGMAN world anchoring is an explicit mode, not a restriction on general image generation.
+Linked skills (`sorge`, `forge`), binary skills and their provenance gate, and the skill doc principle: [docs/skills.md](docs/skills.md).
 
 ### Themes ([`pi-themes/`](pi-themes/))
 
@@ -366,248 +147,7 @@ cd agent-config
 
 This provisions **one operator's working environment**, including user-wide links, settings and hooks. Read [AGENTS.md](AGENTS.md) and the ownership notes first; it is not a sandboxed generic installer, a credential bundle or a way to install entwurf implicitly.
 
-`./run.sh setup` performs:
-
-- Clone missing tracked repos (`setup` does **not** pull existing repos; use `./run.sh update` for pulls)
-- Build native CLI binaries (Go + GraalVM) — **gated**: each Go CLI must pass its sibling repo's test suite and be built from committed sources, or it is not installed. `skills/.provenance.json` records what actually landed; `./run.sh doctor:bins` warns when a live binary drifts from its recorded build, is stale against its source, or was built for another arch
-- Link pi extensions, the shared skill set (including `semantic-memory`), themes, keybindings, prompts and the repo-managed OMP task-agent catalog; co-owned settings remain regular files and use the explicit merge paths below
-- Run andenken's own `run.sh setup` (build + deps). It is **no longer declared as a pi package here** — agents reach it through the `semantic-memory` skill, which every harness can invoke. Where it is already registered as a pi package, pi additionally gets the `session_search` / `knowledge_search` registerTool; that is a pi-local convenience, not the shared door
-- Link Codex / Antigravity / Copilot skill surfaces (`~/.codex/skills`, `~/.gemini/antigravity-cli/skills`, `~/.copilot/skills`) plus Claude Code commands. `~/.codex/config.toml` is materialized as a regular file: agent-config supplies initial defaults, entwurf owns its MCP/env + `thread-title` atoms. When installed, Kiro gets only `~/.kiro/skills`; its settings, agents, and sessions stay Kiro-owned. Antigravity/Copilot settings are **not** linked here (entwurf-owned). `~/.claude/settings.json` is **merged** (keyset, never symlinked) — co-owned with entwurf meta-bridge; both workstation (`settings.fragment.json`) and server (`settings.server.json`) merge the same way, and `pi/settings.json` merges too (co-owned with the pi runtime)
-- Symlink `~/.local/bin` PATH binaries
-- pnpm install for extensions and skills
-- Hand off entwurf validation (typecheck, MCP, dual-backend smoke, persisted-bootstrap continuity, cancel-cleanup) to entwurf's own `run.sh`
-
-What `setup` deliberately does **not** do: install entwurf (that is entwurf's own `./run.sh setup` — see [§ entwurf Surface Reference](#entwurf-surface-reference)) and install the runtime under evaluation (`./run.sh setup:hermes`, [§ Agent Runtime Bench](#agent-runtime-bench)). Both are omissions with a reason, not gaps to fill.
-
-## Agent Runtime Bench
-
-Some questions cannot be answered by reading a project's README. *Does a runtime that generates its own skills from experience beat a human-authored skill set?* You only find out by standing both up on the same machine, giving them the same repeated task, and looking at what each wrote down afterwards.
-
-Ten subjects sit on this bench, and they ask different questions:
-
-| Subject | Question | Standing |
-|---|---|---|
-| [Hermes Agent](https://github.com/NousResearch/hermes-agent) | Does a self-learning runtime out-write a hand-authored skill set? | candidate, pinned, not adopted |
-| [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) | Can one visible parent call an in-process team while reducing GLG's inspection hops? | **Under observation (2026-10-14)** — addressed message round trip confirmed; operator visibility and token burden remain concerns ([OMP.md](OMP.md)) |
-| [prime-agent](https://github.com/junghan0611/prime-agent) (fork) | Can a Lisp workspace stand up the RLM loop a Python REPL carries today? | **built here**, not installed — matrix in [PRIME.md](PRIME.md) |
-| [Ouroboros](https://github.com/Q00/ouroboros) | Besides entwurf, how does a popular Agent OS carry task-memory across harnesses, and how does it run long? | candidate, **not pinned, not installed** — matrix in [OUROBOROS.md](OUROBOROS.md) |
-| [herdr](https://github.com/herdrdev/herdr) | Besides our tmux/entwurf floor, how does an agent-terminal runtime show stuck panes and survive detach? | **last local runtime observation: 0.9.1 on 2026-09-21; not re-measured here.** Later Entwurf plugin/release receipts are supplier evidence, not a local runtime re-test; the reviewed 0.45.0 supplier contract keeps Herdr's separately owned runtime lock and Pi/Claude Code-only launch boundary. The earlier public demo is Pi ↔ native Claude Code, not durable fresh-target support — matrix in [HERDR.md](HERDR.md) |
-| [Xirp](https://backstage.spotify.com/docs/xirp) (Spotify) | When one product owns the whole factory — sessions, worktrees, workflow status, institutional memory — what does it get that a three-part workshop does not? | **cannot be installed: macOS-only** — observation in [XIRP.md](XIRP.md) |
-| [pi 1.0](https://github.com/earendil-works/pi) | Our own floor reached 1.0. Where does it meet our compaction switch, autopilot/goal/decision-gate, codemode, and the extensions this repo loads? | **v1.0.0 source plus 2026-10-02 isolated API-0 checks**: ordinary Pi house tests 319 passed; durable library 851 passed / 2 host-assumption failures. Entwurf 0.45.0 supplies a separate Pi 1.4.0 durable SDK set; the older house-test counts are not a 1.4 re-test, and this documentation cut performs no live install — matrix in [PI.md](PI.md) |
-| [pi-durable](https://github.com/earendil-works/pi/tree/main/packages/durable) | A sibling whose garden id can hold one conversation for a month: what does a *resident* harness change about addressing, skill surface, supply, and what we can honestly observe? | **a separate harness, not a pi feature** — Entwurf 0.45.0 carrier + Pi 1.4.0 SDK source contract; static capability-map D2, with dated delivery evidence kept separate; env-first BG tools/native badge and same-id resident use. Installed integration measured 2026-10-09 on 1.1; the 1.2 `output` consumer passed API-0 44/44 on the 0.36.0 checkout 2026-10-14 — [reference](pi-durable/README.md), [matrix](PI-DURABLE.md) |
-| [OpenRig](https://github.com/mvschwarz/openrig) | A rig that wraps Claude Code, Codex, Pi and OMP above Herdr — addressing a *position* (`<seat>@<rig>`) rather than an occupant, and carrying Pi headless over RPC: what does a total solution teach a narrow screwdriver? | **observation only, not installed** — `rig setup`/daemon write skill roots, statusLine and Codex hooks this repo co-owns with entwurf; v0.6.10 source read 2026-10-14 — [OPENRIG.md](OPENRIG.md) |
-| [Letta Code](https://github.com/letta-ai/letta-code) + [FrontierMemory](https://github.com/letta-ai/frontiermemory) | From MemGPT to persistent agents: does experience change later behavior, and how does that differ from source retrieval, native durability and one citizen's session lineage? | **source observation only (2026-10-24)** — product and benchmark kept distinct; publication experiment vs current public protocol tracked separately; no installation or benchmark run — [LETTA.md](LETTA.md), connected to [entwurf#151](https://github.com/junghan0611/entwurf/issues/151) |
-
-
-This comparison belongs here, not in entwurf. **entwurf guarantees its own garden-id,
-delivery, and visible-lifecycle logic and compares today's code with yesterday's; it does
-not rank other harnesses.** agent-config is the operator-side proving ground, so it asks
-whether an external runtime actually reduces GLG's inspection points without weakening
-identity, memory, or alignment. This is not a tournament and it is not a reason to grow
-entwurf into a planner.
-
-The fifth subject is [herdr](https://github.com/herdrdev/herdr) — "the runtime your coding agents live on." It does not wrap agents; it owns their terminals. The bench asks how pane working/blocked/idle and detach-without-dying compare with entwurf liveness and tmux, not whether to replace tmux. **The isolation premise broke on 2026-09-14**: herdr is installed at `~/.local/bin/herdr` with a running server (0.9.1 as of 2026-09-21), it is absent from `nixos-config`, and its agent-state integrations are already installed into the pi, omp, claude, codex, copilot, antigravity-cli, and grok trees that entwurf co-owns. Replacing tmux is still **안 함**. Matrix and the measured delta: [HERDR.md](HERDR.md). DHH-uses-it is inherited from GLG and unverified here.
-
-The fourth subject is [Ouroboros](https://github.com/Q00/ouroboros) — a popular Agent OS
-(Seed · Ledger · multi-runtime adapters). entwurf stays the floor; this bench asks how
-they carry a *task* ledger across harnesses and how they run long, against our *life*
-memory axis and `/goal`·`/heartbeat`. It is **not adopted and not installed**: no
-`setup:ouroboros`, no skill link, no live `ouroboros setup` (that command writes MCP into
-host settings this repo co-owns with entwurf). The matrix is [OUROBOROS.md](OUROBOROS.md).
-
-The first subject is [Hermes Agent](https://github.com/NousResearch/hermes-agent) — an independent runtime with its own gateway, state tree, cron, memory and skill generation. It is a **candidate under evaluation, not adopted infrastructure**: nothing about it is declared in `nixos-config`, and `setup:hermes` is not part of `setup`.
-
-```bash
-./run.sh setup:hermes    # pinned tag, minimal closure, explicit call only
-```
-
-Two constraints carry the whole thing, and both are one careless edit from being lost:
-
-**Pinned, never fast-forwarded.** `THIRD_PARTY_PACKAGE_REPOS` is the obvious home for the clone, but every entry there is pulled to latest on `setup` and `update`. A subject that moves between runs cannot be re-measured, so hermes is kept out of that map on purpose and `HERMES_TAG` selects the version.
-
-**Installed small, not merely configured small.** Upstream's default build adds 18 optional groups — messaging (Telegram/Discord/Slack), voice, web-search backends. Built that way, "integrations stay off" is a promise about configuration. Built from `.#minimal` they are absent from the closure and cannot be switched on by mistake. The single group added back is `anthropic`, without which `hermes auth add anthropic --type oauth` logs in successfully and only fails later at inference — the auth layer and the SDK are separate, so a successful login proves nothing about reachability.
-
-What that leaves is a runtime that reaches Claude, GPT (`openai-codex` OAuth) and Solar (auto-discovered `UPSTAGE_API_KEY`) while being structurally unable to talk to a messaging platform. State lives in `~/.hermes`; deleting it resets the baseline, and the first run after that is t=0 for anything the runtime claims to have learned.
-
-The comparison target is not another product. It is this repo's own loop — `AGENTS.md` + `skills/` + semantic memory + `botlog`/`NEXT` — and the honest question is whether a machine-written skill trail is more transparent and reproducible than the hand-written one.
-
-The second runtime is [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`) — a fork of the harness this repo already runs, tuned as a coding-first surface and evaluated as a **working-submarine candidate**, not an established operating role (GLG, 2026-10-14). One visible OMP parent receives one garden id and calls its internal agents in process for the work it is given. The parent, not the agent profiles, chooses which models to call from the task and the quota currently available. Each profile binds only a name to its model and says “Assist the GLG-requested sibling”; it does not assign rank, speed, cost, context, or a fixed role. The question is **whether the operator can follow and steer the work with less burden**. Fewer inspection boundaries alone do not establish that; GLG's 2026-10-14 experience also raises token-use concerns, without a quantitative comparison.
-
-**OMP is an admitted sibling; its working-submarine benefit remains under observation.** entwurf 0.16.0 (2026-08-31) admitted OMP as the **fifth garden backend**: birth hook, an OMP-native MCP hand, an addressed-receive extension, and `entwurf_fresh_call` on all three public surfaces. It is live on this host with `entwurf-meta-omp` and `entwurf-receive-omp` under `~/.omp/agent/extensions/` plus a native `entwurf-bridge` entry in `~/.omp/agent/mcp.json` (measured on oracle, 2026-09-04).
-
-The two responsibility boundaries remain distinct:
-
-| | Owner | Standing |
-|---|---|---|
-| *Is omp addressable as one garden citizen?* | `entwurf` | **Yes** — one process = one garden id. In-process agents are not citizens and do not widen the contract. |
-| *Does the working submarine reduce GLG's inspection hops?* | `agent-config` | **Not established** — GLG reports opaque, verbose delegation and token burden (2026-10-14, subjective); the D-axis is not a measured benefit. |
-
-This repo wires the OMP **task-agent catalog only**: `omp/agents/*.md` is linked by `./run.sh setup:links` into `~/.omp/agent/agents/`. OMP installation remains outside `run.sh` and `nixos-config`, and the shared skills SSOT is still not injected into `~/.omp`; the operational team stays reproducible without turning the measurement surface into a furnished copy. The provider seal, bridge ownership, operator boundary, and reproduce block live in [OMP.md](OMP.md).
-
-### The third subject is one GLG is building
-
-[prime-agent](https://github.com/junghan0611/prime-agent) is a fork of [PrimeIntellect-ai/prime-agent](https://github.com/PrimeIntellect-ai/prime-agent), and it is where the bench stops measuring other people's runtimes and grows an arm of its own.
-
-Upstream's core abstraction is the **Recursive Language Model** — context as variables, subagents as function calls, all of it inside a *persistent Python REPL* that survives across turns. This fork replaces that language. `prime-agent-runtime-clj/` stands a **Clojure/SCI workspace on a GraalVM native image** beside the Python one, and since checkpoint `edc3a3e8` (H8) **Clojure is the default kernel with no fallback** — a missing binary raises a teaching error instead of quietly reverting to Python (`PRIME_AGENT_KERNEL_RUNTIME`, branch `feat/clojure-runtime`).
-
-The reason is not language preference. It is what a Lisp workspace makes *legible*:
-
-> Natural language is exploration; Lisp is the public state, the contract, and the form. What the model did has to survive as a form in the workspace, not as a paragraph claiming it did. — the fork's `AGENTS.md`
-
-Which makes the success condition unusual for an agent project: not a benchmark score, but **whether GLG can read the workspace forms and decide the next design from them.** Three rules keep that honest, and they are the same rules this repo's bench runs on:
-
-- **The Python oracle is never deleted.** Two arms have to stand side by side or there is no comparison — only an assertion.
-- **Coverage is standing, not procedure.** *"When coverage is there and the possibility is real, the possibility becomes real. Get it wrong and it is just fraud."* (GLG) No claim of performance or advantage is made before the contract coverage exists to back it.
-- **A failure is an observation to classify, not a verdict.** A red on the Clojure arm is recorded as `semantics-gap`, `model-fumble`, or `harness-gap` — whichever the receipt supports. A prose-only pass or a Python fallback is not a Lisp success.
-
-Scope boundary, stated once so it is not re-derived: this is an experiment in **computation inside one citizen**. It does not touch entwurf's address, delivery, or receipt layer, and it never promotes a message between siblings into an executable form. Coordination and computation stay apart ([entwurf#88](https://github.com/junghan0611/entwurf/issues/88)). Current position and the open board live in the fork's `NEXT.md` and [issue #1](https://github.com/junghan0611/prime-agent/issues/1).
-
-[YEGGE.md](YEGGE.md) is the lighter observation log. Wheelhouse is neither installed nor a
-candidate: it is an occasional external sighting used to separate durable runtime facts
-from cockpit fashion. Its current entry records one useful confirmation only — tmux can
-own session lifetime while Emacs remains a replaceable projection — and explicitly opens
-no implementation lane.
-
-[XIRP.md](XIRP.md) is the sixth subject and the only one this machine **cannot** run: Xirp is
-macOS-only, so the question is never whether to adopt it but how far a product that owns the
-*whole* factory has actually gone. Spotify calls it a **vendor-neutral agentic development
-environment** and states that as an architectural requirement — *context is decoupled from any
-single agent or harness; switch tools mid-project, and the full working state carries over* —
-built to coordinate 50+ parallel sessions, each in its own worktree. That last phrase names the
-same problem garden-id solves, with the opposite answer: **Xirp holds the context and swaps the
-harness; entwurf holds only the address and leaves context with each citizen.** The memory axis
-diverges further — Portal accumulates institutional memory as a substrate it owns, while
-`/recall` deliberately refuses to become a memory emperor. One caution is written large in that
-file: the claim that **Pi became a first-class Xirp harness is inherited from a ChatGPT analysis
-and could not be confirmed here** — Spotify's own docs still list Claude Code, Codex and Gemini,
-and the changelog names Cursor but not Pi. Verifying or retiring that one sentence is the file's
-first open item.
-
-[PI-DURABLE.md](PI-DURABLE.md) is the eighth subject and the only one that is **our own floor
-wearing a different lifetime.** `pi-durable` shares pi's upstream source, and that shared source
-merges none of their runtime, storage, authentication or admission contracts — entwurf states that
-boundary in its own words (*"Treat `pi-durable` as a separate native harness, not an enhancement to
-ordinary Pi"*) and registers it as a separate backend. What makes it a bench subject rather than a
-version note is **time**: one garden id can hold one conversation for a month, a core durable is
-meant to be resident per main repository, and dormancy is not its normal state. That single change
-breaks assumptions written for session-shaped citizens — it already produced a measured defect in
-this repo, where `entwurf-peek` dropped every durable record as schema-invalid and would then have
-reported a month-old resident as *"before its first turn"* (fixed 2026-10-06, 81 checks green).
-The 2026-10-06 D0/source-only snapshot remains history in that document; current Entwurf 0.45.0 supplies the app carrier, while its static capability map still records **D2** and its delivery matrix preserves separately scoped live evidence. The 10-08 env restart and 10-09 aggregate reload/actual BG query are dated observations, not crash recovery, exactly-once delivery or a memory-quality benchmark. Skills share Pi's `loadSkills` door; classic Pi extensions still do not load. This repo's separate native module is the measured alternative, not a claim to reproduce the Pi extension ecosystem. The memory-axis implementation [andenken#15](https://github.com/junghan0611/andenken/issues/15) is now completed for explicitly admitted closed snapshots; this does not collect every live conversation or turn the JSONL recap into a SQLite reader. Runtime supply, addressing and native-module ingress belong to entwurf. Consumer policy and its reference implementation belong here.
-
-[OPENRIG.md](OPENRIG.md) is the ninth subject, an observation log like XIRP.md. OpenRig calls itself the layer above harnesses — *"A harness wraps a model. A rig wraps your harnesses"* — and sits on Herdr. It is the clearest outside contrast to this repo's floor on two axes: its address names the seat **position**, never the occupant, where a garden id names the citizen; and it runs Pi through its own runner over `pi --mode rpc`, with TUI-native Pi deferred to a separate future contract, where GLG's rule is that Pi stays visible as its own TUI. It does not carry pi-durable. GLG's 2026-10-14 reason for adding it is learning, not adoption: resume honesty as a named layer, re-derivation `grep`s inside its as-built docs, `compaction_strategy` as a declared seat property, and gate scripts paired with tests. Nothing is installed; its setup writes into files entwurf co-owns.
-
-[LETTA.md](LETTA.md) is the tenth subject: a memory-centered product paired with an evaluation surface, not a single memory engine. Letta grew from UC Berkeley's MemGPT research into a persistent-agent platform; FrontierMemory asks whether memory learned from earlier trajectories improves later task performance. The inquiry keeps retrieval, memory refinement, native runtime durability, and [one garden birthday across native generations](https://github.com/junghan0611/entwurf/issues/151) distinct. The initial 2026-10-24 observation reads pinned Letta Code and FrontierMemory sources and the launch post; it does not reproduce the rankings or install anything. Existing LoCoMo/LongMemEval questions and publisher-favorable evaluation choices remain part of the review, not reasons to adopt or dismiss the product. This is material for GLG and Andenken to discuss, not permission to add a memory engine to Entwurf.
-
-[UNCLEBOB.md](UNCLEBOB.md) sits beside it but looks at a different surface: **what a harness
-uses to prove itself.** Robert C. Martin spent 2026 building SwarmForge — 331 commits, git
-worktrees, a babashka handoff daemon, a constitution, nine pack/forge branches — and then on
-2026-09-12 wrote that the need for it was obviated. What he *kept* is the finding: CRAP,
-mutation, coverage, DRY, all as external deterministic tools, with a 6-line `AGENTS.md` whose
-only rule is *do not pin prompt prose with automated tests*. Constraint by prose went down;
-judgement by measurement did not. Measured the same day, `pi-mono` (TS, tests at 77% of
-source, per-package `test/`) and `herdr` (Rust, `#[cfg(test)]` in 186 of 378 files, plus
-python `maintenance-test` modules that gate CHANGELOG, config-reference and docs-translation
-parity) reach the same shape in different languages — and **none of the three gates on a
-coverage percentage.** That convergence is now lens 5 of `harness-bench`.
-
-This file is the one bench document that **deliberately crosses the no-verdict line**, at
-GLG's explicit request, because entwurf 0.23.0 and the herdr plugin 0.2.0 were shipping and
-the standard had to exist before the user base widened. Its §D is material prepared for
-entwurf 담당자 — coordinates and precedent, never an instruction — and it opens by naming the
-line it crosses. No other `NAME.md` inherits that license.
-
-## Session Management — `/new` + recall
-
-`/new` + recall is the explicit cross-harness recovery path when a new session is the right boundary. It is not an alternative policy that suppresses in-session compaction.
-
-1. When a fresh session is preferable, `/new` to start fresh
-2. The index-authority Pi host requests one detached local session refresh at session start / native session search; it never waits, uses a timer, or publishes to Oracle. Run `memory-sync` explicitly only when fresh-now is required.
-3. In the new session, recover context with `/recall`
-
-Compaction is an allowed lifecycle on every harness; agent-config and entwurf do not write a suppress/enable policy. The current surfaces are:
-
-| Surface | Compaction key | Measured |
-|---|---|---|
-| `~/.claude/settings.json` | **no compaction key at all** | oracle, 2026-09-04 |
-| `~/.pi/agent/settings.json` (live) | `compaction.enabled: true` | oracle, 2026-09-04 |
-| `pi/settings.json` (this repo's reference) | **removed 2026-09-04** — was `enabled: false` | this release |
-
-entwurf retired `autoCompactEnabled` and `env.DISABLE_AUTOCOMPACT` from its managed settings in 0.17.2 (#94). That retirement leaves timing and enablement to the harness that owns them; it does not prescribe a state. `pi/settings.json` likewise carries no compaction key, so a fresh machine receives Pi defaults rather than a stale policy.
-
-As of 2026-10-03, compaction is left to **Pi's built-in text summarization for every provider, including `openai-codex`**. The Codex-native checkpoint extension is retired; no replacement compaction extension or policy key is installed. Text summaries are readable and can travel across models; faster compaction is not guaranteed. `/recall` still serves the distinct job of crossing sessions and harnesses.
-
-**Migration:** removing a package from `pi/packages.json` does not uninstall it on an existing device. Run `pi remove npm:@ogulcancelik/pi-codex-compaction` on each device, then start a **new Pi process and session**. A running process may retain the loaded extension. Do not resume an old native-checkpoint session without it: the visible summary is only a marker, while the actual context requires the removed extension's `details.replacementHistory` handling. Keep old transcripts as evidence and recover through `/recall` instead.
-
-`/recall` is the **multi-axis context hydration** protocol owned by agent-config — not a per-session recap, not a entwurf bridge contract. It starts with `session-recap -p <repo> -m 15` but does not stop at one repo transcript. When the work crossed projects or days, it combines:
-
-- `session-recap` — repo-local transcript extractor, no raw JSONL
-- `session_search` — cross-project / cross-session semantic recall
-- `knowledge_search` / `search-md` — public garden md concepts, journal exports, botlog/llmlog-derived design history
-- `gitcli day --summary` + `denotecli day` — day-axis reconstruction
-- journal `§repo` markers — sibling/담당자 call index
-
-The answer must state which axes were seen and which were not. This keeps `/recall` token-light while avoiding false confidence from a plausible single-session summary.
-
-The protocol itself lives in [`commands/recall.md`](commands/recall.md). The 2026-05-08 derivation history and raw evidence log are kept as a Denote llmlog note (`20260508T090911`, `~/org/llmlog/`) rather than as in-repo docs — `/recall` is a resident-side memory workflow, not a spec this repo carries. Renamed from `/recap` on 2026-05-12 to avoid shadowing Claude Code's built-in `/recap` (one-line session summary, feature-flagged via `tengu_sedge_lantern`); the two now coexist.
-
-## Public Verification — Sessions as Evidence
-
-This repo also owns the **resident-side policy** for publishing session artifacts when GLG wants public verification of harness behavior.
-
-- `entwurf` owns bridge mechanism and invariants.
-- `agent-config` owns export/review/upload workflow and publication criteria.
-- Goal: long-term trust through evidence — raw-session publication, reject history, and later failure/drift analysis.
-- Minimum publication gates: secret redaction, deny patterns, secret scanning (e.g. TruffleHog), semantic privacy review, small-batch dry-run.
-- `pi-share-hf` is a strong reference shape for this pipeline.
-
-## Shell Aliases (`~/.bashrc.local`)
-
-```bash
-# Claude Code + Telegram bridge
-alias claude-tg='claude --channels plugin:telegram@claude-plugins-official'
-alias claude-tgd='claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions'
-
-# pi garden launcher helper — a --entwurf-control session needs NO id injection.
-# pi mints its own session id (a uuidv7 is normal), session_start attaches it to
-# its meta-record, and the RECORD mints the garden id and keys the control socket
-# on it. The old `--session-id "$(run.sh new-session-id)"` form was retired in
-# entwurf #50 C2; it gave a session two address-shaped strings, only one of which
-# was an address. The wrapper is kept only so the variants below stay one edit wide.
-_pi_garden_pi() { command pi "$@"; }
-
-# pi: garden citizen with the agent Emacs socket
-# (`pihome`, the --telegram presence variant, was dropped 2026-08-06 with the bridge)
-pia() { _pi_garden_pi --entwurf-control --emacs-agent-socket server "$@"; }
-
-# Current model launchers (GLG-supplied mapping, 2026-10-27; see MODELS.md).
-# openai-codex/gpt-6.1-terra is listed with 500K context; no inference test here.
-pit() { _pi_garden_pi --entwurf-control --emacs-agent-socket server --model openai-codex/gpt-6.1-terra --thinking medium "$@"; }
-pis() { _pi_garden_pi --entwurf-control --emacs-agent-socket server --model openai-codex/gpt-6.1-sol --thinking medium "$@"; }
-pish() { _pi_garden_pi --entwurf-control --emacs-agent-socket server --model openai-codex/gpt-6.1-sol --thinking high "$@"; }
-
-# pi-durable: env-first BG aggregate + native badge. Current supplier: Entwurf 0.45.0 / Pi 1.4.0 SDK.
-# Historical API-0 and installed fixture scopes remain in pi-durable/README.md.
-# New session: provider + exact model + task-wide width. Thinking is the model :level suffix.
-# Every process names its native module explicitly; put that path in the helper once.
-pdt() {
-	entwurf pi-durable --provider openai-codex --model gpt-6.1-sol:medium \
-		--width task-wide --native-module "$HOME/repos/gh/agent-config/pi-durable/index.mjs" "$@"
-}
-pds() {
-	entwurf pi-durable --provider openai-codex --model gpt-6.1-sol:high \
-		--width task-wide --native-module "$HOME/repos/gh/agent-config/pi-durable/index.mjs" "$@"
-}
-# Reopen this cwd's newest-created saved session. Do not pass fresh-only provider/model/width flags.
-pdc() {
-	entwurf pi-durable --continue \
-		--native-module "$HOME/repos/gh/agent-config/pi-durable/index.mjs"
-}
-```
-
-These are shell examples, not functions installed by `run.sh setup`. `pdt` also names the module so changing thinking effort does not silently drop the environment policy. `pdc` is cwd-local, **not** a garden-id picker: return to the same repository before reopening. `--continue` accepts `--native-module`, but rejects the fresh-only provider/model/width/bootstrap flags. Neither an extension directory nor a saved session automatically reattaches this module. GLG authorized the local `~/.bashrc.local` **pdc only** to use `index.mjs` on 2026-10-09; other live helpers were not rewritten. In an already-open shell, reload that file (`source ~/.bashrc.local`) before using `pdc`. The earlier host observation was a globally available checkout DEVLINK, not a global npm installation. GLG reported the 0.45.0 installation on 2026-10-27; this documentation preparation does not independently certify the running processes' acquisition source or loaded bytes. Installing/upgrading remains Entwurf's responsibility.
-
-Measured 2026-10-08 on thinkpad: `pdc` reopened the same garden id with the module in the native argv, prior dialogue visible, and all four hidden provider keys absent from the bash child. The older 0.31.0 two-Ctrl+C observation is not a 0.32.0 exit guarantee; exit behavior was not re-measured in this cut. [Reference implementation and limitations](pi-durable/README.md).
+What `setup` performs step by step, what it deliberately leaves to entwurf and the bench, and the shell helper examples: [docs/setup.md](docs/setup.md).
 
 ## The -config Ecosystem
 

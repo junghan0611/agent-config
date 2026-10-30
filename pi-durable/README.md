@@ -20,7 +20,7 @@ entwurf pi-durable --continue \
 	--native-module "$HOME/repos/gh/agent-config/pi-durable/index.mjs"
 ```
 
-`--continue` is **not** a garden-id selector. Return to the same project directory; it selects that cwd's newest session and reopens the saved model. Provider, model, width, and bootstrap inputs are fresh-only and are rejected with `--continue`; `--native-module` is allowed on both paths. This module is not remembered in the session or auto-discovered. The [root README shell helpers](../README.md#shell-aliases-bashrclocal) (`pdt` medium / `pds` high / `pdc` reopen) keep the one path in the shell; `run.sh setup` does not install them or alter shell configuration. Native-module propagation through `entwurf_fresh_call` is out of scope (Entwurf's fresh launch attaches no module).
+`--continue` is **not** a garden-id selector. Return to the same project directory; it selects that cwd's newest session and reopens the saved model. Provider, model, width, and bootstrap inputs are fresh-only and are rejected with `--continue`; `--native-module` is allowed on both paths. This module is not remembered in the session or auto-discovered. The [shell helpers](../docs/setup.md#shell-aliases-bashrclocal) (`pdt` medium / `pds` high / `pdc` reopen) keep the one path in the shell; `run.sh setup` does not install them or alter shell configuration. Native-module propagation through `entwurf_fresh_call` is out of scope (Entwurf's fresh launch attaches no module).
 
 ## Interface and initialization
 

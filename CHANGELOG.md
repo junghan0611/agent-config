@@ -7,6 +7,23 @@
 
 ## Unreleased
 
+## v2026.10.30 — 짧은 현관과 협업의 좌표
+
+### README와 운영 문서
+
+* **README를 651줄에서 191줄로 줄이고 긴 설명은 docs 7개로 분리했다.** 본문 크기는 약102KB에서21KB로 줄였다. 소개·빠른 시작·스킬과 문서 길잡이를 앞에 두고 설정·확장·기억 운영·시험소의 긴 설명과 날짜별 관측은 연결된 상세 문서로 옮겼다. 원문과 상대경로·anchor·셸 예제·스킬 명명집합을 함께 확인하며, 기존 관측의 버전·날짜·미측정 경계를 새 운영 인증으로 바꾸지 않았다. 대문자 하네스 관측 문서와 native 소비자 레퍼런스의 자리는 유지했다.
+* **커밋에 함께한 형제와 작업 기기를 남기는 습관을 더했다.** 홈 커밋 규칙과 `commit` 스킬에 `Worked on <device> with <garden-id>, <garden-id>.` 본문 문장을 영어로 추가했다. 기기는 `~/.current-device`에서 읽고, 모델명 없이 이미 아는 참여 ID만 나열한다. ID를 모르면 기기만 남기며 목록을 채우려고 세션·record를 뒤지거나 과거 커밋을 고치지 않는다. 책임·감사·대화로 돌아갈 좌표이지 강제 장부·모델 크레딧·자동 team.json 관리가 아니다.
+
+### 이전 태그 이후의 Cloudflare 가이드
+
+* **Workers Builds의 실패 판독과 서비스 영향을 나누는 공통 가이드를 남겼다.** `f05f103`. `skills/cloudflare/BUILDS.md`와 스킬 진입점에 공식 cf·wrangler의 조회 경로, beta.24 기반 문서/영향면 실검수의 범위, audit pagination과 telemetry 판독 한계를 정리했다. 당시 승인된 로컬 CLI 갱신과 문서 검수의 기록이며, 이 cut에서 Cloudflare API·배포·권한·pin 변경이나 재배포를 새로 실행하지 않았다.
+
+### 검증과 실행 경계
+
+* 원문 이동 대조, 로컬 Markdown 경로·anchor, 셸 helper 코드블록 바이트 보존과 Bash fence 3개의 문법, tracked skill47개와 README named-set47개의 양쪽 차집합0을 독립 확인했다. 이전 README anchor는 짧은 목적지 표로 유지하고 활성 Markdown 진입점은 새 문서로 직접 연결했다. 옛 CHANGELOG 절은 재작성하지 않았다.
+* 현존 Entwurf checkout(HEAD `c9b3c4b`, Pi1.4.0 SDK)에서 native env/BG44/44·skip0, peek163/0, recap40, 서버 판정15, env-links3, release extractor7, quota11, browser mock5가 통과했다. 합성 HOME·faux 모델·오프라인 검사이며 설치된 npm artifact·운영 TTY·벤더 모델·모든 loaded bytes나 공급자의 전체 qualification을 인증하지 않는다.
+* 문서·스킬 지침 snapshot이며 새 runtime/SDK 설치·재시작·임베딩·live Cloudflare API 호출은 수행하지 않았다. Andenken #18 STOP과 기존 보류 연구·운영 전환은 그대로 남겼다.
+
 ## v2026.10.27 — Entwurf 0.45 소비면, 경험 기억과 현재 모델 명부
 
 ### 기억의 목적과 시험소의 역할
