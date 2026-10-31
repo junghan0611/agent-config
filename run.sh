@@ -444,14 +444,14 @@ declare -A PACKAGE_REPOS=(
 # 2026-09-04. Clone them so the link is not dangling.
 declare -A LINKED_SKILL_REPOS=(
   [sorge]="https://github.com/junghan0611/sorge.git"
-  [forge-config]="https://github.com/junghan0611/forge-config.git"
+  [sorge-config]="https://github.com/junghan0611/sorge-config.git"
 )
 
 # Repo name → skill name, only where they differ. `sorge` names both its repo and
-# its skill; `forge-config` owns a skill called `forge`, so the link to verify is
-# skills/forge, not skills/forge-config.
+# its skill; `sorge-config` owns a skill called `forge`, so the link to verify is
+# skills/forge, not skills/sorge-config.
 declare -A LINKED_SKILL_NAMES=(
-  [forge-config]="forge"
+  [sorge-config]="forge"
 )
 
 # is_server_device drives device-specific settings/hooks selection only.

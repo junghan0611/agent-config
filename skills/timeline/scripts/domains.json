@@ -138,6 +138,10 @@
       "domain": "unmapped",
       "layer": "unmapped"
     },
+    "github.com/junghan0611/sorge-config": {
+      "domain": "agent",
+      "layer": "product"
+    },
     "github.com/junghan0611/zotero-config": {
       "domain": "infra",
       "layer": "forge"
