@@ -2,11 +2,11 @@
 
 `pi --list-models` answers what pi can call, not which contract GLG has. This is the manual roster to read before opening an entwurf sibling. `./run.sh models` prints and diffs the live catalog; it never writes this file.
 
-## Current rails — 2026-10-27
+## Current rails — 2026-11-01
 
 | Rail                | Used in                         | Choose for                           |
 |---------------------|---------------------------------|--------------------------------------|
-| Claude subscription | Claude Code, pi (`entwurf` ACP) | Opus / Sonnet; Fable only when named |
+| Claude subscription | pi (`claude-code` provider), Claude Code, pi (`entwurf` ACP) | Opus / Sonnet; Fable only when named |
 | Codex subscription  | pi                              | GPT family                           |
 | Grok subscription   | pi                              | Grok family                          |
 | Upstage API         | pi                              | Korean work (`solar-pro4`)           |
@@ -28,6 +28,8 @@ For a `pi` sibling, pass one exact `provider/model` pair from this curated list:
 provider        model
 entwurf         claude-opus-5
 entwurf         claude-sonnet-5
+claude-code     claude-opus-5-5
+claude-code     claude-sonnet-5
 openai-codex    gpt-6-astra
 openai-codex    gpt-6-luna
 openai-codex    gpt-6.1-sol
@@ -35,6 +37,18 @@ openai-codex    gpt-6.1-terra
 upstage         solar-pro4
 xai             grok-4.7
 ```
+
+### Claude subscription inside Pi
+
+`claude-code` is the **Pi provider** from [earendil-works/pi-claude-code](https://github.com/earendil-works/pi-claude-code), not the standalone Claude Code harness/backend. Pi owns tools, conversation and compaction; the installed Claude Code CLI supplies model access using its existing subscription login. No copied credentials or separate Pi login. The existing `entwurf` ACP route remains available.
+
+- Opus: `pi --entwurf-control --model claude-code/claude-opus-5-5`
+- Sonnet: `pi --entwurf-control --model claude-code/claude-sonnet-5`
+- Start a new ordinary Pi process after package installation; registering a classic Pi extension does not also install it into pi-durable.
+- **Experimental, Oracle trial (2026-11-01):** source `70abb65186592ca788b29b3db22c3160d629c41f`, Pi 1.4.0, upstream 15/15 + typecheck, and a real Sonnet → Pi `read` → final-answer round trip passed. Both live responses reported `isUsingOverage=false`. Opus was listed, not live-tested in this trial. Other devices were not installed or changed.
+- Keep `PI_CLAUDE_CODE_ALLOW_USAGE_CREDITS` unset/false. API-key/proxy/cloud overrides are rejected by the provider. Its overage guard stops **after** detecting a charged response, not before the first possible charge; subscription billing policy can change. Pi's displayed list-price estimate is not an extra-usage bill.
+
+### GPT launchers
 
 `pi --list-models 'gpt-6.1-terra'` reports `openai-codex/gpt-6.1-terra` with **500K context**, 128K max output, thinking and image support.
 
@@ -49,5 +63,7 @@ The operator's shell launchers are:
 All three call `_pi_garden_pi --entwurf-control --emacs-agent-socket server`, select the model and thinking level above, and forward `"$@"`.
 
 For `entwurf_fresh_call` with `backend: "pi"`, pass the effort in its `model` input: `openai-codex/gpt-6.1-terra:medium`, `openai-codex/gpt-6.1-sol:medium`, or `openai-codex/gpt-6.1-sol:high`. The pi CLI parses the suffix as its thinking level; entwurf accepts the colon and forwards the model string as the pi `--model` value. Check the installed entwurf release before relying on these selectors.
+
+### Native harness selectors
 
 For a `claude-code` sibling, use `opus` by default; `sonnet` is the lighter option; use `fable` only when GLG names it. `omp` has its own profiles in `omp/agents/`; do not infer an OMP selector from the pi list.

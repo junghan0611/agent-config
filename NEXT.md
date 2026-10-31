@@ -8,12 +8,22 @@
 
 - [x] **17–23. 기존 도구·기억 운영·협업·문서 출하** — `CHANGELOG.md v2026.10.27`·`v2026.10.30`에 갈무리했다. 완료 단계를 재실행하지 않는다.
 - [x] **24–25. EKG 조회 스킬·소켓 수선과 rename 소비면** — `7597106`·`b6f00e3`·`61ea588`을 `CHANGELOG.md v2026.10.31`에 갈무리했다. Oracle 새 bytes/routing-only 수락과 GLG가 전달한 봇 성공 자기보고를 코디 경유로 인수했다. 실제 argv/tool trace 독립 열람은 아니다.
-- [ ] **26. v2026.10.31 태그·GitHub Release** ← CURRENT: GLG가 실행을 명시 요청했다. 준비 문서와 영향 게이트를 확인하고 정상 commit/tag/push·GitHub Release·도장을 마감한다. 다음 세션은 공개 영수증부터 확인하며 완료돼 있으면 반복하지 않는다.
+- [x] **26. v2026.10.31 태그·GitHub Release** — 11-01 직접 Git의 `339556f`·태그와 GitHub Release 공개(isDraft=false, 10-31T10:21:36Z)를 읽었다. 재출하·중복 도장은 하지 않는다.
+- [ ] **27. 공식 pi-claude-code provider 시험 (2026-11-01)** ← CURRENT: 격리 Pi1.4 로드·합성15/15·typecheck와 실제 Sonnet→Pi read→답변 왕복 통과. 검증한 source ref를 Oracle의 Pi 패키지로 등록했고 기존 packages·다른 설정 불변을 확인했다. 새 Pi의 user-package 자동 발견까지 확인했다. 기본모델·entwurf 설정·다른 기기는 그대로이며 GLG의 실제 사용/다음 결정 대기다.
 - [ ] **15. #18 STOP·보류 레인 보존** ← PAUSED: 새 요청 전 분석·삭제·재처리 없음. Cloudflare 프로젝트 후속·운영 전환·기존 연구는 이번 문서 출하와 별개다.
 
-현재 좌표: 17–25 닫힌 일 갈무리 → 26 요청된 태그·GitHub Release·도장 확인 → 새 요청 대기. #18 STOP·기존 보류는 그대로다.
+현재 좌표: 17–26 출하 확인 → 27 provider 시험·Oracle 설치·명부 반영 완료, 요청된 commit/push 마감 후 실제 사용 대기. #18 STOP·기존 보류는 그대로다.
 
-# NOW — v2026.10.31 출하 영수증 확인
+# NOW — Pi가 실행하고 Claude Code는 모델 연결만 맡는 provider
+
+- **요청/원천:** GLG가 https://github.com/earendil-works/pi-claude-code 를 제시하고 사용 시험을 요청했다. Pi 조직의 실험적 provider0.1.0, source `70abb65186592ca788b29b3db22c3160d629c41f`를 `~/repos/3rd/pi-claude-code`로 읽었다. README/ARCHITECTURE/provider/CLI/billing/inert MCP를 확인했으며 소스는 수정하지 않았다.
+- **경계:** 일반 Pi가 도구·대화·compaction을 소유하고 Claude CLI는 `--tools ""`·inert MCP·한 turn relay로 모델 연결만 한다. Claude CLI/기존 로그인은 필요하다. 이 classic Pi extension의 로드가 durable native 모듈 수용의 증거는 아니다. 기존 entwurf 경로와 model/auth/MCP 설정은 유지하며 검증본 package1개만 추가했다. runtime/SDK·노트북은 바꾸지 않는다.
+- **비용:** 현재 Anthropic 도움말(11-01 crawler read)은 로그인한 `claude -p`가 구독 한도를 쓴다고 안내한다. provider는 API/proxy/cloud override를 거절한다. usage-credit 허용은 켜지 않는다. 단 overage guard는 해당 응답이 이미 청구된 뒤 후속 호출을 막는 장치이므로 최초 추가과금까지 예방한다고 주장하지 않는다.
+- **직접 검증:** BG3532 exit0: 격리 Pi1.4 일회성 -e에서 claude-code 모델5개 표시(모델 호출0). BG3542 exit0: upstream15/15·skip0·기존1.4 SDK typecheck PASS·source clean. BG3583 exit0: 실제 Sonnet→Pi read1회→fixture 정답(응답2회), 각 응답 relay upstream1회·isUsingOverage=false를 확인했다. UI의 list-price 비용 추정은 실제 추가과금과 다르다. credentials는 복사/출력하지 않고 개인파일·다른 모델·OpenRouter 호출은 없다.
+- **설치/다음:** BG3603 exit0: 검증본 `git:github.com/earendil-works/pi-claude-code@70abb65186592ca788b29b3db22c3160d629c41f`를 Oracle 한 대에 설치했다. 설정값 복사 없이 key별 hash로 신규 package1개 외 기존 package·모든 설정 보존을 assert했다. BG3634 exit0: 실제 설치 ref가 검증본과 같고, 별도 -e 없는 새 Pi에서 기존 확장들과 함께 모델5개가 자동 발견됐다(모델 호출0, MCP 연결0). 다음은 새 일반 Pi에서 `pi --entwurf-control --model claude-code/claude-opus-5-5` 또는 Sonnet을 사용해 보는 것이다. 이미 실행 중인 durable에 적용됐다고 하지 않으며 자동 재설치/추가 모델 시험은 하지 않는다. 테스트/정책/설치 영수증은 ignored `.agent-reports/20261101-pi-claude-code/`.
+- **명부/권한:** GLG가 `MODELS.md` 반영도 직접 요청해 Claude 구독 row와 `claude-code/claude-opus-5-5`·`claude-code/claude-sonnet-5` 선택자, native backend와의 차이·Oracle 검증 범위·과금 경계를 추가했다. 실제 표시 모델과 대조했고 기존 rails는 유지했다. GLG가 이후 현재 세션에서 이 두 문서의 commit/push를 직접 요청했다. 정상 훅·push·도장으로 마감하며 다음 세션은 Git/agenda 영수증을 확인하고 반복하지 않는다. 새 형제 호출·태그·다른 기기 전환·공통 setup 편입은 별도 판단이다.
+
+# RECENT — v2026.10.31 출하 준비 당시 좌표
 
 - **다음:** [v2026.10.31 Release](https://github.com/junghan0611/agent-config/releases/tag/v2026.10.31)·원격 main/tag·release body와 CHANGELOG·agenda 영수증을 확인한다. 미완료 단계만 마감하고 완료돼 있으면 재태그·재출하·중복 도장 없이 대기한다.
 - **읽을 곳/검증:** `CHANGELOG.md v2026.10.31`, `skills/emacs/SKILL.md`, `tests/test-linked-skills.py`. 스킬 동결 SHA는 `aedc86c3f750ac0deaa81763280c590dbb2ca41a3cf6207c91fa1767005c7a4b`다. 옛16조건은 폐기된 역사이며 새84셸/480guard가 기준이다. Oracle host/container 새 bytes와 문서 그대로의 `ek 't'` 성공은 doomemacs 코디를 통해 Oracle 코디 실측 보고로 인수했다; 이 집의 현장 재실행이 아니다.
