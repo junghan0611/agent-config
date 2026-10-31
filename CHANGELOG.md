@@ -7,6 +7,25 @@
 
 ## Unreleased
 
+## v2026.10.31 — EKG 조회의 문과 소켓, rename 소비면
+
+### 기존 Emacs 스킬로 EKG를 읽는 계약
+
+* **EKG 조회 API를 기존 Emacs 스킬에 연결했다.** `7597106`. doomemacs-config의 공식 EKG/triples 기반 `agent-ekg-notes`·`agent-ekg-read`·`agent-ekg-tags` 계약을 읽고 태그 AND·실제 날짜 태그·integer/string ID 보존·페이지 전 total·hidden/count·실패와 정상 빈 결과·출처를 안내했다. 원문 조회는 inline 실행이나 URL 취득이 아니며 새 스킬·CLI·플러그인·쓰기 API를 만들지 않았다. 기존 Org용 `ec`의 소켓 선택 계약은 유지했다.
+* **주입된 컨테이너 소켓을 보존하고 본문 전에 headless 대상을 확인하도록 수선했다.** `61ea588`. 문서 안의 작은 `ek` helper는 `PI_EMACS_AGENT_SOCKET`의 절대 경로를 보존하고 unset/empty만 host `server`로 기본화한다. 이름 `pi`/`user`는 접속 전에 거절하고, 다른 경로도 같은 Lisp 식에서 server-name과 공개 API 세 문을 확인한 뒤 요청을 평가한다. 설정된 native RPC가 있을 때와 기존 exec/shell 경로를 나누며 배포 설정의 client 경로를 사용한다. PATH·고정 Nix store hash·GUI 우회·새 플러그인을 가정하지 않는다. 이 가드는 우발적 오접속 방지이지 권한 샌드박스가 아니다.
+* **처음의 잘못된 검증 기준도 함께 정정했다.** 모든 주입 소켓을 host 별칭으로 덮어쓰던 16건 기준은 컨테이너의 절대 소켓을 다루지 못해 폐기하고 역사 영수증으로만 남겼다. 새 합성 검사는 경로·client·인자 보존60건과 GUI 이름 사전거절24건, 생성 guard480건으로 바꿨다. 잘못된 서버 identity·변수 미정의·API 누락 때 본문 호출0과 typed ID·AND·날짜 인자 보존을 확인했다. 실제 봇 argv가 확인되지 않은 상태에서 이 문서 결함을 봇 실패의 확정 원인으로 쓰지는 않았다.
+
+### sorge-config rename의 소비자 수선
+
+* **`forge` 스킬 이름은 유지하고 소유 저장소 rename을 따랐다.** `b6f00e3`. 상대 심링크와 `run.sh`의 clone/skill 매핑, README/docs의 현재 소유 표기를 `sorge-config`로 맞췄다. 옛 `forge-config` 이슈와 날짜별 관측을 지우지 않았으며 사본 스킬이나 별도 동기화 레이어를 추가하지 않았다.
+* **시간축은 과거 키를 보존하고 새 공개 remote를 분류했다.** `skills/timeline/scripts/domains.json`에 새 remote를 더하고 기존 분류와의 동등성을 회귀로 확인했다. 합성 HOME의 실제 setup-loop·상대 링크·소비자 링크 체인을 검사하는 회귀5개를 추가했다. 원격 checkout의 진행 중 rename 작업과 EKG 인계도 담당자가 함께 보존해 출하했다.
+
+### 검증·Oracle 수신·남은 경계
+
+* 출하 영향면에서 EKG의 격리84셸/480guard, linked-skills5, 서버 판정15, env-links3, timeline 합성 회귀, release extractor7과 Bash 문법을 확인했다. EKG 검사는 네트워크 차단·합성 HOME·실제 home 비가시 환경의 public wrapper와 가짜 backend이며 개인DB·실제 RPC는0이다. doomemacs 코디도 별도 재실행과 실코드 대조로 수락했다. 옛 CHANGELOG 절과 스킬의 검수된 bytes는 이 문서 컷에서 바꾸지 않았다.
+* **Oracle의 파일 수신과 routing-only 현장 수락은 코디의 실측 보고로 인수했다.** 최종 `61ea588`·스킬 `aedc86c3…`가 host/container 공유 파일에서 같고, 문서 첫 Bash 블록 그대로 `/run/emacs/server`를 보존한 `ek 't'`가 성공했다는 영수증이다. 이 집이 현장에서 재실행한 것은 아니며, `t`는 대상과 API 문의 확인이지 노트 조회·DB 가용성·Syncthing 완료의 증거가 아니다. 이후 GLG가 전달한 봇의 ‘절대 소켓으로 바꿔 재시작 없이 AND 조회·원문 기반 요약 성공’ 답변도 코디 경유로 인수했다. 이는 전달된 봇 자기보고이며 실제 argv/tool trace의 독립 열람이나 최초 오류 원인의 소급 확정은 아니다.
+* 조회 API는 SQLite 파일의 물리 불변이나 동시접속 안전 보장이 아니다. EKG 공식 연결의 bookkeeping과 단일 소유·close/backup/sync 인계 경계를 남겼다. Forge owner의 잔여 표기/credential-helper 후속, 개인DB·운영 서비스·runtime 전환·임베딩·새 플러그인 및 Andenken #18 STOP은 이 태그로 완료·재개하지 않았다.
+
 ## v2026.10.30 — 짧은 현관과 협업의 좌표
 
 ### README와 운영 문서

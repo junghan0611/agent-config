@@ -6,33 +6,19 @@
 
 # RAIL — 현재 좌표
 
-- [x] **17–22. 닫힌 도구·기억 운영·소비면·협업 규칙** — 기존 출하는 `CHANGELOG.md v2026.10.27`, Cloudflare 가이드·커밋의 기기/garden ID 규칙은 `v2026.10.30` 절로 갈무리했다. 새 실행 승인이 아니다.
-- [x] **23. README/docs 정리·CalVer 출하 (2026-10-30)** — `39c30ce`·`v2026.10.30` 정상 main/tag push·GitHub Release·도장13:09 및 완료DM823까지 직접 확인했다. 반복하지 않는다.
-- [ ] **24. EKG 조회 스킬 소비면 (2026-10-31)** ← CURRENT: 초판 `7597106` 출하·Oracle 파일 수신 확인 뒤 도구 표면 단정의 최소 문구 수선 중이다. 주입된 절대 소켓 보존과 headless identity/API guard를 추가했고 native emacs_eval/봇 dispatch 미확인을 기존 exec 경로와 구분했다. doomemacs 코디가 독립 재실행으로 수락했다. 승인된 후속 commit/push 뒤 Oracle 코디 경유 수신/probe 결과를 받으며 이 집의 추가 운영 조작은 없다.
-- [x] **25. sorge-config rename 소비자 수선 (2026-10-31)** — Oracle 담당자가 출하한 `b6f00e3`을 이 집에서 fetch/ff-only로 수신했다. 관련 검증 내용은 그 커밋/NEXT의 owner 기록이며 여기서 재실행하지 않았다. EKG 인계와 rename 수선은 둘 다 보존한다.
+- [x] **17–23. 기존 도구·기억 운영·협업·문서 출하** — `CHANGELOG.md v2026.10.27`·`v2026.10.30`에 갈무리했다. 완료 단계를 재실행하지 않는다.
+- [x] **24–25. EKG 조회 스킬·소켓 수선과 rename 소비면** — `7597106`·`b6f00e3`·`61ea588`을 `CHANGELOG.md v2026.10.31`에 갈무리했다. Oracle 새 bytes/routing-only 수락과 GLG가 전달한 봇 성공 자기보고를 코디 경유로 인수했다. 실제 argv/tool trace 독립 열람은 아니다.
+- [ ] **26. v2026.10.31 태그·GitHub Release** ← CURRENT: GLG가 실행을 명시 요청했다. 준비 문서와 영향 게이트를 확인하고 정상 commit/tag/push·GitHub Release·도장을 마감한다. 다음 세션은 공개 영수증부터 확인하며 완료돼 있으면 반복하지 않는다.
 - [ ] **15. #18 STOP·보류 레인 보존** ← PAUSED: 새 요청 전 분석·삭제·재처리 없음. Cloudflare 프로젝트 후속·운영 전환·기존 연구는 이번 문서 출하와 별개다.
 
-현재 좌표: 17–23·25 출하 수신 → 24 EKG 호출 표면 조건부 문구 수선·검수 대기. #18 STOP·기존 보류는 그대로다.
+현재 좌표: 17–25 닫힌 일 갈무리 → 26 요청된 태그·GitHub Release·도장 확인 → 새 요청 대기. #18 STOP·기존 보류는 그대로다.
 
-# NOW — EKG 호출 표면: 조건부 문구 검수
+# NOW — v2026.10.31 출하 영수증 확인
 
-- **다음:** `skills/emacs/SKILL.md`의 작은 `ek` helper/예제/호출면을 doomemacs 코디 `20261016T104939-5320fa`가 직접 코드/문서 대조·84셸/480guard 독립 재실행 PASS로 수락했다. GLG의 기존 commit/push 승인 범위로 이 후속 스킬/NEXT만 정상 출하하고 도장·정확 SHA를 그 코디에게 회수한다. 주입 절대 소켓을 보존하고 unset/empty만 host server로 기본화, 이름 pi/user는 접속 전 거절한다. 본문 전 server-name==server·공개 API3문 존재를 검사하며 routing-only `ek 't'`는 노트/DB를 읽지 않는다. 기존 Org ec는 불변이다. native RPC가 있으면 같은 guard, 아니면 기존 exec+배포 설정 client/socket; PATH/Nix hash/새 plugin을 가정하지 않는다.
-- **검증 정정:** 이전 ‘모든 주입 소켓을 -s server로 덮는다’16건 기준은 컨테이너에 틀려 폐기하고 원 영수증은 보존했다. 새 격리 fixture는 socket/client/form60건 보존·이름 GUI24건 사전거절, 생성 guard480건에서 잘못된 identity/변수미정의/API누락 시 본문 호출0과 typed ID 포함6형식 전달을 검증했다. 실제 RPC/EKGconnect/개인DB0이다.
-- **증거/경계:** GLG가 요청한 Oracle pull 재확인에서 main `b6f00e3`·Already up to date·전후 clean·초판 스킬995d 해시 일치를 직접 확인했다. 이전 미커밋7항목은 현재 blocker가 아니다. Oracle host/container client→socket API 성공은 doom 코디를 통한 관측 보고 상속이며 native tool inventory/봇 dispatch와 분리한다. 이 후속은 실제 RPC·개인DB·Oracle 설정/서비스·추가 SSH를 만지지 않는다. 코디 수락 뒤 추가 push는 승인 범위이며 새 Oracle 직접조작은 하지 않는다. 다음 세션은 이 후속 커밋/도장과 Oracle 코디의 수신·routing-only probe 영수증을 확인하고 완료 단계를 반복하지 않는다.
-
-# RECENT — rename 수선·EKG 인계를 보존한 출하 기록
-
-- **다음:** GLG의 현재 세션 직접 요청대로 수정7파일을 정상 hooks commit/push·agenda 도장1회로 마감한다. 다음 세션은 HEAD/upstream·도장과 아래 pull 영수증을 확인하며 완료 단계를 반복하지 않는다. 새 tag/release는 요청되지 않았다.
-- **요청/범위:** sorge-config 코디 `20261031T133026-44b2cd`가 전달한 rename 수선과 원격 EKG 인계를 함께 보존했다. `run.sh` repo→forge 매핑, root 상대링크, README/docs 현재 ownership, timeline 새remote와 회귀를 수선했다. 옛 issue·판정·CHANGELOG와 과거 timeline키는 보존한다. 새 형제·글로벌 설정·개인DB·배포/restart는 범위 밖이다.
-- **직접 근거:** 새 repo PUBLIC 확인 뒤 root 링크를 수선해 6하네스 forge 진입점의 새owner resolve·SKILL bytes 동일을 확인했다. Kiro는 만들지 않았다. 새 회귀5/5·timeline 합성 all green·env3·server15·bash syntax·diffcheck PASS다. 일반 setup/update는 실행하지 않았다.
-- **pull/충돌:** NEXT만 임시 stash한 뒤 이 호출에 한해 `pull.rebase=false`·ff-only로 `7597106`을 받았다(설정 저장 없음). NEXT의 중복 단계24를 EKG24/rename25로 나누고 두 작업·증거·STOP을 함께 보존했다. 다른 로컬 수정과 새 테스트6경로는 pull 전 지문과 모두 같음을 확인했다. EKG 스킬도 아래 동결 SHA `995d6b7b…c7d4`와 직접 일치 확인했다. 이는 파일 수신 영수증이며 실제 RPC/daemon 수락은 별개다.
-- **owner 잔여:** 14:05 무렵 읽은 owner forge SKILL의 구 CLI 경로·소유 표현, machine-local credential.helper 구경로는 해당 owner에 전달했고 여기서 수정하지 않았다. 이후 owner의 수선 여부는 그쪽 영수증으로 확인한다. Forgejo 인증은 시험하지 않았다.
-
-# RECENT — EKG 초판 인계: 7597106의 코디 기록 (아래 해시는 초판)
-
-- **다음/라우팅:** doomemacs 코디 `20261016T104939-5320fa`가 스킬/실코드/diff/fixture를 직접 대조하고 독립 재실행 PASS로 로컬 수락했다는 보고를 인수했다. 스킬 SHA `995d6b7be5b85316cca6199a6748715c0613619a582732ef8c7770c6d105c7d4`를 동결한다. 그 코디가 검수된 bytes를 Oracle 새 수신 묶음으로 인계 중이며, 실제 수신·수락 결과를 같은 코디 경유로 받는다. GLG가 별도로 이 집 commit/push 후 Oracle agent-config의 정상 pull을 직접 요청했다. 원격 clean main/upstream을 확인하고 ff-only pull·동결 스킬 해시를 검증한다. 다음 세션은 local/remote HEAD·도장·Oracle pull 영수증으로 마감을 확인하며 완료 단계를 반복하지 않는다. doom 코드 배포/기존 통합 인계와 별도 route·수동 skill mount 덮어쓰기·restart는 범위 밖이다.
-- **읽을 곳/검증:** doomemacs-config #12와 `bin/agent-server.el` EKG Read API, `lisp/ekg-agent-read.el`·관련 README/tests를 직접 읽었다. 기존 ec의 Org 소켓 선택은 유지하고 EKG는 headless server를 명시했다. 네트워크 차단·합성 HOME·실제 /home 비가시 fixture에서 소켓/argv16건, 문서의 Lisp5형식을 원본 공개 wrapper+가짜 backend로 확인했다. 공식 EKG 행동 전체를 재검증한 것은 아니며 실제 RPC/개인DB connect0이다.
-- **경계:** 조회≠DB 물리 불변·Syncthing 완료/동시접속 안전을 명시했다. 태그 AND/날짜 태그/typed ID/hidden/count/페이지/실패·source를 보존한다. 새 스킬·CLI/쓰기 API·실제 개인DB/doom 코드 배포·restart는 미실행·별도 승인이다. 승인된 commit/push와 Oracle agent-config pull만 마감한다. #18 STOP과 이전 보류는 유지한다.
+- **다음:** [v2026.10.31 Release](https://github.com/junghan0611/agent-config/releases/tag/v2026.10.31)·원격 main/tag·release body와 CHANGELOG·agenda 영수증을 확인한다. 미완료 단계만 마감하고 완료돼 있으면 재태그·재출하·중복 도장 없이 대기한다.
+- **읽을 곳/검증:** `CHANGELOG.md v2026.10.31`, `skills/emacs/SKILL.md`, `tests/test-linked-skills.py`. 스킬 동결 SHA는 `aedc86c3f750ac0deaa81763280c590dbb2ca41a3cf6207c91fa1767005c7a4b`다. 옛16조건은 폐기된 역사이며 새84셸/480guard가 기준이다. Oracle host/container 새 bytes와 문서 그대로의 `ek 't'` 성공은 doomemacs 코디를 통해 Oracle 코디 실측 보고로 인수했다; 이 집의 현장 재실행이 아니다.
+- **수락/남은 경계:** doomemacs 코디 `20261016T104939-5320fa`가 Oracle 코디를 거쳐 GLG 전달 봇의 절대소켓 변경·AND 조회·원문 요약 성공 자기보고를 회수했다. 이 집의 실제 봇 argv/tool trace 독립 확인이나 최초 오류 원인 확정은 아니다. Forge owner 표기·machine-local credential.helper 후속은 소유자에게 전달된 별도 몫으로 남기고 여기서 고치지 않는다.
+- **경계:** 태그는 새 Oracle pull·RPC/개인DB·서비스 restart·플러그인/CLI 설치·runtime/SDK 전환·임베딩·기존 연구의 실행 승인이 아니다. #18 STOP 유지.
 
 # RECENT — v2026.10.30 출하 영수증 (아래는 당시 준비본)
 
