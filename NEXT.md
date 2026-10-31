@@ -9,12 +9,18 @@
 - [x] **17–23. 기존 도구·기억 운영·협업·문서 출하** — `CHANGELOG.md v2026.10.27`·`v2026.10.30`에 갈무리했다. 완료 단계를 재실행하지 않는다.
 - [x] **24–25. EKG 조회 스킬·소켓 수선과 rename 소비면** — `7597106`·`b6f00e3`·`61ea588`을 `CHANGELOG.md v2026.10.31`에 갈무리했다. Oracle 새 bytes/routing-only 수락과 GLG가 전달한 봇 성공 자기보고를 코디 경유로 인수했다. 실제 argv/tool trace 독립 열람은 아니다.
 - [x] **26. v2026.10.31 태그·GitHub Release** — 11-01 직접 Git의 `339556f`·태그와 GitHub Release 공개(isDraft=false, 10-31T10:21:36Z)를 읽었다. 재출하·중복 도장은 하지 않는다.
-- [ ] **27. 공식 pi-claude-code provider 시험 (2026-11-01)** ← CURRENT: 격리 Pi1.4 로드·합성15/15·typecheck와 실제 Sonnet→Pi read→답변 왕복 통과. 검증한 source ref를 Oracle의 Pi 패키지로 등록했고 기존 packages·다른 설정 불변을 확인했다. 새 Pi의 user-package 자동 발견까지 확인했다. 기본모델·entwurf 설정·다른 기기는 그대로이며 GLG의 실제 사용/다음 결정 대기다.
+- [ ] **27. 공식 pi-claude-code provider 시험 (2026-11-01)** ← CURRENT: Oracle 시험을 Git으로 인수한 뒤 GLG가 ThinkPad에도 설치·시험을 직접 요청했다. 같은 ref의 upstream15/15·Pi1.4 typecheck, 신규 package1개 외 설정 불변·새 일반 Pi의 모델5개 자동 발견을 직접 확인했다. Sonnet medium 실제 read 왕복까지 통과했다. off 조합의 API400 한계를 MODELS에 남겼고 durable/기본모델/공통 setup은 바꾸지 않았다. GLG가 Oracle 작업 개시와 pico/pics/picf=Opus/Sonnet/Fable·high 매핑을 직접 알려줬고 문서 commit/push를 승인했다. 이 집의 실제 검증은 Sonnet medium이며 high/다른 모델의 독립 수용으로 확대하지 않는다.
 - [ ] **15. #18 STOP·보류 레인 보존** ← PAUSED: 새 요청 전 분석·삭제·재처리 없음. Cloudflare 프로젝트 후속·운영 전환·기존 연구는 이번 문서 출하와 별개다.
 
-현재 좌표: 17–26 출하 확인 → 27 provider 시험·Oracle 설치·명부 반영 완료, 요청된 commit/push 마감 후 실제 사용 대기. #18 STOP·기존 보류는 그대로다.
+현재 좌표: 17–26 출하 확인 → 27 Oracle 시험 인수·ThinkPad 설치/실제 왕복·현재 launcher 기록 완료 → 승인된 문서 commit/push·도장 확인 후 새 요청 대기. #18 STOP·기존 보류는 그대로다.
 
-# NOW — Pi가 실행하고 Claude Code는 모델 연결만 맡는 provider
+# NOW — ThinkPad pi-claude-code 설치·실제 왕복 시험
+
+- **다음/검증:** 설치 ref `70abb65186592ca788b29b3db22c3160d629c41f`, Pi1.4.0/Claude CLI2.1.316. BG10251 upstream15/15·typecheck exit0, BG10268 install·기존 package/모든 다른 설정의 key별 hash 불변·모델5개 발견 exit0. BG10281의 thinking=off 시험은 API400(disabled 대신 between_tools 요구)·도구0으로 실패했다. process exit0만 성공으로 보지 않고 assistant error를 검사하도록 fixture를 보완했으며 원 실패는 보존했다. 원본 provider는 수정하지 않았고 Oracle과 같은 기본 medium의 별도 BG10314 exit0/실측4.53s에서 합성 파일 read1회·응답2회·최종 정답 일치를 확인했다. 응답별 relay upstream1회와 isUsingOverage=false, 자동 retry0도 확인했다. MODELS의 현재 검증 범위를 Oracle+ThinkPad로 갱신하고 Sonnet 실행 예제에 medium을 명시했다. Opus는 목록만 확인했으며 재설치/다른 모델 시험을 자동 반복하지 않는다.
+- **출처/비용:** Oracle 검증은 `71ad64d`의 보고로 인수했고 위 로컬 검사는 직접 실행했다. source README/ARCHITECTURE/provider·CLI/billing/inert MCP를 읽었다. 기존 Claude 로그인만 재사용하며 credential 복사/출력0, API/proxy/cloud 충돌 변수 없음, usage-credit 허용은 시험 child에서0, 자동 retry/별도 MCP 연결 없이 Sonnet 한 fixture만 시험한다. overage guard는 최초 과금의 사전 예방이 아니며 UI list-price는 추가청구 증거가 아니다.
+- **경계/영수증:** ignored `.agent-reports/20261101-pi-claude-code-thinkpad/`에 설정 지문·합성 fixture 명령/결과만 보존한다. 다른 모델/개인파일·OpenRouter·Oracle 조작·새 형제·기본모델·entwurf/SDK 변경·공통 setup 편입은 하지 않는다. classic extension은 새 일반 Pi에 로드되며 현재 durable에 적용됐다고 하지 않는다. 이후 GLG가 MODELS/NEXT의 commit/push를 명시 승인했다. 정상 훅·push·도장으로 마감하고 다음 세션은 해당 커밋/upstream·도장을 확인해 완료 작업을 반복하지 않는다. 새 tag·추가 live high/Opus/Fable 시험·Oracle pull은 요청되지 않았다. 셸 파일은 수정하지 않고 사용자 제공 launcher 매핑만 기록한다.
+
+# RECENT — Oracle provider 시험 인계 (71ad64d; 아래는 당시 기록)
 
 - **요청/원천:** GLG가 https://github.com/earendil-works/pi-claude-code 를 제시하고 사용 시험을 요청했다. Pi 조직의 실험적 provider0.1.0, source `70abb65186592ca788b29b3db22c3160d629c41f`를 `~/repos/3rd/pi-claude-code`로 읽었다. README/ARCHITECTURE/provider/CLI/billing/inert MCP를 확인했으며 소스는 수정하지 않았다.
 - **경계:** 일반 Pi가 도구·대화·compaction을 소유하고 Claude CLI는 `--tools ""`·inert MCP·한 turn relay로 모델 연결만 한다. Claude CLI/기존 로그인은 필요하다. 이 classic Pi extension의 로드가 durable native 모듈 수용의 증거는 아니다. 기존 entwurf 경로와 model/auth/MCP 설정은 유지하며 검증본 package1개만 추가했다. runtime/SDK·노트북은 바꾸지 않는다.
