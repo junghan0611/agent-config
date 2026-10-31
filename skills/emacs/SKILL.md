@@ -1,6 +1,6 @@
 ---
 name: emacs
-description: "Emacs daemon — org manipulation, denote notes, citar bibliography, org-agenda, arbitrary elisp. Org socket follows PI_EMACS_AGENT_SOCKET (default server); EKG AND/date/typed-ID queries require the headless server, not pi/user. Oracle/OpenClaw uses existing emacs_eval. Core: agent-denote-add-history(ID,CONTENT), agent-denote-add-heading(ID,TITLE,BODY) — TAG and AFTER-HEADING are both optional and combine: (ID,TITLE,TAG,BODY,AFTER-HEADING). Never pass nil. agent-denote-add-link(ID,TARGET-ID,DESC). All 3 args required."
+description: "Emacs daemon — org manipulation, denote notes, citar bibliography, org-agenda, arbitrary elisp. Org socket follows PI_EMACS_AGENT_SOCKET (default server); EKG AND/date/typed-ID queries preserve the injected headless socket and verify server identity/API before reading; never pi/user. OpenClaw uses its configured RPC if present, otherwise existing exec with the deployment-configured client/socket. Core: agent-denote-add-history(ID,CONTENT), agent-denote-add-heading(ID,TITLE,BODY) — TAG and AFTER-HEADING are both optional and combine: (ID,TITLE,TAG,BODY,AFTER-HEADING). Never pass nil. agent-denote-add-link(ID,TARGET-ID,DESC). All 3 args required."
 ---
 
 # Emacs Agent Server
@@ -10,20 +10,44 @@ description: "Emacs daemon — org manipulation, denote notes, citar bibliograph
 ```bash
 ec() { emacsclient -s "${PI_EMACS_AGENT_SOCKET:-server}" --eval "${1}"; }  # agent work (${1}, not a bare positional — those get stripped when this skill is injected)
 eu() { emacsclient -s user --no-wait "$@"; }  # show file to user
+
+# EKG only: trusted Lisp forms; target guard, NOT a security sandbox.
+ek() {
+	local socket="${PI_EMACS_AGENT_SOCKET:-server}"
+	local client="${EMACSCLIENT:-emacsclient}"
+	case "$socket" in
+		pi|user) printf '%s\n' 'EKG requires a headless server socket, not pi/user.' >&2; return 2 ;;
+	esac
+	"$client" -s "$socket" --eval \
+		"(if (and (boundp 'server-name) (equal server-name \"server\")
+		          (fboundp 'agent-ekg-notes) (fboundp 'agent-ekg-read) (fboundp 'agent-ekg-tags))
+		     (progn ${1})
+		   (error \"EKG requires headless server with all read API doors; no note read\"))"
+}
 ```
 
-Define ec/eu in EVERY bash call (subshell resets).
+Define the needed helper(s) in EVERY bash call (subshell resets).
 
 `PI_EMACS_AGENT_SOCKET` is injected by entwurf when launched with
 `--emacs-agent-socket <name>` (e.g. `server`, `/run/emacs/server` for Docker).
 Falls back to `server` when unset.
 
-**EKG is the headless `server` API, not the full Doom `pi` or human `user` instance.**
-Do not use `ec` for EKG if its injected socket selects another instance; the examples below explicitly
-use `emacsclient -s server`. OpenClaw sends the same Lisp form via its existing `emacs_eval`, with its
-configured headless socket (Docker: `/run/emacs/server`). Do not change the general Org socket setting.
-If the deployed daemon lacks `agent-ekg-*`, report the version/loading gap; do not switch to a GUI
-socket or restart/deploy automatically. Local fixture success does not certify Oracle readiness.
+**EKG needs the headless server, not the full Doom `pi` or human `user` instance.** Use `ek`,
+not unguarded `ec`: preserve an injected absolute socket such as `/run/emacs/server`; unset/empty
+falls back to host `server`. Reject named `pi`/`user` before connecting. For any remaining socket,
+the Lisp guard requires `server-name` equal to `"server"` and all three API doors before evaluating
+the supplied form. This prevents accidental GUI reads; it is not authorization or sandboxing.
+A routing-only check is `ek 't'`: it reads no note and proves neither DB availability nor sync.
+
+For OpenClaw, check the active tool surface. **If a configured `emacs_eval` exists**, send the same
+server-name/API-guarded expression, not a bare table form; otherwise use existing exec/shell with
+`ek`. `EMACSCLIENT`, if needed, is a client executable path taken from the existing deployment;
+when unset it uses `emacsclient` on PATH. Do not assume a login-shell PATH or hardcode a Nix store
+hash. If no configured route exists, report it rather than add a plugin or switch to a GUI.
+Client-not-found/socket errors alone do not prove the daemon is down: record actual client/socket
+and error before diagnosis. Client-to-socket success is not bot-tool dispatch proof; do not attribute
+a bot failure to this routing rule without its actual invocation evidence. Do not change the general
+Org socket setting, restart/deploy automatically, or probe private notes to test routing.
 
 ## API
 
@@ -51,9 +75,9 @@ socket or restart/deploy automatically. Local fixture success does not certify O
 | `agent-citar-lookup` | QUERY, ?MAX | `ec '(agent-citar-lookup "karpathy" 5)'` |
 | `agent-server-status` | — | `ec '(agent-server-status)'` → version, uptime |
 | `agent-being-data` | ?AS-JSON | `ec '(agent-being-data)'` → notes/journal/garden counts |
-| `agent-ekg-notes` | TAGS string/nonempty string list (exact AND), ?LIMIT 1..100 (20), ?OFFSET >=0 (0) | `emacsclient -s server --eval '(agent-ekg-notes (list "과학" "무엇") 20 0)'` |
-| `agent-ekg-read` | ID integer or nonempty string; preserve type | `emacsclient -s server --eval '(agent-ekg-read 4242)'` |
-| `agent-ekg-tags` | ?LIMIT 1..500 (100), ?OFFSET >=0 (0) | `emacsclient -s server --eval '(agent-ekg-tags 100 0)'` |
+| `agent-ekg-notes` | TAGS string/nonempty string list (exact AND), ?LIMIT 1..100 (20), ?OFFSET >=0 (0) | `ek '(agent-ekg-notes (list "과학" "무엇") 20 0)'` |
+| `agent-ekg-read` | ID integer or nonempty string; preserve type | `ek '(agent-ekg-read 4242)'` |
+| `agent-ekg-tags` | ?LIMIT 1..500 (100), ?OFFSET >=0 (0) | `ek '(agent-ekg-tags 100 0)'` |
 
 TAG is detected by shape — ALL-CAPS, optionally `:`-joined (`LLMLOG:ARCHIVE`). Detection is
 case-SENSITIVE, so a lowercase or CamelCase one-word body stays BODY (doomemacs-config `f752a07`;
@@ -97,7 +121,7 @@ ec '(agent-denote-set-front-matter "ID" :title "정제된 제목" :filetags (quo
 
 ## EKG reading contract
 
-- A date is its actual tag, not a creation-time filter: `emacsclient -s server --eval '(agent-ekg-notes "date/2026-10-31" 20 0)'`. Tags combine as AND clues, not a merged sentence tag. No automatic translation/correction.
+- A date is its actual tag, not a creation-time filter: `ek '(agent-ekg-notes "date/2026-10-31" 20 0)'`. Tags combine as AND clues, not a merged sentence tag. No automatic translation/correction.
 - `notes` lists text notes only, newest creation first, ties by printed ID ascending. `:total` is before pagination; entries have `:id :tags :created :modified :preview` (up to 200 raw characters) and full `:length`. Advance OFFSET for the next page; a page is not all matches.
 - Listings exclude notes with hidden tags (`trash`/`draft`) unless the hidden tag is requested, following EKG's rule. An explicit `read` may return a hidden note with `:hidden t`. `(agent-ekg-read "4242")` is distinct from integer `4242`; use the returned ID without coercion.
 - `read` returns `:note` with raw `:text :mode :tags :created :modified :hidden :inline-count`. It neither runs inline commands nor fetches URLs/resources. Keep private note text/IDs and DB paths out of public logs.
