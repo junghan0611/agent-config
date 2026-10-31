@@ -7,12 +7,19 @@
 # RAIL — 현재 좌표
 
 - [x] **17–22. 닫힌 도구·기억 운영·소비면·협업 규칙** — 기존 출하는 `CHANGELOG.md v2026.10.27`, Cloudflare 가이드·커밋의 기기/garden ID 규칙은 `v2026.10.30` 절로 갈무리했다. 새 실행 승인이 아니다.
-- [ ] **23. README/docs 정리·CalVer 출하 (2026-10-30)** ← CURRENT: 편집·협업 검수·직접 오프라인 검사 완료. 요청된 `v2026.10.30`의 공개 Release·원격 main/tag·도장 확인 후 새 요청 대기. 이미 출하됐으면 반복하지 않는다.
+- [ ] **23. README/docs 정리·CalVer 출하 (2026-10-30)** ← PAUSED: 이전 출하 확인 좌표 보존. 편집·협업 검수·직접 오프라인 검사 완료. 요청된 `v2026.10.30`의 공개 Release·원격 main/tag·도장 확인 후 새 요청 대기. 이미 출하됐으면 반복하지 않는다.
+- [ ] **24. EKG 조회 스킬 소비면 (2026-10-31)** ← CURRENT: doomemacs 코디가 전달한 GLG 요청으로 기존 emacs 스킬을 수선했다. 로컬 스킬 수락 완료, doomemacs 코디가 Oracle 새 수신 묶음으로 인계 중이다. 실제 Oracle 수신·수락/운영 반영은 미확인이다. 이후 GLG가 이 집 commit/push·Oracle agent-config pull을 직접 승인했다. doom 코드 배포/상주daemon 수락·restart 승인은 아니다.
 - [ ] **15. #18 STOP·보류 레인 보존** ← PAUSED: 새 요청 전 분석·삭제·재처리 없음. Cloudflare 프로젝트 후속·운영 전환·기존 연구는 이번 문서 출하와 별개다.
 
-현재 좌표: 17–22 완료 → 23 출하 확인 → 새 요청 대기. #18 STOP·운영 전환·기존 연구 보류는 그대로다.
+현재 좌표: 17–22 완료 → 23 이전 출하 확인 좌표 보존 → 24 EKG 스킬 검수·통합 인계 대기. #18 STOP·운영 전환·기존 연구 보류는 그대로다.
 
-# NOW — v2026.10.30 출하 확인 뒤 대기
+# NOW — EKG 조회 스킬: doomemacs 코디 경유
+
+- **다음/라우팅:** doomemacs 코디 `20261016T104939-5320fa`가 스킬/실코드/diff/fixture를 직접 대조하고 독립 재실행 PASS로 로컬 수락했다는 보고를 인수했다. 스킬 SHA `995d6b7be5b85316cca6199a6748715c0613619a582732ef8c7770c6d105c7d4`를 동결한다. 그 코디가 검수된 bytes를 Oracle 새 수신 묶음으로 인계 중이며, 실제 수신·수락 결과를 같은 코디 경유로 받는다. GLG가 별도로 이 집 commit/push 후 Oracle agent-config의 정상 pull을 직접 요청했다. 원격 clean main/upstream을 확인하고 ff-only pull·동결 스킬 해시를 검증한다. 다음 세션은 local/remote HEAD·도장·Oracle pull 영수증으로 마감을 확인하며 완료 단계를 반복하지 않는다. doom 코드 배포/기존 통합 인계와 별도 route·수동 skill mount 덮어쓰기·restart는 범위 밖이다.
+- **읽을 곳/검증:** doomemacs-config #12와 `bin/agent-server.el` EKG Read API, `lisp/ekg-agent-read.el`·관련 README/tests를 직접 읽었다. 기존 ec의 Org 소켓 선택은 유지하고 EKG는 headless server를 명시했다. 네트워크 차단·합성 HOME·실제 /home 비가시 fixture에서 소켓/argv16건, 문서의 Lisp5형식을 원본 공개 wrapper+가짜 backend로 확인했다. 공식 EKG 행동 전체를 재검증한 것은 아니며 실제 RPC/개인DB connect0이다.
+- **경계:** 조회≠DB 물리 불변·Syncthing 완료/동시접속 안전을 명시했다. 태그 AND/날짜 태그/typed ID/hidden/count/페이지/실패·source를 보존한다. 새 스킬·CLI/쓰기 API·실제 개인DB/doom 코드 배포·restart는 미실행·별도 승인이다. 승인된 commit/push와 Oracle agent-config pull만 마감한다. #18 STOP과 이전 보류는 유지한다.
+
+# RECENT — v2026.10.30 출하 확인 좌표 (이전 요청)
 
 - **다음:** [v2026.10.30 Release](https://github.com/junghan0611/agent-config/releases/tag/v2026.10.30)·원격 main/tag·agenda 영수증을 먼저 확인한다. GLG가 정상 commit/tag/push·GitHub Release·도장까지 요청했으므로 미완료 단계만 마감하며, 공개돼 있으면 재태그·재출하·중복 도장/DM 없이 대기한다. 이번 완료 DM은 GLG의 직접 요청이다.
 - **범위/읽을 곳:** `CHANGELOG.md v2026.10.30`, README와 docs7개, 홈 커밋 규칙·commit 스킬. 긴 설명과 날짜별 관측은 재배치했고 대문자 bench 문서와 native 레퍼런스는 제자리에 둔다. 활성 Markdown 진입점의 링크만 목적지로 맞췄다. Cloudflare 가이드는 이전 commit `f05f103`의 출하 내용이며 계정 조작을 재실행하지 않았다.

@@ -1,6 +1,6 @@
 ---
 name: emacs
-description: "Emacs daemon — org manipulation, denote notes, citar bibliography, org-agenda, arbitrary elisp. Two sockets: server (agent work), user (show file to user). Core: agent-denote-add-history(ID,CONTENT), agent-denote-add-heading(ID,TITLE,BODY) — TAG and AFTER-HEADING are both optional and combine: (ID,TITLE,TAG,BODY,AFTER-HEADING). Never pass nil. agent-denote-add-link(ID,TARGET-ID,DESC). All 3 args required."
+description: "Emacs daemon — org manipulation, denote notes, citar bibliography, org-agenda, arbitrary elisp. Org socket follows PI_EMACS_AGENT_SOCKET (default server); EKG AND/date/typed-ID queries require the headless server, not pi/user. Oracle/OpenClaw uses existing emacs_eval. Core: agent-denote-add-history(ID,CONTENT), agent-denote-add-heading(ID,TITLE,BODY) — TAG and AFTER-HEADING are both optional and combine: (ID,TITLE,TAG,BODY,AFTER-HEADING). Never pass nil. agent-denote-add-link(ID,TARGET-ID,DESC). All 3 args required."
 ---
 
 # Emacs Agent Server
@@ -18,6 +18,13 @@ Define ec/eu in EVERY bash call (subshell resets).
 `--emacs-agent-socket <name>` (e.g. `server`, `/run/emacs/server` for Docker).
 Falls back to `server` when unset.
 
+**EKG is the headless `server` API, not the full Doom `pi` or human `user` instance.**
+Do not use `ec` for EKG if its injected socket selects another instance; the examples below explicitly
+use `emacsclient -s server`. OpenClaw sends the same Lisp form via its existing `emacs_eval`, with its
+configured headless socket (Docker: `/run/emacs/server`). Do not change the general Org socket setting.
+If the deployed daemon lacks `agent-ekg-*`, report the version/loading gap; do not switch to a GUI
+socket or restart/deploy automatically. Local fixture success does not certify Oracle readiness.
+
 ## API
 
 | Function | Args | Example |
@@ -27,10 +34,6 @@ Falls back to `server` when unset.
 | | ID, TITLE, TAG, BODY | `ec '(agent-denote-add-heading "ID" "Title" "LLMLOG" "body")'` |
 | | ID, TITLE, BODY, AFTER-HEADING | `ec '(agent-denote-add-heading "ID" "Title" "body" "보고")'` |
 | | ID, TITLE, TAG, BODY, AFTER-HEADING | `ec '(agent-denote-add-heading "ID" "Title" "LLMLOG" "body" "보고")'` |
-
-TAG is detected by shape — ALL-CAPS, optionally `:`-joined (`LLMLOG:ARCHIVE`). Detection is
-case-SENSITIVE, so a lowercase or CamelCase one-word body stays BODY (doomemacs-config `f752a07`;
-before it, `case-fold-search` defaulted to `t` and a body like `"body"` was silently eaten as a tag).
 | `agent-denote-add-link` | ID, TARGET-ID, DESC | `ec '(agent-denote-add-link "ID1" "ID2" "desc")'` ⚠️ all 3 args required (see Gotchas) |
 | `agent-denote-set-front-matter` | ID, &rest PLIST | `ec '(agent-denote-set-front-matter "ID" :title "새 제목" :filetags (quote ("meta" "reasoning")) :rename t)'` |
 | `agent-denote-search` | QUERY, ?TYPE(title/tag/fulltext) | `ec '(agent-denote-search "term" (quote tag))'` |
@@ -48,6 +51,13 @@ before it, `case-fold-search` defaulted to `t` and a body like `"body"` was sile
 | `agent-citar-lookup` | QUERY, ?MAX | `ec '(agent-citar-lookup "karpathy" 5)'` |
 | `agent-server-status` | — | `ec '(agent-server-status)'` → version, uptime |
 | `agent-being-data` | ?AS-JSON | `ec '(agent-being-data)'` → notes/journal/garden counts |
+| `agent-ekg-notes` | TAGS string/nonempty string list (exact AND), ?LIMIT 1..100 (20), ?OFFSET >=0 (0) | `emacsclient -s server --eval '(agent-ekg-notes (list "과학" "무엇") 20 0)'` |
+| `agent-ekg-read` | ID integer or nonempty string; preserve type | `emacsclient -s server --eval '(agent-ekg-read 4242)'` |
+| `agent-ekg-tags` | ?LIMIT 1..500 (100), ?OFFSET >=0 (0) | `emacsclient -s server --eval '(agent-ekg-tags 100 0)'` |
+
+TAG is detected by shape — ALL-CAPS, optionally `:`-joined (`LLMLOG:ARCHIVE`). Detection is
+case-SENSITIVE, so a lowercase or CamelCase one-word body stays BODY (doomemacs-config `f752a07`;
+before it, `case-fold-search` defaulted to `t` and a body like `"body"` was silently eaten as a tag).
 
 agent-org-agenda-todos: PROJECT is level-2 heading name in Entwurf agenda (e.g. "andenken", "blog", "agent-config"). PRIORITY is "A"/"B"/"C". Both optional — nil returns all TODOs grouped by project.
 
@@ -84,6 +94,18 @@ ec '(agent-denote-set-front-matter "ID" :filetags (quote ("meta" "reasoning")) :
 # set front matter + auto rename (원샷)
 ec '(agent-denote-set-front-matter "ID" :title "정제된 제목" :filetags (quote ("ethics" "information")) :rename t)'
 ```
+
+## EKG reading contract
+
+- A date is its actual tag, not a creation-time filter: `emacsclient -s server --eval '(agent-ekg-notes "date/2026-10-31" 20 0)'`. Tags combine as AND clues, not a merged sentence tag. No automatic translation/correction.
+- `notes` lists text notes only, newest creation first, ties by printed ID ascending. `:total` is before pagination; entries have `:id :tags :created :modified :preview` (up to 200 raw characters) and full `:length`. Advance OFFSET for the next page; a page is not all matches.
+- Listings exclude notes with hidden tags (`trash`/`draft`) unless the hidden tag is requested, following EKG's rule. An explicit `read` may return a hidden note with `:hidden t`. `(agent-ekg-read "4242")` is distinct from integer `4242`; use the returned ID without coercion.
+- `read` returns `:note` with raw `:text :mode :tags :created :modified :hidden :inline-count`. It neither runs inline commands nor fetches URLs/resources. Keep private note text/IDs and DB paths out of public logs.
+- `tags` excludes the hidden tags themselves; each `:tag` has visible text-note `:count` and extra `:hidden-count`. `:count` matches a single-tag `notes` total, not arbitrary tagged subjects. Order is count descending, ties by tag ascending; `:total` counts tags before pagination.
+- These return Lisp keyword plists: `(:ok t ... :source ...)` or `(:ok nil :error KIND :message ... :source ...)`. Inspect `:ok`, not only process exit. Normal empty search is `:ok t :total 0 :notes nil`; failure is never an empty success. Kinds: `store-missing`, `store-invalid`, `package-unavailable`, `invalid-argument`, `not-found`, `not-a-note`, `read-failed`. Failure provenance may be nil.
+- `:source` gives DB/host/mtime/size/read-at/EKG version/hidden tags: this host's copy, **not** proof of Syncthing completion. Missing/invalid stores are checked before connect; no empty replacement DB is created. Each call closes only its own handle, preserving the caller's existing one.
+- **Read API, not immutable SQLite or a daemon sandbox.** The owner's 2026-10-31 EKG 0.9.2/triples fixture observed first-connect bookkeeping (file counter +5, identical triples); subsequent connects in that process +0. New versions require remeasurement. Follow the [owner's single-instance/close-backup-sync handoff](https://github.com/junghan0611/doomemacs-config#ekg--a-separate-question-workbench); this API does not authorize concurrent access, sync, upgrades, restarts or note writes. Do not probe the personal DB to test availability.
+- Contract owner: doomemacs-config [#12](https://github.com/junghan0611/doomemacs-config/issues/12), `bin/agent-server.el` EKG Read API and `lisp/ekg-agent-read.el`. Installed daemon/Oracle acceptance is separate from source and isolated fixture tests.
 
 ## Arbitrary Elisp
 
