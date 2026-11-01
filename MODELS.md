@@ -6,7 +6,7 @@
 
 | Rail                | Used in                         | Choose for                           |
 |---------------------|---------------------------------|--------------------------------------|
-| Claude subscription | pi (`claude-code` provider), Claude Code, pi (`entwurf` ACP) | Opus / Sonnet; Fable only when named |
+| Claude subscription | Claude Code, pi (`entwurf` ACP) | Opus / Sonnet; Fable only when named |
 | Codex subscription  | pi                              | GPT family                           |
 | Grok subscription   | pi                              | Grok family                          |
 | Upstage API         | pi                              | Korean work (`solar-pro4`)           |
@@ -28,9 +28,6 @@ For a `pi` sibling, pass one exact `provider/model` pair from this curated list:
 provider        model
 entwurf         claude-opus-5
 entwurf         claude-sonnet-5
-claude-code     claude-opus-5-5
-claude-code     claude-sonnet-5
-claude-code     claude-fable-5-1
 openai-codex    gpt-6-astra
 openai-codex    gpt-6-luna
 openai-codex    gpt-6.1-sol
@@ -38,29 +35,6 @@ openai-codex    gpt-6.1-terra
 upstage         solar-pro4
 xai             grok-4.7
 ```
-
-### Claude subscription inside Pi
-
-`claude-code` is the **Pi provider** from [earendil-works/pi-claude-code](https://github.com/earendil-works/pi-claude-code), not the standalone Claude Code harness/backend. Pi owns tools, conversation and compaction; the installed Claude Code CLI supplies model access using its existing subscription login. No copied credentials or separate Pi login. The existing `entwurf` ACP route remains available.
-
-- Opus: `pi --entwurf-control --model claude-code/claude-opus-5-5`
-- Sonnet: `pi --entwurf-control --model claude-code/claude-sonnet-5 --thinking medium`
-- Start a new ordinary Pi process after package installation; registering a classic Pi extension does not also install it into pi-durable.
-- **Experimental, Oracle + ThinkPad trials (2026-11-01):** source `70abb65186592ca788b29b3db22c3160d629c41f`, Pi 1.4.0, upstream 15/15 + typecheck, and real Sonnet → Pi `read` → final-answer round trips passed. The Oracle receipt came through Git; ThinkPad directly verified one fixture read, two responses with `isUsingOverage=false`, and existing settings/packages unchanged except this one addition. Opus was listed, not live-tested. Other devices were not installed or changed.
-- Use `medium` for the tested Sonnet path. `off` maps to `thinking: disabled` in this ref and the current API rejected it with HTTP 400 (requesting `between_tools` instead); no tool ran. The provider source was not patched. Process exit 0 alone is not a successful model response.
-- Keep `PI_CLAUDE_CODE_ALLOW_USAGE_CREDITS` unset/false. API-key/proxy/cloud overrides are rejected by the provider. Its overage guard stops **after** detecting a charged response, not before the first possible charge; subscription billing policy can change. Pi's displayed list-price estimate is not an extra-usage bill.
-
-### Claude Pi launchers
-
-GLG supplied these current shell definitions and reported starting work on Oracle (2026-11-01):
-
-```bash
-pico() { _pi_garden_pi --model claude-code/claude-opus-5-5 --thinking high --entwurf-control --emacs-agent-socket server "$@"; }
-pics() { _pi_garden_pi --model claude-code/claude-sonnet-5 --thinking high --entwurf-control --emacs-agent-socket server "$@"; }
-picf() { _pi_garden_pi --model claude-code/claude-fable-5-1 --thinking high --entwurf-control --emacs-agent-socket server "$@"; }
-```
-
-All three preserve caller arguments and select the ordinary Pi provider, not the native Claude Code backend. Fable remains explicit-use only. The local live fixture verified Sonnet at `medium`; the operator's `high` workflows and live Opus/Fable are not independently qualified by that fixture. This roster records the supplied mapping; it does not edit the shell file.
 
 ### GPT launchers
 

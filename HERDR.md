@@ -521,3 +521,25 @@ runtime identity and is not part of a binding"* 으로 우리가 `nativeSessionI
 `[GLG 직접 제공한 10-12 공개 글]` Herdr의 접근성 때문에 시연을 이 작업대로 골랐고, durable에게 드라이버를 준 뒤 심리적으로 편안하다고 했다. 기억 품질은 평가하지 않았다. 이 집은 그 운영 경험을 남기며 성능/우열 판정을 붙이지 않는다.
 
 다음 관측은 GLG가 열 때만: 실제 해당 host의 runtime/plugin source·flagless doctor·native self/ROW, 또는 조건을 맞춘 느린 턴 한 판. 설치법/소유권/원본 증거를 먼저 읽고, 자동 upgrade·재촬영·새 형제 실험을 하지 않는다. 권위: [core Release](https://github.com/junghan0611/entwurf/releases/tag/v0.35.0), [plugin Release](https://github.com/junghan0611/entwurf/releases/tag/v2026.10.12-herdr.0.35.0), [Herdr guide](https://github.com/junghan0611/entwurf/blob/v2026.10.12-herdr.0.35.0/plugins/herdr/README.md), [demo source/provenance](https://github.com/junghan0611/entwurf/blob/v0.35.0/demo/README.md), [GLG 공개 원문](https://wikidocs.net/blog/@junghanacs/33151/).
+
+## [2026-11-01] 기존 TUI와 새 core/app은 별개 세대다
+
+`[원격 소스 직접 읽음]` 이번 관측 ref는 기존 `herdr`의 `ee5bfb5041bb`, `herdr-app`의 `d524ec51bf9a`, `herdr-core`의 `de82c962fa6d`다. 기존 관측을 덮거나 설치판의 자동 전환으로 해석하지 않는다.
+
+| 저장소 | 읽은 역할 | 서로의 관계 |
+|---|---|---|
+| `herdrdev/herdr` | 기존 Rust TUI와 자체 server/runtime | Cargo에 새 core 의존성이 없다. 새 core의 TUI client로 바뀌었다는 근거가 아니다. |
+| `herdrdev/herdr-core` | `hc` CLI·PTY/프로그램 생존·원격 연결·API/이벤트 | 그리지 않는 독립 runtime이며 별도 앱 없이도 사용하도록 문서화됐다. |
+| `herdrdev/herdr-app` | Herdr 2의 native GPUI desktop client·layouts/mods | 설치된 `hc`를 찾아 쓰고 없으면 core의 별도 installer를 사용한다. 기존 `herdr` binary를 요구하지 않는다. |
+
+`[AGENTS 직접 읽음]` core의 규칙은 **“Fresh code. Do not copy from Herdr 1”**다. 기존 소스를 아이디어·교훈·edge case의 참고로만 사용하라고 한다. 그러므로 단순 파일 이동/모노리포 분할보다는 **새 runtime과 새 GUI로 재설계한 세대 분리**로 읽는다. app AGENTS도 자신을 “Herdr 2 desktop app”이라고 명시한다.
+
+`[welcome 소스 직접 읽음]` app의 `defaults/frame/welcome/main.js`는 “This is a new app on a new core”와 “Your herdr workspaces stay where they are; nothing moves over”를 표시한다. 기존 설정/키 바인딩 이행은 별도의 안내이며 자동 상태·세션·plugin 호환의 증거가 아니다.
+
+`[GitHub metadata/최근 commit 직접 읽음]` 기존 저장소는 archived=false이고 10-29까지 commit이 있으며 최신 stable GitHub Release는 v0.9.5다. 새 체계의 실행 의존성에서는 기존 binary가 빠졌지만 저장소 폐기·TUI 지원 종료가 확정됐다고 말하지 않는다. 새 core/app의 Cargo/changelog는 각각0.1.16/0.1.11을 기록한다; GitHub `/releases/latest`의404만으로 외부 배포가 없다고 결론내리지 않는다.
+
+`[README/issue thread 직접 읽음]` core는 OSC7501 프로그램 보고만 상태 권위로 쓰고 화면 감지·agent registry·vendor별 분기를 두지 않는다. 기존 저장소의 #5702 응답도 새 app/core의 보고 채널을 옛 pane API·동등 session restore와 구별한다. 기존 Entwurf Herdr plugin의 새 app/mod API 호환은 이번에 측정하지 않았다.
+
+`[검증면 소스 읽음; 실행0]` app `core_bin.rs`의 colocated Rust tests와 `justfile`의 test/docs-check를 읽었다. core는 just check=lint+test와 CLI docs/schema 회귀, app은 Rust/Bun tests·generated docs와 문서 구조 검사를 둔다. 배치의 존재를 본 것이지 해당 gate의 PASS를 재현한 것은 아니다. 빌드·설치·서비스/GUI·실제 agent 호출·기존 환경 변경은0이다.
+
+원천: [core AGENTS](https://github.com/herdrdev/herdr-core/blob/de82c962fa6d/AGENTS.md), [app AGENTS](https://github.com/herdrdev/herdr-app/blob/d524ec51bf9a/AGENTS.md), [app의 core 발견/설치](https://github.com/herdrdev/herdr-app/blob/d524ec51bf9a/src/core_bin.rs), [welcome 이행 경계](https://github.com/herdrdev/herdr-app/blob/d524ec51bf9a/defaults/frame/welcome/main.js#L271-L279), [기존 Cargo](https://github.com/herdrdev/herdr/blob/ee5bfb5041bb/Cargo.toml), [구 API와 새 보고 채널](https://github.com/herdrdev/herdr/issues/5702).
