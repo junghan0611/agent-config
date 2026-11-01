@@ -157,7 +157,7 @@ describe("units (this process)", () => {
 		assert.equal(markEligible({ status: "exited", exitCode: 0 }), true);
 	});
 
-	it("index.mjs is one native object: env first, then the two tools and one task, named agent-config", () => {
+	it("index.mjs is one native object: env first, BG/review tools and one BG task, named agent-config", () => {
 		const box = sandbox();
 		const r = spawnSync(
 			process.execPath,
@@ -177,6 +177,7 @@ describe("units (this process)", () => {
 			[
 				["bash_background", "unsafe"],
 				["bash_background_check", "unsafe"],
+				["review", "unsafe"],
 			],
 		);
 		assert.deepEqual(agentConfig.tasks, ["agent-config.bash-background"]);

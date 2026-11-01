@@ -63,6 +63,8 @@ function sandbox(dotenv) {
 	const cwd = path.join(root, "project");
 	mkdirSync(home);
 	mkdirSync(cwd);
+	// The open stub returns this directory; the real contact now verifies it before binding birth.
+	mkdirSync(path.join(root, "durable"));
 	writeFileSync(path.join(home, ".env.local"), dotenv);
 	return { root, home, cwd };
 }
@@ -144,7 +146,7 @@ describe("env.mjs through Entwurf's --native-module ingress", { skip }, () => {
 	}
 });
 
-describe("index.mjs (env + background-bash) through the same ingress", { skip }, () => {
+describe("index.mjs (env + background-bash + review) through the same ingress", { skip }, () => {
 	const dotenv = ["export LOADED=yes", `GEMINI_API_KEY=${SYNTHETIC}`].join("\n");
 	for (const [label, argv] of [
 		["new session", ["--provider", "loopback", "--model", "scripted", "--width", "task-wide", "--native-module", INDEX_MJS]],
@@ -158,7 +160,7 @@ describe("index.mjs (env + background-bash) through the same ingress", { skip },
 			assert.deepEqual(trace.opened.names, ["entwurf", "agent-config"]);
 			assert.deepEqual(trace.installed[1], {
 				name: "agent-config",
-				tools: ["bash_background", "bash_background_check"],
+				tools: ["bash_background", "bash_background_check", "review"],
 				tasks: ["agent-config.bash-background"],
 			});
 			assert.deepEqual(trace.specs, [{ LOADED: "yes", OPENROUTER_API_KEY: false }]);

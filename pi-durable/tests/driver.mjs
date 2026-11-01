@@ -53,9 +53,9 @@ function route(request) {
 	const text = textOf(last.content);
 	const first = text.split("\n")[0];
 	if (last.role === "toolResult") return faux.fauxAssistantMessage([faux.fauxText(`ok ${first}`)]);
-	const call = /^(RUN|CHECK|HOLD) (\{.*\})$/s.exec(text);
+	const call = /^(RUN|CHECK|HOLD|REVIEW) (\{.*\})$/s.exec(text);
 	if (call) {
-		const name = { RUN: "bash_background", CHECK: "bash_background_check", HOLD: "hold" }[call[1]];
+		const name = { RUN: "bash_background", CHECK: "bash_background_check", HOLD: "hold", REVIEW: "review" }[call[1]];
 		return faux.fauxAssistantMessage([faux.fauxToolCall(name, JSON.parse(call[2]))], { stopReason: "toolUse" });
 	}
 	if (text.startsWith("[background task result]")) return faux.fauxAssistantMessage([faux.fauxText(`noted ${first}`)]);
@@ -82,7 +82,7 @@ export const Hold = {
  * Open a Harness with `extensions` installed. `storage` is "memory" or a SQLite file path. The scheduler is
  * NOT started: call `harness.resume()` (or submit) — so a test can stage records first.
  */
-export async function open({ extensions, storage = "memory" }) {
+export async function open({ extensions, storage = "memory", env }) {
 	const handle = faux.fauxProvider();
 	handle.setResponses(Array.from({ length: 500 }, () => route));
 	const models = createModels();
@@ -90,7 +90,7 @@ export async function open({ extensions, storage = "memory" }) {
 	const registry = durable.createRegistry();
 	for (const extension of extensions) registry.install(extension);
 	const store = storage === "memory" ? new durable.MemoryStorage() : await openNodeSqliteStorage(storage);
-	const harness = await durable.Harness.open(store, { models, registry }, context);
+	const harness = await durable.Harness.open(store, { models, registry, env }, context);
 	const root = await harness.root(context, { agent: { model: MODEL, cwd: process.cwd() } });
 	return { harness, root, ...observers(harness, root) };
 }

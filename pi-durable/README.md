@@ -1,4 +1,4 @@
-# pi-durable — native env/hide and background-bash reference
+# pi-durable — native env/hide, background-bash and review reference
 
 **접점은 entwurf, 집의 정책은 agent-config.** `--native-module`과 native BG 배지를 소비하는 env-first 레퍼런스 구현이다. 현행 runtime/SDK 공급 계약은 [Entwurf의 native durable 설치 안내](https://github.com/junghan0611/entwurf/blob/v2026.10.27-herdr.0.45.0/README.md#native-durable-pi-durable)가 소유한다 — 2026-10-27 읽은 source는 **0.45.0 / Pi SDK 1.4.0**이다. 이 집은 버전을 pin하거나 runtime/SDK를 설치하지 않는다. durable을 한 번 만들고 같은 대화를 계속 다시 여는 사용을 위한 것으로, 두 번째 하네스나 Pi 확장 호환층이 아니다. 공급 계약·날짜 붙은 소비자 검사·이미 실행 중인 loaded runtime의 인증은 서로 다르다.
 
@@ -26,7 +26,8 @@ entwurf pi-durable --continue \
 
 | File/export | Contract |
 |---|---|
-| `index.mjs` default | The documented aggregate for `--native-module` and the GLG-authorized `pdc` reopen: imports `env.mjs` **first**, then merges env and background-bash into `{ name: "agent-config", tools, sections, hooks, wraps, tasks }`. The original API-0 preview source is unchanged; current supply/integration status is recorded here |
+| `index.mjs` default | The documented aggregate for `--native-module` and the GLG-authorized `pdc` reopen: imports `env.mjs` **first**, then merges env, background-bash and review into `{ name: "agent-config", tools, sections, hooks, wraps, tasks }`; no automatic runtime reload |
+| `review.mjs` default | `{ name: "agent-config-review", tools: [review] }`; explicit review preparation in the current conversation, no import-time IO, model call or lifecycle action. Included in `index.mjs`; standalone use omits env/BG |
 | `background-bash.mjs` default | `{ name: "agent-config-background-bash", tools: [bash_background, bash_background_check], tasks: [agent-config.bash-background] }`; plain objects, no SDK import, nothing done at import |
 | `env.mjs` default | Native extension object `{ name: "agent-config-env" }`; no hooks or SDK imports. Still usable alone, env-only |
 | `env.mjs` top level | Delete hidden inherited keys, read the home file, inject eligible absent keys |
@@ -44,6 +45,34 @@ Consumer native modules must tag every non-TUI input they submit to a conversati
 Entwurf 0.34.0 also supports `--native-module-dir /absolute/directory`, exclusive with `--native-module`. It reads only that operator-named directory's top-level `*.extension.mjs`, byte-order sorted; helpers/nonmatching files and subdirectories are not discovered recursively. Duplicate extension/tool names and realpath targets are refused. This is not ambient/default/env/settings/watch loading, and trusted ESM initialization does not roll back earlier import side effects on failure.
 
 Our existing `index.mjs`, `env.mjs`, `dotenv.mjs` and `background-bash.mjs` deliberately do not match that suffix. Do not replace the file flag with this repository directory and expect it to load. Directory adoption needs explicit opt-in exports, e.g. a `00-agent-config.extension.mjs` re-export of `index.mjs`; it is optional, not a workaround or an automatic setup step. The documented `pdc` uses the supported aggregate-file route.
+
+## Native review — explicit preparation, then the current model reviews
+
+The native `review` tool ports the rubric and target workflow of [`pi-extensions/review.ts`](../pi-extensions/review.ts), not its classic ExtensionAPI/UI/session machinery. It returns instructions through native `output`; **it has not inspected the diff or produced a verdict**. The calling model then uses existing read/bash tools and writes the review in the same conversation. It is not an independent reviewer, another model turn outside the ordinary tool loop, or a fix runner.
+
+After an operator-chosen launch/reopen with `index.mjs`, ask in ordinary conversation, for example: **“review 도구로 mode=branch, ref=main을 검토해줘. 수정은 하지 마.”** Exact tool inputs:
+
+| Input | Scope |
+|---|---|
+| `review {"mode":"uncommitted"}` | Staged, unstaged **and untracked** changes; an empty tracked diff is not a clean-review receipt |
+| `review {"mode":"branch","ref":"main"}` | Resolve exactly the supplied local reference, then its merge base with HEAD; include local changes/untracked files. No upstream substitution, fetch or checkout |
+| `review {"mode":"commit","ref":"HEAD~1"}` | Pin one commit; exclude subsequent working-tree changes; inspect parents explicitly for a merge commit |
+| `review {"mode":"folder","paths":["src","space name/file.ts"]}` | Explicit snapshot paths, including spaces, not globs; no Git prerequisite. Existing defects in these paths may be reported, unlike diff review |
+| Add `"extra":"focus on back pressure"` to any input | This invocation's user-requested focus; no shared/persisted instruction setting |
+
+**Not a registered `/review` slash command.** Read on 2026-11-02 in Pi durable1.4 `dist/harness/types.d.ts:309–318`: native extensions expose tools/sections/hooks/wraps/tasks, not classic command registration. Entwurf's inspected `tui.ts:750–765` submits text other than its built-in commands to the conversation. `/review …` may therefore reach the model as ordinary text, but this module does not parse it or guarantee dispatch. Use the explicit tool request above. No classic shim or Entwurf command/router change is added.
+
+Safety and retained principles:
+
+- Only prepare a review when explicitly requested; ask for an unclear target instead of selecting one automatically. The tool description/rubric are instructions, **not a permission mechanism or sandbox**. Other enabled tools remain enabled.
+- Keep provable, actionable introduced defects; codebase-appropriate rigor; diff-overlapping short locations; strict fail-fast error-handling scrutiny. Non-blocking human migration/dependency/auth/compatibility/destructive-action callouts stay at the end and do not alone worsen the verdict.
+- [`review-rubric.mjs`](review-rubric.mjs) mirrors the complete original rubric. The parity test compares its evaluated string with the classic source; future changes must deliberately keep them aligned. The classic extension's source/installation is unchanged.
+- Read `REVIEW_GUIDELINES.md` only beside the nearest ancestor `.pi` directory, as in the original. Missing guidelines there stop lookup. Read through the call's native environment, bounded to32KiB; permission/IO/invalid UTF-8/oversize failures propagate rather than silently omitting rules. No custom rule is promoted above system/developer instructions.
+- Git metadata uses argv arrays in the conversation's native environment, not process cwd or shell interpolation. A failed ref/merge-base/read is a visible preparation failure, never a clean verdict. References are resolved, not frozen worktrees: later changes and incomplete inspection must be reported as coverage limitations.
+- No PR mode/checkout, 10-pass fix loop, automatic reviewer/subagent, branch/fork/reset, session state/widget, summary/return, `/end-review`, shared settings, input submission or requestId producer. There is no active review session to end. Stop after the report; fixing needs a separate explicit request.
+- `replay: "unsafe"`: do not silently rerun an interrupted preparation against potentially changed refs/files. It returns `details.prepared`, not “review complete”.
+
+The existing aggregate path is unchanged and must be attached on every reopen. Editing this source **does not add the tool to an already-running citizen**. Runtime installation, SDK/profile/auth/settings/shell changes, lifecycle/restart and live-model qualification are separate operator decisions. See the dated verification receipt below; native low-level/faux dispatch is not autonomous model selection or review-quality evidence.
 
 ## Environment policy
 
@@ -164,3 +193,12 @@ Source contract: [Entwurf #130](https://github.com/junghan0611/entwurf/issues/13
 - Supplier source read: core `v0.45.0` (`191e425`) and the separate `v2026.10.27-herdr.0.45.0` snapshot (`c9b3c4b`) supply the Pi1.4 SDK set. The 0.45 milestone centralizes extracted agent guidance in `ENTWURF.json`; it does not introduce a new tool, permission or routing algorithm. Aligning this README's old current-supply wording is consumer documentation drift repair, not a new 0.45 capability or a runtime upgrade here.
 - New scoped measurement: `./run.sh test:pi-durable` against that already-built checkout and its Pi1.4 SDK passed **44/44, skip0** with synthetic HOME, faux models, test-owned storage and child processes. This is a fresh source-checkout API-0 regression; the 0.36/1.2 and earlier 1.1 receipts above are unchanged history.
 - Not measured here: every running host's acquisition source/loaded bytes, an installed-npm 0.45 consumer run, a live operator-TTY/vendor-model scenario, or the whole 1.4 runtime/SDK acceptance surface. This scoped regression does not certify those axes. No runtime/SDK install, configuration edit or operator restart was performed.
+
+### 2026-11-02 — native review preparation and consumer regression
+
+- Implemented `review.mjs`/`review-rubric.mjs` and included their one native tool in the env-first/BG aggregate. Classic `pi-extensions/review.ts` remains byte-unchanged (SHA256 `41667afb67685c8ec5a113825b7302be5702a33470e15e2048ac87da1eb0e3d7`); the new parity test compares the complete evaluated rubric, not selected phrases alone.
+- Measured on oracle against the already-built Entwurf checkout `46c7c77` **plus its then-uncommitted #157 working tree**, installed durable/ai1.4.0: `./run.sh test:pi-durable` **74/74, fail0, skip0**, BG4059 exit0 (~35s). This is source-checkout API-0 evidence, not a clean/frozen supplier release certification. The review-only suite is30/30; its real native Harness/SQLite/faux scenario exercises eight preparation/error calls and same-conversation reopen, with unchanged fixture worktree. The model does not perform a substantive code review in that script.
+- Preserved failures: initial BG3992 was67/71 with four ingress failures; BG4026, started before the repair, repeated the same four. Their stub `open` returned a nonexistent native directory; the current real contact correctly refused `native-directory-invalid`. The consumer fixture now creates its test-owned directory, without bypassing the contact. Focused ingress6/6 and final74/74 passed afterwards. Env/BG/crash tests retain their existing native behavior.
+- Final source manifest matched after the suite; `review.mjs` SHA256 `dcc17217be5ea4a71b43ac8c53599c76e8af788f6c68a95d24a7510a61ee1f0f`. Local ignored receipts: `.agent-reports/20261102-durable-review/{full-suite,final-suite,repaired-suite}.log` and `repaired-source.sha256`.
+- At the API-0 checkpoint, not measured: live operator loading, vendor autonomous tool selection, review quality/independence, TUI review UX or end-to-end operational lifecycle. No vendor model call, SDK/runtime install, auth/profile/PATH/shell change, Entwurf source edit or operator restart was performed by this agent.
+- Subsequent operator check in this conversation: GLG reported a restart; the active tool schema then exposed native `review`. GLG entered `/review`, the assistant asked for an explicit target, and GLG accepted that test and requested commit/push. This confirms post-restart tool exposure and the clarification exchange, **not an executed review tool call, findings quality or native slash-command registration**. No additional test model/sibling was launched.

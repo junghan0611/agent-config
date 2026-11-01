@@ -2,9 +2,8 @@
  * agent-config's durable native module: env first, then the tools, as ONE native Extension object — Entwurf's
  * `--native-module` takes a single file.
  *
- * PARTIAL PREVIEW, not a launch default: the footer hourglass background work requires does not exist yet
- * (an Entwurf product change), so the README helpers keep naming env.mjs. Exercised by API-0 tests on Entwurf
- * 0.33.0 / SDK 1.1.0 only.
+ * Entwurf supplies the native background badge. This aggregate adds env policy, background tools and explicit
+ * review preparation. Dated supply/test scopes live in README.md; importing this file does not update a running app.
  *
  *   entwurf pi-durable --provider <p> --model <m> --width task-wide \
  *     --native-module /abs/path/agent-config/pi-durable/index.mjs
@@ -18,8 +17,9 @@
  */
 import env from "./env.mjs";
 import backgroundBash from "./background-bash.mjs";
+import review from "./review.mjs";
 
-const parts = [env, backgroundBash];
+const parts = [env, backgroundBash, review];
 const field = (key) => parts.flatMap((part) => part[key] ?? []);
 
 export default {

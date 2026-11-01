@@ -6,19 +6,25 @@
 
 # RAIL — 현재 좌표
 
-- [x] **17–26. 기존 출하·EKG 조회 스킬·rename 소비면** — `CHANGELOG.md v2026.10.27`·`v2026.10.30`·`v2026.10.31`과 `339556f` 공개 태그/Release로 마감했다. 실제 tool trace와 전달된 봇 성공 보고의 경계를 유지하며 재출하·중복 도장은 하지 않는다.
-- [x] **27. pi-claude-code ThinkPad 설치·시험·명부** — `21739d9` 정상 commit/push·도장 완료. 모델5개 발견, upstream15/15/typecheck·Sonnet medium read 왕복·설정 보존을 직접 확인했고 off의 API400 및 GLG 제공 high launcher 매핑과 독립 미검증 범위를 MODELS에 남겼다.
-- [x] **28. Herdr 세 저장소 구조 관측 (2026-11-01)** — pinned 원격 소스 관측을 `HERDR.md`에 append했다. 새 core/app과 기존 TUI는 구별하며 설치·plugin 이행·테스트 실행·commit/push는 하지 않았다.
-- [ ] **29. pi-claude-code 시험 종료·제거 (2026-11-01)** ← CURRENT: GLG가 이 방식을 쓰지 않기로 결정해 ThinkPad user extension/managed checkout과 MODELS의 provider·런처를 제거했다. 기존 다른 settings/packages·native Claude Code·Entwurf ACP는 보존 검증했다. GLG가 현재 문서 commit/push와 Oracle pull 전달을 승인했다. 정상 push·도장 후 Oracle의 package 제거/ff-only pull 회신을 확인한다. durable 구현/추가 모델 시험·기존 Opus 재개는 없다.
-- [ ] **15. #18 STOP·보류 레인 보존** ← PAUSED: 새 요청 전 분석·삭제·재처리 없음. Cloudflare 프로젝트 후속·운영 전환·기존 연구는 이번 문서 출하와 별개다.
+- [x] **17–26. 기존 출하·EKG 조회 스킬·rename 소비면** — `v2026.10.27`·`v2026.10.30`·`v2026.10.31`로 마감. 재출하·중복 도장 없음.
+- [x] **27–29. provider 시험 비채택·정리·문서 동기화** — `612b505` 문서 출하 수신. Oracle은 BG3815의 기존 package만 제거·설정 보존 영수증과 clean ff-only pull을 이 세션에서 확인했다. 별도 pi-review는 Oracle에 설치하지 않았으며 기존 classic `/review`는 보존한다.
+- [ ] **30. durable native review 포트 (2026-11-02)** ← CURRENT: 최소 구현·합동 API-0 **74/74·skip0(BG4059)** 완료, Entwurf 코디에게 파일·사용법·증거/미측정·적재 경계를 전송했다(mailbox enqueued, 읽음은 미확인). GLG 재시작 후 native 도구 노출과 `/review`의 대상 확인 응답을 이 대화에서 관측했다. GLG가 테스트 수용·commit/push를 승인했으므로 정상 출하한다.
+- [ ] **15. #18 STOP·기존 연구/운영 보류** ← PAUSED: 새 요청 전 분석·삭제·재처리·운영 전환 없음.
 
-현재 좌표: 17–28 관측/출하 마감 → 29 GLG의 pi-claude-code 비채택 결정·로컬 제거 완료·Oracle 제거 회신 대기. #18 STOP·기존 보류는 그대로다.
+현재 좌표: 17–29 마감 → 30 native review 구현·검증·재시작 후 노출 확인 → 승인된 commit/push 마감. #18 STOP·기존 보류는 그대로다.
 
-# NOW — 시험 종료 문서 출하·Oracle 동기화
+# NOW — native review 최소 포트 검증·인계
 
-- **현재:** ThinkPad의 pi-claude-code/추가 pi-review package 제거와 기존 설정 보존을 직접 확인했다. MODELS는 Pi claude-code provider를 제외하고 native Claude Code/Entwurf ACP를 유지한다. HERDR의 pinned source 관측도 함께 문서로 출하한다.
-- **다음:** GLG가 요청한 현재 문서3개(HERDR/MODELS/NEXT)를 정상 commit/push하고 도장1회 → Oracle 코디 `20261008T084123-6f5c09`에게 정확한 SHA로 clean preflight·ff-only pull과 시험 provider 제거 확인을 요청한다. 이미 push됐으면 중복 출하/도장하지 않고 수신/완료 receipt만 확인한다.
-- **경계:** 아래 구현 GO·시험 후보는 퇴역했다. 추가 model call·Opus 재개·durable 구현·설정/SDK/셸 전환·새 형제·#18 분석을 재개하지 않는다. 이번 승인은 문서 commit/push와 Oracle의 해당 정리/pull만이다.
+- **요청/범위:** GLG의 새 durable review 요청을 Entwurf 코디 `20261014T212756-68bd94`에게서 인수했다. `pi-durable/review.mjs`와 rubric, 기존 env-first/BG aggregate·테스트·문서만 이 집에서 구현한다. 앞선 provider 시험의 퇴역 GO와 별개다.
+- **다음:** GLG의 현재 commit/push 요청에 따라 정상 훅 commit → main push → agenda 도장1회. 다음 세션은 Git/upstream·도장 영수증을 확인하고 이미 마감됐으면 반복 없이 새 요청을 기다린다. 요청 코디에게 `2026-11-01T22:13:36Z` mailbox enqueued 영수증으로 구현 인계를 보냈다(읽음 미확인).
+- **검증:** BG4059 `./run.sh test:pi-durable` **74/74·fail0/skip0**, 전용30/30·진입점6/6. SDK1.4/faux/임시 SQLite에서 도구8회와 같은 conversation 재개까지다. `.agent-reports/20261102-durable-review/repaired-suite.log`·source manifest6개 재대조 OK. BG3992/4026의4 FAIL은 mock open의 디렉터리 부재였고 contact 검사를 우회하지 않고 temp 디렉터리 생성으로 수선했다. `pi-durable/README.md`에 실패·수선·미측정 경계를 남겼다.
+- **읽을 곳/사용:** `pi-durable/README.md § Native review`, `review.mjs`, `tests/review*.mjs`. 적재 후 `review {"mode":"branch","ref":"main"}`처럼 명시 요청한다. 준비 도구이지 리뷰 완료·독립 reviewer가 아니며 실제 slash command를 등록하지 않는다.
+- **경계:** 자동 fix loop·PR checkout·branch/reset/복귀·새 모델/형제/기존 Opus 재개·Entwurf 수정·runtime/SDK/auth/PATH/셸/설정 변경·추가 운영 설치/에이전트 재시작은 하지 않는다. 현재 구현 commit/push만 GLG 명시 승인이다. 기존 classic review 바이트 불변. 실제 vendor 선택·리뷰 품질·운영 TTY는 미검증이며 #18 STOP·기존 연구 보류 유지.
+
+# RECENT — 2026-11-02 native review 최소 포트
+
+- 원본2088행/설치SDK1.4 native 계약을 읽고 `review.mjs`·rubric·env-first aggregate·테스트/문서만 구현했다. 원본 rubric 전체 문자열 parity와 classic 파일 SHA 불변을 확인했다. 도구는 리뷰 지침/범위 준비이며 동일 대화의 모델이 실제 리뷰한다. 명시 대상4종·extra·project guidelines만 포트하고 자동수정/PR checkout/대화 분기/복귀/추가모델은 제외했다.
+- 최종 직접 검사 BG4059 전체74/74·skip0, manifest6개 일치. 네이티브 도구 적재/dispatch와 임시저장소 재개 근거이며 운영시민에 적재·vendor 리뷰 품질을 검증한 것이 아니다. Entwurf 코디 `68bd94`에 정확경로/사용법·이 경계를 전달했다. 이후 GLG가 직접 재시작했다고 알렸고 이 대화의 도구 목록에 `review`가 실제 노출됐다. `/review` 입력은 대상 확인 응답까지만 시험했으며 실제 리뷰 도구 실행/리뷰 품질을 측정한 것은 아니다. GLG가 시험 수용·commit/push를 요청했다.
 
 # RECENT — 2026-11-01 provider 비채택·리뷰 확장 중복·remote 연결
 
