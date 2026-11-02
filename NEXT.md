@@ -2,18 +2,29 @@
 
 > Volatile next-step anchor. Longer-running tracks belong in `ROADMAP.md`.
 > Convention: `~/AGENTS.md § Session End Protocol — NEXT.md`.
-> **Andenken #18 STOP — 2026-10-25 18:25 KST:** 해당 분석은 계속 중지다. 아래 이전 GO는 재개 권한이 아니다. 2026-10-27 GLG가 새로 요청한 RAIL17(browser helper 협업)·RAIL18(통상 증분 임베딩)은 별도 범위이며, 용량 분석 재개가 아니다.
+> **2026-11-02 22:30 새 GO:** GLG가 Andenken 코드 검수·main/release와 이 집의 실제 전체 증분/Oracle 반영·main/release를 승인했다. 아래 과거 #18 STOP은 이 새 범위의 금지가 아니다. full rebuild 비용 게이트·원문/old DB 삭제·runtime 재시작은 여전히 별도다.
 
 # RAIL — 현재 좌표
 
-- [x] **17–26. 기존 출하·EKG 조회 스킬·rename 소비면** — `v2026.10.27`·`v2026.10.30`·`v2026.10.31`로 마감. 재출하·중복 도장 없음.
-- [x] **27–29. provider 시험 비채택·정리·문서 동기화** — `612b505` 문서 출하 수신. Oracle은 BG3815의 기존 package만 제거·설정 보존 영수증과 clean ff-only pull을 이 세션에서 확인했다. 별도 pi-review는 Oracle에 설치하지 않았으며 기존 classic `/review`는 보존한다.
-- [ ] **30. durable native review 포트 (2026-11-02)** ← CURRENT: 최소 구현·합동 API-0 **74/74·skip0(BG4059)** 완료, Entwurf 코디에게 파일·사용법·증거/미측정·적재 경계를 전송했다(mailbox enqueued, 읽음은 미확인). GLG 재시작 후 native 도구 노출과 `/review`의 대상 확인 응답을 이 대화에서 관측했다. GLG가 테스트 수용·commit/push를 승인했으므로 정상 출하한다.
-- [ ] **15. #18 STOP·기존 연구/운영 보류** ← PAUSED: 새 요청 전 분석·삭제·재처리·운영 전환 없음.
+- [x] **17–30. 기존 출하·provider 비채택·native review** — `v2026.10.31` 이후 native review `ba8df8f`까지 commit/push 완료. 재설치·재시작 없음.
+- [x] **31. Andenken 코드 검수·출하** — 담당자 `877f91`의 02:19 영수증: main `06e923be5148600ed74f0ac654de8b13a5d502be`, `v2026.11.3`·GitHub Release·도장 완료. 데이터 전환 증거는 아니다.
+- [ ] **32. 정본 보관 양쪽 입장** ← CURRENT: 검수된 이 집 helper/consumer를 main·Oracle에 수신한 뒤 초기 보관을 실행한다.
+- [ ] **33. 후보 보존 전환·전체 증분 1회** — 원본/old DB 보존, 실제 소스 준비·예산 확인 후 별도 실행 GO.
+- [ ] **34. 실측 반영·최종 태그·연락** — 양쪽 검증과 한계 기록 뒤 이 집 GitHub Release, GLG DM 1회와 Oracle 코디 인계.
 
-현재 좌표: 17–29 마감 → 30 native review 구현·검증·재시작 후 노출 확인 → 승인된 commit/push 마감. #18 STOP·기존 보류는 그대로다.
+현재 좌표: 31 코드 출하 완료 → 32 보관 준비·실입장 → 33 데이터 전환/증분 → 34 마감.
 
-# NOW — native review 최소 포트 검증·인계
+# NOW — 세션 정본과 선별 증분, agent-config 총코디
+
+- **다음:** 이 집 검수 코드 main push → Oracle 소유4패치만 동일성 확인해 정상 ff → 양쪽 source bootstrap. 실제 DB 전환/새 embedding은 아직 하지 않는다.
+- **현재 코드:** helper `2e095ad`/SHA `e2a3718c…`, 운영 계약 `c997cd5`, consumer `e5a4173`까지 정상 commit. helper 독립25/25·실 접점6/6, A6 담당자 독립130policy+14publish+83glue/OpenClaw38+89+62/실helper6/tsc PASS. 내 A3 독립175와 A5 두 재현·실helper6도 구별해 기록했다.
+- **기존 writer freeze:** BG14032가 02:09부터 sync FD9와 기존 shared sessions writer lease를 보유(max1h), corpus FD8은 미보유라 standalone archive는 가능하다. B 양쪽 bootstrap 후 명시 종료·자기 lock 해제 확인, 그 다음에만 adopt/C를 시작한다. main unborn이어도 preflight는 통과할 수 있으므로 초기화 차단이라고 추정하지 않는다.
+- **검증된 전환 준비:** 고정 private controller `bc2dd303…`의 실제 FS/정책/lock 9경로(관측 native/Git는 stub), 별도 native helper로 실제 양쪽 old v4278/121842unique와 local 후보 v80/114889unique·4096d를 확인했다. controller 실이행/SIGKILL/cache 증거는 아니다. Oracle aarch64의 same-FS renameat2/NOREPLACE/fsync 합성도 직접 통과했다.
+- **읽을 곳:** `docs/memory-and-sessions.md` 운영 절, Andenken `NEXT.md`, private D=`~/.local/state/andenken/investigations/20261102-selection-estimate`, 이 집 `.agent-reports/20261102-session-integrity/`. 긴 branch handoff는 이 private 폴더에 보존한다.
+- **역할:** 총코디 `12d0ca`; 이 집 Opus `754cad`; Andenken 코디 `877f91`를 통해 `583c57`; Oracle 이 집 코디 `6f5c09`. 최종 DM은 총코디 1회. 새 형제/재개 없음.
+- **금지/한계:** 원문/old DB/drop/prune/gc 삭제0, full rebuild와 비용 gate 우회0, source `.git` raw rsync0, private session GitHub metadata push도 명시 승인 미확정이라 0. S6 candidate top10 miss·human usable 미검수·old loaded Pi/cache 미보증 유지. quarantine 자체 I/O 실패는 수동 개입, 모든 warm 차단 보장0. 기존 #28/#30/#31·FACTORY 초안·다른 연구는 이번 범위가 아니다.
+
+# LEDGER — 아래 native review NOW는 2026-11-02 당시 기록
 
 - **요청/범위:** GLG의 새 durable review 요청을 Entwurf 코디 `20261014T212756-68bd94`에게서 인수했다. `pi-durable/review.mjs`와 rubric, 기존 env-first/BG aggregate·테스트·문서만 이 집에서 구현한다. 앞선 provider 시험의 퇴역 GO와 별개다.
 - **다음:** GLG의 현재 commit/push 요청에 따라 정상 훅 commit → main push → agenda 도장1회. 다음 세션은 Git/upstream·도장 영수증을 확인하고 이미 마감됐으면 반복 없이 새 요청을 기다린다. 요청 코디에게 `2026-11-01T22:13:36Z` mailbox enqueued 영수증으로 구현 인계를 보냈다(읽음 미확인).
