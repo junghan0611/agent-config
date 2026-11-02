@@ -9,18 +9,19 @@
 - [x] **31. Andenken 코드 출하** — `06e923be`, `v2026.11.3`·GitHub Release 완료. 실운영도 이 코드로 수행했다.
 - [x] **32. 양쪽 정본 보관·버전 복구** — C0→C1 양쪽 보존, 독립 reader의 선택 JSONL 두 버전 SHA/크기 일치.
 - [x] **33. 양쪽 보존 전환·세 축 증분 게시** — sessions115920 / md11218 / OpenClaw10400; 기존 DB·원문·모든 버전 보존. OpenClaw compact는 용량으로 별도 보류.
-- [ ] **34. 출하 영수증 확인** ← CURRENT: `v2026.11.3` main/tag·공개 Release·Oracle exact ff·도장·DM을 확인. 이미 있으면 재태그/재실행 없이 마감.
-- [ ] **35. 다음 범위 판정** ← PAUSED: private GitHub metadata push·용량 확보/compact·검색 품질은 각각 GLG의 다음 판정.
+- [x] **34. 최종 출하·연락** — `v2026.11.3` release commit `9ec8d21` 검증/Oracle 당시 exact ff·도장·DM913 완료. 이후 handoff commit은 별개이며 재태그·재출하·중복 DM 금지.
+- [ ] **35. 기상 후 공간 정리** ← CURRENT: private GitHub metadata push와 npm 캐시 회수 완료. 로컬 마지막 old DB 삭제 범위 확인 대기.
 
-현재 좌표: 31–33 완료 → 34 최종 출하 → 35 별도 판정 대기.
+현재 좌표: 31–34 완료 → 35 공간 정리. 데이터 배치 재실행 없음.
 
-# NOW — 출하 마감만, 데이터 배치 재실행 금지
+# NOW — 공간 정리와 현재 상태, 과거 비교 실험 아님
 
-- **Next:** `v2026.11.3`의 origin main/tag·공개 Release/body·Oracle exact ff·agenda·최종 DM 영수증을 확인해 없는 마감 단계만 끝낸다. 존재하면 재태그/재출하/중복 도장·DM 없이 GLG의 다음 범위를 기다린다. 데이터 배치는 재실행하지 않는다.
+- **Next:** GLG의 로컬 마지막 old DB 삭제 범위 답을 확인한다. 아직 삭제0. 원문/annex버전/현재DB는 대상이 아니다. 기존 DB와의 추가 비교 실험·재생성은 하지 않는다(06:22 Andenken owner가 전달한 GLG 정정).
 - **Verified:** B `8d325ee` scoped3-file commit과 A `aacd839` doc/test3-file mainpush·도장 완료(추가A태그0, runtime은실행A06과같음). 14894 최종guard27/hook12/release7/durable74·skip0; A 실제helper6/6+fulltsc PASS. 실제 세 축 양쪽 verify/publish 완료. session v106/115920·4meta exact, MD11218·payload mismatch0, OpenClaw10400·6활성봇 clean. C0/C1 선택 복구도 완료. 상세와 한계는 `CHANGELOG.md v2026.11.3`.
-- **Capacity:** OpenClaw active204,724,827B/logical7·small7 vs 5GiB 위 여유 약194MB라 compact 보류. sup-confirmed1행만 backup/live-recheck 후 정리, archives932 유지. 14780 이후 free5,562,662,912B. 원문·old DB·annex key·incident 객체 삭제로 해결하지 않는다.
+- **Capacity/current:** 15146 npm `_cacache`만 정리해10,287,284,224B 회수, 로컬 free15,828,410,368B(df15GiB). `_npx`·번역서버·원문/annex·현재/old DB 유지. Oracle old DB는 별도 GLG 직접요청으로06:12 퇴역해약9.28GB회수(실marker독립열람); 로컬9.28GB가마지막old사본이다. OpenClaw active204,724,827B/logical7·small7의 당시 용량 blocker는완화됐지만compact는미실행/자동재개0.
 - **Leases:** Oracle4714/4592 모두 명시 해제·실FD 반납 확인. 새 holder·색인·수집·재시작을 만들지 않는다.
-- **Separate gates:** private session GitHub metadata push 미승인/실행0; live durable 추가 수집·S6/human usability·old loaded runtime/cache는 미인증. #28/#30/#31·FACTORY와 아래 ACTIVE/DORMANT는 미접촉.
+- **GitHub/current:** 직접승인후15058 private `junghan0611/session` main8fe911ac…/git-annex f1171903… atomicpush·원격exact·agenda06:14 완료. reachable원문은pointer검사/내용업로드0. 반복push불필요.
+- **Separate gates:** 로컬마지막old DB 삭제답대기, 원문/키/다른보관본삭제금지. live durable 추가수집·old loaded runtime/cache는미인증. S6/옛품질비교는현재다음실행이아니다. #28/#30/#31·FACTORY와 아래 ACTIVE/DORMANT 미접촉.
 - **Receipts:** `.agent-reports/20261102-session-integrity/`(private), Andenken owner NEXT, `docs/memory-and-sessions.md`. 과거 좌표와 상세 영수증은 아래 기록이며 재실행 지시가 아니다.
 
 # RECENT — 2026-11-03 운영 중 좌표의 영수증 (종료·대체됨)
