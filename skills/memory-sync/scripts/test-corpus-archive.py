@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOL = os.path.join(HERE, "corpus-archive.py")
@@ -76,6 +77,7 @@ def init_repo(root, name, dotfiles="branch"):
     sh(root, "git", "annex", "init", "-q", name)
     sh(root, "git", "config", "gc.pruneExpire", "never")
     sh(root, "git", "config", "gc.auto", "0")
+    sh(root, "git", "config", "maintenance.auto", "false")
     if dotfiles == "branch":
         sh(root, "git", "annex", "config", "--set", "annex.dotfiles", "true")
     elif dotfiles == "local":
@@ -155,6 +157,34 @@ class CorpusArchiveTest(unittest.TestCase):
             self.assertEqual(rc, want, (value, out))
         self.git("config", "--unset", "annex.thin")
         self.assertEqual(run("preflight", "--corpus", self.canon, "--floor-bytes", "0")[0], 0)
+
+    def test_maintenance_auto_is_a_required_local_git_false(self):
+        pre = lambda: run("preflight", "--corpus", self.canon, "--floor-bytes", "0")
+        for value, want in (("false", 0), ("off", 0), ("no", 0), ("0", 0), ("", 0),
+                            ("true", 10), ("on", 10), ("yes", 10), ("1", 10), ("2", 10), ("bogus", 10)):
+            self.git("config", "maintenance.auto", value)
+            rc, out, _ = pre()
+            self.assertEqual(rc, want, (value, out))
+            if want:
+                self.assertEqual(out["error"], "precondition", (value, out))
+        self.git("config", "--unset", "maintenance.auto")
+        self.assertEqual(pre()[0], 10)
+        # false that does not live in the repository's own config is not the guard
+        with mock.patch.dict(os.environ, {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "maintenance.auto",
+                                          "GIT_CONFIG_VALUE_0": "false"}):
+            self.assertEqual(pre()[0], 10)
+        # and a local false that something above it turns back on does not count either
+        self.git("config", "maintenance.auto", "false")
+        with mock.patch.dict(os.environ, {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "maintenance.auto",
+                                          "GIT_CONFIG_VALUE_0": "true"}):
+            self.assertEqual(pre()[0], 10)
+        self.assertEqual(pre()[0], 0)
+
+    def test_checkpoint_refuses_without_maintenance_guard(self):
+        self.git("config", "--unset", "maintenance.auto")
+        rc, out, _ = self.checkpoint()
+        self.assertEqual((rc, out.get("error")), (10, "precondition"), out)
+        self.assertEqual(self.git("rev-parse", "-q", "--verify", "HEAD", check=False), "")
 
     def test_git_failure_detail_stays_out_of_the_json(self):
         self.assertEqual(self.checkpoint()[0], 0)

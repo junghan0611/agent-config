@@ -394,6 +394,12 @@ def preflight(repo, args, result):
     checks["thin_false"] = "pass"
     if repo.config("gc.pruneExpire") != "never" or repo.config("gc.auto") != "0":
         raise Fail("precondition", "gc.pruneExpire=never and gc.auto=0 are required")
+    # gc.auto=0 does not turn off `git maintenance run --auto`, which commit and fetch may start; require an
+    # explicit repo-local Git-boolean false that no higher-priority config turns back on
+    for scope in (("--local",), ()):
+        m = repo.git("config", *scope, "--type=bool", "--get", "maintenance.auto", check=False)
+        if m.returncode != 0 or m.stdout.decode().strip() != "false":
+            raise Fail("precondition", "maintenance.auto must be false in the repository's local config, not overridden")
     checks["gc_protection"] = "pass"
     branch_dot = repo.git("annex", "config", "--get", "annex.dotfiles", check=False).stdout.decode().strip()
     if (repo.config("annex.dotfiles") or branch_dot or "").lower() != "true":
