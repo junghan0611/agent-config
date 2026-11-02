@@ -7,6 +7,26 @@
 
 ## Unreleased
 
+### 세션 정본의 보관 계약과 실행 면
+
+* **정본 버전·장부·실제 SHA를 대조하는 v1을 정리했다.** `190bf95`·`983d26d`. 원문은 비공개 git-annex 내용 객체로 보관하고 Git은 포인터와 기존 장부를 연결한다. 별도 서명·작성자 인증·임베딩과 원문의 완전한 세대 일치는 선행조건이 아니다. 명시적인 전체/global 배치에서 수집·장부 갱신 뒤 한 번 checkpoint하고, 자동 local warm마다 커밋하지 않는 경계를 두었다.
+* **기존 memory-sync에 보관 helper를 더했다.** `2e095ad`. preflight·checkpoint·bundle·receive·merge-log·verify는 기존 Git/git-annex와 장부를 묶는 관리자 호출면이며 새 스킬·기억 DB·인증 체계가 아니다. 숨김 경로의 raw Git 입장을 막고 `thin=false`인 unlocked 원문의 regular 형태·실제 SHA와 key를 대조하며, 합성에서 원문 inode 보존을 관측했다. caller의 실제 FD를 상속한 custody lock, canonical main의 같은 이력 수용, 양방향 위치 로그와 별도 reader의 두 버전 회수를 합성 검증했다. staging 원복과 commit/ref 변경 뒤의 부분 상태를 구별하며 자동 ref rollback·내용 drop·GC·원격 push는 하지 않는다.
+* **교차 검수에서 실패 경로를 보강했다.** 기존 16건 통과 뒤 보유 객체의 예산 이중 차감·부모 symlink 우회·annex의 늦은 종료 실패·index 원복 실패를 재현해 수선했고, 명시 FD의 읽기 단계 검증·원문 leaf·빈 검수 범위·Git boolean·요약 JSON의 경로 노출도 회귀에 넣었다. 코디의 독립 재실행에서 25/25가 통과했다. 앞선 숨김 경로 입장 시도는 커밋 전에 중단하고 원문 무변경으로 unstage했으며, 생긴 Git 사본은 전 객체를 보존한 압축 표현으로 옮겼다. 이 합성 검증을 실코퍼스 운영 완료로 읽지 않는다.
+
+### 비공개 예외와 얇은 공개 안내
+
+* **비공개 session 저장소만 이름 검사 예외에 추가했다.** `b5398ba`. GLG의 명시 승인과 GitHub private 확인 뒤 정확한 origin 하나만 기존 named-private 목록에 더했고 비밀값 검사는 유지했다. origin·유사 이름·합성 비밀값 12건과 실제 장부 검사가 통과했다. Oracle 코디도 같은 패치와 12건을 독립 검증했으며 scanner bytes가 같음을 대조했다. hooksPath·모드 파일·우회 flag는 바꾸지 않았다.
+* **README와 docs의 설명문을 영어로 맞추고 세션 정본의 목적을 소개했다.** `983d26d`. 기존 command fence와 URL을 보존했다. memory-sync는 두 호출·비용·중단 규칙의 43줄/약3.6KB로 줄이고 긴 운영 설명과 helper 계약은 기존 문서로 옮겼다. 도구의 합을 정체성으로 설명하거나 새 스킬 목록을 늘리지 않았다.
+
+### 명시적인 native review와 닫힌 provider 시험
+
+* **durable native review 준비 도구를 더했다.** `ba8df8f`. 명시 요청과 대상이 있을 때 같은 대화에 rubric·정확한 범위·프로젝트 지침을 돌려주며 별도 reviewer/model·자동 수정·PR checkout·대화 분기를 만들지 않는다. SDK1.4와 임시 저장소의 API-0 합동74건, rubric parity와 기존 classic 파일 보존을 확인했다. GLG의 재시작 뒤 도구 노출과 대상 확인도 관측했지만 vendor TUI 전체 흐름이나 리뷰 품질 인증으로 확대하지 않는다.
+* **Claude provider 시험은 비채택으로 닫았다.** `71ad64d`·`21739d9`의 시험 영수증은 보존하고 `612b505`의 제거·명부 정리 판정을 따른다. 기존 설정과 classic review는 유지했다. 이번 태그가 그 provider를 다시 설치하거나 사용을 재개하는 승인은 아니다.
+
+### 실행 영수증 반영 대기
+
+* 실코퍼스 양쪽 입장·후보 운영 전환·새 전체 증분 배치와 Oracle 최종 검증은 아직 별도 실행 게이트다. 성공한 실행 영수증을 반영한 뒤에만 이 절을 태그로 승격한다. 기존 DB·원문 삭제와 검색 품질의 일괄 PASS는 승인하거나 주장하지 않는다.
+
 ## v2026.10.31 — EKG 조회의 문과 소켓, rename 소비면
 
 ### 기존 Emacs 스킬로 EKG를 읽는 계약
