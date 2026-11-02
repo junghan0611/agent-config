@@ -6,19 +6,35 @@
 
 # RAIL — 현재 좌표
 
-- [x] **17–30. 기존 출하·provider 비채택·native review** — `v2026.10.31` 이후 native review `ba8df8f`까지 commit/push 완료. 재설치·재시작 없음.
-- [x] **31. Andenken 코드 검수·출하** — 담당자 `877f91`의 02:19 영수증: main `06e923be5148600ed74f0ac654de8b13a5d502be`, `v2026.11.3`·GitHub Release·도장 완료. 데이터 전환 증거는 아니다.
-- [ ] **32. 정본 보관 양쪽 입장** ← CURRENT: 검수된 이 집 helper/consumer를 main·Oracle에 수신한 뒤 초기 보관을 실행한다.
-- [ ] **33. 후보 보존 전환·전체 증분 1회** — 원본/old DB 보존, 실제 소스 준비·예산 확인 후 별도 실행 GO.
-- [ ] **34. 실측 반영·최종 태그·연락** — 양쪽 검증과 한계 기록 뒤 이 집 GitHub Release, GLG DM 1회와 Oracle 코디 인계.
+- [x] **31. Andenken 코드 출하** — `06e923be`, `v2026.11.3`·GitHub Release 완료. 실운영도 이 코드로 수행했다.
+- [x] **32. 양쪽 정본 보관·버전 복구** — C0→C1 양쪽 보존, 독립 reader의 선택 JSONL 두 버전 SHA/크기 일치.
+- [x] **33. 양쪽 보존 전환·세 축 증분 게시** — sessions115920 / md11218 / OpenClaw10400; 기존 DB·원문·모든 버전 보존. OpenClaw compact는 용량으로 별도 보류.
+- [ ] **34. 출하 영수증 확인** ← CURRENT: `v2026.11.3` main/tag·공개 Release·Oracle exact ff·도장·DM을 확인. 이미 있으면 재태그/재실행 없이 마감.
+- [ ] **35. 다음 범위 판정** ← PAUSED: private GitHub metadata push·용량 확보/compact·검색 품질은 각각 GLG의 다음 판정.
 
-현재 좌표: 31 코드 출하 완료 → 32 보관 준비·실입장 → 33 데이터 전환/증분 → 34 마감.
+현재 좌표: 31–33 완료 → 34 최종 출하 → 35 별도 판정 대기.
 
-# NOW — 세션 정본과 선별 증분, agent-config 총코디
+# NOW — 출하 마감만, 데이터 배치 재실행 금지
 
-- **다음:** 이 집 검수 코드 main push → Oracle 소유4패치만 동일성 확인해 정상 ff → 양쪽 source bootstrap. 실제 DB 전환/새 embedding은 아직 하지 않는다.
+- **Next:** `v2026.11.3`의 origin main/tag·공개 Release/body·Oracle exact ff·agenda·최종 DM 영수증을 확인해 없는 마감 단계만 끝낸다. 존재하면 재태그/재출하/중복 도장·DM 없이 GLG의 다음 범위를 기다린다. 데이터 배치는 재실행하지 않는다.
+- **Verified:** B `8d325ee` scoped3-file commit과 A `aacd839` doc/test3-file mainpush·도장 완료(추가A태그0, runtime은실행A06과같음). 14894 최종guard27/hook12/release7/durable74·skip0; A 실제helper6/6+fulltsc PASS. 실제 세 축 양쪽 verify/publish 완료. session v106/115920·4meta exact, MD11218·payload mismatch0, OpenClaw10400·6활성봇 clean. C0/C1 선택 복구도 완료. 상세와 한계는 `CHANGELOG.md v2026.11.3`.
+- **Capacity:** OpenClaw active204,724,827B/logical7·small7 vs 5GiB 위 여유 약194MB라 compact 보류. sup-confirmed1행만 backup/live-recheck 후 정리, archives932 유지. 14780 이후 free5,562,662,912B. 원문·old DB·annex key·incident 객체 삭제로 해결하지 않는다.
+- **Leases:** Oracle4714/4592 모두 명시 해제·실FD 반납 확인. 새 holder·색인·수집·재시작을 만들지 않는다.
+- **Separate gates:** private session GitHub metadata push 미승인/실행0; live durable 추가 수집·S6/human usability·old loaded runtime/cache는 미인증. #28/#30/#31·FACTORY와 아래 ACTIVE/DORMANT는 미접촉.
+- **Receipts:** `.agent-reports/20261102-session-integrity/`(private), Andenken owner NEXT, `docs/memory-and-sessions.md`. 과거 좌표와 상세 영수증은 아래 기록이며 재실행 지시가 아니다.
+
+# RECENT — 2026-11-03 운영 중 좌표의 영수증 (종료·대체됨)
+
+- **Final:** 14758 활성6봇 clean →14771 live-recheck/backup 후 sup1만10401→10400 →14780 양쪽 verify/publish 완료. compact 보류, 4714 정상 반납. 아래 단계별 진행 문구보다 위 NOW와 CHANGELOG의 최종 영수증이 우선한다.
+- **C 완료 receipt:** **BG14558 actualglobal1회exit0/6m24s**,24files4358chunks/0errors/83calls~1508Ktokens~$0.015. C1양쪽`8fe911aca55baa73a93da8e7917ab44cadb6b372`,3753원문/6,308,719,987B/새24keys480,552,373B·receive/reverseLogf1171903…후index+4meta동기화완료. 14633 freshnative양쪽v106/115920unique/3109files/durable103/idf6fa5374…같음. **FTS111562indexed/4358tail**는정상append후값이며강제FTS전체재작성0/smoke3. session/durable/policy/S0네meta SHA도직접양hostexactmatch. 최저관측free5,539,155,968≥5GiB(절대min아님). MD14608 exit0/8s:2255manifest/2240row-bearingfiles/11218unique/0orphan/4096d,추가임베딩0/Oraclepublish+remoteverify완료;14686 remoteAPI0hash도exit0:36mtime-onlysuspect모두payloadmatch/실pending0,notesHEAD양쪽6dd568882dba53a65622953facc56af58a32d8c6동일. replica재색인0/추가pull불필요.
+- **버전복구 완료:** owner754readback-20261103T043445/RECEIPT.md(12cf994c…):C0/C1공통smallJSONL1개각SHA/size manifest일치·서로다른SHA,합2,150,164B/독립readerUUID/전체checkout0/producerHEAD·index·config불변,last-index만knownlimit변경. reader만정리/실원본·old·객체보존/GitHubpush0. guardprivate27/27도준비(실e2아직미변경),local+effectivefalse/빈Gitboolfalse허용채택.
+- **앞선 실행 상세(종료됨):** **BG14558 실제 `./run.sh sync:sessions --global` 단1회(04:20),재실행금지**. A06/e2/명시OracleGCrootbin/CPU4/private `/run/user/1000` TMPDIR,report `.agent-reports/20261102-session-integrity/C-session-actual.json`와BG완료결과를받는다. FS여유1초관측/중간자동kill0,최저관측값을절대물리최저라고부르지않는다. API0 actualinputs v3:4358rows/vec71,401,472/nonvectorJSON7,205,844/raw480,552,373/positivework109,926,738/refused0/unstable0;64MiB공학여유+FTS1generation추가계획785,511,118B,freshfree6,211,026,944→after예상5,425,515,826(5GiB위56.8MB,quota보장아님). 기존FTS유효shape면정상전체재작성0/새tail허용,강제sessionsoptimize0. **tier3/4 blanketGO0**,14572는MD pending API0estimate만. 세션결과/free뒤각각go한다.
+- **실 전환 마감:** 14479 stage재개exit0/4m39s,6files140,558,028B추가/삭제0/fulltree·native·원3meta전부일치. **Oracle4674 actualstrictfront exit0/7m14s**,v80/114889/newinode1365248/treebb783…와oldv4278/121842/inode2100369/tree7bfc…전후동일·원oldmeta/absence·S0held44/pin일치. 후free7,912,071,168;Rootshared/candidatelease없음·FD9/8반납,4592명시해제완료. 양쪽old9.28GB복사0/삭제0. SourceNodecache/전체품질보장0.
+- **전송 이력(아래는앞선좌표):** BG14479의검증완료결과를먼저받는다(중복전송0). 14369 actuallocal은exit0/26초, D/local-adoption-20261103T031839.json statusadopted/stageverified: livev80/114889·242files/2,044,858,239B/treebb783408…동일inode; oldv4278/121842·1133files/9,280,475,397B/tree7bfc7794…동일inode/원meta보존. 14417 원래NEWstage전송은1800s timeout,검사시remote진행프로세스0/236files·1,904,300,211B/3meta존재·symlink0/oldDATA그대로. **측정stageinode1365247만허용한private복구delta bf972bc0(원c114/300소스.initial로보존)로14479 재개**,source9/8/shared실재검사·전후tree/3meta/native대조유지. 완료후Oracle4592명시해제/정상반납→strictfront별도GO. 실제paid전체C는미시작.
+- **코드 양쪽 수신:** 이 집 main `dec6c0030dca98636ec3a39f0291ce39c67b36f7` push/agenda02:22 완료. Oracle A06/main/build19초·Bdec6/main/clean/hook12/3SHA/보호config동일 receipt를인수했다. owned4patch는정상main에접혔고umask077 재생성3mode만명시수선했다. 코드 수신 작업은 원문·DB 데이터 작업을 포함하지 않았다.
 - **현재 코드:** helper `2e095ad`/SHA `e2a3718c…`, 운영 계약 `c997cd5`, consumer `e5a4173`까지 정상 commit. helper 독립25/25·실 접점6/6, A6 담당자 독립130policy+14publish+83glue/OpenClaw38+89+62/실helper6/tsc PASS. 내 A3 독립175와 A5 두 재현·실helper6도 구별해 기록했다.
-- **기존 writer freeze:** BG14032가 02:09부터 sync FD9와 기존 shared sessions writer lease를 보유(max1h), corpus FD8은 미보유라 standalone archive는 가능하다. B 양쪽 bootstrap 후 명시 종료·자기 lock 해제 확인, 그 다음에만 adopt/C를 시작한다. main unborn이어도 preflight는 통과할 수 있으므로 초기화 차단이라고 추정하지 않는다.
+- **기존 writer freeze:** local old14032→14212 queued handoff/READY 후B완료, **14212도명시SIGTERM**하고actual14369前공통writerdir부재검사를뒀다. Oracle의이전 **BG4592/pid3961566**는actualfront前명시정상해제·SDK/FD반납을6f5c09가직접확인했다. C동안earlylocalwarmgather방지용Oracle **FD9-only BG4714/pid4017759 READY**를인수(04:22:12~05:22:02,max1h),corpus8/shared없음을원격코디직접확인. C완료후6f5c09에게4714만명시stop/FD반납요청,그전다른원격sync실행금지. main unborn preflight차단에기대지않는다.
+- **B 최종 보존 영수증:** 양쪽C0/objects3744·원inode/dev/size/mtime/SHA/nlink1불변;firstUUID3122bf2a…/Oracleef0adcd1…。Git2.54가merge-log중physicalpack을재작성했지만원3128OID내용stream재해시3128ok/0bad(5,481,744,241B)로보존확인. pack불변주장은폐기/원인미입증. 양쪽localmaintenance.auto=false/gc.auto0/pruneExpire never/thinfalse/dottrue. originannex-ignore(+auto)유지/내용전송0. helper guard강화는e2실행창마감후후속최소delta로보류. privatearchive-close/initial-run-20261103T024440/RECEIPT.md.
 - **검증된 전환 준비:** 고정 private controller `bc2dd303…`의 실제 FS/정책/lock 9경로(관측 native/Git는 stub), 별도 native helper로 실제 양쪽 old v4278/121842unique와 local 후보 v80/114889unique·4096d를 확인했다. controller 실이행/SIGKILL/cache 증거는 아니다. Oracle aarch64의 same-FS renameat2/NOREPLACE/fsync 합성도 직접 통과했다.
 - **읽을 곳:** `docs/memory-and-sessions.md` 운영 절, Andenken `NEXT.md`, private D=`~/.local/state/andenken/investigations/20261102-selection-estimate`, 이 집 `.agent-reports/20261102-session-integrity/`. 긴 branch handoff는 이 private 폴더에 보존한다.
 - **역할:** 총코디 `12d0ca`; 이 집 Opus `754cad`; Andenken 코디 `877f91`를 통해 `583c57`; Oracle 이 집 코디 `6f5c09`. 최종 DM은 총코디 1회. 새 형제/재개 없음.

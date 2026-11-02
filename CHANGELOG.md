@@ -7,11 +7,15 @@
 
 ## Unreleased
 
+## v2026.11.3 — 원문 버전 복구와 보존 전환, 세 기억축의 실운영
+
 ### 세션 정본의 보관 계약과 실행 면
 
 * **정본 버전·장부·실제 SHA를 대조하는 v1을 정리했다.** `190bf95`·`983d26d`. 원문은 비공개 git-annex 내용 객체로 보관하고 Git은 포인터와 기존 장부를 연결한다. 별도 서명·작성자 인증·임베딩과 원문의 완전한 세대 일치는 선행조건이 아니다. 명시적인 전체/global 배치에서 수집·장부 갱신 뒤 한 번 checkpoint하고, 자동 local warm마다 커밋하지 않는 경계를 두었다.
 * **기존 memory-sync에 보관 helper를 더했다.** `2e095ad`. preflight·checkpoint·bundle·receive·merge-log·verify는 기존 Git/git-annex와 장부를 묶는 관리자 호출면이며 새 스킬·기억 DB·인증 체계가 아니다. 숨김 경로의 raw Git 입장을 막고 `thin=false`인 unlocked 원문의 regular 형태·실제 SHA와 key를 대조하며, 합성에서 원문 inode 보존을 관측했다. caller의 실제 FD를 상속한 custody lock, canonical main의 같은 이력 수용, 양방향 위치 로그와 별도 reader의 두 버전 회수를 합성 검증했다. staging 원복과 commit/ref 변경 뒤의 부분 상태를 구별하며 자동 ref rollback·내용 drop·GC·원격 push는 하지 않는다.
 * **교차 검수에서 실패 경로를 보강했다.** 기존 16건 통과 뒤 보유 객체의 예산 이중 차감·부모 symlink 우회·annex의 늦은 종료 실패·index 원복 실패를 재현해 수선했고, 명시 FD의 읽기 단계 검증·원문 leaf·빈 검수 범위·Git boolean·요약 JSON의 경로 노출도 회귀에 넣었다. 코디의 독립 재실행에서 25/25가 통과했다. 앞선 숨김 경로 입장 시도는 커밋 전에 중단하고 원문 무변경으로 unstage했으며, 생긴 Git 사본은 전 객체를 보존한 압축 표현으로 옮겼다. 이 합성 검증을 실코퍼스 운영 완료로 읽지 않는다.
+
+* **실행 뒤 automatic-maintenance 사전검사를 강화했다.** `8d325ee`. repo-local 및 effective `maintenance.auto`가 모두 Git boolean false여야 archive preflight가 통과한다. 빈 false 값은 Git의 의미를 따르고, 미설정·true·잘못된 boolean·상위 override는 exit10으로 거부한다. 기존25건에 두 회귀를 더한27/27을 구현자와 코디가 별도로 실행했고, 원본 helper에서 새 두 검사가 실패한 red 결과는 구현자 영수증으로 인수했다. 실제 배치의 이전 e2 helper 영수증을 새 가드의 운영 시험으로 소급하지 않았다.
 
 ### 비공개 예외와 얇은 공개 안내
 
@@ -23,9 +27,21 @@
 * **durable native review 준비 도구를 더했다.** `ba8df8f`. 명시 요청과 대상이 있을 때 같은 대화에 rubric·정확한 범위·프로젝트 지침을 돌려주며 별도 reviewer/model·자동 수정·PR checkout·대화 분기를 만들지 않는다. SDK1.4와 임시 저장소의 API-0 합동74건, rubric parity와 기존 classic 파일 보존을 확인했다. GLG의 재시작 뒤 도구 노출과 대상 확인도 관측했지만 vendor TUI 전체 흐름이나 리뷰 품질 인증으로 확대하지 않는다.
 * **Claude provider 시험은 비채택으로 닫았다.** `71ad64d`·`21739d9`의 시험 영수증은 보존하고 `612b505`의 제거·명부 정리 판정을 따른다. 기존 설정과 classic review는 유지했다. 이번 태그가 그 provider를 다시 설치하거나 사용을 재개하는 승인은 아니다.
 
-### 실행 영수증 반영 대기
+### 실제 보관·보존 전환·전체 증분 영수증
 
-* 실코퍼스 양쪽 입장·후보 운영 전환·새 전체 증분 배치와 Oracle 최종 검증은 아직 별도 실행 게이트다. 성공한 실행 영수증을 반영한 뒤에만 이 절을 태그로 승격한다. 기존 DB·원문 삭제와 검색 품질의 일괄 PASS는 승인하거나 주장하지 않는다.
+* **양쪽 실코퍼스에 C0를 입장하고 C1까지 버전을 보존했다.** C0 `c741a97e…`의 원문3744개를 양쪽에서 객체 검증했고, 서로 다른 annex UUID·regular unlocked 원문·원본 inode/SHA 보존을 확인했다. 실제 global 배치가 만든 C1 `8fe911ac…`는 양쪽 main이 같고 원문3753개/6,308,719,987B다. 새24 key/480,552,373B를 Oracle에서 수용·검증하고 역방향 위치 로그를 합친 뒤에만 인덱스를 게시했다. 원문 저장소의 GitHub metadata push는 별도 승인을 기다리며 실행하지 않았다.
+* **선택한 한 파일을 독립 reader에서 두 버전으로 실제 복구했다.** C0와 C1에 공통으로 있고 내용이 바뀐 JSONL 하나를 각 commit의 장부와 대조했다. 884,202B와1,265,962B의 실제 SHA/크기가 각각 자기 장부와 같고 두 SHA는 달랐다. 전체 checkout/get 없이 선택 경로만 회수했고 reader만 정리했다. producer의 HEAD·index·config는 불변이며 annex의 last-index는 이동한 한계를 함께 기록했다. 원문·기존 객체·old pack은 보존했다.
+* **후보를 양쪽에서 실제 보존 전환했다.** 새v80/114,889행/242파일/2,044,858,239B를 같은 inode 이동으로 활성화했고, 기존v4278/121,842행/1133파일/9,280,475,397B와 원래 metadata/absence를 retained에 보존했다. 양쪽 old/new의 전후 전체 tree SHA·native ID 집합·차원·메타데이터를 대조했다. Oracle 새 staging 전송의30분 timeout 뒤에는 프로세스 종료와 소유 inode·부분 파일 상태를 측정하고 그 staging만 통제 재개해 전체 검증을 마쳤다. production old DB를 덮어쓰거나 9GB 사본을 추가하지 않았다.
+* **정상 global 세션 증분을 한 번 실행하고 양쪽 v106을 확인했다.** 24파일에서4358청크를 갱신해115,920 unique/3109 source files/4096d·orphan0·error0을 검증했다. fresh native의 ID 집합과 session/durable/policy/S0 네 metadata SHA가 양쪽에서 같았고 durable103행·S0 held44를 유지했다. 세션 API83회/약1508K tokens/약$0.015는 실행 통계의 추정치이며 총청구액 인증은 아니다. FTS는111,562 indexed/4358 tail로 정상 증분했고 전체 재작성·sessions optimize는 하지 않았다. 최저 관측 free5,539,155,968B는5GiB 이상이며1초 관측 사이의 절대 최저를 보장하지 않는다.
+* **가든과 OpenClaw도 순서대로 검증·게시했다.** 가든은 신규0/11,218 unique/4096d·orphan0이며 Oracle의36개 mtime-only 의심도 모두 payload hash가 같았다. 양쪽 garden HEAD도 같았다. OpenClaw는 valid-identity bbot의 일반 증분 뒤 재회수해 활성6봇 clean을 확인했다. 회수 자체는 embedding API0이고 upstream bbot의 별도 비용은 이 통계에 포함하지 않는다. live 재검사·전체 vector 백업 후 superseded-confirmed1행만 정리해10,400 unique/4096d를 양쪽에서 검증·게시했고 session archives932행은 유지했다. OpenClaw source paths610개는 원래 verify의 로컬 존재 검사 대상이 아니다.
+
+* **두 집의 운영 문서를 실제 상태로 맞췄다.** Andenken `v2026.11.3`/`06e923be` 코드로 실행한 영수증은 보존하고, 후속 `aacd839`는 authority skill·실제 helper fixture·NEXT 세 파일만 바꿨다. managed custody·checkpoint/게시 순서·global/full skip 거절과 local의 no-HEAD-binding을 명시했고 새로운 runtime/API/data 작업으로 확대하지 않았다. 이 집 최종 gate에서 committed helper27, hook12, release extractor7, durable API-0 SDK74/skip0이 통과했다. Andenken owner의 새 helper 실제 접점6/6·정책 tsc fence·full tsc 결과도 코드 diff와 로그를 읽어 인수했다.
+
+### 보존의 한계와 남은 유지보수
+
+* **pack 불변 주장을 철회하고 객체 내용 보존을 확인했다.** 첫 실제 merge-log 중 Git2.54가 physical pack을 교체했다. 원인 trace는 없으며 automatic maintenance는 가설이다. 이전에 보존한3128개 Git 객체의 내용을 전량 재해시해3128 ok/0 bad를 확인했고 두 corpus에 repo-local maintenance.auto=false·gc.auto=0·gc.pruneExpire=never를 명시했다. 이는 pack 고정이나 수동 gc/repack 금지가 아니다.
+* **OpenClaw compact는 용량 때문에 보류했다.** native 논리7조각/small7·활성 파일204,724,827B에 비해 당시5GiB 기준 위 여유는 약194MB여서 재작성·임시 출력의 피크를 안전하다고 판단하지 않았다. freshness·복제 완료와 defrag 보류를 구별하며 의심 파일·원문·old DB·annex key를 삭제해 공간을 만들지 않았다.
+* 기존 loaded runtime/cache·human usability·S6 후보 검색 miss를 전체 PASS로 바꾸지 않았다. durable은 이미 승인된 closed snapshot의103행이며 현재 live 대화의 추가 수집을 뜻하지 않는다. 전체 rebuild·비용 gate 우회·새 형제·runtime 재시작·원문 공개·임의 drop/prune/gc는 수행하지 않았다. 기존 #28/#30/#31과 FACTORY 초안은 별도 보류다.
 
 ## v2026.10.31 — EKG 조회의 문과 소켓, rename 소비면
 
