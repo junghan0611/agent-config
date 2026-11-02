@@ -279,6 +279,13 @@ cd ~/repos/gh/agent-config && ./run.sh setup
     빌드 직후 `pin_libc_gcroot`로 인터프리터/RUNPATH store 경로에 gcroot를 건다
     (`~/.local/state/nix/gcroots/dictcli/`). GC가 더는 못 지운다.
   - 고치기: `./run.sh setup:build` (재빌드 + gcroot 재고정).
+- **git-annex는 dot 디렉터리 아래 파일을 Git에 넣는다** (2026-11-02, session corpus #32).
+  코퍼스 경로는 전부 `<device>/.claude/…`·`<device>/.pi/…`라 `git annex add` 3744건이 모두
+  "dotfile; adding content to git repository"가 됐다. `.gitattributes`의
+  `annex.largefiles=anything`도 이를 넘지 못한다. 루트 파일 하나로만 한 fake 시험은 이 경우를
+  덮지 못했다 — **fake는 실제 경로 모양으로 만든다.** 해결은 `-c annex.dotfiles=true`이고,
+  commit 전에 staged 항목이 전부 annex pointer인지 검사한다. 상세와 상태는
+  `docs/memory-and-sessions.md` § Sessions sync operations.
 
 ## ⚠️ 스킬 테스트 공백 (정직하게)
 
