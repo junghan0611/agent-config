@@ -54,6 +54,8 @@ detect_mode() {
   # content (memory/config data, job-application documents). Keep secret
   # scanning on, but skip public identity-term blocking even though the GitHub
   # owner matches the strict namespace.
+  #   session         — private session archive; manifests retain project paths
+  #                     (GLG approved 2026-11-02; secret scanning stays on)
   #   openclaw-config — private memory/config data
   #   apply           — private job-application workspace; resumes must name
   #                     real employers/clients (AGENTS.md in that repo)
@@ -63,7 +65,7 @@ detect_mode() {
   #                     nixos-config ORACLE.md "Bot workspace git".
   # Do NOT flip these public. Hook cannot see GitHub visibility.
   case "$remote_bare" in
-    *github.com[:/]junghan0611/openclaw-config|*github.com[:/]junghan0611/apply|*github.com[:/]junghan0611/workspace-bbot|*github.com[:/]junghan0611/workspace-glg|*github.com[:/]junghan0611/workspace-gpt|*github.com[:/]junghan0611/workspace-mini)
+    *github.com[:/]junghan0611/session|*github.com[:/]junghan0611/openclaw-config|*github.com[:/]junghan0611/apply|*github.com[:/]junghan0611/workspace-bbot|*github.com[:/]junghan0611/workspace-glg|*github.com[:/]junghan0611/workspace-gpt|*github.com[:/]junghan0611/workspace-mini)
       echo "loose"
       return
       ;;

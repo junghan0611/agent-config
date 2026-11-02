@@ -39,6 +39,7 @@ graduation checklist: nixos-config `ORACLE.md` "Bot workspace git".
 
 | Repo | Why |
 |------|-----|
+| `junghan0611/session` | private session archive; SHA inventories retain original project paths (GLG-approved 2026-11-02); Git stores metadata and annex pointers, not session content |
 | `junghan0611/openclaw-config` | private memory/config data |
 | `junghan0611/apply` | private job-application workspace — résumés must name real employers and clients |
 | `junghan0611/workspace-bbot` | graduated OpenClaw bot narrative git (folder name = repo name, always private) |
@@ -47,8 +48,12 @@ graduation checklist: nixos-config `ORACLE.md` "Bot workspace git".
 | `junghan0611/workspace-mini` | graduated OpenClaw bot narrative git (folder name = repo name, always private) |
 
 The match is on the full `origin` URL (`.git` suffix optional), not the
-directory name, so a lookalike such as `junghan0611/apply-extra` or a public
-clone in another namespace stays `strict`.
+directory name. Unlisted repos in the strict namespace, such as
+`junghan0611/session-extra` or `junghan0611/apply-extra`, stay `strict`.
+
+Regression: `python3 git-hooks/test-private-modes.py` checks exact private origins,
+lookalikes and continued secret blocking using synthetic, local-only repositories
+and the installed gitleaks. It performs no commit, push or network request.
 
 **Per-repo override**: write `strict` / `loose` / `off` (single word) to
 `<repo>/.git-hooks-mode`. Only the first line is read (`head -1`), so anything
