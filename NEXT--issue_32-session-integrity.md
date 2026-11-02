@@ -6,15 +6,28 @@ Updated: 2026-11-02. 이 브랜치의 진입점이다. main `NEXT.md`의 과거 
 
 # RAIL — 현재 좌표
 
-- [x] **1. 문제·기존 근거·이웃 레인 확인** — #32 작성, 공식 문서 읽기, Andenken #18/`552efa0`의 원문 연결 계약 확인.
-- [ ] **2. 역할·위협 범위·최소 보관/읽기 계약** ← CURRENT: 아래 결정표를 Andenken과 조율하고 GLG 판단으로 좁힌다.
-- [ ] **3. 보관 backend와 운영·복구 계획** ← PAUSED: 봉인 단위/신뢰 앵커·reader 요구를 먼저 정한다. annex/LFS 미채택.
-- [ ] **4. 작은 fixture의 검증·읽기 접점 구현** ← PAUSED: 계약 채택, 코드 소유·출력/예산·시험 범위 승인 후 시작한다.
-- [ ] **5. 승인된 정본 입장·복구 및 재임베딩 연결** ← PAUSED: 원본 보존/독립 사본·피크·롤백·운영 실행/전송 승인이 필요하다.
+- [x] **1. v1 범위 확인** — GLG가 sessions 폴더 버전관리와 기존 SHA 장부·Git commit 대조라는 단순한 룰로 범위를 좁혔다.
+- [x] **2. 담기·가져오기·개별 검증 룰** — 원문 버전과 같은 commit의 MANIFEST·actual SHA를 대조하는 단순 v1을 정리했다. 별도 서명/작성자 인증은 선행조건이 아니다.
+- [x] **3. 작은 annex 관측·검수** — 합성1파일/2로컬repo의 2버전회수·SHA장부대조21/21,이집artifact/원문객체검수완료. 실제운영채택/성능보증은아니다.
+- [ ] **4. 운영 룰·최소 호환 준비** ← CURRENT: annex선택·전체임베딩수집완료시batch commit은GLG결정. 스킬/실제수집·복제/장부접점에연결준비하며실코퍼스/생산스크립트변경은아직없다.
+- [ ] **5. 승인된 sessions 버전관리 이행** ← PAUSED: 원본 보존·목적지·비공개·복구·실행 범위를 정한 뒤 진행한다. 임베딩 완전 일치는 필수조건이 아니다.
 
-현재 좌표: 근거 확인 → 공동 계약 결정 → 보관 방식 비교 → 작은 검증 → 승인된 이행.
+현재 좌표: 단순 룰·로컬 annex 관측/검수 완료 → 작은 운영/호환 준비 → 승인된 이행.
 
-# NOW — 역할과 첫 공동 결정을 조인다
+# NOW — git-annex와 전체 임베딩 시점의 batch commit 연결 준비
+
+- **GLG 채택 결정:** git-annex로 간다. 커밋은 명시 요청한 전체 임베딩의 sessions 복사·MANIFEST 갱신 완료 시 한 번 수행하도록 스킬/절차에 넣는다. 파일별/자동 local warm별 커밋이 아니며 같은 gather를 재사용한다. 전체 임베딩은통상global증분도포함하고fullrebuild강제아니다. 변경없으면빈commit불필요. 이집 `memory-sync`스킬/운영문서에선택과미구현상태를기록했으며,본체hook·privateandenken-embed스킬실반영은그소유레인의호환작업과맞춘다. GLG가Andenken에직접소통중이므로현재추가연락하지않는다. 원격Gitpush·실코퍼스init·유료실행·사본drop은이말로시작하지않는다.
+
+- **최신 GLG 범위:** 담는 시점의 세션 파일을 SHA로 기록하고 sessions 폴더 자체를 버전관리한다. 가져갈 때 개별 파일 SHA를 해당 버전의 장부와 대조하고 Git commit 정보를 확인한다. 임베딩 데이터와 정본의 완전 일치는 이번 필수조건이 아니다.
+- **v1 룰:** (1) 원문 버전과 기존 MANIFEST 장부를 commit에 연결 (2) 필요한 버전을 가져옴 (3) actual SHA·그 commit의 장부·commit 정보를 확인. 원문은 채택된 git-annex로 연결하되 장부만 남기고 과거 원문 버전을 잃는 안이 아니다. 미취득을 해시 불일치로 오인하지 않는다.
+- **지금 제외:** 별도 서명·키·작성자 인증·garden/native 증거 체계·반재생 프로토콜·전량 임베딩 대조를 v1의 선행조건으로 요구하지 않는다. 아래 초기 확장 설계는 참고이며 현재 TODO를 대체하지 않는다.
+- **v1 실무 분담(12:42–12:43 인수):** #32가backend/별도버전회수·manifest commit룰을정하고,#18이자기repo의replicate/manifest/reader최소호환변경과검증을소유하며이집은원본보관계약을교차검수한다. Nix는공급/배치다. .git배제만으로내용복제가끝나는것이아니므로replica symlink target/명시내용전송·실체화와.git진입파일도확인한다. 과거버전읽기위치는normalgather/discovery에섞지않고reader허용경로·closed경계를유지한다. 역할분담이지현재코드/실험GO는아니다. 원문비공개유지;Andenken표본의민감단편은복사·키검사하지않는다.
+- **현재 실행 범위:** GLG가 ‘우리 작업 진행, Andenken은 직접 소통’이라고 새로 지시했다. PATH의 git-annex10.20260421/git-lfs를 직접 확인하고 기존754cad에게 ignored private루트의 합성 JSONL1개+가짜장부, local repo 두 곳만 사용하는 기본locked-annex fixture 작성·실행을 요청했다. init/add/local commit/clone/fetch/get은 그 fixture안에서 허용하며 정상 hooks·local remote만 사용한다. 2버전별SHA/장부·옛내용회수·UUID구별·제작repo현재v2유지·반출가짜사본1byte변조를 확인한다. 실제sessions/DB/키/외부네트워크/remote설정·drop/fsck/prune·생산코드/스크립트실행·추가push는 범위밖이다. 다른 집 연락은 멈췄고13:44 run의21/21완료를수신했다. `fixture-annex/RESULT.md`·3scripts/FIXES·expect/checks를직접읽고SHA12개와C1/C2장부에연결된205/271B원문객체를독립검수했다(재실행아님). 최초결과와unused관리파일갱신수선본을검수했고,운영결정이덧붙은최종 RESULT SHA505bfa2289e1ba02cadd3deb36bdb42ca0d7415439bf7b6acd7f0d2081405329·목록SHA8b9397214e826b73b8642a4d1bf93d7b74635a683cf3d1fe0ae7215096c1f823를확인했다. 스크립트·로그·receipts10개는불변이며추가시험/내용drop은없다. 첫2실패도보존하며초기과도한‘producer ref전체불변’기대는반증됐다고기록했다.
+- **준비된 문서/근거:** `docs/memory-and-sessions.md`에 단순v1·실험단계·최소호환접점을 추가해 이번 문서 출하에 포함한다. SIMPLE-RULE r2 SHA `4591159f…ea7b64`와replicate62–86/manifest63–75,137–164를 직접 읽었다. .git raw복제/장부유입·미취득 처리와별도읽기위치는 운영전필수접점이다. 기본구성에서.jsonl annex객체장부유입가설은재현안됨·.git순회배제는필요,local get은producer내부ref를변경하되main/원문v2는보존,옛C1객체도unused로분류됨을관측했다. 초기운영안은drop/dropunused·자동내용정리를넣지않는다. replica/실코퍼스성능·hook실제호출·get자동hash검증은미측정. annex는 선택됐지만 실코퍼스 활성화·운영 이행은 아직 없다.
+
+# LEDGER — 초기 확장 설계 (위 v1 범위로 대체, 필수조건 아님)
+
+- **GLG 11:59 집중 지시:** 각 집은 자기 이슈 브랜치에서 기존 실무 Opus와 진행하고, 어느 정도 정리된 뒤 공유한다. 이 집은 #32의 보관·신뢰 정책에 집중한다. 기존 Opus `20261024T115350-754cad`의 현재 exact cwd/receiver=active를 확인해 설계 결정표·공식 근거 읽기를 요청했다. 모델 연구 때의 Andenken 직접 보고와 달리 이 역할의 보고/질문은 이 집으로 모으고, 집 간 공유는 다음 checkpoint에 한다. 12:09 결정표 초안을 직접 읽고SHA `aed1c006c297c2aa14c01f48ccac0947b8c0c922287de151959a21e3248c63c0`를 대조했다(private `opus-754cad/DESIGN-TABLE.md`). prefix 재구성 가능성과 backend의 실물 보존량, 커밋/봉인 시각과 내용 포함 증명, signer 통제와 인간 검토, 반재생의 독립 최신 앵커를 구별하도록 수선을 요청했다. 봉인본 복구 가능성은 기본 요구로 두고 최신본만 보관하는 최적화는 미검증 제안으로 내린다. 12:14 v2를 직접 완독하고SHA `852f44ed172df0d1b778cf70e000867ceb52ff9e232a126f8e2c527c2851baf3`도 대조해 수선 반영을 확인했다(v1 별도 보존). 봉인 단위/보증 주체·범위/backend의 독립 선택지가 다음 GLG 논의의 출발안이다. 대화가 계속 살아 있음과 확보된 artifact가 닫힌 고정본임은 구별하며 새 live durable 접근을 허용하지 않는다. GLG 판단 전 채택·코드·원본/키/DB·실험은 없다. 공개/다른 집 공유는 아직 하지 않는다.
 
 - **목적:** 커밋의 garden ID에서 돌아간 형제가 정확히 어떤 시점의 세션 정본을 읽는지와 검증 근거를 알 수 있게 한다. 주소/귀속 주장·내용 무결성·신뢰 앵커·최신성/완전성·가용성을 분리한다.
 - **다음 한 걸음:** 아래 소유/결정표를 Andenken 코디와 맞춘 뒤, GLG에게 봉인 단위와 신뢰 앵커의 선택지를 제시한다. 지금은 기존 원천/문서로 설계하며 추가 corpus scan이나 실제 키/저장 설정을 시작하지 않는다.

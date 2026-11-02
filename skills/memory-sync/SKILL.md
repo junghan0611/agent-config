@@ -48,6 +48,14 @@ removes that lock directory; never auto-reclaim it. Older
 already-loaded Pi code needs separate operational coordination; a build alone does
 not update its in-memory functions.
 
+## Corpus archive checkpoint — approved, integration pending
+
+GLG selected **git-annex** for the sessions corpus on 2026-11-02 (agent-config#32). During an explicitly requested whole-embedding maintenance run, checkpoint the gathered session files and existing MANIFEST files together in one Git commit **after successful corpus copying and inventory update**, before proceeding to embedding/publication. Reuse that run's gather; do not gather twice. A whole-embedding ask can be ordinary global incremental maintenance, not necessarily a destructive full rebuild.
+
+This is not a commit per file, per automatic warm request, or per local sync. Unchanged archive state needs no empty commit. Record the archive commit and manifest digest in the maintenance result; exact embedding-to-source version identity is not a new prerequisite. Git metadata push/content replication needs its own approved destination and transfer scope; this rule does not authorize a public session upload.
+
+**Not yet implemented in the SSOT script.** Corpus initialization and compatibility work for replication, inventory walking and missing annex content must land before activating this checkpoint. Do not claim the current command performs it, initialize the real corpus automatically, or invent an extra production command. The owning full-maintenance procedure is Andenken's `andenken-embed` skill; keep its eventual implementation and this consumer note aligned.
+
 ## Call
 
 ```bash
