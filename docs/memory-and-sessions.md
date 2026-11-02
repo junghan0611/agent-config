@@ -178,27 +178,58 @@ Sessions fresh now → `/memory-sync`. Oracle's bots must see today → `/memory
 - Full-sync / cost gates / destructive rebuilds are not agent-automated (₩100K incident residual safety).
 - The skill is a thin wrapper that execs the SSOT script (`skills/memory-sync/scripts/sync-sessions.sh`). Flag names and the mode table are the contract agreed with the andenken steward on 2026-09-03 (andenken#13).
 
-### Corpus archive checkpoint — approved, integration pending
+### Corpus archive checkpoint — code ready, first real run gated
 
 GLG selected **git-annex** for the sessions corpus on 2026-11-02 (agent-config#32). During an explicitly requested whole-embedding maintenance run, checkpoint the gathered session files and existing MANIFEST files together in one Git commit **after successful corpus copying and inventory update**, before proceeding to embedding/publication. Reuse that run's gather; do not gather twice. A whole-embedding ask can be ordinary global incremental maintenance, not necessarily a destructive full rebuild.
 
 This is not a commit per file, per automatic warm request, or per local sync. Unchanged archive state needs no empty commit. Record the archive commit and manifest digest in the maintenance result; exact embedding-to-source version identity is not a new prerequisite. Git metadata push/content replication needs its own approved destination and transfer scope; this rule does not authorize a public session upload.
 
-**Not yet implemented in the SSOT script.** The corpus now has Git/annex metadata and a private origin prepared, but no source files have been annexed or initially committed/pushed. Source admission and compatibility work for replication, inventory walking and missing annex content must land before activating this checkpoint. **Do not run the legacy full-root corpus replication during this transition: it does not exclude `.git`.** Coordinate source-copy/manifest work with the owner until that compatibility change lands. Do not claim the current command performs the archive checkpoint, initialize the real corpus again, or invent an extra production command. The owning full-maintenance procedure is Andenken's `andenken-embed` skill; keep its eventual implementation and this note aligned.
+**Status — code ready, first real run gated.** This text applies once Andenken #18 is on main. Andenken's sync wrappers call the archive helper below whenever the corpus root has a `.git` directory, and the two sides passed synthetic end-to-end checks together: a local run whose worktree is newer than `HEAD` indexes without committing, a lost or wrong descriptor is 75, a global checkpoint is received on a replica with the location log merged both ways, and a real staging failure whose restore also fails surfaces as 19 at the top with nothing published. **The first real admission on both hosts and the first full run have not happened; they wait for the coordinator's gate and receipts.** Until such a receipt exists, do not claim that the archive holds the corpus, initialize the real corpus again, or invent an extra production command. The owning full-maintenance procedure is Andenken's `andenken-embed` skill; keep it and this note aligned.
+
+Until 2026-11-03 this section said not to run the legacy full-root corpus replication, because it did not exclude `.git`. In archive mode replication now excludes `/.git/` and carries the archive commit through the helper; see the order below.
 
 Measured pitfalls for whoever implements or runs the admission (2026-11-02; admission still **not done**):
 
 | Pitfall | Measured | Required handling |
 |---|---|---|
-| Every corpus path sits under a dot directory (`<device>/.claude/…`, `<device>/.pi/…`) | `git annex add` treated all 3744 files as dotfiles and staged their **full content into Git** ("dotfile; adding content to git repository"); `annex.largefiles=anything` in `.gitattributes` does not override it. Caught before commit, then unstaged index-only | Pass `-c annex.dotfiles=true -c annex.addunlocked=true` on every add (verified on real-shaped synthetic paths); a persistent setting is still undecided |
+| Every corpus path sits under a dot directory (`<device>/.claude/…`, `<device>/.pi/…`) | `git annex add` treated all 3744 files as dotfiles and staged their **full content into Git** ("dotfile; adding content to git repository"); `annex.largefiles=anything` in `.gitattributes` does not override it. Caught before commit, then unstaged index-only | The canonical sets `annex.dotfiles true` in the git-annex branch (2026-11-02, coordinator GO), and the helper still passes `-c annex.dotfiles=true -c annex.addunlocked=true` on every add |
 | Pointer guard | — | Before any corpus commit, every staged path under `oracle/` and `thinkpad/` must be a blob under 1 KiB reading `/annex/objects/SHA256E-s<size>--<ledger sha256>`; otherwise do not commit |
 | Unreachable Git objects expire silently | Synthetic: default `git gc` deleted unreachable Git objects older than two weeks, loose or in a cruft pack; `gc.pruneExpire=never` kept them. This concerns unreachable Git objects only — not annex content, and not versions reachable from a Git ref | The thinkpad corpus repo sets `gc.pruneExpire=never` and `gc.auto=0` (2026-11-02, coordinator GO); a replica sets the same at init, before its first commit |
 | Global hook on corpus metadata | `MANIFEST.json`/`MANIFEST.sha256` paths contain identity terms; strict mode blocked the metadata commit (212 matches) | GLG approved a named private-repo exception for this one repository on 2026-11-02 (secret scanning stays on; hook regression tests pass). Never bypass, override or change the hook mode as an agent |
-| Replica host tooling | Oracle had a valid `git-annex` store path but none on any profile PATH | Use only a GLG/coordinator-approved environment; do not install or switch to make a run pass |
+| Replica host tooling | Oracle had a valid `git-annex` store path but none on any profile PATH | Pass the existing GC-rooted binary explicitly through `ANDENKEN_REPLICA_ANNEX_BIN` (below); do not install, switch or edit `~/.env.local` to make a run pass |
 
-### Archive helper — `corpus-archive.py` (contract v2, under review)
+### Archive mode in the sync flow (Andenken #18)
 
-`skills/memory-sync/scripts/corpus-archive.py` implements the checkpoint and the replica path as phases. It is not wired into the SSOT script and has not run against the real corpus; the contract is under coordinator review. The canonical reference is its `--help` and module docstring.
+Archive mode means the corpus root has a `.git` directory. A `.git` of any other shape (a gitfile or a symlink) is refused with exit 10 before any work; no `.git` at all keeps the legacy behavior.
+
+`--global` in archive mode, in order:
+
+1. Sessions policy pin check. `SKIP_GATHER=1` is refused here (`archive-skip-gather-refused`, exit 2, API 0), because skipping the gather would skip the checkpoint and publish a ledger the archive never committed.
+2. Locks: the sync flock (FD 9) and the archive custody lock `<corpus>/.git/corpus-custody.lock` (FD 8, exported as `ANDENKEN_CORPUS_CUSTODY_FD=8` so every child re-enters on the same descriptor) are taken before the gather and held to the end of the run. The shared sessions writer lock is taken later: after the gather, before the index status read and the dimension probe.
+3. Gather: the helper's `preflight` and the read-only source `form` check run before any copy; then the strict gather of every active device, the manifest update, and the helper's `checkpoint` (one commit, on the index authority only). A strict gather with an unreachable device ends with exit 1 and no checkpoint.
+4. Index: the paid embedding runs only when `to_index` > 0.
+5. Publish: `verify sessions` (API 0), then corpus replication — replica `preflight`, rsync with `/.git/` excluded under the replica's custody lock, `bundle`, replica `receive`, the location log merged back — and only then the index and manifest push. If the corpus or archive replication fails, its exit code is kept and the index transfer never starts, so the replica keeps its previous index. The index and manifest push itself is an rsync, not an atomic swap: if it fails partway, there is no guarantee that the replica's old index survives; only the remaining publish steps stop.
+
+`--local` in archive mode holds custody, runs the same `preflight` and `form` before copying this device's sessions, updates the manifest and never commits. It indexes the newest regular sources even when `HEAD` is older. With `SKIP_GATHER=1` it still runs `preflight` and `form` before the writer starts. The readiness pass covers the whole ledger on every call, so local is not a latency promise.
+
+| Exit | From | Meaning | Next |
+|---|---|---|---|
+| 1 with `--strict: active device(s) not gathered` | gather | A peer was unreachable; reachable devices were gathered, nothing was committed | Run local now and `--global` when the peer is back |
+| 1 otherwise | wrapper | For example an authority refusal or a failed rsync | Inspect; it is not a peer-down signal |
+| 2 | wrapper or indexer | Usage error, invalid annex bin directory, malformed sessions policy pin, or `archive-skip-gather-refused` | Fix the call or the pin; no fallback |
+| 3 | `corpus-manifest.sh form` | A source is a symlink or an unretrieved pointer rather than a regular file with its own bytes | Stop; materialize through the corpus owner |
+| 10–18 | helper | Precondition, budget, raw content in Git, ledger, key, hook, tree, divergence or verify | Stop; inspect before any retry or local fallback |
+| 19 | helper, passed through unchanged | A staging step failed and its index restore failed too | Operator only; nothing further runs |
+| 75 | custody (`corpus-custody-busy`, `-foreign`, `-fd-lost`, `-lock-not-regular`, `-open-failed`; `corpus-archive-lock`) | Another archive writer holds custody, or the inherited descriptor was lost | Stop and inspect; never open the lock afresh or delete it |
+| 75 | sessions writer (`sessions-writer-busy`, `sessions-writer-stale-lock`) | Another index writer, or a stale lock | Busy: wait, then one serial retry. Stale: an operator removes it by hand |
+
+Node children are launched with `node --import tsx`, because `pnpm exec tsx` was measured to drop FD 8.
+
+**Oracle's `git-annex`.** No profile PATH on oracle carries `git-annex` (2026-11-02). The replica side therefore gets the existing GC-rooted binary explicitly, for that command only: set `ANDENKEN_REPLICA_ANNEX_BIN` to the absolute `bin` directory under the GC root `~/.local/state/session-annex/gcroots/git-annex-10.20260421` on oracle, written out as an absolute path. The wrapper refuses a relative value (exit 2), and the replica refuses a directory that does not exist there. Do not hard-code a Nix store path, install anything, switch profiles or add this to `~/.env.local`. Putting `git-annex` on oracle's PATH is a separate, later permission. On thinkpad `ANDENKEN_CORPUS_ANNEX_BIN` is optional; unset means the normal PATH.
+
+### Archive helper — `corpus-archive.py` (contract v2)
+
+`skills/memory-sync/scripts/corpus-archive.py` implements the checkpoint and the replica path as phases. Andenken's wrappers call it in archive mode as described above; it has not run against the real corpus yet. The canonical reference is its `--help` and module docstring.
 
 | Phase | Host | Does |
 |---|---|---|
