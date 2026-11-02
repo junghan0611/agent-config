@@ -6,23 +6,25 @@
 
 # RAIL — 현재 좌표
 
-- [x] **31. Andenken 코드 출하** — `06e923be`, `v2026.11.3`·GitHub Release 완료. 실운영도 이 코드로 수행했다.
-- [x] **32. 양쪽 정본 보관·버전 복구** — C0→C1 양쪽 보존, 독립 reader의 선택 JSONL 두 버전 SHA/크기 일치.
+- [x] **31–32. 코드 출하·정본 버전 복구** — Andenken `06e923be`/`v2026.11.3`; C0→C1 양쪽 보관·독립 reader 두 버전 SHA/크기 일치.
 - [x] **33. 양쪽 보존 전환·세 축 증분 게시** — sessions115920 / md11218 / OpenClaw10400; 기존 DB·원문·모든 버전 보존. OpenClaw compact는 용량으로 별도 보류.
 - [x] **34. 최종 출하·연락** — `v2026.11.3` release commit `9ec8d21` 검증/Oracle 당시 exact ff·도장·DM913 완료. 이후 handoff commit은 별개이며 재태그·재출하·중복 DM 금지.
-- [ ] **35. 기상 후 공간 정리** ← CURRENT: private GitHub metadata push와 npm 캐시 회수 완료. 로컬 마지막 old DB 삭제 범위 확인 대기.
+- [x] **35. 외장 디스크 이전** — BG15247 exit0/3m36s, 전체복사/해시·권한·mtime검증/원문3753+annex검증 후 로컬사본제거. 추가23,349,080,064B 회수, 내부약37GiB/외장약99GiB 여유.
+- [ ] **36. 외장 자동마운트 판정** ← CURRENT: 현재부팅 bind는동작/잠금반납완료. 재부팅·재연결 자동화는nixos-config에별도반영필요,현재미설정.
 
-현재 좌표: 31–34 완료 → 35 공간 정리. 데이터 배치 재실행 없음.
+현재 좌표: 31–35 완료 → 36 재연결/영구마운트 판정. 데이터 배치 재실행 없음.
 
-# NOW — 공간 정리와 현재 상태, 과거 비교 실험 아님
+# NOW — 외장 이동 완료, 재연결 절차와 영구마운트
 
-- **Next:** GLG의 로컬 마지막 old DB 삭제 범위 답을 확인한다. 아직 삭제0. 원문/annex버전/현재DB는 대상이 아니다. 기존 DB와의 추가 비교 실험·재생성은 하지 않는다(06:22 Andenken owner가 전달한 GLG 정정).
+- **Next:** 이동을반복하지않는다. GLG가자동마운트까지원하면nixos-config에서UUID기반마운트+기존session경로bind를정식설정한다(OS switch미실행). 현재부팅은동작중. 재연결/정상unmount명령은 `/mnt/data/agent-memory-thinkpad-20261103/MOUNTING.md`; 디스크를빼기전session bind와/mnt/data를순서대로정상unmount한다. 강제/lazy해제0.
+- **Move receipt:** `.agent-reports/20261102-session-integrity/external-migration-20261103.json` phasecompleted. 외장UUID `a066731b-569c-4f21-aac7-571156eb8979`, private `/mnt/data/agent-memory-thinkpad-20261103/{session,old-retained}`. source/target 전체hash·mode/mtime/owner/symlink一致후로컬사본만제거. 같은repoUUID/main/git-annex/config유지,기존 `~/repos/gh/session` bind로경로·DB참조유지,underlyingroot:root000으로offline빈코퍼스생성방지. 원문3753/annexobjects전량verify;활성DBv106/115920·IDset·4metadataSHA·inode불변. source숨김backup없음/oldDB는외장에보존/9·8·shared모두반납확인. 메타 manifest와외장MIGRATION.json도보존.
 - **Verified:** B `8d325ee` scoped3-file commit과 A `aacd839` doc/test3-file mainpush·도장 완료(추가A태그0, runtime은실행A06과같음). 14894 최종guard27/hook12/release7/durable74·skip0; A 실제helper6/6+fulltsc PASS. 실제 세 축 양쪽 verify/publish 완료. session v106/115920·4meta exact, MD11218·payload mismatch0, OpenClaw10400·6활성봇 clean. C0/C1 선택 복구도 완료. 상세와 한계는 `CHANGELOG.md v2026.11.3`.
-- **Capacity/current:** 15146 npm `_cacache`만 정리해10,287,284,224B 회수, 로컬 free15,828,410,368B(df15GiB). `_npx`·번역서버·원문/annex·현재/old DB 유지. Oracle old DB는 별도 GLG 직접요청으로06:12 퇴역해약9.28GB회수(실marker독립열람); 로컬9.28GB가마지막old사본이다. OpenClaw active204,724,827B/logical7·small7의 당시 용량 blocker는완화됐지만compact는미실행/자동재개0.
+- **Capacity/current:** npm캐시10,287,284,224B 회수뒤외장이전으로추가23,349,080,064B 회수. 내부free39,179,882,496B(df37GiB)/외장105,423,044,608B(df99GiB). `_npx`·번역서버·현재DB유지. Oracle old는별도명시퇴역했고,마지막old9.28GB는이제외장old-retained에전체metadata와보존. OpenClaw당시용량blocker는완화됐지만compact자동재개0.
 - **Leases:** Oracle4714/4592 모두 명시 해제·실FD 반납 확인. 새 holder·색인·수집·재시작을 만들지 않는다.
 - **GitHub/current:** 직접승인후15058 private `junghan0611/session` main8fe911ac…/git-annex f1171903… atomicpush·원격exact·agenda06:14 완료. reachable원문은pointer검사/내용업로드0. 반복push불필요.
-- **Separate gates:** 로컬마지막old DB 삭제답대기, 원문/키/다른보관본삭제금지. live durable 추가수집·old loaded runtime/cache는미인증. S6/옛품질비교는현재다음실행이아니다. #28/#30/#31·FACTORY와 아래 ACTIVE/DORMANT 미접촉.
-- **Receipts:** `.agent-reports/20261102-session-integrity/`(private), Andenken owner NEXT, `docs/memory-and-sessions.md`. 과거 좌표와 상세 영수증은 아래 기록이며 재실행 지시가 아니다.
+- **Separate gates:** 현재 마운트는 이 부팅 동안만 적용; **NixOS 영구/자동마운트 설정·OS switch는 미실행**. 외장 `MOUNTING.md`에 재연결/정상unmount 절차를 남긴다. 작업 중 디스크 제거금지. live durable 추가수집·old loaded runtime/cache 미인증. S6/옛품질비교는현재실행아님. #28/#30/#31·FACTORY와 아래 ACTIVE/DORMANT 미접촉.
+- **Storage record:** [docs/storage.md](docs/storage.md)가 현재배치+날짜별 이동/회수/퇴역 기록의 영속장부다. 새 작업이 끝날 때 검증값·회수량·보존/소실·재연결한계를 덧붙이고 정상commit/push한다(GLG명시요청,타이머0). 기존사건은덮어쓰지않는다.
+- **Receipts:** `.agent-reports/20261102-session-integrity/`(private), 외장MIGRATION/MOUNTING·파일manifest, Andenken owner NEXT, `docs/memory-and-sessions.md`. 과거 좌표와 상세 영수증은 아래 기록이며 재실행 지시가 아니다.
 
 # RECENT — 2026-11-03 운영 중 좌표의 영수증 (종료·대체됨)
 

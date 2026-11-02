@@ -110,7 +110,7 @@ Sessions, the public garden export and private OpenClaw bot memory are three sep
 
 #### Session Originals
 
-Session originals preserve GLG's conversations with fellow agents—the reasons and conditions behind earlier decisions. Andenken makes these memory assets lighter to search; the originals remain available to revisit beyond a search hit. git-annex was chosen to separate session contents from ordinary Git history while versioning their references and SHA inventory, so retrieved files can be checked against a chosen commit's inventory. Migration is still in preparation; see [docs/memory-and-sessions.md](docs/memory-and-sessions.md) for scope and the small-fixture results.
+Session originals preserve GLG's conversations with fellow agents—the reasons and conditions behind earlier decisions. Andenken makes these memory assets lighter to search; the originals remain available to revisit beyond a search hit. git-annex was chosen to separate session contents from ordinary Git history while versioning their references and SHA inventory, so retrieved files can be checked against a chosen commit's inventory. Operational admission and selected-version readback are complete; see [memory operations](docs/memory-and-sessions.md) for the contract and [the storage ledger](docs/storage.md) for current placement, external relocation, verification and retirement records.
 
 ### Pi Extensions ([`pi-extensions/`](pi-extensions/))
 
@@ -184,6 +184,7 @@ What `setup` performs step by step, what it deliberately leaves to entwurf and t
 - [NEXT.md](NEXT.md) — volatile next-step anchor for the next session
 - [ROADMAP.md](ROADMAP.md) — medium-horizon tracks and direction
 - [CHANGELOG.md](CHANGELOG.md) — closed history
+- [docs/storage.md](docs/storage.md) — current memory-storage layout and dated relocation/recovery/retirement evidence; updated and committed after explicit operations
 - [MODELS.md](MODELS.md) — the manually curated sibling-launch roster: active rails, spending order, and exact model selectors (`./run.sh models` checks it against pi's live catalog)
 
 ## Changelog
