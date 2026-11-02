@@ -2,13 +2,13 @@
 
 **Skills, identity and alignment across AI harnesses.** agent-config is the skills source of truth and lived proving ground behind GLG's working environment. It keeps a shared profile, capability doors and ways of returning to evidence across sessions and models — without becoming another harness or taking over their memories.
 
-> **도구가 바뀌어도 같은 사람의 맥락과 작업의 자세로 돌아오도록.** 이 집은 스킬의 개수보다 함께 일하는 방식을 붙든다. 정체성·스킬 정본·연속성의 실사용 시험소이며, 조용해지는 쪽이 건강한 방향이다.
+> **Return to the same person's context and working stance, even as tools change.** This home holds onto how we work together, not how many skills we collect. It is a lived proving ground for identity, the skills source of truth and continuity; growing quieter is the healthy direction.
 
 ## How to Read This
 
 This is a front door, not a manual. It is written for someone who wants to see **what one operator actually runs day to day** — not for someone about to install a framework. Four things to hold before the first table.
 
-**1. This repo is not a harness.** Pi and the native harnesses own execution; [`entwurf`](https://github.com/junghan0611/entwurf) is their narrow screwdriver — the dispatch substrate through which independent harnesses address one another by **garden id**. Its [releases](https://github.com/junghan0611/entwurf/releases) and installation contract live there; the versioned observations in [`docs/`](docs/) are dated evidence, not an install pin owned here. agent-config is the resident side: the **skills SSOT** plus the **시험소 (proving ground)** where config is hardened on a real daily surface before promotion to its proper owner. Tables here and in [`docs/`](docs/) describe consumer responsibilities and observed working surfaces, not a new universal harness contract.
+**1. This repo is not a harness.** Pi and the native harnesses own execution; [`entwurf`](https://github.com/junghan0611/entwurf) is their narrow screwdriver — the dispatch substrate through which independent harnesses address one another by **garden id**. Its [releases](https://github.com/junghan0611/entwurf/releases) and installation contract live there; the versioned observations in [`docs/`](docs/) are dated evidence, not an install pin owned here. agent-config is the resident side: the **skills SSOT** plus the **proving ground** where config is hardened on a real daily surface before promotion to its proper owner. Tables here and in [`docs/`](docs/) describe consumer responsibilities and observed working surfaces, not a new universal harness contract.
 
 **2. A quiet repo is a healthy one.** The end state is a thin skills SSOT plus a test bench. The volume of change alone does not show health or progress; CHANGELOG records closed work, not how much remains unproven. Do not read the skill count as a feature list; the identity is the working method, not the tool count.
 
@@ -28,7 +28,7 @@ This is a front door, not a manual. It is written for someone who wants to see *
 
 **Official reference consumer and proving ground for [`entwurf`](https://github.com/junghan0611/entwurf).**
 
-`entwurf` owns garden-id addressing, visible lifecycle and delivery, plus the runtime supply and configuration adapters it explicitly supports — a narrow integration core, not an installer for every product. Kiro and OpenClaw do not become Entwurf-owned just because they receive skills here. agent-config supplies the **skills SSOT** (`skills/`) and a **시험소 (proving ground)** where candidate harness config, hooks and wiring are hardened on the operator's real surface before any explicit ownership handoff. Pushing unproven integration into entwurf would weaken that core, so agent-config absorbs the churn first.
+`entwurf` owns garden-id addressing, visible lifecycle and delivery, plus the runtime supply and configuration adapters it explicitly supports — a narrow integration core, not an installer for every product. Kiro and OpenClaw do not become Entwurf-owned just because they receive skills here. agent-config supplies the **skills SSOT** (`skills/`) and a **proving ground** where candidate harness config, hooks and wiring are hardened on the operator's real surface before any explicit ownership handoff. Pushing unproven integration into entwurf would weaken that core, so agent-config absorbs the churn first.
 
 They are not competing harnesses: entwurf is the destination for proven integration within its ownership boundary; skills and the operator's profile retain their own home here.
 
@@ -37,7 +37,7 @@ They are not competing harnesses: entwurf is the destination for proven integrat
 
 > The natural end state is a thin skills SSOT plus a test bench: **agent-config quiet means the pipeline is healthy.** See [ROADMAP § purpose shift](ROADMAP.md).
 
-**The resident's report and its archive:** [§agent-config: 스킬 SSOT와 시험소 — 멀티하네스 이후](https://notes.junghanacs.com/botlog/20260312T174622) is this repo's 담당자 문서 (resident's note) in the digital garden. Its current report leads with the role, neighboring ownership boundaries and judgments that guide the work; the earlier chronology is preserved under **ARCHIVE**. This README is the consumer-facing front door, while that note explains the resident's present stance without making the reader traverse the whole history first.
+**The resident's report and its archive:** [agent-config: skills SSOT and proving ground after multi-harness](https://notes.junghanacs.com/botlog/20260312T174622) is this repo's resident's note in the digital garden. Its current report leads with the role, neighboring ownership boundaries and judgments that guide the work; the earlier chronology is preserved under **ARCHIVE**. This README is the consumer-facing front door, while that note explains the resident's present stance without making the reader traverse the whole history first.
 
 The consumer-side surface table, the durable native module and dated supplier checkpoints: [docs/entwurf-consumer.md](docs/entwurf-consumer.md).
 
@@ -69,7 +69,7 @@ This page is the front door. The longer operating notes, ownership boundaries an
 | [docs/harness-surfaces.md](docs/harness-surfaces.md) | Per-harness memory/skill/ownership table, Claude Code as a native Pi surface (settings co-ownership, `bypassPermissions` boundary), the local entwurf skill-plugin layout, Codex/Antigravity/Copilot splits, and `pi/` settings |
 | [docs/pi-extensions.md](docs/pi-extensions.md) | Every Pi extension, the skill-vs-extension boundary, third-party Pi packages, and the reasoning behind `heartbeat`, `autopilot` and `background-bash` |
 | [docs/skills.md](docs/skills.md) | Linked skills, binary skills and their provenance gate, web-search and code-surface notes, and the LSP-style skill doc principle |
-| [docs/memory-and-sessions.md](docs/memory-and-sessions.md) | The andenken memory axes, `/new` + `/recall` session continuity, compaction surfaces, and the public-verification policy for session evidence |
+| [docs/memory-and-sessions.md](docs/memory-and-sessions.md) | The andenken memory axes, `/new` + `/recall` session continuity, compaction surfaces, session-original versioning with git-annex, and the public-verification policy for session evidence |
 | [docs/runtime-bench.md](docs/runtime-bench.md) | Why the bench is self-sufficient and the ten bench subjects, with links to each root `NAME.md` matrix |
 | [docs/setup.md](docs/setup.md) | What `./run.sh setup` does and deliberately does not do, and the shell helper examples (`pia`, `pit`, `pdt`, `pdc`, …) |
 
@@ -107,6 +107,10 @@ The same `skills/` SSOT reaches pi (+ entwurf), Claude Code, Codex CLI, Antigrav
 ### Semantic Memory → [andenken](https://github.com/junghan0611/andenken)
 
 Sessions, the public garden export and private OpenClaw bot memory are three separately labeled axes owned by andenken; agent-config owns the consumer doors (`semantic-memory`, `session-recap`, `memory-sync`). Details: [docs/memory-and-sessions.md](docs/memory-and-sessions.md#semantic-memory--andenken).
+
+#### Session Originals
+
+Session originals preserve GLG's conversations with fellow agents—the reasons and conditions behind earlier decisions. Andenken makes these memory assets lighter to search; the originals remain available to revisit beyond a search hit. git-annex was chosen to separate session contents from ordinary Git history while versioning their references and SHA inventory, so retrieved files can be checked against a chosen commit's inventory. Migration is still in preparation; see [docs/memory-and-sessions.md](docs/memory-and-sessions.md) for scope and the small-fixture results.
 
 ### Pi Extensions ([`pi-extensions/`](pi-extensions/))
 

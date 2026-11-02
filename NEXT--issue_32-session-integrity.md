@@ -16,6 +16,14 @@ Updated: 2026-11-02. 이 브랜치의 진입점이다. main `NEXT.md`의 과거 
 
 # NOW — git-annex와 전체 임베딩 시점의 batch commit 연결 준비
 
+- **현재 마감/실행 경계:** GLG가 agent-config 문서·스킬의 커밋/푸시를 요청했고 오늘 전체 정리가 끝난 뒤 태그 릴리즈할 예정이라고 밝혔다. 지금 tag/CHANGELOG/merge는 하지 않는다. Andenken은15:34시작·15:35probe통과 후별도후보DB에114889행을작성중이라고15:37에보고했다(이집실행/독립검수아님). 완료/잠금해제전gather·annexadd/변환·checkout·원문/장부수정은하지않고이집문서·metadata범위만유지한다.
+
+- **README 소개 작업(후속 GLG 요청):** 기존754cad에게루트README만편집하도록요청했다. session정본은과거판단/형제의대화로돌아가는자리,Andenken은가벼운검색표현,annex는원문내용과Git메타데이터를분리하며장부/commit/SHA대조를남기기위한선택이라는3–4문장소개와기존docs링크가범위다. 문서목록설명도같은파일에서맞춘다. 원문등록/운영통합완료로과장하지않고private경로/원문은싣지않는다. GLG가README/docs전체영어를명시해README소개/기존한글설명과docs7파일의한글설명·인용/예시를영어로수선했다.754cad는memory-and-sessions번역을맡았고이집은나머지와최종검수를맡았다. docs전체Hangul0/README표시문영어·기존URLanchor보존을검사했고AGENTS에공개문서영어기준을명시했다. 원문data/README/후보DB는이번공개문서작업과별개이며GLG가 후속으로 이 문서 변경의 commit/push를 요청했으며 태그는 나중 단계다.
+
+- **실폴더 준비 완료(후속 GLG 요청):** `/home/junghan/repos/gh/session` 자체에.git/annex와비공개origin을준비했다. main index0/annex내용객체0,원문등록·변환/초기maincommit/push없음. 기존MANIFEST2개/DEVICES전후SHA동일. root .gitattributes/.gitignore/AGENTS/README만준비·수선했고JSONL은ignore하지않는다. filter.annex.required=true,전역hooks유지. 해당폴더를.git포함백업하는구조다. privateGitHub는빈저장소임을확인했다. 초기optional설정조회exit1은init실패아니며재init하지않았다. receipt `.agent-reports/20261102-session-integrity/session-preparation.txt`. 원문추가/운영이행은여전히미완료,legacy루트replicate/manifest갱신은호환전보류를Andenken에안전좌표로공유했다.
+
+- **Andenken 14:27 공유(그쪽 보고, 이 집 코드/실행 미검수):** GLG 지시로8B/4096d를유지한선별후보fresh DB하나만1회작성할방향이다. 별도무선별fresh baseline은만들지않고물리차이에fresh/선별/FTS효과가섞인한계를표시한다. 기존DB/원문은보존;현재는미커밋코드/합성검수단계이며전체API0 plan·유료전송·후보DB작성은아직0이라고보고했다. #32의원문버전/장부/actualSHA와독립이고정확한embedding↔source동일성은선행조건이아니다. GLG가직접그레인을조율중이므로추가실무/ACK를보내지않으며,그레인의입력pin/후보검증중이집이코퍼스구조/annex이행을동시에바꾸지않는다.
+
 - **GLG 채택 결정:** git-annex로 간다. 커밋은 명시 요청한 전체 임베딩의 sessions 복사·MANIFEST 갱신 완료 시 한 번 수행하도록 스킬/절차에 넣는다. 파일별/자동 local warm별 커밋이 아니며 같은 gather를 재사용한다. 전체 임베딩은통상global증분도포함하고fullrebuild강제아니다. 변경없으면빈commit불필요. 이집 `memory-sync`스킬/운영문서에선택과미구현상태를기록했으며,본체hook·privateandenken-embed스킬실반영은그소유레인의호환작업과맞춘다. GLG가Andenken에직접소통중이므로현재추가연락하지않는다. 원격Gitpush·실코퍼스init·유료실행·사본drop은이말로시작하지않는다.
 
 - **최신 GLG 범위:** 담는 시점의 세션 파일을 SHA로 기록하고 sessions 폴더 자체를 버전관리한다. 가져갈 때 개별 파일 SHA를 해당 버전의 장부와 대조하고 Git commit 정보를 확인한다. 임베딩 데이터와 정본의 완전 일치는 이번 필수조건이 아니다.

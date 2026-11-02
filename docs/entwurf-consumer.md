@@ -21,7 +21,7 @@ In short: **entwurf defines the bridge contract; agent-config proves the contrac
 
 ## Durable Native Module — env first, background tools and native badge (Entwurf 0.34.0+)
 
-**entwurf는 접점을 공급하고, 이 집은 실제 소비자를 증명한다.** [`pi-durable/env.mjs`](../pi-durable/env.mjs) is the reference implementation: an ordinary ES module initializes environment variables **before** the durable TUI/runtime and provider discovery, then exports a native `{ name: "agent-config-env" }` object. No SDK value import, classic Pi extension shim, plugin manager, or runtime installation is added here.
+**entwurf supplies the integration surface; this repo demonstrates its use by a real consumer.** [`pi-durable/env.mjs`](../pi-durable/env.mjs) is the reference implementation: an ordinary ES module initializes environment variables **before** the durable TUI/runtime and provider discovery, then exports a native `{ name: "agent-config-env" }` object. No SDK value import, classic Pi extension shim, plugin manager, or runtime installation is added here.
 
 It reads the home `~/.env.local` only, follows the existing Pi loader's assignment-reading semantics, preserves existing values (including an explicit empty string), leaves citizen identity/cwd untouched, and removes the four skill-only provider keys from the parent environment. It does **not** execute shell code or evaluate `case` branches. Skills needing a hidden key read the home file themselves. Full contract and API-0 verification: [`pi-durable/README.md`](../pi-durable/README.md); ready-to-use `pdt` / `pds` / `pdc`: [§ Shell Aliases](setup.md#shell-aliases-bashrclocal).
 

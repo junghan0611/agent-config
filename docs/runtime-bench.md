@@ -35,7 +35,7 @@ whether an external runtime actually reduces GLG's inspection points without wea
 identity, memory, or alignment. This is not a tournament and it is not a reason to grow
 entwurf into a planner.
 
-The fifth subject is [herdr](https://github.com/herdrdev/herdr) — "the runtime your coding agents live on." It does not wrap agents; it owns their terminals. The bench asks how pane working/blocked/idle and detach-without-dying compare with entwurf liveness and tmux, not whether to replace tmux. **The isolation premise broke on 2026-09-14**: herdr is installed at `~/.local/bin/herdr` with a running server (0.9.1 as of 2026-09-21), it is absent from `nixos-config`, and its agent-state integrations are already installed into the pi, omp, claude, codex, copilot, antigravity-cli, and grok trees that entwurf co-owns. Replacing tmux is still **안 함**. Matrix and the measured delta: [HERDR.md](../HERDR.md). DHH-uses-it is inherited from GLG and unverified here.
+The fifth subject is [herdr](https://github.com/herdrdev/herdr) — "the runtime your coding agents live on." It does not wrap agents; it owns their terminals. The bench asks how pane working/blocked/idle and detach-without-dying compare with entwurf liveness and tmux, not whether to replace tmux. **The isolation premise broke on 2026-09-14**: herdr is installed at `~/.local/bin/herdr` with a running server (0.9.1 as of 2026-09-21), it is absent from `nixos-config`, and its agent-state integrations are already installed into the pi, omp, claude, codex, copilot, antigravity-cli, and grok trees that entwurf co-owns. Replacing tmux remains **out of scope**. Matrix and the measured delta: [HERDR.md](../HERDR.md). DHH-uses-it is inherited from GLG and unverified here.
 
 The fourth subject is [Ouroboros](https://github.com/Q00/ouroboros) — a popular Agent OS
 (Seed · Ledger · multi-runtime adapters). entwurf stays the floor; this bench asks how
@@ -143,5 +143,5 @@ coverage percentage.** That convergence is now lens 5 of `harness-bench`.
 This file is the one bench document that **deliberately crosses the no-verdict line**, at
 GLG's explicit request, because entwurf 0.23.0 and the herdr plugin 0.2.0 were shipping and
 the standard had to exist before the user base widened. Its §D is material prepared for
-entwurf 담당자 — coordinates and precedent, never an instruction — and it opens by naming the
+the entwurf resident — coordinates and precedent, never an instruction — and it opens by naming the
 line it crosses. No other `NAME.md` inherits that license.

@@ -14,7 +14,7 @@ Semantic memory has graduated to its own repo: **[andenken](https://github.com/j
 
 Sessions and md embed through **OpenRouter Qwen3-Embedding-8B at 4096d**, with LanceDB vector/FTS retrieval. OpenClaw's independently computed compatible vectors are harvested, not re-embedded by this repo; row/vector publication is not a whole-hybrid quality certificate. FTS diagnostics distinguish a healthy zero from failure, not overall search usefulness. The Gemini embedding path is retired — `gemini-embeddings.ts` and `GeminiProvider` survive in andenken only as an unreferenced back-compat shim, and no preset selects them.
 
-Agents call these autonomously. Ask "보편 학문 관련 노트 찾아줘" and the md knowledge surface fires with dictcli query expansion. The older org embedding track is disabled in production; use `denotecli` for exact/raw Denote lookups. Loading strategy per harness lives in the [Harness Support](harness-surfaces.md#harness-support) table.
+Agents call these autonomously. Ask "find notes on universal scholarship" and the md knowledge surface fires with dictcli query expansion. The older org embedding track is disabled in production; use `denotecli` for exact/raw Denote lookups. Loading strategy per harness lives in the [Harness Support](harness-surfaces.md#harness-support) table.
 
 ## Session Management — `/new` + recall
 
@@ -44,46 +44,46 @@ As of 2026-10-03, compaction is left to **Pi's built-in text summarization for e
 - `session_search` — cross-project / cross-session semantic recall
 - `knowledge_search` / `search-md` — public garden md concepts, journal exports, botlog/llmlog-derived design history
 - `gitcli day --summary` + `denotecli day` — day-axis reconstruction
-- journal `§repo` markers — sibling/담당자 call index
+- journal `§repo` markers — sibling/resident call index
 
 The answer must state which axes were seen and which were not. This keeps `/recall` token-light while avoiding false confidence from a plausible single-session summary.
 
 The protocol itself lives in [`commands/recall.md`](../commands/recall.md). The 2026-05-08 derivation history and raw evidence log are kept as a Denote llmlog note (`20260508T090911`, `~/org/llmlog/`) rather than as in-repo docs — `/recall` is a resident-side memory workflow, not a spec this repo carries. Renamed from `/recap` on 2026-05-12 to avoid shadowing Claude Code's built-in `/recap` (one-line session summary, feature-flagged via `tengu_sedge_lantern`); the two now coexist.
 
-## 세션 정본 버전관리 — #32 v1 준비
+## Session originals under version control — #32 v1 preparation
 
-목표는 `sessions` 폴더를 버전관리하고, 가져온 원문을 해당 Git commit의 SHA 장부와 대조하는 것이다. [#32](https://github.com/junghan0611/agent-config/issues/32)의 현재 범위는 단순한 이력·내용 동일성 확인이다. 별도 서명·키·작성자 인증이나 임베딩과 정본의 완전한 버전 일치를 선행조건으로 두지 않는다.
+The goal is to version-control the `sessions` folder and to check a retrieved original against the SHA ledger of the corresponding Git commit. The current scope of [#32](https://github.com/junghan0611/agent-config/issues/32) is a simple history and content-identity check. Separate signatures, keys or author authentication, and a complete version match between the embeddings and the originals, are not prerequisites.
 
-| 단계 | 최소 룰 |
+| Step | Minimal rule |
 |---|---|
-| 담기 | git-annex에 수집한 원문 버전을 담고, 기존 `MANIFEST.json`·`MANIFEST.sha256`도 같은 commit에 남긴다. **명시 요청한 전체 임베딩의 세션 복사·장부 갱신 완료 지점에서 한 번 커밋**한다. 동시 수집으로 stage와 장부가 어긋나지 않아야 한다. |
-| 가져오기 | 필요한 과거 버전을 별도 읽기 위치에 확보한다. 현재 수집 폴더를 과거 commit으로 checkout하지 않는다. 객체 전송은 명시한 가져오기 단계에서만 한다. |
-| 대조 | 실제 파일 SHA256을 선택 commit의 `MANIFEST.sha256`에서 해당 경로의 값과 비교하고, 선택 commit의 ID·날짜·메시지를 함께 본다. 경로의 마지막 변경 commit은 별도 참고 정보다. |
+| Store | Put the gathered original versions in git-annex and keep the existing `MANIFEST.json` and `MANIFEST.sha256` in the same commit. **Commit once, at the point where the session copy and ledger update of an explicitly requested full embedding have finished.** Concurrent gathering must not leave the stage and the ledger out of step. |
+| Retrieve | Obtain the needed past version in a separate read location. Do not check out the current gathering folder to a past commit. Transfer content objects only in an explicit retrieval step. |
+| Compare | Compare the actual file SHA256 with that path's value in the chosen commit's `MANIFEST.sha256`, and read the chosen commit's ID, date and message alongside it. The path's last-change commit is separate reference information. |
 
-GLG는 2026-11-02 **git-annex를 선택**했고, 커밋 절차는 전체 임베딩 스킬의 sessions 복사 과정에 넣기로 했다. 전체 임베딩은 통상 global 증분 요청도 포함하며 무조건 full rebuild를 뜻하지 않는다. 파일마다·자동 local warm마다 커밋하지 않고 같은 실행의 gather를 재사용한다. 변경이 없으면 빈 커밋을 만들지 않는다. 아직 SSOT 스크립트에 자동 실행이 구현된 것은 아니며 실제 코퍼스 전환·기존 복제/장부 호환 후 연결한다.
+On 2026-11-02 GLG **chose git-annex** and decided to put the commit procedure into the sessions copy step of the full-embedding skill. A full embedding includes the usual global incremental request and does not necessarily mean a full rebuild. There is no commit per file or per automatic local warm; the commit reuses the gather of the same run. When nothing changed, no empty commit is made. Automatic execution is not yet implemented in the SSOT scripts; it will be connected after the actual corpus conversion and after compatibility with the existing replication and ledger.
 
-원문도 함께 회수할 수 있어야 한다. Git에 장부·포인터가 있다는 것만으로 내용 객체가 보관됐다고 판단하지 않는다. 미취득 객체·장부 없음·해시 불일치를 구분하고, 다른 최신 파일로 조용히 대체하지 않는다. 원문과 장부/파일명 등 metadata는 기본적으로 비공개다. 이 공개 설정 리포에 세션 원문을 넣는 계획이 아니다.
+The originals must be retrievable too. A ledger and pointers in Git alone do not show that the content objects are kept. Unretrieved objects, missing ledger entries and hash mismatches are kept distinct, and another, newer file is never silently substituted. The originals and metadata such as the ledger and file names are private by default. There is no plan to put session originals into this public config repo.
 
-2026-11-02, git-annex10.20260421의 기본 locked 방식으로 가짜 JSONL 하나(205→271bytes)와 로컬 제작/읽기 저장소를 시험했다. 세 번째 run에서21/21확인 항목을 통과했고 앞선 실패2건도 보존했다. 이 집은 스크립트/로그·결과표를 읽고 artifact SHA12개와 두 commit의 원문 객체·장부를 독립 대조했다. 이 작은 구성의 관측이며 실제 코퍼스 운영·독립 host 복구·규모/성능 인증이 아니다.
+On 2026-11-02, git-annex 10.20260421 was tested in its default locked mode with one fake JSONL (205→271 bytes) and local producer/reader repositories. The third run passed 21/21 checks, and the two earlier failed runs were kept. This repo's coordinator read the scripts, logs and result table and independently checked 12 artifact SHAs and the original objects and ledgers of both commits. These are observations of this small setup, not a certification of real corpus operation, independent-host recovery, or scale/performance.
 
-| 관측 | 결과 |
+| Observation | Result |
 |---|---|
-| 내용 없는 clone → 명시 local get | 미취득과 불일치를 구분했고, 가져온 뒤 선택 commit의 장부와 일치 |
-| 별도 읽기 repo에서 과거 commit 회수 | 옛 원문도 회수·SHA 대조 성공, 제작 repo의 main/현재v2 내용은 유지 |
-| 다른 revision 장부 또는 1byte 바뀐 반출 사본 대조 | 불일치 검출; 원래 annex 객체는 변경하지 않음 |
-| 별도 annex init | 제작/읽기 repo의 annex UUID가 서로 다름 |
+| Clone without content → explicit local get | Unretrieved was kept distinct from mismatch; after retrieval the file matched the chosen commit's ledger |
+| Retrieving a past commit in a separate read repo | The old original was also retrieved and its SHA matched; the producer repo's main and current v2 content stayed as they were |
+| Comparing against another revision's ledger, or against an exported copy with 1 byte changed | Mismatch detected; the original annex objects were not modified |
+| Separate annex init | The producer and reader repos have different annex UUIDs |
 
-관측 근거는 로컬 private `fixture-annex/RESULT.md`(SHA256 `505bfa2289e1ba02cadd3deb36bdb42ca0d7415439bf7b6acd7f0d2081405329`)와 scripts/receipts/log다. 정확한 위치는 이슈 브랜치 NEXT에 남긴다. 재현용 입력은 전부 합성 자료다.
+The evidence is the local private `fixture-annex/RESULT.md` (SHA256 `505bfa2289e1ba02cadd3deb36bdb42ca0d7415439bf7b6acd7f0d2081405329`) with its scripts, receipts and logs. The exact location is recorded in the issue branch NEXT. All reproduction inputs are synthetic.
 
-초기 운영안에서는 내용 객체의 자동 정리를 담기/읽기 절차에 넣지 않는다. 이 시험에서 옛 commit이 참조하는 객체도 `annex unused` 목록에 나왔다. Git 이력이 남았다는 이유로 `dropunused`가 안전하다고 판단하면 안 된다. 명시 get은 제작 repo의 내부 `refs/annex/last-index`를 바꾸기도 했으므로 완전 무부수효과 읽기라고 부르지 않는다. 실제 코퍼스의 Git/annex 초기화·remote·생산 reader는 아직 변경하지 않았다.
+The initial operating plan puts no automatic cleanup of content objects into the store or retrieve procedure. In this test, an object still referenced by an old commit was listed by `annex unused` as well. Do not conclude that `dropunused` is safe because the Git history remains. An explicit get also changed the producer repo's internal `refs/annex/last-index`, so it is not called a read without any side effect. At GLG's follow-up request, Git/annex metadata and a private origin were prepared in the existing `session` folder itself. The whole directory, including `.git`, is the backup unit. The originals are not ignored but managed as annex references; no actual registration or conversion of originals, initial main commit/push, or production reader change has been made yet. The existing ledger and roster SHAs were identical before and after the preparation.
 
-이행 전 최소 접점:
+Minimal touch points before migration:
 
-- Andenken의 기존 corpus 루트 `rsync` 복제가 `.git`까지 raw 복제하지 않도록 한다. `.git`을 빼는 것과 내용 객체를 실제로 전달하는 것은 별개다.
-- 장부의 walk는 `.git`을 제외하고 미취득 symlink/포인터를 실제 누락·불일치와 구별해야 한다. 이번 기본 구성의 annex key에는 `.jsonl`이 붙지 않아 객체가 장부에 섞인다는 초기 가설은 재현되지 않았다. `.git` 제외는 불필요한 내부 순회·설정 의존성을 피하기 위한 접점으로 남긴다.
-- 원문 버전 회수 위치가 정상 gather/index discovery에 섞이지 않고 기존 reader의 허용 경로·closed snapshot 경계를 지켜야 한다.
+- Andenken's existing `rsync` replication of the corpus root must not raw-copy `.git`. Excluding `.git` and actually transferring the content objects are separate matters.
+- The ledger walk must exclude `.git` and distinguish unretrieved symlinks/pointers from real missing files or mismatches. In this default setup the annex keys carried no `.jsonl`, so the initial hypothesis that objects would leak into the ledger was not reproduced. Excluding `.git` remains a touch point to avoid needless internal traversal and configuration dependence.
+- The retrieval location for original versions must not mix into normal gather/index discovery, and must keep the existing reader's allowed paths and closed-snapshot boundary.
 
-agent-config는 보관 방식·버전 회수·장부/commit 룰을, Andenken #18은 자기 리포의 수집·복제·장부·reader 최소 호환 변경을 맡는다. Nix는 도구 공급/저장 배치를 맡는다. 실제 변경 범위와 원문 보존·복구는 운영 이행 전에 다시 확인한다.
+agent-config owns the storage method, version retrieval and the ledger/commit rules; Andenken #18 owns the minimal compatible changes to its own gathering, replication, ledger and reader. Nix owns tool supply and storage placement. The actual change scope and the preservation and recovery of the originals are checked again before operational migration.
 
 ## Public Verification — Sessions as Evidence
 
