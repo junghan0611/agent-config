@@ -70,8 +70,12 @@ GLG explicitly requested moving the old DB and the session folder to the connect
 
 Private evidence on ThinkPad: `.agent-reports/20261102-session-integrity/{external-migration-20261103.json,npm-cache-cleanup-20261103.json,FINAL-CLOSEOUT.md}`. On the external disk: `MIGRATION.json`, `CORPUS-FILES.json`, `OLD-RETAINED-FILES.json`, `MOUNTING.md`. Decisive measurements are carried above; these host-local files are not public downloads.
 
+### 2026-11-03 — Manual connection retained by choice
+
+After the move and ledger publication, GLG explicitly said automatic mounting was unnecessary. No persistent mount or OS-switch task is queued. Keep the documented manual connection and normal-unmount procedure; a later configuration change requires a new request.
+
 ## Open decisions
 
-- Configure persistent, UUID-validated external and bind mounts in `nixos-config`; no automatic OS switch was performed here.
+- Persistent mounting is intentionally not configured, following GLG's decision above; do not resume it as unfinished work.
 - The earlier OpenClaw compaction capacity hold is relieved by the reclaimed space, but compaction has not run and does not restart automatically. Reassess need and budget under the existing [maintenance authority](memory-and-sessions.md#role-split-vs-andenken-embed).
 - Any later retirement of the external old DB, annex version drop, incident-object GC, new content destination or newer live durable snapshot requires its own scope. Storage relocation is not authority for those operations.

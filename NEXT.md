@@ -8,15 +8,21 @@
 
 - [x] **31–32. 코드 출하·정본 버전 복구** — Andenken `06e923be`/`v2026.11.3`; C0→C1 양쪽 보관·독립 reader 두 버전 SHA/크기 일치.
 - [x] **33. 양쪽 보존 전환·세 축 증분 게시** — sessions115920 / md11218 / OpenClaw10400; 기존 DB·원문·모든 버전 보존. OpenClaw compact는 용량으로 별도 보류.
-- [x] **34. 최종 출하·연락** — `v2026.11.3` release commit `9ec8d21` 검증/Oracle 당시 exact ff·도장·DM913 완료. 이후 handoff commit은 별개이며 재태그·재출하·중복 DM 금지.
-- [x] **35. 외장 디스크 이전** — BG15247 exit0/3m36s, 전체복사/해시·권한·mtime검증/원문3753+annex검증 후 로컬사본제거. 추가23,349,080,064B 회수, 내부약37GiB/외장약99GiB 여유.
-- [ ] **36. 외장 자동마운트 판정** ← CURRENT: 현재부팅 bind는동작/잠금반납완료. 재부팅·재연결 자동화는nixos-config에별도반영필요,현재미설정.
+- [x] **34–36. 출하·외장 이전·운영 선택** — release `9ec8d21`/DM913·이전15247 검증완료, 기록 `docs/storage.md`/`e317783`. 자동마운트는GLG가불필요하다고판정,진행0.
+- [x] **37. 프로젝트 대문·담당자 글 공동교열·출하** ← CURRENT: homepage8fe86e2 운영검증완료(총괄#1448/#1471),Org정본갱신완료. 실행중작업없음/추가지시대기,가든export0.
 
-현재 좌표: 31–35 완료 → 36 재연결/영구마운트 판정. 데이터 배치 재실행 없음.
+현재 좌표: 31–37 완료. 홈페이지글출하와Org정본갱신은닫혔고,가든export/이집source발행은별도명시요청전실행하지않는다.
 
-# NOW — 외장 이동 완료, 재연결 절차와 영구마운트
+# NOW — 글은 Opus가 쓰고, 코디는 근거와 인계를 맡는다
 
-- **Next:** 이동을반복하지않는다. GLG가자동마운트까지원하면nixos-config에서UUID기반마운트+기존session경로bind를정식설정한다(OS switch미실행). 현재부팅은동작중. 재연결/정상unmount명령은 `/mnt/data/agent-memory-thinkpad-20261103/MOUNTING.md`; 디스크를빼기전session bind와/mnt/data를순서대로정상unmount한다. 강제/lazy해제0.
+- **Next:** **추가지시대기;활성작업없음.** 홈페이지총괄96efd0의10:08최종영수증: production#1448 21경로PASS,#1471 한영목록2+8leaf HTTP200/exactfooter SHA`8fe86e2f64c6a5afe2db7fbe925429392feb8bb1`확인(`/tmp/homepage-20261103-production.json`;받은영수증/이집재실행0). GLG검수후홈페이지정상push·agenda완료. **GLG가이집NEXT.md/docs/storage.md 2파일의commit/push를별도요청했다.** 이승인은Org/garden발행이나다른운영으로확대하지않는다. Org5개정본갱신과garden export/git0을구별한다. 새수정/출판/중복DM0.
+- **Closeout receipt (09:58, 총괄96efd0 회신/이집재실행아님):** 전체gate #1268 PASS(10프로젝트파일),각집제품사실대조PASS,Opus Chrome10면desktop/narrow·일부light관찰,5Org최종해시대조,GLG DM920전달. 미commit·미push·미export. 이집독립검증/최종3파일SHA·본문보존근거는 `.agent-reports/20261103-editorial/FREEZE.md`; Org a9bd67b0…/통합ENa0f6908e…/KOdc31a1e8….
+- **Scope:** homepage `content/projects/agent-config/index.{md,ko.md}` 두leaf만(homepage코디명시승인). 레이아웃/CSS/index/다른집leaf/기존blog20260804T0945562개/Git조작0. agent-config전체자리(정렬축/스킬SSOT/시험소)를최근annex작업으로대체하지않고,소유의질문·원문으로돌아갈길·외장의물리성을읽히는글로쓴다. hash가저자/법적소유를인증했다는과장0/commitlog식나열0.
+- **Routing/gates:** homepage총괄96efd0가각집취합+옆Opus공동교열+홈페이지commitpush+최종GLG검수요청DM1회를소유. 이집코디12d0ca는근거/범위/인계,글은754cad. 이집NEXT/storage문서commit/push는GLG의별도직접요청범위로승인됐다. Org저장소commit·export는미승인. **개별botlog export·전체export·gardenGit/push0**; 총괄이확인한가든AGENTS의인간소유규칙에따라 **GLG별도export요청또는직접실행후에만** 하나의레인으로잇는다. 코디의원고취합은export승인이아니다. 홈페이지push와garden발행증거를분리. 새형제/paid/임베딩/원문공개/설정0. ownerpeer-facts에서두대상exactcwd·receiveractive확인,서로역할자기보고수신.
+
+# RECENT — 외장 이전 마감과 수동 연결 유지
+
+- **Decision:** GLG가자동마운트는안해도된다고직접판정했다. 현재부팅은bind로동작하며OS switch0. 필요할때외장 `MOUNTING.md`의정상mount/unmount절차를따른다. 이과거선택을새Nix작업대기로읽지않는다.
 - **Move receipt:** `.agent-reports/20261102-session-integrity/external-migration-20261103.json` phasecompleted. 외장UUID `a066731b-569c-4f21-aac7-571156eb8979`, private `/mnt/data/agent-memory-thinkpad-20261103/{session,old-retained}`. source/target 전체hash·mode/mtime/owner/symlink一致후로컬사본만제거. 같은repoUUID/main/git-annex/config유지,기존 `~/repos/gh/session` bind로경로·DB참조유지,underlyingroot:root000으로offline빈코퍼스생성방지. 원문3753/annexobjects전량verify;활성DBv106/115920·IDset·4metadataSHA·inode불변. source숨김backup없음/oldDB는외장에보존/9·8·shared모두반납확인. 메타 manifest와외장MIGRATION.json도보존.
 - **Verified:** B `8d325ee` scoped3-file commit과 A `aacd839` doc/test3-file mainpush·도장 완료(추가A태그0, runtime은실행A06과같음). 14894 최종guard27/hook12/release7/durable74·skip0; A 실제helper6/6+fulltsc PASS. 실제 세 축 양쪽 verify/publish 완료. session v106/115920·4meta exact, MD11218·payload mismatch0, OpenClaw10400·6활성봇 clean. C0/C1 선택 복구도 완료. 상세와 한계는 `CHANGELOG.md v2026.11.3`.
 - **Capacity/current:** npm캐시10,287,284,224B 회수뒤외장이전으로추가23,349,080,064B 회수. 내부free39,179,882,496B(df37GiB)/외장105,423,044,608B(df99GiB). `_npx`·번역서버·현재DB유지. Oracle old는별도명시퇴역했고,마지막old9.28GB는이제외장old-retained에전체metadata와보존. OpenClaw당시용량blocker는완화됐지만compact자동재개0.
