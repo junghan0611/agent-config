@@ -15,26 +15,26 @@ After an explicitly requested storage operation:
 
 A Git metadata push is not a content backup. Moving a repository with its UUID is not creating another independent replica. Free-space observations are not promises about future allocation or reclamation.
 
-## Current layout — measured 2026-11-03 06:47 KST
+## Current layout — internal recovery verified 2026-11-04
 
 | Asset | Physical location | Role and availability |
 |---|---|---|
-| ThinkPad session corpus, complete `.git` and annex objects | `/mnt/data/agent-memory-thinkpad-20261103/session` | The same canonical repository, now on external USB ext4; no new annex UUID |
-| Existing session access path | `$HOME/repos/gh/session` | Bind mount of the external corpus; existing configuration and indexed source paths unchanged |
+| Earlier session corpus, complete `.git` and annex objects | `/mnt/data/agent-memory-thinkpad-20261103/session` | Preserved by the earlier move; external drive currently absent, contents not reverified today |
+| Active local session corpus path | `$HOME/repos/gh/session` | Ordinary internal directory, `junghan:users` mode 0755; recovery baseline 3753 files/3139 keys independently hash-verified, subsequent C2 maintenance holds 3769 ledger sources and 3175 retained keys; no external dependency |
 | Retained old sessions DB and original metadata | `/mnt/data/agent-memory-thinkpad-20261103/old-retained` | Old DB at `sessions.lance`; the remaining old-generation copy was moved, not discarded |
 | Active sessions, MD and OpenClaw LanceDB stores | `$HOME/repos/gh/andenken/data` | Remain on the internal filesystem; not moved by this operation |
-| Oracle source corpus and query replicas | Existing Oracle locations | Not moved during the ThinkPad USB operation; earlier publication receipts are separate |
+| Oracle source corpus and query replicas | Existing Oracle locations | Recovery baseline 3753 source hashes checked; subsequent C2 corpus publication and all three query DBs verified on 2026-11-04 |
 | Private GitHub session repository | Git metadata branches `main` and `git-annex` | References, inventory and history only; no annex content upload |
 
 The external parent directory is private (mode 0700). No encryption was configured during this operation; filesystem permissions are not disk encryption.
 
 ### Connection and boot boundary
 
-**The mounts currently apply to this boot only. Persistent automatic mounting has not been configured.** The external filesystem is mounted at `/mnt/data`; the corpus is bind-mounted at its original home path. This is not a symlink or an environment-variable rewrite.
+**The internal path is authoritative for ongoing collection; the external disk is an occasional, explicitly requested archive copy, not a dependency of normal maintenance.** GLG clarified this on 2026-11-04. The earlier bind-mount design and root-owned mode-000 guard are superseded; both mounts were absent when the local directory was reactivated.
 
-When unmounted, the underlying home-path mountpoint is root-owned mode 000. This prevents ordinary gather from silently writing a new empty legacy corpus there. Do not chmod away the guard when the drive is absent. The private migration receipt identifies the validated device UUID; do not select a disk solely by `/dev/sdX` or label.
+The permission-only change initially left an empty directory. Subsequent authorized recovery restored the current corpus and C0/C1-referenced history from Oracle, using ordinary file transfer plus Git bundle/receive rather than copying `.git` between hosts. The local repository has a new annex UUID distinct from Oracle and the external cold copy; all current-ledger files and referenced content keys passed independent hash verification. Normal managed-archive maintenance can now use the internal path.
 
-Reconnection and normal unmount commands are on the drive at `agent-memory-thinkpad-20261103/MOUNTING.md`. Verify the device UUID, mount the filesystem, then bind the corpus. Before unplugging, finish readers/writers and normally unmount the home-path bind, then `/mnt/data`; no forced or lazy unmount. Persistent UUID-based mounts belong in `nixos-config` and need a separate configuration/apply decision.
+The external `MOUNTING.md` describes the previous live-bind design and must not be followed to bind over the active local directory. A future explicit archive update must preserve and reconcile the existing external originals and history; do not overwrite or delete them as though the empty local directory were a complete replacement.
 
 ## Event history
 
@@ -74,8 +74,42 @@ Private evidence on ThinkPad: `.agent-reports/20261102-session-integrity/{extern
 
 After the move and ledger publication, GLG explicitly said automatic mounting was unnecessary. No persistent mount or OS-switch task is queued. Keep the documented manual connection and normal-unmount procedure; a later configuration change requires a new request.
 
+### 2026-11-04 — Restore the internal collection path without the external drive
+
+The external-primary design had made the local path inaccessible whenever the drive was absent. GLG clarified that local collection must remain available and the external disk should receive only occasional explicitly requested copies. The earlier relocation interpreted that intent incorrectly.
+
+Direct checks found no session bind, no `/mnt/data` mount and no external block device. After verifying that the underlying directory was empty and not a symlink or mountpoint, only its owner and mode were changed from `root:root` 000 to `junghan:users` 0755. Read/write/traverse checks passed. No contents were restored, collected or deleted; no Git initialization, indexing, mount, environment or database change was performed. The absent external copy was untouched.
+
+### 2026-11-04 — Oracle source copy independently checked
+
+GLG requested checking whether Oracle still held a copy and making internal source recovery the top NEXT item. Read-only inspection found the source corpus, Git main `8fe911aca55baa73a93da8e7917ab44cadb6b372`, git-annex ref `f1171903b25cca01da7130099ae5e9e107d05b61`, its independent annex UUID and 3139 regular files in the annex object store.
+
+Direct BG15761 completed successfully in 1m59s: all 3753 files listed in `MANIFEST.sha256` passed `sha256sum --check --status`, with zero missing files or errors. They comprise 3752 JSONL files and one SQLite file, totaling 6,308,719,987 bytes. The ledger SHA before and after verification was exactly `f21c10148ed22dbfe46c870efa9246ae90de4bbb0745a3637beee65ed90199d3`. This verifies the current ledger's source contents, not every historical version or annex key. Private receipt: `.agent-reports/20261104-internal-corpus-recovery/oracle-readonly-verification.json`.
+
+No restoration, collection, indexing or original-content change was performed. Local source recovery remains the priority; an empty writable directory is not a restored corpus. Any restoration must preserve the Oracle copy and handle Git/annex identities deliberately rather than raw-rsync `.git` between hosts.
+
+### 2026-11-04 — Internal corpus and referenced version content restored
+
+GLG authorized bringing the Oracle source copy back to the laptop, setting it up, then running normal whole-axis incremental maintenance, with existing Opus citizen `754cad` as the sole executor. Recovery used metadata-preserving `rsync -a` excluding `.git`, then the existing archive helper's bundle/receive contract under sync and corpus custody locks. No source deletion, raw `.git` replication, hardlinks, bind mount or database rewrite was used.
+
+The executor's recovery receipt reports 3761 regular worktree files (3753 ledger sources plus eight metadata files), 6,310,360,083 bytes. All 3753 ledger sources matched the Oracle ledger. Local main is `8fe911aca55baa73a93da8e7917ab44cadb6b372`; local annex UUID is `d38a3dd0-6bff-4ab3-84e3-6dc5f9a847c4`, not Oracle's UUID or the former laptop UUID still held by the external cold copy. Fifteen C0-only keys (370,625,635 bytes) were additionally retrieved using standard git-annex transfer; the temporary Oracle remote was removed afterward. C0/C1 together reference 3139 keys totaling 5,960,662,406 bytes. The executor directly hashed every key and read back one changed path against each version's own ledger without changing the worktree. Its sessions reader verification passed: 115,920 unique rows, 4096 dimensions, zero orphan source files.
+
+Coordinator BG15885 independently rechecked all current ledger file hashes and all 3139 actual local annex object hashes, sizes and single-link status: PASS. HEAD and ledger SHA remained stable across the check; three actual DB manifest hashes matched pre-recovery values. The executor's before/after sessions, MD and OpenClaw DB tree receipts also matched. Coordinator-observed free space was 15,781,322,752 bytes. No paid embedding occurred during recovery or this review.
+
+Oracle originals, main/history and existing objects were preserved. The executor reports git-annex transfer state updates on Oracle (keys database, index stat refresh, last-index ref and transfer directories); this was not a claim of zero filesystem metadata writes. Unreachable incident Git objects and non-ref state from the old laptop repository were not reconstructed; their earlier external cold copy remains separate. The internal corpus no longer requires that external disk. Private receipts: `.agent-reports/20261104-internal-corpus-recovery/{RECOVERY-RECEIPT.md,coordinator-independent-verification.json}`. Whole-axis incremental maintenance was authorized to proceed only after the independent recovery check passed.
+
+### 2026-11-04 — Post-recovery whole-axis incremental maintenance
+
+Executor `754cad` reports all usual stages 2 → 3 → 4 completed successfully from 11:04 to 11:19. An API-0 managed gather and estimate preceded one paid sessions-global run. C2 is `4fae6345ddb6d6ed5b601c3934c7d4bc1d504ba0`: 36 changed/new files, 5240 chunks, zero errors, 108 API calls, approximately 1.815M tokens and $0.018 estimated session-provider cost. The current corpus has 3769 ledger files; its C0/C1 history remains retained. Oracle received 36 additional keys and the new internal-laptop UUID, then reverse annex logs were merged before the DB and paired session/durable/policy/S0 metadata were published. Final reported main and git-annex refs match both hosts; each holds 3175 objects.
+
+Executor verification: sessions 117,096 unique rows, zero orphans, 4096 dimensions. Garden MD required no embedding calls; both sides verified 11,218 unique rows and zero orphans. The coordinator independently read identical garden source HEAD `6dd568882dba53a65622953facc56af58a32d8c6` and clean `content/` worktrees on both hosts; Oracle's 36 mtime suspects are not treated as a reason for replica-side indexing.
+
+OpenClaw's first harvest found three dirty agents with valid identities. Normal upstream increments ran serially, then a second harvest showed all active agents clean. Only four confirmed superseded derived rows were pruned after backup and live recheck; 932 retained archive-class rows stayed. Four-core OpenClaw compaction reduced logical fragments 11 → 1; verification and Oracle publication completed at 10,518 unique rows. Upstream OpenClaw indexing used its own provider: its monetary cost was not measured and is not included in the approximately $0.018 sessions estimate.
+
+The executor reports all writer locks released and final free space of 14,947,278,848 bytes locally and 13,114,494,976 on Oracle. No session/MD compaction, full rebuild, newly admitted live durable snapshot, GitHub metadata push or source-repo commit occurred. Private execution evidence: the Stage 2 section of `.agent-reports/20261104-internal-corpus-recovery/RECOVERY-RECEIPT.md` and adjacent `s2-*` logs. Coordinator final BG15972 independently passed all three DB verifiers on both hosts (exit 0 / 11s). Main was exactly `4fae6345ddb6d6ed5b601c3934c7d4bc1d504ba0` and git-annex exactly `759aeab753407f23cdef988a6529a428582646ce` on both; all five session/durable/policy/S0/MD metadata file SHA values matched across hosts. Sessions and MD had zero orphan files; OpenClaw's 618 harvest-host source paths are intentionally outside its verifier's existence checks. Local corpus worktree was clean and free space was 14,946,586,624 bytes. Full decisive hashes and verification limits are in private `FINAL-CLOSEOUT.md` beside the execution receipt. Completion DM 944 was delivered once and GLG acknowledged it; source documentation publication was then separately requested.
+
 ## Open decisions
 
-- Persistent mounting is intentionally not configured, following GLG's decision above; do not resume it as unfinished work.
-- The earlier OpenClaw compaction capacity hold is relieved by the reclaimed space, but compaction has not run and does not restart automatically. Reassess need and budget under the existing [maintenance authority](memory-and-sessions.md#role-split-vs-andenken-embed).
+- No persistent external or bind mount is queued. The external disk is not required for the active local path.
+- The earlier OpenClaw compaction hold was closed by the authorized 2026-11-04 usual maintenance run. No repeat compaction is queued; later work still follows the [maintenance authority](memory-and-sessions.md#role-split-vs-andenken-embed).
 - Any later retirement of the external old DB, annex version drop, incident-object GC, new content destination or newer live durable snapshot requires its own scope. Storage relocation is not authority for those operations.

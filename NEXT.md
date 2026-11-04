@@ -6,14 +6,31 @@
 
 # RAIL — 현재 좌표
 
-- [x] **31–32. 코드 출하·정본 버전 복구** — Andenken `06e923be`/`v2026.11.3`; C0→C1 양쪽 보관·독립 reader 두 버전 SHA/크기 일치.
-- [x] **33. 양쪽 보존 전환·세 축 증분 게시** — sessions115920 / md11218 / OpenClaw10400; 기존 DB·원문·모든 버전 보존. OpenClaw compact는 용량으로 별도 보류.
-- [x] **34–36. 출하·외장 이전·운영 선택** — release `9ec8d21`/DM913·이전15247 검증완료, 기록 `docs/storage.md`/`e317783`. 자동마운트는GLG가불필요하다고판정,진행0.
-- [x] **37. 프로젝트 대문·담당자 글 공동교열·출하** ← CURRENT: homepage8fe86e2 운영검증완료(총괄#1448/#1471),Org정본갱신완료. 실행중작업없음/추가지시대기,가든export0.
+- [x] **31–37. 이전 코드·증분·글 출하** — v11.3/C0→C1복구검증/3축게시/homepage8fe86e2출하이력은문서참조. 외장현역이전은사용자의뜻과달라38에서정정,가든export0.
+- [x] **38. 내부 세션 정본 복구** — Opus복구완료/코디BG15885 exit0: 현재3753원문·C0C1참조3139객체실hash全PASS/DB메타보존/free15.78GB. 내부일반dir·새UUIDd38a3dd0…/외장불필요.
+- [x] **39. 복구 후 정상 전체 증분** — 양쪽게시·코디독립BG15972 exit0완료. sessions117096/md11218/OpenClaw10518·refs/5메타일치,완료DM944수신확인.
+- [ ] **40. Oracle 실검색 확인** ← CURRENT: GLG지명live코디6f5c09에게이집push후pull·실제시맨틱검색/응답시간·타임아웃재현확인요청. 기존remote-pair설정/Oracle ownerreceiveractive확인.
 
-현재 좌표: 31–37 완료. 홈페이지글출하와Org정본갱신은닫혔고,가든export/이집source발행은별도명시요청전실행하지않는다.
+현재 좌표: 31–39 완료 → 40 Oracle담당자의실제검색관찰회신. 복구/임베딩재실행은없음. **내부상시보유+외장간헐적명시사본**이GLG의뜻이며,외장현역이전은그뜻과달랐다.
 
-# NOW — 글은 Opus가 쓰고, 코디는 근거와 인계를 맡는다
+# NOW — 내부 복구 완료, Oracle 코디의 실제 검색 확인
+
+- **Next:** 이문서commit/push뒤GLG가지명한Oracle코디 **20261008T084123-6f5c09**에게agent-config pull+실제semantic-memory검색을요청하고cold/warm경과시간·timeout여부/정확명령·축/결과읽기를받는다. Oracle ownerpeer-facts에서exactcwd/receiveractive확인,기존remote-pair12d0ca↔6f5c09설정있음. 재색인/재시작/새형제없이기존코디에게만전달.
+- **Storage boundary:** `~/repos/gh/session`은내부일반디렉터리/원문직접조회가능,외장없어도동작. 외장은명시요청시에만보관사본갱신하며현역위에bind하지않는다. 복구/증분재실행·중복DM0,Opus754cad는대기.
+- **Verified here:** 복구BG15885의3753원문·3139객체실hashPASS와최종BG15972의양쪽3축verifyPASS. C2 main4fae6345…/annex759aeab7…/짝메타5개SHA양쪽일치,현재3769원문/객체3175보존. sessions117096·md11218 orphan0/4096d,OpenClaw10518·4096d(618상류source경로의실존은검증기검사대상아님). 로컬free14,946,586,624B≈14GiB. 가든HEAD6dd56888/contentclean양쪽직접확인.
+- **Read:** `docs/storage.md`가현행배치·날짜별영속장부. private `.agent-reports/20261104-internal-corpus-recovery/FINAL-CLOSEOUT.md`와실행자RECOVERY-RECEIPT/독립검수JSON에세부근거. 세션증분비용약$0.018추정,상류OpenClaw자체비용은미측정/미포함.
+- **Gates:** GLG가완료DM944수신후이집NEXT/storage문서commit·push를직접요청했다. corpus GitHub메타push/가든export·Git/새liveDurable수집/외장사본갱신/원문삭제/fullrebuild는이승인에미포함. 과거incident의도달불가Git객체는외장보관본에만남아있음(현역참조원문·과거판객체복구와구별).
+
+# RECENT — 2026-11-04 복구 전후 단계별 영수증 (위 NOW로 대체됨)
+
+- **Impact/intent:** `~/repos/gh/session`은접근가능한일반내부디렉터리지만비어있고옛세션파일직접열기는불가하다. 활성임베딩DB는내부에남아있다. GLG는내부정본을항상유지하고외장에는아주가끔명시요청시사본을넣으려했다. 외장현역이전·내부사본제거는그뜻과달랐다(이집이이전을실행).
+- **Next:** **BG15885 자동완료receipt를받아복구독립검수후Opus에39GO**(폴링/재실행0). 실작업자료 `.agent-reports/20261104-internal-corpus-recovery/RECOVERY-RECEIPT.md`와allkeys/localverify/DBbefore-after. 새로컬annexUUIDd38a3dd0…/HEAD8fe911ac…/장부f21c1014…;C0·C1참조객체는모두내부보유,도달불가incident Git객체만부재외장에남음. Oracle원문·HEAD/history/object보존/15key송신에따른내부메타변경은별도보고됨. **오늘GLG가복구→세팅→전체임베딩을옆Opus에게명시위임했다.** ownerpeer-facts에서기존754cad exactcwd/receiveractive유일확인,본인이Opus5.5·복구/전체증분인수자기보고. 근거패킷+1단계복구GO전달완료/실행시작보고수신. 그의preflight: localfree27,648,614,400B/Oracle현재C1key3124·C0key3115·합3139(C0전용15모두Oracle실재). 현job현재판복구뒤15key도실content회수GO. Opus10:56실측보고: 15key370,625,635B/C1객체5,590,036,771B/합3139key5,960,662,406B,예상복구후free약15.38GB>5GiB(실free확인대기). 정식annexget으로객체만회수/임시Oracle remote는끝나면해제,전체3139직접SHA·크기대조/대표C0C1판별장부readback뒤코디검수/2단계paidGO. Oraclehook은11/03mtime의기존파일이며오늘새쓰기아님,오늘메타변경범위는최종실측보고로구별. 모델/역할확인만했고새형제/resume0. 코디는데이터작업병행0. **읽기전용BG15761 exit0/1m59s**: Oracle MANIFEST3753파일(JSONL3752+SQLite1),6,308,719,987B 전부SHA一致/누락0/오류0,검증전후장부SHAf21c1014…동일. main8fe911ac…/git-annexf1171903…/별도annexUUIDef0adcd1…/객체파일3139개존재도직접확인. 과거모든버전/annexkey전수검증은아님. 영수증 `.agent-reports/20261104-internal-corpus-recovery/oracle-readonly-verification.json`;복사·수집·임베딩0.
+- **Recovery gate:** 실제복구는사용자승인됨,Opus한명만실행. 10:46코디read-onlyfree27,649,798,144B/로컬관련writer프로브0(순간관측). 실행자는실전체copy크기/현재free·writer/custody/원문장부·Git/annex정체성·현재DBsource경로를재확인한다. 호스트간raw.git rsync/OracleUUID위장복제/기존원문삭제0. 복구checkpoint에로컬3753원문해시·Git/annex보존범위·정체성·reader직접접근·DB불변·free와API0estimate를받는다. 빈내부폴더를정상복구로간주하거나그상태로전체색인/replica덮어쓰기하지않음. 외장없는것을복구의필수대기로만들지않는다.
+- **Do not:** 외장/Oracle원문·Git이력삭제,annexdrop/GC,복구검수전paidAPI,자동외장복사·bind·자동마운트,fullrebuild/기존DB파괴,source/gardencommitpush. 39는authority usual2→3→4/작은정상증분·OpenClaw기존허용파생정리만,dim4096/단일실행자/비용급증$1중지/대화형yes자동통과0. 최종GLG알림은코디12d0ca가한번,Opus중복DM0. 향후외장사본갱신은과거원문·이력을보존하며별도명시요청때만.
+
+# RECENT — 2026-11-04 접근 복구와 11/03 글 출하 (과거 좌표)
+
+- **2026-11-04 storage correction:** GLG가현역코퍼스는내부/외장은간헐적명시보관복사라고정정했다. 외장없는상태에서빈비마운트 `~/repos/gh/session`만root000→junghan:users0755로전환/접근검증완료. **현재비어있고Git/annex복원·수집·임베딩0**. 다음명시유지보수전코퍼스/아카이브전제부터검토,새빈코퍼스를완전복원으로취급하지않는다. 과거bind복구지시는폐기/외장을현역경로위에bind하지않음. 근거·현행배치는 `docs/storage.md`의11/04사건. 이정정문서변경은아직미커밋이며어제push승인으로확대하지않는다.
 
 - **Next:** **추가지시대기;활성작업없음.** 홈페이지총괄96efd0의10:08최종영수증: production#1448 21경로PASS,#1471 한영목록2+8leaf HTTP200/exactfooter SHA`8fe86e2f64c6a5afe2db7fbe925429392feb8bb1`확인(`/tmp/homepage-20261103-production.json`;받은영수증/이집재실행0). GLG검수후홈페이지정상push·agenda완료. **GLG가이집NEXT.md/docs/storage.md 2파일의commit/push를별도요청했다.** 이승인은Org/garden발행이나다른운영으로확대하지않는다. Org5개정본갱신과garden export/git0을구별한다. 새수정/출판/중복DM0.
 - **Closeout receipt (09:58, 총괄96efd0 회신/이집재실행아님):** 전체gate #1268 PASS(10프로젝트파일),각집제품사실대조PASS,Opus Chrome10면desktop/narrow·일부light관찰,5Org최종해시대조,GLG DM920전달. 미commit·미push·미export. 이집독립검증/최종3파일SHA·본문보존근거는 `.agent-reports/20261103-editorial/FREEZE.md`; Org a9bd67b0…/통합ENa0f6908e…/KOdc31a1e8….
