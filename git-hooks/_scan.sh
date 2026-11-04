@@ -219,7 +219,17 @@ scan_terms() {
   return 0
 }
 
-# --- Run gitleaks (if installed) on the diff stream ---
+# Secret input is added content from ALL paths, independent of the identity-path allowlist.
+# Diff headers (including @@ function context), removed lines and filenames are not new content.
+secret_added_content() {
+  awk '
+    /^diff --git / { in_hunk = 0; print ""; next }
+    /^@@ / { in_hunk = 1; print ""; next }
+    in_hunk && /^\+/ { print substr($0, 2) }
+  '
+}
+
+# --- Run gitleaks (if installed) on added content ---
 scan_secrets_gitleaks() {
   local diff_file="$1"
   if ! command -v gitleaks >/dev/null 2>&1; then
@@ -230,13 +240,13 @@ scan_secrets_gitleaks() {
   local cfg_arg=""
   [ -f "$GITLEAKS_CONFIG" ] && cfg_arg="--config=$GITLEAKS_CONFIG"
 
-  # Scan the diff stream from stdin.
+  # Scan added content, not raw diff metadata or grandfathered removed/context lines.
   # NOTE: gitleaks 8.x removed `detect --source=-`; that form silently scans
   # 0 bytes (treats "-" as a missing file path) and always reports clean,
   # which left the secret net dead. The `stdin` subcommand is the correct
   # pipe interface. Exits 1 on findings, 0 on clean.
   if gitleaks stdin --no-banner --report-format=json --report-path="$diff_file.gitleaks.json" \
-       $cfg_arg <"$diff_file" >/dev/null 2>&1; then
+       $cfg_arg < <(secret_added_content <"$diff_file") >/dev/null 2>&1; then
     return 0  # no findings
   else
     return 1  # findings

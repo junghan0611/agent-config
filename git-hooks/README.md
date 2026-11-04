@@ -90,11 +90,15 @@ longer needed a hook answer — they needed git to leave.
 
 > ⚠ **The path allowlist does not reach gitleaks.** `allowlist-paths.txt` and
 > `.git-hooks-allow` are consumed by `parse_added_lines`, which feeds the
-> identity-term scan and the no-gitleaks fallback. `scan_secrets_gitleaks` is
-> handed the *unfiltered* `$DIFF_FILE`. So allowlisting a path suppresses term
-> hits but neither silences gitleaks on it nor makes the scan faster — reach for
-> `gitleaks.toml`'s own `[allowlist].paths` for that, and do not expect
-> `.git-hooks-allow` to solve a slow scan.
+> identity-term scan and the no-gitleaks fallback. Gitleaks receives added
+> content from **all paths**, with diff metadata and removed lines excluded.
+> In particular, `@@` function-context text is not an added line. Allowlisting
+> a path never silences gitleaks on added content in that path.
+
+Regression: `python3 git-hooks/test-added-secrets.py` checks staged and push-range
+scans against synthetic commit objects: unchanged keys in hunk context and removed
+secrets pass; actual added tokens (including allowlisted paths) remain blocked.
+It performs no commit or push to a real repository and no network request.
 
 ## What gets scanned
 
