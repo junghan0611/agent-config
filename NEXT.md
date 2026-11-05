@@ -14,7 +14,7 @@
 # NOW — 다음 한 걸음
 
 1. Oracle6f가 최종 운영완료 DM1회를 소유한다.12d의 release/자료 인계 DM961과 별개이며 노트북 중복 DM/도장0. 이번 hold 종료를877→583에 전달했다. 종료는 새 publish/smoke/paidquery/batch 허가가 아니다.
-2. 현지 완료 원문은 private `.agent-reports/20261105-openclaw-fts-production/delivery/ORACLE-COMPLETION.md`. 핵심 사실·출처를 `docs/storage.md`의15:16절에도 남겼다. GLG의 후속 ‘커밋푸시할것 다 하고 최신버전 맞춰라’ 지시를 Oracle6f가 전달했고, 단일 writer 순서로 **이 집이 기존 ACK commit `4902c0e`를 보존한 채 최종 NEXT/storage 두 파일을 먼저 정상 commit/push**한다. Oracle6f는 그동안 쓰기0으로 기다렸다가 main을 ff하고, 양 repo 최종 SHA를 보내면 노트북도 clean ff한다. 태그는 `35a5219`에 그대로이며 새 release/데이터 실행0.
+2. **Git 마감:** 후속 commit·push 요청에 따라 노트북의 기존 ACK `4902c0e`와 완료 기록 `9c0d7c9`를 보존해 Oracle에 fast-forward했다. Andenken 완료 문서는 `5d65528`로 정상 게시됐다. 이 집은 현재 storage 표와 이 책갈피까지 마감하고, 노트북은 최종 `origin/main`에 fast-forward해 양쪽 HEAD·원격 일치와 clean 상태를 확인한다. 각 실제 push의 commit 도장만 담당 writer가 한 번 남기며, ff에는 추가 도장이 없다. v2026.11.5 태그는 각각 `35a5219`/`6c13c5e`에 고정하고 새 release·데이터 실행은 하지 않는다. 운영 원문은 노트북 private `.agent-reports/20261105-openclaw-fts-production/delivery/ORACLE-COMPLETION.md`, 영속 측정·출처는 `docs/storage.md`의15:16절이다.
 3. 정상 전체 batch의 남은 pnpm 경로·loaded reader/Pi·실semantic/hybrid·전행 coverage는 이번 성공으로 인증되지 않았다. 후속 작업이면 해당 authority를 먼저 읽고 source/실행/비용 gate를 새 범위로 확인한다.
 
 ## 영수증·보존 경계

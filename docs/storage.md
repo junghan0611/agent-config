@@ -15,7 +15,7 @@ After an explicitly requested storage operation:
 
 A Git metadata push is not a content backup. Moving a repository with its UUID is not creating another independent replica. Free-space observations are not promises about future allocation or reclamation.
 
-## Current layout — internal recovery verified 2026-11-04
+## Current layout — latest storage event 2026-11-05
 
 | Asset | Physical location | Role and availability |
 |---|---|---|
@@ -23,7 +23,7 @@ A Git metadata push is not a content backup. Moving a repository with its UUID i
 | Active local session corpus path | `$HOME/repos/gh/session` | Ordinary internal directory, `junghan:users` mode 0755; recovery baseline 3753 files/3139 keys independently hash-verified, subsequent C2 maintenance holds 3769 ledger sources and 3175 retained keys; no external dependency |
 | Retained old sessions DB and original metadata | `/mnt/data/agent-memory-thinkpad-20261103/old-retained` | Old DB at `sessions.lance`; the remaining old-generation copy was moved, not discarded |
 | Active sessions, MD and OpenClaw LanceDB stores | `$HOME/repos/gh/andenken/data` | Remain on the internal filesystem; not moved by this operation |
-| Oracle source corpus and query replicas | Existing Oracle locations | Recovery baseline 3753 source hashes checked; C2 corpus and three query DBs verified earlier on 2026-11-04; the OpenClaw query replica was subsequently overwritten by a fixture and independently restored at 14:45 KST (event below) |
+| Oracle source corpus and query replicas | Existing Oracle locations | November 4 corpus/C2 checks and OpenClaw incident recovery are recorded below; on November 5 the Oracle coordinator accepted the finished OpenClaw FTS generation at 10,518 rows / 4096d with fresh ARM readers; previous generation and incident copy remain retained |
 | Private GitHub session repository | Git metadata branches `main` and `git-annex` | References, inventory and history only; no annex content upload |
 
 The external parent directory is private (mode 0700). No encryption was configured during this operation; filesystem permissions are not disk encryption.
