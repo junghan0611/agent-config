@@ -1,18 +1,18 @@
 # NEXT — agent-config
 
-> 2026-11-05 GLG가 **양쪽 태그/GitHub Release와 Oracle 코디의 운영 진행**을 승인했다. 노트북 FTS 완료 이력은 CHANGELOG `v2026.11.5`와 `docs/storage.md`로 옮겼다. Oracle 운영은 그쪽 agent-config6f가 Andenken 코디와 진행하고,12d는 릴리즈·검수본/완성 DB·원문 영수증 제공을 맡는다.
+> 2026-11-05 양쪽 **v2026.11.5 main/tag·GitHub Release·직렬 agenda 도장**을 완료했다. 이 집 release `35a5219`,Andenken `6c13c5e`. Oracle6f가 그쪽 Andenken 코디와 운영을 인수했고,12d는 고정 DB·영수증·출하 근거의 private 전송을 완료했다.14:31 final SHA·수신검증 후 운영 GO를 전달했다. 아직 Oracle 운영 완료는 아니다.
 
 # RAIL — 현재 좌표
 
-- [ ] **4. 양쪽 태그/GitHub Release** ← CURRENT: 이 집12d·Andenken877이 각 `v2026.11.5` 컷을 준비한다. 정상 commit·preflight·main/tag push·GitHub Release·repo별 도장까지 닫는다.
-- [ ] **5. Oracle 코디에 실행권·완성본 인계** — remote-pair로6f에게 GLG 위임을 보냈고 상대 host accepted를 받았다. 실제 인수/수신 경로 회신을 받고 release SHA/URL과 고정 DB packet을 private로만 보낸다.
+- [x] **4. 양쪽 태그/GitHub Release** — 정상 hooks·main/tag·GitHub 본문·refs·도장까지 완료. 양쪽 URL은 `https://github.com/junghan0611/{agent-config,andenken}/releases/tag/v2026.11.5`.
+- [ ] **5. Oracle 코디에 실행권·완성본 인계** ← CURRENT:6f의 현재 identity/현지 peers·0700 경로 인수. DB packet BG18235 exit0/44s·brief BG18264 exit0/1s 전송 완료. final SHA/공개 refs·검증 후 현지 실행 GO 전달 완료,remote hash 인수 회신을 기다린다. 중복 전송/재시도0.
 - [ ] **6. Oracle 호환 적용·필수 검증** — Oracle6f→그쪽 Andenken 코디가 실행.12d의 직접 원격 운영/중복 실행0,완료 영수증 전 PASS 주장0.
 
-현재 좌표: 준비·노트북 운영 FTS 완료 → 양쪽 release 출하·Oracle 실행 인계 중. 재bootstrap 불필요.
+현재 좌표: 노트북 운영 FTS·양쪽 release 완료 → Oracle 실행 인계 중. 재bootstrap·중복 release/도장 불필요.
 
 # NOW — 다음 한 걸음
 
-1. 릴리즈는 tag-release/commit 스킬을 따른다. 이 집 baseline `v2026.11.3` 이후8커밋과 닫힌 NEXT를 갈무리했다. hook 추가내용 회귀·release extractor·Bash 문법과 문서 일관성을 API0로 확인하고, source/tag/GitHub Release/agenda 영수증을 보존한다. 새 설치·미감사 전체 suite·데이터 재검수0.
+1. **Oracle6f의 파일·원문 검증 인수 회신**을 기다린다.14:31 remote-pair의 accepted는 전송 수신뿐,검증·운영 완료의 증거가 아니다. 인수 뒤그쪽 운영은추가12d승인 없이현지 코디가 진행한다. 출하 원문은 private `.agent-reports/20261105-openclaw-fts-production/release/RELEASE-RECEIPT.md`; hook10·notes7/Bash·과거 이력 보존/API0·공개refs·GitHub·도장까지 닫았으므로 재출하0. 전달5파일은 `delivery/{ADOPTION.md,RELEASE-PROOF.json,SNAPSHOT-RECEIPT.json,SHA256SUMS,openclaw-fts-ready.tar}`.
 2. Oracle 코디 `20261008T084123-6f5c09`의 현재 인수·0700 수신 경로를 확인한다. 노트북 canonical 잠금 안 완성 DB의 독립 snapshot/전체hash와 허용 목록의 운영 원문만 packet으로 만들고 private staging으로 전달한다. 키/env·Git·node_modules/native·원본 코퍼스·사고 영향본은 넣지 않으며 remote production 경로에 직접 덮지 않는다.
 3. Oracle6f가 호환 release source를 먼저 맞춘 뒤, 그쪽 Andenken 코디와 잠금·현재 baseline/자원·stage 전체hash·기존 DB 보존·안전 교체·required healthy·native 양성 readback을 닫는다. Oracle에서 bootstrap/import/reindex나 authority override0. `sync:openclaw:oracle`의 producer 권한을 Oracle에서 우회하지 말고 고정 authority snapshot의 출처와 필수검증 계약을 유지한다.
 
