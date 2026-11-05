@@ -1,29 +1,27 @@
 # NEXT — agent-config
 
-> 2026-11-05 GLG가 요청한 그림 전달·로컬 커밋·노트북 운영 FTS 생성/검증을 완료했다. **BG18015 exit0/6s,10518행/4096d 보존·FTS native query 정상**. Git push는 별도 명시가 없어 보류; 다음은 양쪽 push 승인→Oracle 호환 소스·완성 DB/index required 게시.
+> 2026-11-05 GLG가 **양쪽 태그/GitHub Release와 Oracle 코디의 운영 진행**을 승인했다. 노트북 FTS 완료 이력은 CHANGELOG `v2026.11.5`와 `docs/storage.md`로 옮겼다. Oracle 운영은 그쪽 agent-config6f가 Andenken 코디와 진행하고,12d는 릴리즈·검수본/완성 DB·원문 영수증 제공을 맡는다.
 
 # RAIL — 현재 좌표
 
-- [x] **1. Oracle 수선본 노트북 인수** — 정상 checkout 3파일 적용, FROZEN byte-exact/CP3 SHA 일치.
-- [x] **2. 노트북 x64 준비 검수** — 기존/전용test 타입 오류0, G1 38/0, full156/0, 최종 frozen 교차 리뷰 blocker없음/추가 회귀없음.
-- [x] **3. source 확정·노트북 운영 FTS** — code `4ac84bb`/정상 hook, handoff `0cda628` commit. BG18015에서 독립 백업·FD8·CPU0–1·API0·required verify·보존검사 통과. FTS 없음→native 정상,10518/4096 불변.
-- [ ] **4. Git push·Oracle 호환 반영/required 게시** ← CURRENT: 명시 push 승인 대기. 승인 후 호환 source 선행→완성 DB/index 안전 게시·readiness 확인. 유료 검색은 별도 gate.
+- [ ] **4. 양쪽 태그/GitHub Release** ← CURRENT: 이 집12d·Andenken877이 각 `v2026.11.5` 컷을 준비한다. 정상 commit·preflight·main/tag push·GitHub Release·repo별 도장까지 닫는다.
+- [ ] **5. Oracle 코디에 실행권·완성본 인계** — remote-pair로6f에게 GLG 위임을 보냈고 상대 host accepted를 받았다. 실제 인수/수신 경로 회신을 받고 release SHA/URL과 고정 DB packet을 private로만 보낸다.
+- [ ] **6. Oracle 호환 적용·필수 검증** — Oracle6f→그쪽 Andenken 코디가 실행.12d의 직접 원격 운영/중복 실행0,완료 영수증 전 PASS 주장0.
 
-현재 좌표: 준비·로컬 commit·노트북 FTS 성공 → Git push/Oracle 다음 gate. 재bootstrap 불필요.
+현재 좌표: 준비·노트북 운영 FTS 완료 → 양쪽 release 출하·Oracle 실행 인계 중. 재bootstrap 불필요.
 
-# NOW — 다음에 할 것만
+# NOW — 다음 한 걸음
 
-1. **양쪽 Git push 승인**을 확인한다. 승인 전 push/agenda0. Andenken code `4ac84bb`와 owner handoff `8cf6a2c`, 이 집 storage/NEXT commit을 정상 rail로 게시한다.877은 기존 운영 원문·manifest/network/resource 기록을 오프라인 재계산해 local-ready를 인수했고, 원본/backup의 실제 재hash는12d controller 측정임을 구분했다.
-2. 승인 후 Oracle 운영 checkout의 옛 `db9dff9` pnpm 읽기 도어를 호환 source로 먼저 맞춘 뒤, **`sync:openclaw:oracle --require-fts`**의 사전 protocol·로컬 필수검증·게시·원격 healthy를 닫는다. 기본 legacy 게시로 대체0, 호환 source 전 ‘확인만’ remote probe0.
-3. 재개 원문: private `.agent-reports/20261105-openclaw-fts-production/RECEIPT.json`·stage logs·BEFORE/AFTER·backup. 영속 결과와 핵심 hash는 `docs/storage.md` 2026-11-05절. 노트북25files/407694904B/manifest `ae55b9949e01353ea4a9aa57672d9e374646d33b70caf290ab4ed1bf4eff4216`. 유료 query·전체 memory batch는 별도.
+1. 릴리즈는 tag-release/commit 스킬을 따른다. 이 집 baseline `v2026.11.3` 이후8커밋과 닫힌 NEXT를 갈무리했다. hook 추가내용 회귀·release extractor·Bash 문법과 문서 일관성을 API0로 확인하고, source/tag/GitHub Release/agenda 영수증을 보존한다. 새 설치·미감사 전체 suite·데이터 재검수0.
+2. Oracle 코디 `20261008T084123-6f5c09`의 현재 인수·0700 수신 경로를 확인한다. 노트북 canonical 잠금 안 완성 DB의 독립 snapshot/전체hash와 허용 목록의 운영 원문만 packet으로 만들고 private staging으로 전달한다. 키/env·Git·node_modules/native·원본 코퍼스·사고 영향본은 넣지 않으며 remote production 경로에 직접 덮지 않는다.
+3. Oracle6f가 호환 release source를 먼저 맞춘 뒤, 그쪽 Andenken 코디와 잠금·현재 baseline/자원·stage 전체hash·기존 DB 보존·안전 교체·required healthy·native 양성 readback을 닫는다. Oracle에서 bootstrap/import/reindex나 authority override0. `sync:openclaw:oracle`의 producer 권한을 Oracle에서 우회하지 말고 고정 authority snapshot의 출처와 필수검증 계약을 유지한다.
 
 ## 재개 근거·경계
 
-- 원천: private `.agent-reports/20261105-oracle-return/{LAPTOP-ACCEPTANCE.md,LOCAL-X64-G2-CHECK.json,FINAL-G2.md,RESULTS.md,PACKET-VERIFICATION.json,FROZEN-3.diff}`.
-- 오늘 타입 원천: `~/.local/state/andenken/investigations/20261105T123019-phaseA.MG2uEE/phaseB/`. G1 RUN `20261105T124350-openclaw-fts.LKyQLp`,full RUN `20261105T124908-openclaw-fts.m9qxyd`는 `~/.local/state/andenken/fixture-runs/` 아래 보존.
-- full156은 G1active38+G2runtime110/static8이다. 76case,15CALLS·rsync7 모두fixture.invalid,실native0.40.0/x64 한 개·SHA7cac6b9f… 일치. 실검색recall·순위·운영FTS·배포 인증은 아니다.
-- 메타데이터 digest와1초 자원 표본은 전체내용hash/hardcap이 아니다. launcher 미발화 거절 분기·E1/E2/E3·baseline이전deps불변unknown을 유지한다. 실패·미지원 무조건 재시도/자동 정리 금지.
-- `sync:openclaw` reconcile·다른정상verify의pnpm/일반memorybatch·broadtestchain은 별도 운영 gate다. 이번 준비PASS로 인증하지 않는다.
-- 역할: 12d 총괄·유일DM,877 Andenken owner가 실무583 직접 호출·지시,754는12d의 교차 리뷰. Oracle6f/7fa는 증거 보존·병렬 작업 대기.
-- Oracle 검색 데이터는 어제10518행/4096d로 복구했고 사고 영향본을 양쪽에 보존했다. 오늘은 **노트북만 FTS 생성**, Oracle 접촉0. 원본19files/0c117… 독립 backup 재hash 일치,12payload 전체파일 hash·id/text 전체 digest·watermark/receipt 불변. lexical 양성3건은 hybrid·Pi·loaded reader·전체 coverage 인증이 아니다.
-- 새설치·전역 설정·상류/다른DB·원문/annex/oldDB삭제·재시작·tag/release·전체임베딩은 별도. 추가 회귀·고위험 suite는 자동 실행하지 않는다.
+- 운영 원문: private `.agent-reports/20261105-openclaw-fts-production/{RECEIPT.json,CLOSEOUT.md,COORDINATOR-AUDIT.json,BEFORE.json,AFTER.json}` 및 stage/network/resource logs. BG18015 exit0/6s,10,518행/4096d·id/text 전체digest·12row/vector payload SHA 불변,FTS 생성/required healthy·native lexical 양성3건/API0. 독립 원본 backup도 보존한다.
+- 완성 DB:25files/407694904B,manifest `ae55b9949e01353ea4a9aa57672d9e374646d33b70caf290ab4ed1bf4eff4216`. 빌드 code `4ac84bb`/Andenken 인수 `8cf6a2c`; release prep 이후 source3 bytes는 그대로다.
+- 준비 원문: `.agent-reports/20261105-oracle-return/` 및 `~/.local/state/andenken/fixture-runs/20261105T124908-openclaw-fts.m9qxyd/`. 타입0·G1 38/0·full156/0은 합성 검수이며 운영/실검색/coverage 인증과 다르다.
+- Oracle 운영 source는 인계 전 마지막 관측 `db9dff9`다. 호환 source 적용 전 옛 pnpm 도어로 ‘확인만’ probe0. 현재 healthy·세대·여유는 그쪽에서 새로 측정한다.
+- Oracle 영향본·원문/annex/oldDB/외장 cold copy는 보존. 실패·busy·변경된 baseline·미지원은 중지,자동 retry/rollback/delete0.
+- 유료 query·전체 memory batch·추가 임베딩·상류 SQLite·설치/전역설정·재시작은 범위 밖. 정상 batch의 pnpm 잔존 경로와 loaded reader/Pi/hybrid 품질도 이번 컷으로 인증하지 않는다.
+- 알림:12d는 양쪽 release·인계 완료를1회 DM,Oracle6f는 그쪽 운영 최종완료/결정 blocker를 별도1회 소유.877/7fa/583/ac9 중복 DM·Oracle 중복 release stamp0.

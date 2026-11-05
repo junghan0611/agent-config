@@ -7,6 +7,29 @@
 
 ## Unreleased
 
+## v2026.11.5 — 기억의 빠진 검색문과 안전한 수선
+
+### 이미 모은 기억을 찾는 문
+
+* **OpenClaw의 빠진 단어 검색문을 노트북 운영 DB에서 열었다.** Andenken `4ac84bb`의 코드와 `8cf6a2c`의 인수 기록을 바탕으로, GLG의 명시 승인 아래 BG18015가 6초/exit0으로 FTS 생성·필수 검증·보존 검사를 마쳤다. 벡터만 있던 축에 기존 text로 BM25 색인을 더했으며 재임베딩·유료 query 호출은0이다. 10,518 unique/4096d·전체 id/text digest와12개 row/vector payload 파일의 SHA가 그대로이고, 독립 regular 원본 백업도 전후 전체 hash가 같았다. 완료 DB는25파일/407,694,904B, manifest `ae55b9949e01353ea4a9aa57672d9e374646d33b70caf290ab4ed1bf4eff4216`이다.
+* **준비 검수와 운영 효과의 증거를 나눠 인수했다.** Oracle의 CP3 수선본을 노트북에 동일하게 반영해 기존/전용test 타입 오류0·x64 G1 38/0·full156/0을 확인했고, ARM의 같은 합성 검수와 frozen 교차 리뷰를 대조했다. 생산에서는 별도로 `verify openclaw --require-fts`의 정확한 healthy와 실제 저장 ID에 명중한 native lexical3건을 확인했다. indexed10518/tail0 통계나 이 세 질의를 전체 coverage·hybrid 순위·semantic recall·Pi/loaded-reader 인증으로 올리지 않았다. Andenken owner도 기존 manifest·network·resource 영수증을 오프라인 재계산해 인수했다.
+* **원본을 건드리지 않는 단일 실행·중단 계약을 조였다.** canonical FD8 잠금·CPU0–1·독립 백업·source 고정 아래 실행했고, timeout 뒤 자식 group 종료·영수증 보존, observer 수렴 뒤 최종 판정, 사라진 process group 재신호 금지 경로를 함께 읽어 수선했다. 최대 owned408,358,912B/최저 free22,540,128,256B는10회 표본 관측이지 hard cap이 아니다. network trace의 outbound0도 사후 관측이며 방지벽을 뜻하지 않는다. 실행/핵심 hash와 한계는 `docs/storage.md`에 남겼다.
+
+### 사고를 숨기지 않고 시험의 경계를 세웠다
+
+* **fixture가 실제 Oracle 검색 사본을 덮은 사고를 복구하고 증거를 보존했다.** PATH stub을 빠져나간 전송이 replica를 합성1행으로 바꿨고, BG16646은 양쪽 canonical 잠금 아래 fresh stage·전체 hash·원자적 교체로10,518행/4096d를 복구했다. 영향본은 양쪽에 남겼다. 이후 kernel namespace·마운트·FD·credential/network 격리 안에서 합성 검수했고, 불필요한 pnpm 실행 층을 기존 Node 도어로 뺐다. 격리 수선은 Andenken 코드의 계약이며 이 집은 실행·인수·비용과 공개 기록을 맡았다.
+
+### 원문이 늘 곁에 있는 내부 경로와 보존
+
+* **외장 디스크가 없어도 원문을 읽는 내부 정본을 복구했다.** 외장을 primary로 삼았던 해석을 정정하고, Oracle 원본을 `.git` raw 복제 없이 기존 archive helper·독립 annex UUID로 내부 경로에 회수했다. 3,753개 장부 원문과3,139개 참조 객체를 실제 hash로 독립 대조했고 C0/C1의 선택 경로 두 버전도 회수했다. 외장 사본은 가끔 명시 요청할 때만 복사하며 자동 mount는 넣지 않는다. 기존 source·annex·보존 세대는 삭제하지 않았다.
+* **복구 뒤 세 기억축의 정상 증분을 한 번 완료했다.** C2 `4fae6345…`,3,769개 장부 source/3,175개 객체를 보존한 뒤 sessions117,096·MD11,218·OpenClaw10,518 unique/4096d를 양쪽에서 검증·게시했다. 세션 약$0.018은 실행 통계 추정이며 upstream OpenClaw 비용은 포함하지 않는다. 실재검사·백업 뒤 확정 superseded4행만 정리했고932 archive-class행은 유지했다. 이는11월4일 배치의 영수증이며 이번 태그에서 다시 실행한 일이 아니다.
+* **앞선 별도 운영도 날짜별 장부로 갈무리했다.** 비공개 archive metadata 게시, 명시 승인된 Oracle old DB 퇴역과 regenerable npm cache 정리, 외장 이동과 뒤의 내부 복구를 하나의 계속된 이력으로 남겼다. 홈페이지/담당자 소개의 편집 인계와 가든 export 경계도 보존했다. 이미 실행한 작업의 기록이지 새 삭제·정리 권한이 아니다.
+
+### 새로 더한 내용만 검사하는 안전망과 다음 주자
+
+* **secret scanner가 diff metadata·삭제 줄을 새 비밀값으로 오인하던 경로를 수선했다.** `2d1fad7`은 모든 경로의 실제 추가 내용만 gitleaks stdin으로 검사하며 identity allowlist가 secret 검사를 우회하지 못하게 했다. 합성 저장소의 hunk context·삭제·추가·allowlist·추가 plus 경로를 staged/range 양쪽에서 회귀로 고정했다. hooksPath·실제 repo 모드·unsafe flag를 바꾸지 않았다. 이번 컷의 API-0 출하 gate에서 추가내용 staged/range10건·release extractor7건·Bash 문법·닫힌 항목/과거 CHANGELOG 불변 대조가 통과했다.
+* **GLG가 양쪽 태그 릴리즈와 Oracle 운영 인계를 승인했다.** 이 컷은 노트북 FTS 준비 완료까지다. Oracle 적용은 Oracle agent-config 코디와 그쪽 Andenken 코디가 호환 source·완성 DB/index 수신·안전 게시·필수 검증을 이어간다. source 공개와 data 적용을 구별하며 Oracle의 재색인·authority 이전·유료 semantic query·전체 batch·새 설치·runtime 재시작은 이 컷으로 실행하지 않았다. 추가 완료 영수증 전에는 replica까지 정상이라고 하지 않는다.
+
 ## v2026.11.3 — 원문 버전 복구와 보존 전환, 세 기억축의 실운영
 
 ### 세션 정본의 보관 계약과 실행 면
