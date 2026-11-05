@@ -14,10 +14,8 @@
   "_common": {
     "tuiMode": "regular",
     "defaultProvider": "openai-codex",
-    "defaultModel": "gpt-5.6-terra",
+    "defaultModel": "gpt-6.1-terra",
     "hideThinkingBlock": false,
-    "defaultTheme": "glg-dark",
-    "theme": "glg-dark",
     "entwurfProvider": {
       "appendSystemPrompt": false,
       "showToolNotifications": true,
