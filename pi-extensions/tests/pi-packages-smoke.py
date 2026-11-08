@@ -15,6 +15,7 @@ HOME = Path.home()
 SETTINGS = HOME / ".pi/agent/settings.json"
 GLOBAL_EXTENSIONS = HOME / ".pi/agent/extensions"
 COMPACTION_SOURCE = "npm:@ogulcancelik/pi-codex-compaction"
+RECALL_SOURCE = "npm:@ogulcancelik/pi-session-recall"
 ENTWURF_PACKAGE = "@junghanacs/entwurf"
 BEFORE_COMPACT = re.compile(r"pi\.on\(\s*[\"']session_before_compact[\"']")
 
@@ -138,13 +139,11 @@ def main() -> None:
         fail("supported manifest must not reinstall retired Codex compaction")
     assert_builtin_compaction(packages)
 
-    recall = next(
-        (entry for entry in packages if isinstance(entry, dict)
-         and entry.get("source") == "npm:@ogulcancelik/pi-session-recall"),
-        None,
-    )
-    if recall != {"source": "npm:@ogulcancelik/pi-session-recall", "extensions": []}:
-        fail(f"session-recall filter drifted: {recall!r}")
+    if has_package(supported, RECALL_SOURCE) or has_package(packages, RECALL_SOURCE):
+        fail("retired session-recall package must not be configured or reinstalled")
+    compat = GLOBAL_EXTENSIONS / "session-recall-compat.ts"
+    if compat.exists() or compat.is_symlink():
+        fail("retired session-recall compatibility extension must be removed")
 
     with tempfile.TemporaryDirectory(prefix="pi-package-smoke-") as temp_dir:
         probe = Path(temp_dir) / "probe.ts"
@@ -171,14 +170,11 @@ def main() -> None:
     if not notifications:
         fail("probe did not receive its session_start notification")
     tools = {entry["name"]: entry["source"] for entry in json.loads(notifications[0]["message"])}
-    expected = {"session_search", "session_literal_search", "session_query"}
+    expected = {"session_search"}
     if set(tools) != expected:
         fail(f"unexpected recall tools: {tools}")
     if "andenken" not in tools["session_search"]:
         fail(f"semantic session_search lost andenken ownership: {tools}")
-    for name in ("session_literal_search", "session_query"):
-        if not tools[name].endswith("session-recall-compat.ts"):
-            fail(f"{name} is not owned by compatibility seam: {tools}")
     if not any(
         record.get("type") == "response"
         and record.get("command") == "get_state"
@@ -188,8 +184,7 @@ def main() -> None:
         fail("RPC state response missing")
 
     # Entwurf keeps the real agent directory for package/auth state while isolating HOME.
-    # Run the actual compat extension under that topology: the prior HOME-derived lookup
-    # exited before a fresh sibling could make its callback.
+    # Retiring a package must not break this existing launch topology.
     with tempfile.TemporaryDirectory(prefix="pi-package-sandbox-") as sandbox_dir:
         sandbox_home = Path(sandbox_dir) / "home"
         sandbox_home.mkdir()
@@ -213,7 +208,7 @@ def main() -> None:
     if "Failed to load extension" in sandbox.stderr or "Cannot find module" in sandbox.stderr:
         fail(sandbox.stderr)
 
-    print("PASS: supported Pi packages load; built-in compaction boundary and recall seam hold")
+    print("PASS: Pi packages load; compaction boundary and Andenken ownership hold; retired recall absent")
 
 
 if __name__ == "__main__":

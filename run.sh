@@ -394,14 +394,14 @@ install_supported_pi_packages() {
   [ -f "$PI_EXTENSION_PACKAGES_FILE" ] || { warn "pi/packages.json: absent"; return 0; }
   command -v pi >/dev/null 2>&1 || { fail "pi packages: pi not in PATH"; return 1; }
   jq -e '
-    .packages | type == "array" and length > 0 and all(.[];
+    .packages | type == "array" and all(.[];
       if type == "string" then length > 0
       elif type == "object" then (.source | type == "string" and length > 0) and
         ((has("extensions") | not) or (.extensions | type == "array"))
       else false end
     )
   ' "$PI_EXTENSION_PACKAGES_FILE" >/dev/null || {
-      fail "pi/packages.json: packages must be non-empty sources or filtered package objects"
+      fail "pi/packages.json: packages must be an array of non-empty sources or filtered package objects"
       return 1
     }
 
@@ -1096,7 +1096,7 @@ setup_links() {
   # hook blocked EVERY tool between 00:00-04:59 until a confirm phrase ran, so
   # freshly woken pi siblings told each other to go to bed instead of working and
   # entwurf's overnight tests could not run. Other devices still carry the link.
-  for stale in "$HOME/.pi/agent/extensions/control.ts" "$HOME/.pi/agent/extensions/go-to-bed.ts" "$HOME/.pi/agent/extensions"/*.bak.*; do
+  for stale in "$HOME/.pi/agent/extensions/control.ts" "$HOME/.pi/agent/extensions/go-to-bed.ts" "$HOME/.pi/agent/extensions/session-recall-compat.ts" "$HOME/.pi/agent/extensions"/*.bak.*; do
     [ -e "$stale" ] || [ -L "$stale" ] || continue
     rm -rf "$stale"
     log "extensions/$(basename "$stale"): removed stale entry"
@@ -1737,7 +1737,7 @@ Usage: ./run.sh <command> [args]
   test:autopilot              autopilot 확장 회귀 — 침묵→DM→consult 스캐폴드, 실행 0 계약 + [DEMO] 판 (API 불필요)
   demo:autopilot              [DEMO] autopilot→decision-gate 다리를 눈으로 — 실물 runConsult(스텁 형제)·dm.sh --dry-run + 설치된 pi 격리 RPC (텔레그램·모델 0)
   test:session-memory-warm    세션 기억 warm-on-demand seam 회귀 (API/임베딩 호출 없음)
-  test:pi-packages            지원 Pi 패키지 로드 + recall tool 충돌 회귀 (API/LLM 호출 없음)
+  test:pi-packages            Pi 패키지 로드·은퇴 recall 부재·도구 소유권 검증 (API/LLM 호출 없음)
   test:pi-durable             pi-durable --native-module: env/hide + background-bash(faux 모델·합성 HOME) + Entwurf ingress (API 0)
                               (옛 이름 test:pi-durable-env 도 같은 명령)
 

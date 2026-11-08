@@ -7,13 +7,14 @@
 - [x] **4. 양쪽 v2026.11.5 태그·GitHub Release** — 기존 태그/출하 원문 보존, Oracle 완료 dated 보충은 원래 cut 본문을 보존해 추가.
 - [x] **5–6. Oracle FTS 완성본 인계·운영 적용** — 현지 15:07:48–15:08:07 원자교체 인수. 초기10518행/ae55 완성 세대와 이후 정상 증분 세대는 별개다. prev·사고본 보존.
 - [x] **7. 새 Sonnet 소비시험·429 수선·정상 전체 증분** — 세션117940/가든11256/OpenClaw10623, 양쪽4096d·검수·게시 완료. 6봇 clean, sup✓4행 백업 후 정리, retained932 보존. 스킬만으로 끝난 것이 아니라 보충·수선 후 guided 운영으로 종료.
-- [ ] **8. 이 집 push 후 Oracle 최종 정렬** ← CURRENT: GLG가 `pi/settings.json`+NEXT 커밋·푸시를 명시 요청. 모델참조 gpt-6.1-terra·테마 두 키 제거로 JSON 유효형태를 유지한다. Andenken `e5165eccbaf37136ddfeb3dd189f13431dec454b`는 양host commit/ff·clean0/0·태그불변 완료(877/Oracle6f eec664 영수증). 이 집 최종SHA를6f에보내 ff-only 영수증으로닫는다.
+- [x] **8. 양repo Git·Oracle 정렬** — 11/5 agent-config `a81b341`/Andenken `e5165ec` 양host clean·태그불변으로종료(Oracle6f `2b22c2`/`eec664`). 현재완료기록은 private `GIT-CLOSEOUT.md` 참조.
+- [ ] **9. session-recall 제거 완료·후속 요청 대기** ← CURRENT: 11/8 공식 `pi remove` BG19475 exit0/1s. `pi list`에는Andenken/Entwurf만유지,설정등록·설치본·compat source/link부재검수통과. 지원manifest제외·빈배열setup허용·문서/부재회귀정합. GLG가이번제거변경의commit/push명시승인;Oracle확장제거·다른기기설정변경0.
 
 현재 좌표: 출하·Oracle FTS 적용 → 수선·3축 정상 증분과 양쪽 검수 완료 → **대기**.
 
 # NOW — 다음 한 걸음
 
-- Next: **승인된 두 파일만 정상commit/push·도장→Oracle6f exactSHA ff-only 정렬**. Andenken push·도장은선완료,Emacs단일writer슬롯해제. Source reference 변경이지 live Pi 설정·theme/실행서비스 변경은아니다. reset/stash/discard/mergecommit·태그변경·새batch/배포0. Git 최종확인은실origin/main·양host HEAD/clean과6f회신으로닫고,추가완료문서커밋루프를만들지않는다. 최종 완료 **DM980 전달완료**(12d,pi-durable/gpt). 같은 완료사건 재통지·형제 중복 DM0.
+- Next: **제거 완료·대기**. BG19475 정상제거와등록/설치본/link부재검수,빈배열setup·shell/JSON/Python구문·diffcheck통과. 전체Pi loader smoke는실HOME/확장startup을실행하므로미실행. 이번변경6경로만정상commit/push·후push도장으로마감;세션원문/semantic-memory·session-recap/Andenken·Entwurf유지. 실행중다른Pi창의기존배너/도구는해당창의다음reload/재시작시반영,자동재시작0. Git마감외Oracle변경·새batch/릴리즈허가는없고기존DM980재통지0.
 - Read: `.agent-reports/20261105-skill-usability-sonnet/CLOSEOUT.md`와 `LAUNCH.json`; 실운영 원문 `~/.private-work/precheck-20261105/`의 D/E/F 로그.
 - Source: Andenken 429수선 source7+NEXT는 `e5165eccbaf37136ddfeb3dd189f13431dec454b`로 정상출하·Oracle ff완료. 이 집은기존 `4276bf5b5ad0cd3f8f6ae8e3949ad98ae4e84ebf` 뒤설정참조/책갈피를이번커밋으로마감한다. 정상hooks/직렬도장만,새tag/release0.
 - Preserve: 원문/annex·closed durable snapshot·retention932·prune backup·oldDB/prev/사고본. reset/rollback/강제 reclaim/락삭제/전역설정·install/restart0. Source writer와 운영 executor는 종료·대기.
