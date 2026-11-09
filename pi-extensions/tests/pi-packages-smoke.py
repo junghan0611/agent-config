@@ -137,13 +137,18 @@ def main() -> None:
     supported = json.loads((Path.cwd() / "pi/packages.json").read_text())["packages"]
     if has_package(supported, COMPACTION_SOURCE):
         fail("supported manifest must not reinstall retired Codex compaction")
-    assert_builtin_compaction(packages)
-
-    if has_package(supported, RECALL_SOURCE) or has_package(packages, RECALL_SOURCE):
-        fail("retired session-recall package must not be configured or reinstalled")
+    # Before the compaction check: that one reads every registered package's manifest,
+    # so a recall entry whose install is gone would surface as "no manifest" instead.
+    if has_package(supported, RECALL_SOURCE):
+        fail("supported manifest must not reinstall retired session-recall")
+    if has_package(packages, RECALL_SOURCE):
+        fail(f"retired session-recall package is still registered in {SETTINGS}; "
+             f"setup does not remove it — run: pi remove {RECALL_SOURCE}")
     compat = GLOBAL_EXTENSIONS / "session-recall-compat.ts"
     if compat.exists() or compat.is_symlink():
-        fail("retired session-recall compatibility extension must be removed")
+        fail(f"retired session-recall compatibility extension is still present: {compat}; "
+             "run: ./run.sh setup:links")
+    assert_builtin_compaction(packages)
 
     with tempfile.TemporaryDirectory(prefix="pi-package-smoke-") as temp_dir:
         probe = Path(temp_dir) / "probe.ts"

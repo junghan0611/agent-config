@@ -425,6 +425,58 @@ install_supported_pi_packages() {
     fi
     ok "pi package: $spec"
   done < <(jq -c '.packages[]' "$PI_EXTENSION_PACKAGES_FILE")
+
+  check_retired_pi_packages
+}
+
+# Packages this manifest once installed and has since retired. Setup does not
+# uninstall them — the pi-telegram rule in setup_npm applies: removing a package
+# from a machine's Pi settings is the operator's call, and that machine may never
+# have run setup since. It reports each leftover with the exact command instead,
+# and the setup doors exit non-zero, so a partial migration is never reported as a
+# clean run. A filtered object entry ({"extensions": []}) loads no code and is
+# inert; a bare string entry loads the raw upstream extension, whose literal
+# `session_search` conflicts with andenken's. Both forms are reported.
+RETIRED_PI_PACKAGES=("npm:@ogulcancelik/pi-session-recall")
+RETIRED_PI_EXTENSIONS=("session-recall-compat.ts")
+RETIRED_PI_LEFTOVERS=()
+
+check_retired_pi_packages() {
+  local settings="$HOME/.pi/agent/settings.json" source forms name path
+  RETIRED_PI_LEFTOVERS=()
+  if [ -e "$settings" ] || [ -L "$settings" ]; then
+    for source in "${RETIRED_PI_PACKAGES[@]}"; do
+      if ! forms=$(jq -r --arg source "$source" '
+          (.packages // []) as $packages
+          | if ($packages | type) != "array" then error("packages is not an array") else $packages end
+          | map(select((type == "string" and . == $source) or (type == "object" and .source? == $source))
+                | if type == "string" then "string" else "filtered object" end)
+          | join(", ")
+        ' "$settings" 2>&1); then
+        fail "pi settings: cannot read packages[] in $settings — retired package check not done: $forms"
+        RETIRED_PI_LEFTOVERS+=("$settings (unreadable)")
+        break
+      fi
+      [ -n "$forms" ] || continue
+      warn "retired Pi package still registered ($forms): $source — remove with: pi remove $source"
+      RETIRED_PI_LEFTOVERS+=("$source")
+    done
+  fi
+  for name in "${RETIRED_PI_EXTENSIONS[@]}"; do
+    path="$HOME/.pi/agent/extensions/$name"
+    [ -e "$path" ] || [ -L "$path" ] || continue
+    warn "retired Pi extension still present: $path — remove with: ./run.sh setup:links"
+    RETIRED_PI_LEFTOVERS+=("$path")
+  done
+  [ ${#RETIRED_PI_LEFTOVERS[@]} -gt 0 ] || ok "pi packages: no retired package registered"
+}
+
+# Exit status of a setup door after check_retired_pi_packages ran: non-zero while
+# a leftover remains. Called at the very end so every other step still runs.
+retired_pi_packages_rc() {
+  [ ${#RETIRED_PI_LEFTOVERS[@]} -gt 0 ] || return 0
+  fail "retired Pi package leftovers remain: ${RETIRED_PI_LEFTOVERS[*]} — setup does not remove them; see the ⚠ lines above"
+  return 1
 }
 
 # Local provider/package repos cloned as SOURCE for dev dogfooding.
@@ -1692,10 +1744,13 @@ setup_all() {
   # delegate paths.
 
   echo ""
+  local rc=0
   if [ "$build_rc" -ne 0 ]; then
     fail "setup finished, but a CLI failed its test suite and was NOT installed (see Build above)"
-    return 1
+    rc=1
   fi
+  retired_pi_packages_rc || rc=1
+  [ "$rc" -eq 0 ] || return 1
   echo "DONE: agent-config setup complete"
 }
 
@@ -1713,7 +1768,7 @@ Usage: ./run.sh <command> [args]
                               → 어떤 디바이스든 이것 하나로 재현
 
   setup:preflight|repos|build|links|pnpm 개별 단계 (디버깅용, 보통 불필요)
-  setup:pi-packages           pi/packages.json의 지원 Pi 패키지 설치/검증
+  setup:pi-packages           pi/packages.json의 지원 Pi 패키지 설치/검증 + 은퇴 패키지 잔존 보고(남으면 exit 1, 제거는 안 함)
   setup:git-hooks             글로벌 git 안전망 설치 (core.hooksPath)
                               → 공개 repo에 민감 단어/시크릿 commit/push 차단
                               → 정식 경로는 nixos-config rebuild. 이건 즉시 활성화용
@@ -1738,6 +1793,7 @@ Usage: ./run.sh <command> [args]
   demo:autopilot              [DEMO] autopilot→decision-gate 다리를 눈으로 — 실물 runConsult(스텁 형제)·dm.sh --dry-run + 설치된 pi 격리 RPC (텔레그램·모델 0)
   test:session-memory-warm    세션 기억 warm-on-demand seam 회귀 (API/임베딩 호출 없음)
   test:pi-packages            Pi 패키지 로드·은퇴 recall 부재·도구 소유권 검증 (API/LLM 호출 없음)
+  test:pi-packages-retired    은퇴 Pi 패키지 잔존 보고·종료 계약 회귀 — 합성 HOME·stub pi (실제 pi/설정 변경 0)
   test:pi-durable             pi-durable --native-module: env/hide + background-bash(faux 모델·합성 HOME) + Entwurf ingress (API 0)
                               (옛 이름 test:pi-durable-env 도 같은 명령)
 
@@ -1838,9 +1894,11 @@ case "${1:-help}" in
   setup:links)
     setup_links ;;
   setup:pnpm|setup:npm)
-    setup_npm ;;
+    setup_npm
+    retired_pi_packages_rc ;;
   setup:pi-packages)
-    install_supported_pi_packages ;;
+    install_supported_pi_packages
+    retired_pi_packages_rc ;;
   setup:git-hooks|setup:hooks)
     setup_git_hooks ;;
   setup:hermes)
@@ -1875,6 +1933,8 @@ case "${1:-help}" in
       bash "$SCRIPT_DIR/pi-extensions/tests/session-memory-warm-launcher.test.sh" ;;
   test:pi-packages)
     python3 "$SCRIPT_DIR/pi-extensions/tests/pi-packages-smoke.py" ;;
+  test:pi-packages-retired)
+    bash "$SCRIPT_DIR/pi-extensions/tests/retired-pi-packages.test.sh" ;;
   test:pi-durable|test:pi-durable-env)
     # 합성 HOME·합성 dotenv·faux 모델만. Entwurf 체크아웃(dist 빌드 + SDK)이 없으면 [prerequisite] 가
     # entwurf-checkout-missing 으로 실패한다(rc 1). 체크아웃 없이 단위만: node --test pi-durable/tests/env.test.mjs
