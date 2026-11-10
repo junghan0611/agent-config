@@ -1,6 +1,6 @@
 ---
 name: tmux
-description: Use tmux instead of bash tool to run commands that take more than ~30 seconds, like bulk operations, db migrations, dev servers.
+description: Use tmux instead of bash tool to run commands that take more than ~30 seconds, like bulk operations, db migrations, dev servers. Also inspect tmux windows, change display names, or move a window before/after another. 창 이름·표시명 변경, 창 순서·배치 정리. Native tmux UI operations, not agent identity or automatic ordering.
 ---
 
 # tmux for Long-Running Processes
@@ -32,6 +32,51 @@ the 2000-line default, so **the very output you meant to show gets truncated.**
 
 Private sockets are for *diagnosis only* — `find-sessions.sh --all` and
 `wait-for-text.sh -L|-S` can look at them. Never create on one.
+
+## Window display names and order
+
+Window layout is separate from session naming and agent identity. These native
+commands also apply to ordinary bash/editor windows. A documentation change is
+not permission to rearrange the user's windows: obtain that operation's scope.
+
+Use the same host/server and a freshly selected session. Set `SESSION` to its
+native session ID (quote a literal ID such as `'$3'`); set `WINDOW`, `SOURCE`
+and `DEST` to freshly confirmed native window IDs such as `@42`, not labels or
+indices. Start with unlinked windows in that one session only; source and
+destination must be distinct. Confirm installed command support before changes;
+the required-variable expansions below reject unset or empty targets.
+
+| Operation | Native command |
+|---|---|
+| Confirm server context | `tmux display-message -p '#{socket_path} #{pid}'` |
+| List sessions | `tmux list-sessions -F '#{session_id} name=#{session_name} attached=#{session_attached}'` |
+| List windows and active-pane IDs | `tmux list-windows -t "${SESSION:?}" -F '#{session_id} #{window_id} index=#{window_index} active=#{window_active} pane=#{pane_id} linked=#{window_linked} name=#{window_name}'` |
+| Set a display name (example only) | `tmux rename-window -t "${WINDOW:?}" opus1` |
+| Move a window before another | `tmux move-window -d -b -s "${SOURCE:?}" -t "${DEST:?}"` |
+| Move a window after another | `tmux move-window -d -a -s "${SOURCE:?}" -t "${DEST:?}"` |
+
+- Reconfirm membership and unlinked status before each change. Names may be
+  duplicated and indices may change; neither is a stable target or evidence of
+  a model, role, liveness or garden identity. Any citizen-to-window join belongs
+  to the caller's separate current verification, not this UI operation.
+- `opus1` is an example, not a naming policy. Pass names as data, never `eval`
+  or shell-built commands. These examples do not certify arbitrary strings;
+  verify escaping for tmux command separators and other special input first.
+- Manual naming disables `automatic-rename` for that window. Do not change
+  global configuration, `pane_title` (including Codex's caller carrier), status
+  formats, or actual session names as part of this operation.
+- Record active window/pane IDs before moving. `-d` only means the new position
+  is not selected; it does not promise unchanged focus. If the source is active,
+  removing its old position may hand focus to another window. Re-list afterward
+  and compare IDs, not indices, for focus and order. Stop and report unexpected
+  changes. Never use `-k`, recreate/kill windows, restart processes, or send TUI
+  input.
+- Concurrent append/closure or partial failure: re-list, report the actual
+  state and stop. Multiple moves are not atomic; no automatic rollback or
+  unbounded retry. Do not invent omitted-window/full-order policies.
+- No automatic model numbering, role sorting, `team.json` runtime loading or
+  launch-placement changes. Shared skill links do not prove that every isolated
+  or already-running harness has discovered this guidance.
 
 ## Start a Process
 
@@ -201,8 +246,9 @@ Under a config with `base-index 1` / `pane-base-index 1` — common, and the cas
 here — the first pane is `session:1.1`, so **`:0.0` refers to nothing** and every
 read silently times out while the pane plainly shows the text you asked for.
 
-Pass the **session name alone**. It resolves to the active pane regardless of
-numbering:
+For reading the session's active pane, pass the **session name alone**. It
+resolves to that pane regardless of numbering. This is not window selection for
+rename/reorder operations; use the native window IDs described above:
 
 ```bash
 tmux capture-pane -p -J -t <name> -S -200     # correct
@@ -248,8 +294,8 @@ have read the result. Left alone, the user's `tmux ls` fills with dead sessions.
 2. **No output redirection** — use `pipe-pane -o` to keep both screen and log
 3. **Set the size** — `-x`/`-y` from the user's window (80x24 truncates)
 4. **Pin the lifetime** — `\; set-option -t <name> remain-on-exit on`, same round trip
-5. **Target by session name** — never hardcode `:0.0`; it is not pane 1 under
-   `base-index 1`
+5. **Active-pane reads: target by session name** — never hardcode `:0.0` under
+   `base-index 1`. Window rename/reorder uses fresh native window IDs instead.
 6. **Descriptive session names**
 7. **Check `tmux ls` first** to avoid name collisions
 8. **Print the user's monitoring commands** right after starting
