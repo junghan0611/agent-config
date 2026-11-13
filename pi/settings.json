@@ -7,7 +7,7 @@
 
   "_no_packages": "This settings reference still declares NO packages because Pi's installer owns the live packages[] array and entwurf self-registers there. Array merge would create a false second owner. Supported third-party Pi extensions instead live in pi/packages.json; `./run.sh setup:pi-packages` installs a missing package or runs Pi's extension-only update for an installed one. andenken remains a cross-harness semantic-memory skill; its pi-native registerTool is convenience, not the shared door.",
 
-  "_no_compaction": "Do not add a compaction policy key here. Compaction must be allowed to occur on the harness that owns it: Pi runs its normal lifecycle with built-in text-summary compaction for every provider; entwurf likewise does not manage a suppress/enable policy. Do not reinstall the retired Codex-native checkpoint extension. `/new` + `/recall` is cross-harness continuity practice, not a configuration lock. See README § Session Management.",
+  "_compaction": "GLG explicitly requested 500k auto-compaction thresholds for Entwurf Opus 5.5 and Sonnet 5.5 on 2026-11-13. Pi 1.5.2+ supports exact provider/modelId compaction.modelOverrides: reserveTokens 500000 against each truthful 1000000-token context window triggers above 500000 tokens. Other models keep Pi's ordinary budgets. This reference does not override enabled; Pi's built-in lifecycle and text summaries remain authoritative, not an Entwurf compaction policy or a replacement extension. Do not reinstall the retired Codex-native checkpoint extension. Existing live values still win setup merges; live changes need an explicit operator edit and settings reload/new process. See docs/memory-and-sessions.md § Per-model auto-compaction budgets.",
 
   "_tui": "tmux에서 쓰기 위해 tuiMode는 regular로 둔다(GLG 결정 2026-10-03, Oracle live 설정 확인). Pi 1.0 기본값 fullscreen 대신 일반 화면을 쓰는 사용자 선택이며, 하네스 결함 판정은 아니다.",
 
@@ -16,6 +16,16 @@
     "defaultProvider": "openai-codex",
     "defaultModel": "gpt-6.1-terra",
     "hideThinkingBlock": false,
+    "compaction": {
+      "modelOverrides": {
+        "entwurf/claude-opus-5-5": {
+          "reserveTokens": 500000
+        },
+        "entwurf/claude-sonnet-5-5": {
+          "reserveTokens": 500000
+        }
+      }
+    },
     "entwurfProvider": {
       "appendSystemPrompt": false,
       "showToolNotifications": true,

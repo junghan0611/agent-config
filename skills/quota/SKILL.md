@@ -1,6 +1,6 @@
 ---
 name: quota
-description: "세 개 활성 모델 구독(rail)의 남은 쿼터를 한 번에 조회 — ChatGPT Pro/Codex의 plan-provided 윈도우, Claude 5h/7d 윈도우, Grok SuperGrok weekly credit usage. Copilot은 사용 중단으로 수집하지 않는다. GLG가 다음 분신을 어느 rail로 보낼지 결정할 때 쓴다. Use when: '쿼터', '얼마 남았', '남은 크레딧', '어디로 보낼까', 'quota', 'usage', 'how much is left', 'which rail', 'rate limit check'."
+description: "두 개 활성 모델 구독(rail)의 남은 쿼터를 한 번에 조회 — ChatGPT Pro/Codex의 plan-provided 윈도우와 Claude 5h/7d 윈도우. Grok·Copilot은 사용 중단으로 수집하지 않는다. GLG가 다음 분신을 어느 rail로 보낼지 결정할 때 쓴다. Use when: '쿼터', '얼마 남았', '남은 크레딧', '어디로 보낼까', 'quota', 'usage', 'how much is left', 'which rail', 'rate limit check'."
 user_invocable: true
 ---
 
@@ -20,20 +20,22 @@ python3 {baseDir}/scripts/quota.py --json     # 정규화 스냅샷
 ./run.sh quota:json            # 정규화 스냅샷
 ```
 
-세 active rail을 GET해서 한 화면에 정렬한다. 과거 이력도, 알림도 아니다 — **지금 이 순간의 상태**만
+두 active rail을 GET해서 한 화면에 정렬한다. 과거 이력도, 알림도 아니다 — **지금 이 순간의 상태**만
 답한다. 스크립트가 숫자를 찍으면, 에이전트가 그걸 읽어 GLG에게 산문으로 설명한다.
 
 ## 구조 — 수집 1개, 렌더러 3개
 
 ```
-scripts/railauth.py   자격증명 로딩 · HTTP · grok OIDC 갱신
-scripts/collect.py    3 rail GET → 정규화 스냅샷  ← 유일한 진실
+scripts/railauth.py   자격증명 로딩 · HTTP
+scripts/collect.py    2 rail GET → 정규화 스냅샷  ← 유일한 진실
 scripts/render.py     막대 · 리셋 시계 · 텍스트 레이아웃 (TUI와 웹이 공유)
 scripts/quota.py      1회 / --watch(TUI) / --json
 scripts/serve.py      127.0.0.1 웹 + /api/snapshot.json
 ```
 
 **렌더러는 벤더를 직접 때리지 않는다.** 전부 `collect.snapshot()`을 그린다.
+
+Grok collection, credential reads and OIDC refresh were removed on 2026-11-13. Old Grok cache entries are ignored; credential files are not deleted. Already-running TUI/web processes may retain old code and need reopening to use this change.
 
 폴링 방어는 두 층이다. `serve.py`가 스냅샷 전체를 TTL 300초로 캐시하고, 그와 별개로
 `collect.py`가 **레일별 캐시**(`~/.local/share/quota/rails.json`)를 둔다. 레일 캐시는
@@ -55,7 +57,7 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
                "resets_at","window","basis","active","note"}]}]}
 ```
 
-세 active vendor 화면이 전부 같은 물건이다 — **레이블 + 퍼센트 + (선택) 사용/한도 + 리셋 시각**.
+두 active vendor 화면이 전부 같은 물건이다 — **레이블 + 퍼센트 + (선택) 사용/한도 + 리셋 시각**.
 차이는 단위뿐(요청 수 / 크레딧 / 퍼센트만).
 
 ## 리셋 기준 — rail마다 다르다
@@ -66,7 +68,6 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 |---|---|---|---|---|
 | claude | 7d | 월 06:59:59 | `anchor` | 절대 시각만 옴. 5h/7d/7d-scoped 셋이 같은 경계 |
 | codex | plan-provided (현재 Pro: 7d primary) | 응답 `reset_at` | `rolling` | product tier가 아니라 응답 window이 정본 |
-| grok | 7d | 금 18:11 | `period` | `currentPeriod.start/end` 명시 |
 `basis`는 **엔드포인트가 실제로 알려준 것만** 기록한다. 절대 시각 하나만 오는 rail을
 "롤링"이라 단정하지 않는다(`anchor`). 그래서 화면은 항상 요일과 남은 시간을 같이 찍는다 —
 "7일 남음"만으로는 어느 요일에 벽이 오는지 알 수 없다.
@@ -87,18 +88,14 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
   (벽 앞에서는 "페이스대로"가 위안이 안 된다).
 - 경과율 5% 미만이면 비율이 요동치므로 배속을 안 찍고 절대치로 판정한다.
 
-`period_start`는 벤더가 주면 그대로(grok `currentPeriod.start`), 없으면
+`period_start`는 벤더가 주면 그대로, 없으면
 `resets_at - window_seconds`로 유도한다.
 
 ## 일부러 안 찍는 것
 
 라우팅 판단에 쓰이지 않는 게이지는 뺐다 — 화면은 훑어보는 물건이지 감사 로그가 아니다.
 
-- **codex 추가 크레딧**: 잔액 0이고 살 계획이 없다
-- **grok GrokBuild / GrokChat 내역**: 주간 크레딧 한 줄이면 충분하다
-
-둘 다 `collect.py`에서 게이지를 만들지 않는 것이고, 필드는 응답에 그대로 있다. 되살리려면
-`collect_codex` 끝의 credits 블록 / `collect_grok`의 `productUsage` 루프를 복원하면 된다.
+- **codex 추가 크레딧**: 잔액 0이고 살 계획이 없다. `collect.py`에서 게이지를 만들지 않는다.
 
 ## 화면이 지키는 것
 
@@ -113,23 +110,6 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 |---|---|---|
 | codex | ChatGPT Pro / Codex — endpoint가 준 primary·secondary window 사용률 | `GET chatgpt.com/backend-api/wham/usage` |
 | claude | Claude Code 구독 — `limits[]` (5h 세션 · 7d 전체 · 7d 모델별) | `GET api.anthropic.com/api/oauth/usage` |
-| grok | SuperGrok **주간** credit 사용률 (`creditUsagePercent`) | `GET cli-chat-proxy.grok.com/v1/billing?format=credits` |
-
-## grok은 두 지표가 있다 — 혼동 금지
-
-| 지표 | 출처 | 이 스킬이 쓰나 | 의미 |
-|---|---|---|---|
-| **weekly credit usage** | `cli-chat-proxy.grok.com/v1/billing?format=credits` → `creditUsagePercent` | **예 (기본)** | SuperGrok 주간 구독 한도. grok.com/?_s=usage · `grok` CLI 와 같은 숫자 |
-| **per-minute rate ceiling** | `POST api.x.ai/v1/chat/completions` 응답 헤더 `x-ratelimit-*` | 아니오 | 분당 RPM/TPM 상한. 구독 잔액이 아니다. 확인 자체가 max_tokens=1 완성 1회를 소비함 |
-
-기본 출력은 weekly credit 만 찍는다. rate ceiling 이 필요하면 검증 원본의 copy-paste 명령을 직접 돌릴 것 — 라우팅 판단용 숫자가 아니다.
-
-Auth 도 갈라진다:
-
-- weekly billing → `~/.grok/auth.json` 의 OIDC access token (`.<scope>.key`, ~6h 만료)
-- rate ceiling → `~/.pi/agent/auth.json` 의 `xai.access` (api.x.ai 키)
-
-access token 이 만료됐거나 401 이면 스크립트가 `https://auth.x.ai/oauth2/token` 으로 refresh_token grant 를 한 번 시도하고, 성공 시 `auth.json` 에 갱신분을 best-effort 로 다시 쓴다. `grok` CLI 가 이미 갱신해 둔 최신 파일을 읽는 것만으로 충분한 경우가 대부분이다.
 
 ## 자격증명
 
@@ -137,11 +117,10 @@ access token 이 만료됐거나 401 이면 스크립트가 `https://auth.x.ai/o
 
 - `~/.pi/agent/auth.json` — `openai-codex`(`access` + `accountId`)
 - `~/.claude/.credentials.json` — `claudeAiOauth.accessToken`
-- `~/.grok/auth.json` — OIDC scope 키 아래 `key` / `refresh_token` / `expires_at` / `oidc_client_id` / `oidc_issuer` (grok weekly billing 전용)
 
 ## 취약점 — 정직하게
 
-세 엔드포인트 중 **공식 문서에 실린 것은 없다**. 전부 각 벤더의 공식 CLI/앱이 내부적으로
+두 엔드포인트 중 **공식 문서에 실린 것은 없다**. 전부 각 벤더의 공식 CLI/앱이 내부적으로
 때리는 걸 관찰해서 찾은 것 — 벤더가 언제든 바꿀 수 있다. 실패는 개별 rail 단위로 격리된다:
 한 엔드포인트가 죽어도 `UNAVAILABLE — <이유>`만 찍고 나머지는 계속 진행한다.
 
@@ -164,9 +143,6 @@ access token 이 만료됐거나 401 이면 스크립트가 `https://auth.x.ai/o
   있으므로 `plan_type`과 primary/secondary window를 응답 그대로 읽는다.** GLG의 ChatGPT Pro
   승격(2026-09-10) 직후 receipt는 `plan_type:"prolite"`, `7d primary`, 0%였다; 화면은 이
   내부 식별자를 `ChatGPT Pro (prolite)`로 보인다.
-- **grok**: `cli-chat-proxy.grok.com` 은 grok CLI 전용 프록시. access token ~6h 만료;
-  refresh 실패 시 `UNAVAILABLE — HTTP 401` 로 보이며, 그때는 `grok` CLI 를 한 번 띄워
-  auth.json 을 갱신하면 된다. `creditUsagePercent` 필드명/의미는 문서화되어 있지 않다.
 
 검증 원본(실제 응답 예시, 발견 경위, 채택하지 않기로 한 오픈소스 대안 비교)은
 `~/repos/gh/agent-config/.agent-reports/quota-checks-20260820.md`.
@@ -178,6 +154,6 @@ access token 이 만료됐거나 401 이면 스크립트가 `https://auth.x.ai/o
 - **이력**: 스냅샷을 `~/.local/share/quota/quota.db`(sqlite)에 append. 스키마가 이미
   시계열이라 스파크라인·소진 속도·"이 속도면 언제 벽" 예측이 따라온다.
   seam은 이미 있다 — `serve.py`가 갱신할 때마다 `~/.local/share/quota/last.json`을 쓴다.
-- **귀속(누가 얼마나 썼나)**: **이 세 엔드포인트로는 원리적으로 안 나온다.** 계정 총합만
+- **귀속(누가 얼마나 썼나)**: **이 두 엔드포인트로는 원리적으로 안 나온다.** 계정 총합만
   준다. 귀속은 하네스 로그(Claude Code JSONL, codex 로그, pi 세션)에서 따로 와야 하고,
   시간축으로 조인하는 별개 테이블이다. 섞으면 1단계가 무너진다.

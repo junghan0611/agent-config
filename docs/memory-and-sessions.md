@@ -16,6 +16,14 @@ Sessions and md embed through **OpenRouter Qwen3-Embedding-8B at 4096d**, with L
 
 Agents call these autonomously. Ask "find notes on universal scholarship" and the md knowledge surface fires with dictcli query expansion. The older org embedding track is disabled in production; use `denotecli` for exact/raw Denote lookups. Loading strategy per harness lives in the [Harness Support](harness-surfaces.md#harness-support) table.
 
+### 2026-11-13 — Inter-agent transport records are readable, not embedding inputs
+
+GLG explicitly approved keeping inter-agent custom messages and inbox tool results out of session embeddings; exclusion is desirable, not by itself a defect to repair. Preserve these records for original-context readback. Do not relabel a sibling message as human input merely to make it searchable, and do not enable re-indexing or paid embedding as a consequence of this decision.
+
+The inspected Andenken source (`e5165ec`) distinguishes extraction from readback: Pi `custom_message` entries, including `entwurf-message`, do not produce embedding chunks; Claude Code inbox bodies stored inside `tool_result` blocks are not extracted as message text; pi-durable B.1 treats tool results and non-human transport origins as readable-only. The excerpt reader can nevertheless show allowlisted `entwurf-message` records, including their transport metadata. `session-info` with `display:false` is not dialogue.
+
+This is not a claim that every delivery format is normalized identically: ordinary `user` text can still be eligible, and replies or quotations may contain the same information elsewhere. Native/ACP Pi share the relevant parser exclusion; this is not an ACP-only rule. Other hosts' latest source, every native harness, deployed readers and the live index were not audited for parity. Any later policy change must distinguish meaningful content, notifications and provenance explicitly rather than treating a readable record as automatic permission to embed it.
+
 ## Session Management — `/new` + recall
 
 `/new` + recall is the explicit cross-harness recovery path when a new session is the right boundary. It is not an alternative policy that suppresses in-session compaction.
@@ -30,11 +38,11 @@ Compaction is an allowed lifecycle on every harness; agent-config and entwurf do
 |---|---|---|
 | `~/.claude/settings.json` | **no compaction key at all** | oracle, 2026-09-04 |
 | `~/.pi/agent/settings.json` (live) | `compaction.enabled: true` | oracle, 2026-09-04 |
-| `pi/settings.json` (this repo's reference) | **removed 2026-09-04** — was `enabled: false` | this release |
+| `pi/settings.json` (this repo's reference) | No `enabled` override; exact-model token budgets added below | 2026-11-13 |
 
-entwurf retired `autoCompactEnabled` and `env.DISABLE_AUTOCOMPACT` from its managed settings in 0.17.2 (#94). That retirement leaves timing and enablement to the harness that owns them; it does not prescribe a state. `pi/settings.json` likewise carries no compaction key, so a fresh machine receives Pi defaults rather than a stale policy.
+entwurf retired `autoCompactEnabled` and `env.DISABLE_AUTOCOMPACT` from its managed settings in 0.17.2 (#94). That retirement leaves timing and enablement to the harness that owns them; it does not prescribe a state. `pi/settings.json` likewise carries no compaction enable/disable override. The explicit operator-selected token budgets below use Pi's own lifecycle rather than replacing it.
 
-As of 2026-10-03, compaction is left to **Pi's built-in text summarization for every provider, including `openai-codex`**. The Codex-native checkpoint extension is retired; no replacement compaction extension or policy key is installed. Text summaries are readable and can travel across models; faster compaction is not guaranteed. `/recall` still serves the distinct job of crossing sessions and harnesses.
+As of 2026-10-03, compaction is left to **Pi's built-in text summarization for every provider, including `openai-codex`**. The Codex-native checkpoint extension is retired; no replacement compaction extension is installed. Text summaries are readable and can travel across models; faster compaction is not guaranteed. `/recall` still serves the distinct job of crossing sessions and harnesses.
 
 **Migration:** removing a package from `pi/packages.json` does not uninstall it on an existing device. Run `pi remove npm:@ogulcancelik/pi-codex-compaction` on each device, then start a **new Pi process and session**. A running process may retain the loaded extension. Do not resume an old native-checkpoint session without it: the visible summary is only a marker, while the actual context requires the removed extension's `details.replacementHistory` handling. Keep old transcripts as evidence and recover through `/recall` instead.
 
@@ -49,6 +57,14 @@ As of 2026-10-03, compaction is left to **Pi's built-in text summarization for e
 The answer must state which axes were seen and which were not. This keeps `/recall` token-light while avoiding false confidence from a plausible single-session summary.
 
 The protocol itself lives in [`commands/recall.md`](../commands/recall.md). The 2026-05-08 derivation history and raw evidence log are kept as a Denote llmlog note (`20260508T090911`, `~/org/llmlog/`) rather than as in-repo docs — `/recall` is a resident-side memory workflow, not a spec this repo carries. Renamed from `/recap` on 2026-05-12 to avoid shadowing Claude Code's built-in `/recap` (one-line session summary, feature-flagged via `tengu_sedge_lantern`); the two now coexist.
+
+### Per-model auto-compaction budgets
+
+On 2026-11-13 GLG explicitly requested automatic compaction above approximately 500k tokens for Entwurf Opus and Sonnet. Pi 1.5.2's existing `compaction.modelOverrides` supports this without an extension or a false model context window. The curated registry was read locally: exact keys `entwurf/claude-opus-5-5` and `entwurf/claude-sonnet-5-5`, both with `contextWindow: 1000000`. The reference's `_common` sets `reserveTokens: 500000` for those two keys only; Pi's strict comparison is `contextTokens > contextWindow - reserveTokens`. GPT and other model keys retain their ordinary token settings; the default reserve is 16384 and default recent tail is 20000. `enabled` remains a global Pi setting, not a per-model flag.
+
+This is `compaction.modelOverrides` in **settings.json**, not model metadata overrides in models.json. Both device overlays inherit the reference. Existing live settings are co-owned and win setup merges, so the explicitly requested Oracle live keys were also updated while preserving other values. Settings already cached in a running Pi need `/reload` or a new process; no session was restarted or forced to compact for this change.
+
+For ACP Claude, the inspected producer puts context occupancy from `usage_update.used` in Pi's `usage.totalTokens`, while turn-wide accounting stays under `usage.acp`; these are different quantities. Missing notifications may retain an earlier observation or fall back to Pi's local estimate, so the threshold is not a live measurement of an exact vendor boundary. After compaction the changed history fails ACP's reuse-prefix check, causing a fresh child session with the Pi summary and recent context. GLG explicitly accepted that reconstruction. Actual compaction success and total cache/billing savings were not measured; a new ACP session does not prove that every common prompt prefix is cold.
 
 ## Session originals under version control — #32 v1 preparation
 

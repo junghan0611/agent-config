@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect the three active model rails into one normalized snapshot.
+"""Collect the two active model rails into one normalized snapshot.
 
 This is the single source of truth: quota.py (text), --watch (TUI) and
 serve.py (web) all render *this* dict and never call a vendor endpoint
@@ -24,7 +24,7 @@ we derive it as resets_at - window_seconds.
 `basis` records what the endpoint actually tells us about the window, so
 the display never overstates it:
     rolling  -- vendor returns a relative countdown (codex)
-    period   -- vendor returns explicit start/end (grok)
+    period   -- vendor returns explicit start/end
     anchor   -- absolute reset instant only; period length inferred (claude)
 
 Never prints a raw token. Credentials are read from local files straight
@@ -39,7 +39,7 @@ import urllib.error
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import railauth as _q  # verified auth/refresh plumbing
+import railauth as _q  # shared credential loading and HTTP
 
 KST = datetime.timezone(datetime.timedelta(hours=9))
 
@@ -157,38 +157,6 @@ def collect_claude():
     return {"plan": None, "gauges": gauges}
 
 
-def collect_grok():
-    tok, data, scope, entry = _q._grok_access_token()
-    url = "https://cli-chat-proxy.grok.com/v1/billing?format=credits"
-    headers = {"Authorization": f"Bearer {tok}", "Accept": "application/json",
-               "User-Agent": "quota-skill/1.0"}
-    try:
-        _, body = _q._get(url, headers=headers)
-    except urllib.error.HTTPError as e:
-        if e.code != 401:
-            raise
-        updates = _q._grok_refresh_oidc(entry)
-        entry.update(updates)
-        _q._grok_persist_auth(data, scope, updates)
-        headers["Authorization"] = f"Bearer {entry['key']}"
-        _, body = _q._get(url, headers=headers)
-    cfg = json.loads(body)["config"]
-    period = cfg.get("currentPeriod") or {}
-    end = period.get("end") or cfg.get("billingPeriodEnd")
-    reset = _iso(datetime.datetime.fromisoformat(end.replace("Z", "+00:00"))) if end else None
-    start = period.get("start")
-    start = _iso(datetime.datetime.fromisoformat(start.replace("Z", "+00:00"))) if start else None
-    gauges = [gauge("weekly", "weekly credits", cfg.get("creditUsagePercent"),
-                    resets_at=reset, period_start=start, window="7d",
-                    basis="period", active=True)]
-    cap = (cfg.get("onDemandCap") or {}).get("val", 0) or 0
-    if cap:
-        used = (cfg.get("onDemandUsed") or {}).get("val", 0) or 0
-        gauges.append(gauge("ondemand", "추가 크레딧", 100.0 * used / cap,
-                            used=used, limit=cap, unit="credit", basis="calendar"))
-    return {"plan": None, "gauges": gauges}
-
-
 # --- per-rail cache -------------------------------------------------------
 #
 # Two jobs. (1) Do not re-poll a rail that answered moments ago -- claude's
@@ -234,7 +202,6 @@ def _age(entry, now):
 RAILS = [
     ("claude", collect_claude),
     ("codex", collect_codex),
-    ("grok", collect_grok),
 ]
 
 
