@@ -1,8 +1,25 @@
 # NEXT — agent-config
 
+# RAIL — 현재 좌표
+
+- [x] **1. 요약 수집 수선·소규모 검증** — Andenken의 Pi(ACP 포함) 표준 compaction 요약 누락과 Claude Code 요약 분류를 수선. durable 기존 요약 보존. focused API-0 결과는 Opus 영수증 인수.
+- [ ] **2. 양 저장소 Git 게시** ← CURRENT: GLG의 11/14 명시 승인으로 agent-config NEXT와 Andenken 수선 6파일을 정상 커밋·푸시. 결과를 Entwurf ff08d4에 전달.
+- [ ] **3. 노트북 완전 전체 재임베딩 권장** — 과거 파일까지 새 파서로 다시 추출·임베딩하는 별도 실행 범위. 지금 Oracle에서 실행하지 않는다.
+
+# NOW — 다음 한 걸음
+
+- **권장: 노트북에서 완전 전체 재임베딩.** 이번에는 단순 전역 증분 최신화가 아니라, 변경 없는 과거 세션까지 새 파서로 재추출·재임베딩하여 Pi 요약 누락과 Claude Code 요약의 기존 `user` 분류를 보완하는 것이 목표다. 대상 하네스는 **Pi(ACP 포함)·Claude Code·pi-durable만**이며, 이미 입수된 durable 스냅샷 경계는 유지한다. 원본 삭제나 live DB 직접 수집을 뜻하지 않는다.
+- **실행 전 별도 게이트:** 노트북의 코드·정책 pin·실행 경로를 확인하고, Andenken의 `andenken-embed` 권한 스킬에 따라 범위·비용을 산정한 뒤 GLG의 비용 승인을 받는다. `control-v1` pinned 데이터에 legacy `--force`를 밀어 넣지 않는다. 후보 빌드 등 적합한 재처리 경로는 Andenken 담당자와 확정한다. 이 권장은 지금의 유료 실행·재처리 승인이 아니다.
+- 일반 증분은 변경 없는 과거 파일을 다시 읽지 않아 수선 전후 행이 공존할 수 있다. **전체 재임베딩이 유일한 복구 수단이라는 뜻은 아니며**, 이번에는 GLG가 요청한 권장 경로로 남긴다. Garden/OpenClaw 전체 최신화도 함께 수행할 경우 세션의 완전 재처리와 구분하고 각 축의 검증·게시 영수증을 받는다.
+- CLI sync는 소스 변경을 사용하지만 Pi의 excerpt 확장은 새 `dist/` 빌드·로드가 필요하다. 노트북 설치·실제 로더와 restart/reload 방식은 미검증이다. Oracle 설치·재시작·DB/원문 변경·전체 임베딩은 하지 않는다.
+- 이번 수선은 **감량이 아니라 누락 회복·분류 정정**이다. 반복 요약 사본 제거·최신 요약만 보존·원문 대체는 미채택. CC transcript window는 기존 표시 계약 때문에 `user` 라벨을 유지한다.
+- Read: `.agent-reports/20261114-summary-selection/NEXT.md`; Andenken `session-indexer.ts`, `session-excerpt.ts`, `session-window.ts`와 대응 테스트. 공개 Git에는 코드·이 NEXT만 싣고 host-local 영수증은 로컬 인계에서 확인한다.
+
+---
+
 > **2026-11-09 두 형제 작업 종료·Git 마감.** Opus754의 이식 경계 수선과 Sonnet969의 증분·Oracle 동기화는 원문 인수 완료. GLG가 수선4파일+NEXT 커밋·푸시를 명시 승인했다. 이후 새 실행·검수·배포는 자동 시작하지 않는다.
 
-# RAIL — 현재 좌표
+# LEDGER — 11/9 이전 좌표
 
 - [x] **4–8. 이전 FTS 출하·운영·Git 마감** — 11/5 전체 증분과 양repo Oracle ff, 11/8 session-recall 로컬 제거·`1c5b893` push/도장 완료. 이전 영수증은 아래 참조.
 - [x] **9. 11/9 이식 경계 수선·새 증분** — Opus754의 합성 옛 설치 감지/안내·nonzero 수선 동결. 세션118191/가든11240/OpenClaw10824 양host4096·검수/게시 완료. 6봇 clean, sup✓84 백업 후 정리, retained932 보존.
@@ -10,9 +27,9 @@
 
 현재 좌표: glgdot 이식 경계 신고 → 형제 수선/검수·오늘3축 동기화 완료 → **대기**.
 
-# NOW — 다음 한 걸음
+## 11/9 종료 시점
 
-- Next: **새 GLG 요청 대기**. `~/.private-work/FTS-TAIL-20261109/{FTS-TAIL-REPORT.md,S3-synthetic.log,tail-probe.mjs}`와store.ts803–875/설치query.d.ts225–232 직접대조완료。기본경로는fake unindexed3의ASCII/한글·교체newtoken검색/oldtoken제외,fastSearch는tail제외、temp optimize후그fastquery도hit관측。진짜1675행·필터조합·score/perf/loadedreader검증아님。현재근거로prod optimize/replace/재임베딩하지않고종료。기존운영완료DM996은별개완료알림/중복0. 오늘수선은정상commit/push·후push도장으로닫으며이후새작업은시작하지않는다.
+- Next: **당시 종료 기록 — 새 GLG 요청 대기**. `~/.private-work/FTS-TAIL-20261109/{FTS-TAIL-REPORT.md,S3-synthetic.log,tail-probe.mjs}`와store.ts803–875/설치query.d.ts225–232 직접대조완료。기본경로는fake unindexed3의ASCII/한글·교체newtoken검색/oldtoken제외,fastSearch는tail제외、temp optimize후그fastquery도hit관측。진짜1675행·필터조합·score/perf/loadedreader검증아님。현재근거로prod optimize/replace/재임베딩하지않고종료。기존운영완료DM996은별개완료알림/중복0. 오늘수선은정상commit/push·후push도장으로닫으며이후새작업은시작하지않는다.
 - Read: `.agent-reports/20261109-two-lanes/CLOSEOUT.md`; 오늘 임베딩 원문 `~/.private-work/precheck-20261109/{G,H,J}*.log`. Opus 원문은 전달받은 tool_result 위치/인용과 source diff로 구분하며 test 재실행/직접 JSONL 읽기0.
 - Source: agent-config base `1c5b893`. Opus 변경은 `run.sh`, `docs/pi-extensions.md`, `pi-extensions/tests/pi-packages-smoke.py`, 새 `pi-extensions/tests/retired-pi-packages.test.sh`. NEXT는 코디 소유. Andenken e5165ec·기존 수선7핀/코드 clean은 Sonnet의 오늘 관측이다.
 - Do not touch: 원문/annex·closed snapshot·보존 archive·prune backup·oldDB/prev·사고본. 이번5파일Git마감외 추가commitpush·Oracle code/프로필배포·자동package제거·setup/install/restart·production새batch·broadtest/실API·새형제/임의resume0. FTS최소합성fixture의temp쓰기만예외이며실데이터복사·수선은없다. notes rootNEXT의 타인 변경1개는 content밖/HEADe90a91 불변으로 관측·보존했다.
