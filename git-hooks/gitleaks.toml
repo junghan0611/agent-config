@@ -34,6 +34,20 @@ regexes = [
   '''(?i)example|placeholder|your[-_]?api[-_]?key|xxx+|test[-_]?key|sample|dummy|fake''',
 ]
 
+# OpenClaw 2026.11.3 public artifact checksum, independently verified at:
+# https://unpkg.com/openclaw@2026.11.3/dist/session-key-CSDERtm3.mjs
+# Inherit the default rule; exempt only this exact filename/checksum match.
+# Do not exempt the entire file, all SHA-256 values, or the surrounding line.
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Verified OpenClaw session-key artifact checksum pin"
+regexTarget = "match"
+regexes = [
+  '''^session-key-CSDERtm3[.]mjs", "ce1d2ed04cd22cfedaf92acefb59e32c9c522e5b75c6907fccf9f9d80df67299"$''',
+]
+
 # ============================================================
 # AI / LLM API Keys
 # ============================================================

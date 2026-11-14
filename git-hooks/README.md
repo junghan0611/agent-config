@@ -100,6 +100,22 @@ scans against synthetic commit objects: unchanged keys in hunk context and remov
 secrets pass; actual added tokens (including allowlisted paths) remain blocked.
 It performs no commit or push to a real repository and no network request.
 
+### Verified public checksum exception
+
+`generic-api-key` can mistake a filename containing `session-key` followed by a
+SHA-256 pin for a credential. The config inherits that default rule and adds one
+**match-scoped** exception: the exact `session-key-CSDERtm3.mjs` filename plus its
+verified OpenClaw 2026.11.3 checksum. The source is the public
+[distribution artifact](https://unpkg.com/openclaw@2026.11.3/dist/session-key-CSDERtm3.mjs);
+its SHA-256 is recorded in the config. This is not a blanket hash, line, or file
+exception. Other digests, filenames, key assignments and secrets on the same line
+or elsewhere in the same file remain subject to scanning. `.git-hooks-allow`
+cannot resolve this kind of gitleaks finding.
+
+`test-added-secrets.py` covers the exact pin and those negative controls through
+both staged and push-range scans, at both patch paths used by nixos-config and
+openclaw-config. The regressions are offline; they do not fetch the public asset.
+
 ## What gets scanned
 
 Only **added lines** in the diff (lines starting with `+` excluding
