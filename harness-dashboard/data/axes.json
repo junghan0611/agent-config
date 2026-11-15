@@ -1,0 +1,57 @@
+[
+	{
+		"id": "address",
+		"title": "밖에서 이 집의 누구를 어떻게 부르는가",
+		"note": "주소의 모양, 재사용 여부, 권위가 기록되는 곳"
+	},
+	{
+		"id": "inside-outside",
+		"title": "집 안 통신과 집 밖 통신이 같은 문으로 들어오는가",
+		"note": "내부 roster/메시징과 외부 입구의 차이"
+	},
+	{
+		"id": "sender-marking",
+		"title": "도착한 글이 누구 것인지 수신자가 무엇으로 아는가",
+		"note": "본문 / 프레이밍 / 도구 설명 / 집의 provenance 칸"
+	},
+	{
+		"id": "roundtrip",
+		"title": "답이 돌아오는 길이 있는가, 누가 그 길을 아는가",
+		"note": "reply 주소, 영수증, 전달과 읽음의 구분"
+	},
+	{
+		"id": "continuity",
+		"title": "retire·resume·compact·세대 교체를 누가 정하는가",
+		"note": "강제 여부가 아니라 소유"
+	},
+	{
+		"id": "birthday",
+		"title": "이름·생일이 무엇에 붙는가",
+		"note": "세션 / 자리(seat) / 프로세스 / 서사 주체 — 말과 코드를 나눠 적는다"
+	},
+	{
+		"id": "way-back",
+		"title": "원문으로 돌아갈 근거를 누가 어디에 남기는가",
+		"note": "기기 건넘 / 세대 건넘을 따로"
+	},
+	{
+		"id": "whose-home",
+		"title": "누가 누구의 집에 쓰는가",
+		"note": "env·설정·확장·기억 파일. 관측 축일 뿐 판정 아님"
+	},
+	{
+		"id": "minimal-door",
+		"title": "기존 Pi/Claude를 바꾸지 않고 들어가는 가장 작은 문",
+		"note": "상대가 요구하는 것 vs 우리가 내야 하는 것"
+	},
+	{
+		"id": "self-proof",
+		"title": "그 집은 무엇으로 자기를 증명하는가",
+		"note": "harness-bench 검증면: 테스트 배치·게이트·문서 계약"
+	},
+	{
+		"id": "interpretation",
+		"title": "도착한 글을 그 집이 무엇으로 해석하는가",
+		"note": "명령 / 사용자 턴 / 데이터 / owner 지시 — 수신 쪽의 해석. sender-marking(누구 것인지 아는 수단)과 구분"
+	}
+]

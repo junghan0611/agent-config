@@ -1,0 +1,379 @@
+[
+	{
+		"id": "q.1",
+		"text": "받는 집에서 '누가 한 말인가'가 그 집의 문법으로 기록되는가 — 송신 쪽 정직함(규칙 10)의 수신 쪽 짝은 무엇인가?",
+		"axes": [
+			"sender-marking"
+		],
+		"houses": [
+			"entwurf",
+			"openclaw"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH.md §9-1",
+		"status": "open"
+	},
+	{
+		"id": "q.2",
+		"text": "생일↔원문 대응에 도장을 찍어 보존하는 것은 record, corpus, 커밋 문장 중 누구인가?",
+		"axes": [
+			"way-back"
+		],
+		"houses": [
+			"entwurf",
+			"andenken",
+			"agent-config"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH.md §9-2",
+		"status": "open"
+	},
+	{
+		"id": "q.3",
+		"text": "#151의 계보는 결합을 여러 개로 늘리는 일인가, 결합에서 native 참조를 빼는 일인가?",
+		"axes": [
+			"birthday"
+		],
+		"houses": [
+			"entwurf",
+			"kelpie"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH.md §9-3",
+		"status": "open"
+	},
+	{
+		"id": "q.4",
+		"text": "이름 + 집(작업 폴더)으로 이어지는 형제 — 프로젝트 리포를 workspace-abc 자리로, team.json을 그 집의 주민 명부로 보는 그림인가?",
+		"axes": [
+			"birthday",
+			"continuity"
+		],
+		"houses": [
+			"entwurf",
+			"kelpie",
+			"openclaw"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH.md §9-4",
+		"status": "open"
+	},
+	{
+		"id": "q.5",
+		"text": "편지함형 시민(몸 없는 주소)은 한 종류인가? (실물 둘 중 하나가 kelpie, #150·채널 봇은 미검토 — 근거가 가장 약함)",
+		"axes": [
+			"address",
+			"continuity"
+		],
+		"houses": [
+			"entwurf",
+			"openclaw",
+			"kelpie"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH.md §9-5",
+		"status": "open"
+	},
+	{
+		"id": "q.6",
+		"text": "퇴근은 누구의 덕목인가 — 운영자 retire, 집주인의 턴 단위 반납, pi-durable 상주는 같은 덕목의 다른 구현인가?",
+		"axes": [
+			"continuity"
+		],
+		"houses": [
+			"entwurf",
+			"openclaw",
+			"pi-durable"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH.md §9-6",
+		"status": "open"
+	},
+	{
+		"id": "q.7",
+		"text": "생일은 어느 기기의 것인가 — 한 garden이 두 기기에 걸쳐 살았을 때 그 생애가 어디서 한 장으로 읽히는가?",
+		"axes": [
+			"way-back",
+			"birthday"
+		],
+		"houses": [
+			"entwurf",
+			"andenken"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH.md §9-7",
+		"status": "open"
+	},
+	{
+		"id": "q.8",
+		"text": "편지는 '어느 세대가 보냈나'와 '사람의 지시가 아님'을 스스로 말해야 하는가? (#151이 서는 순간 생기는 질문)",
+		"axes": [
+			"sender-marking"
+		],
+		"houses": [
+			"entwurf",
+			"openrig"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH.md §9-8",
+		"status": "open"
+	},
+	{
+		"id": "q.9",
+		"text": "직접 주입 rail에서 해석 지시는 어디에 살아야 하는가 — 본문 SSOT 한 줄 / 그 집의 system·persona 층 / 없음(집주인 판단)?",
+		"axes": [
+			"sender-marking",
+			"whose-home"
+		],
+		"houses": [
+			"entwurf",
+			"openclaw"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH-v3.md C1",
+		"status": "open"
+	},
+	{
+		"id": "q.10",
+		"text": "본문만 본 수신 모델이 형제 편지와 사람 지시를 실제로 가르는가?",
+		"axes": [
+			"sender-marking"
+		],
+		"houses": [
+			"entwurf",
+			"openclaw"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH-v3.md C2",
+		"status": "open"
+	},
+	{
+		"id": "q.11",
+		"text": "entwurf와 andenken이 서로를 기억 소유자로 가리킬 때, 생일↔원문 대응을 기억의 일로 받는 집은 어디인가?",
+		"axes": [
+			"way-back"
+		],
+		"houses": [
+			"entwurf",
+			"andenken"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH-v3.md C3",
+		"status": "open"
+	},
+	{
+		"id": "q.12",
+		"text": "durable SQLite 대화 안에 자기 garden이 남는가?",
+		"axes": [
+			"way-back"
+		],
+		"houses": [
+			"pi-durable",
+			"entwurf"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH-v3.md C4",
+		"status": "open"
+	},
+	{
+		"id": "q.13",
+		"text": "Herdr 1 통합 자산(src/integration/assets/)이 OSC 7501을 내는가?",
+		"axes": [
+			"minimal-door"
+		],
+		"houses": [
+			"herdr-1"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH-v3.md C5",
+		"status": "open"
+	},
+	{
+		"id": "q.14",
+		"text": "Herdr 2에서 같은 tN에 같은 프로그램을 되살리는 1급 길이 있는가?",
+		"axes": [
+			"continuity"
+		],
+		"houses": [
+			"herdr-core"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH-v3.md C5",
+		"status": "open"
+	},
+	{
+		"id": "q.15",
+		"text": "Orca 수신 측은 발신자를 어떻게 렌더하는가, 비-verified 에이전트 거부 분기는 어디인가?",
+		"axes": [
+			"sender-marking",
+			"minimal-door"
+		],
+		"houses": [
+			"orca"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH-v3.md C5",
+		"status": "open"
+	},
+	{
+		"id": "q.16",
+		"text": "Herdr 2 터미널 안의 entwurf pi는 코어 변경 0으로 서는가, garden id가 그 화면에 보이는 길이 있는가?",
+		"axes": [
+			"minimal-door"
+		],
+		"houses": [
+			"herdr-core",
+			"herdr-app",
+			"entwurf"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH.md §4b-1; NEXT.md 4",
+		"status": "open"
+	},
+	{
+		"id": "q.17",
+		"text": "Orca 안의 일반 Pi가 퇴근한 뒤 resume은 어느 작업대에 열리는가?",
+		"axes": [
+			"continuity"
+		],
+		"houses": [
+			"orca",
+			"pi",
+			"entwurf"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH.md §6",
+		"status": "open"
+	},
+	{
+		"id": "q.18",
+		"text": "Codex·Antigravity에서 native-push 주입 행은 그 집의 어느 출처 칸에 들어가는가?",
+		"axes": [
+			"sender-marking"
+		],
+		"houses": [
+			"entwurf"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH-v3.md A1; fable-connect.md §10.3",
+		"status": "open"
+	},
+	{
+		"id": "q.19",
+		"text": "일반 Pi(그리고 omp·pi-durable 워커)에 집 안 peer 주소가 있는가? (현재는 조사하지 않은 가설: 없으면 garden이 유일한 주소)",
+		"axes": [
+			"address"
+		],
+		"houses": [
+			"pi",
+			"entwurf"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH.md §0; opus-whose.md §2.6-1",
+		"status": "open"
+	},
+	{
+		"id": "q.20",
+		"text": "생일을 받을 자격은 발급 시점인가, 사후에 '함께 해왔다'가 쌓이며 생기는 무게인가?",
+		"axes": [
+			"birthday"
+		],
+		"houses": [
+			"entwurf"
+		],
+		"raised_at": "2026-11-15",
+		"source": "fable-connect.md §4 Q1",
+		"status": "open"
+	},
+	{
+		"id": "q.21",
+		"text": "집 안 형제가 집 밖 형제를 기억할 때 어느 이름으로 기억하는가 — 봇 memory 파일에 garden id가 남는가, 내용만 남는가?",
+		"axes": [
+			"sender-marking",
+			"way-back"
+		],
+		"houses": [
+			"openclaw",
+			"entwurf"
+		],
+		"raised_at": "2026-11-15",
+		"source": "fable-connect.md §4 Q2",
+		"status": "open"
+	},
+	{
+		"id": "q.22",
+		"text": "binding이 바뀌어도 history를 잃지 않는 구조는 누구 쪽(집의 memory / Entwurf record / 바깥 corpus)에서 성립하는가?",
+		"axes": [
+			"continuity",
+			"way-back"
+		],
+		"houses": [
+			"entwurf",
+			"openclaw",
+			"kelpie",
+			"andenken"
+		],
+		"raised_at": "2026-11-15",
+		"source": "fable-connect.md §8; opus-whose.md §2.6-3",
+		"status": "open"
+	},
+	{
+		"id": "q.23",
+		"text": "kelpie의 고지·증명·취소권 중 접점에 속하는 것과 운영 형식(주기 정책·시계)에 속하는 것은 어디서 갈리는가?",
+		"axes": [
+			"continuity"
+		],
+		"houses": [
+			"kelpie",
+			"entwurf"
+		],
+		"raised_at": "2026-11-15",
+		"source": "fable-connect.md §6.3",
+		"status": "open"
+	},
+	{
+		"id": "q.24",
+		"text": "kelpie resume 봉투(작업의 출처)와 #151 '출처 있는 1KB'(관계의 출처)는 같은 봉투의 다른 줄인가?",
+		"axes": [
+			"continuity",
+			"birthday"
+		],
+		"houses": [
+			"kelpie",
+			"entwurf"
+		],
+		"raised_at": "2026-11-15",
+		"source": "fable-connect.md §7.1",
+		"status": "open"
+	},
+	{
+		"id": "q.25",
+		"text": "같은 서사 주체를 유지하려 할 때 주소·기록·몸·집주인의 계약은 어디서 맞고 어디서 갈리는가?",
+		"axes": [
+			"birthday",
+			"continuity"
+		],
+		"houses": [
+			"entwurf",
+			"openclaw"
+		],
+		"raised_at": "2026-11-15",
+		"source": "RESEARCH.md §3; RESEARCH-v3.md C6",
+		"status": "open"
+	},
+	{
+		"id": "q.26",
+		"text": "집의 출처 문법을 빌릴 것인가(admin system provenance 또는 플러그인 경로), envelope 본문에 그 문장을 실을 것인가?",
+		"axes": [
+			"sender-marking",
+			"minimal-door"
+		],
+		"houses": [
+			"entwurf",
+			"openclaw"
+		],
+		"raised_at": "2026-11-15",
+		"source": "opus-whose.md §1.3",
+		"status": "open"
+	}
+]

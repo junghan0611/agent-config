@@ -1,0 +1,740 @@
+[
+	{
+		"id": "m.1",
+		"house": "herdr-1",
+		"key": "commits_since_ref",
+		"label": "관측 ref 이후 커밋",
+		"value": 0,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "gh api herdrdev/herdr",
+				"via": "sonnet-upstream.md:116"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "커밋",
+		"note": "11-01 관측 ref 이후 master"
+	},
+	{
+		"id": "m.2",
+		"house": "herdr-core",
+		"key": "commits_since_ref",
+		"label": "관측 ref 이후 커밋",
+		"value": 135,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "gh api herdrdev/herdr-core",
+				"via": "sonnet-upstream.md:117"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "커밋",
+		"note": "11-01 ref de82c962fa6d 이후"
+	},
+	{
+		"id": "m.3",
+		"house": "herdr-app",
+		"key": "commits_since_ref",
+		"label": "관측 ref 이후 커밋",
+		"value": 248,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "gh api herdrdev/herdr-app",
+				"via": "sonnet-upstream.md:118"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "커밋",
+		"note": "11-01 ref d524ec51bf9a 이후"
+	},
+	{
+		"id": "m.4",
+		"house": "openrig",
+		"key": "commits_since_ref",
+		"label": "관측 ref 이후 커밋",
+		"value": 1520,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "gh api·git mvschwarz/openrig",
+				"via": "sonnet-upstream.md:155"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "커밋",
+		"note": "10-14 관측 6448f6b 이후"
+	},
+	{
+		"id": "m.5",
+		"house": "herdr-1",
+		"key": "release",
+		"label": "최신 릴리스/태그",
+		"value": "v0.9.5",
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "gh api",
+				"via": "sonnet-upstream.md:116"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"note": "2026-10-14 릴리스, 고정 SHA와 다른 커밋"
+	},
+	{
+		"id": "m.6",
+		"house": "herdr-core",
+		"key": "release",
+		"label": "최신 릴리스/태그",
+		"value": "v0.1.21",
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "gh api",
+				"via": "sonnet-upstream.md:117"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"note": "태그, GitHub Release 없음"
+	},
+	{
+		"id": "m.7",
+		"house": "herdr-app",
+		"key": "release",
+		"label": "최신 릴리스/태그",
+		"value": "v0.1.15",
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "gh api",
+				"via": "sonnet-upstream.md:118"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"note": "태그, GitHub Release 없음"
+	},
+	{
+		"id": "m.8",
+		"house": "openrig",
+		"key": "release",
+		"label": "최신 릴리스/태그",
+		"value": "v0.7.15",
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "gh api",
+				"via": "sonnet-upstream.md:155"
+			}
+		],
+		"observed_at": "2026-11-15"
+	},
+	{
+		"id": "m.9",
+		"house": "orca",
+		"key": "release",
+		"label": "최신 릴리스/태그",
+		"value": "v1.4.259",
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "gh api stablyai/orca",
+				"via": "sonnet-upstream.md:59"
+			}
+		],
+		"observed_at": "2026-11-15"
+	},
+	{
+		"id": "m.10",
+		"house": "orca",
+		"key": "package_version_main",
+		"label": "main의 in-tree package.json 버전",
+		"value": "1.4.214",
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "git show 5a2990b6:package.json",
+				"sha": "5a2990b6",
+				"via": "sonnet-upstream.md:61"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"note": "릴리스 번호 아님"
+	},
+	{
+		"id": "m.11",
+		"house": "openclaw",
+		"key": "release",
+		"label": "최신 릴리스/태그",
+		"value": "v2026.11.3",
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "gh api",
+				"via": "sonnet-upstream.md:10"
+			}
+		],
+		"observed_at": "2026-11-15"
+	},
+	{
+		"id": "m.12",
+		"house": "claude-code",
+		"key": "version",
+		"label": "버전",
+		"value": "2.1.325",
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "claude --version",
+				"via": "fable-connect.md:3"
+			}
+		],
+		"observed_at": "2026-11-15"
+	},
+	{
+		"id": "m.13",
+		"house": "letta",
+		"key": "package_version",
+		"label": "package 버전 (Letta Code)",
+		"value": "0.34.23",
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "GitHub API letta-code package.json",
+				"sha": "75d7921f1666b92b4a82acca64e5ef09001c1eb3",
+				"via": "LETTA.md:10"
+			}
+		],
+		"observed_at": "2026-10-24"
+	},
+	{
+		"id": "m.14",
+		"house": "letta",
+		"key": "package_version",
+		"label": "package 버전 (FrontierMemory)",
+		"value": "0.1.0",
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "GitHub API frontiermemory pyproject.toml",
+				"sha": "49bea0f33a72da9771f8ef853ed7e48b69bf53df",
+				"via": "LETTA.md:10"
+			}
+		],
+		"observed_at": "2026-10-24",
+		"note": "공개 평가명 1.0과 다른 값"
+	},
+	{
+		"id": "m.15",
+		"house": "herdr-core",
+		"key": "test_functions",
+		"label": "#[test] 수",
+		"value": 396,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "grep tests/",
+				"sha": "c84d6e76156a",
+				"via": "sonnet-upstream.md:145"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "개",
+		"note": "core tests/ grep 카운트, 실행 0"
+	},
+	{
+		"id": "m.16",
+		"house": "herdr-app",
+		"key": "test_functions",
+		"label": "#[test] 수",
+		"value": 368,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "grep src/",
+				"sha": "5216e6f9f8c0",
+				"via": "sonnet-upstream.md:145"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "개",
+		"note": "app src/ grep 카운트, 실행 0"
+	},
+	{
+		"id": "m.17",
+		"house": "kelpie",
+		"key": "test_functions",
+		"label": "#[test] 수",
+		"value": 149,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "grep -c",
+				"sha": "ba0bf0491cfd",
+				"via": "fable-connect.md:128"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "개",
+		"note": "src/store.rs만, 실행 0"
+	},
+	{
+		"id": "m.18",
+		"house": "kelpie",
+		"key": "test_functions",
+		"label": "#[test] 수",
+		"value": 51,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "grep -c",
+				"sha": "ba0bf0491cfd",
+				"via": "fable-connect.md:128"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "개",
+		"note": "src/daemon.rs만, 실행 0"
+	},
+	{
+		"id": "m.19",
+		"house": "kelpie",
+		"key": "test_functions",
+		"label": "#[test] 수",
+		"value": 37,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "grep -c",
+				"sha": "ba0bf0491cfd",
+				"via": "fable-connect.md:128"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "개",
+		"note": "tests/renew.rs만, 실행 0"
+	},
+	{
+		"id": "m.20",
+		"house": "kelpie",
+		"key": "test_functions",
+		"label": "#[test] 수",
+		"value": 9,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "grep -c",
+				"sha": "ba0bf0491cfd",
+				"via": "fable-connect.md:128"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "개",
+		"note": "tests/socket_inbox.rs만, 실행 0"
+	},
+	{
+		"id": "m.21",
+		"house": "kelpie",
+		"key": "source_files",
+		"label": "src+tests 파일 수",
+		"value": 44,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "gh api git/trees",
+				"sha": "ba0bf0491cfd",
+				"via": "fable-connect.md:128"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "개",
+		"note": "2.45MB"
+	},
+	{
+		"id": "m.22",
+		"house": "kelpie",
+		"key": "file_lines",
+		"label": "src/store.rs 행 수",
+		"value": 20217,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "gh api",
+				"sha": "ba0bf0491cfd",
+				"via": "fable-connect.md:128"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "행"
+	},
+	{
+		"id": "m.23",
+		"house": "openrig",
+		"key": "test_files",
+		"label": "test 파일 수",
+		"value": 2226,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "git ls-files",
+				"sha": "13337dee98d7",
+				"via": "sonnet-upstream.md:156"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "개",
+		"note": "10-14 기록과 집계 방식이 다를 수 있음"
+	},
+	{
+		"id": "m.24",
+		"house": "openrig",
+		"key": "source_files",
+		"label": "packages/*/src/*.ts(x) 수",
+		"value": 1535,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "git ls-files",
+				"sha": "13337dee98d7",
+				"via": "sonnet-upstream.md:156"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "개"
+	},
+	{
+		"id": "m.25",
+		"house": "entwurf",
+		"key": "meta_records",
+		"label": "meta-record store 파일 수 (oracle)",
+		"value": 2255,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "ls ~/.pi/agent/meta-sessions",
+				"via": "opus-whose.md:41"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "개"
+	},
+	{
+		"id": "m.26",
+		"house": "entwurf",
+		"key": "garden_roster_rows",
+		"label": "garden 명부 record 행 (entwurf_peers)",
+		"value": 2253,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "entwurf_peers",
+				"via": "fable-connect.md:22"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "행",
+		"note": "죽은·잠든 것 포함"
+	},
+	{
+		"id": "m.27",
+		"house": "claude-code",
+		"key": "native_roster_rows",
+		"label": "native 명부 살아 있는 행 (ListAgents)",
+		"value": 5,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "ListAgents ~11:42 KST",
+				"via": "fable-connect.md:20-21"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "행"
+	},
+	{
+		"id": "m.28",
+		"house": "entwurf",
+		"key": "team_members",
+		"label": "team.json 실물 멤버",
+		"value": 14,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "python 요약",
+				"via": "opus-whose.md:22"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "명"
+	},
+	{
+		"id": "m.29",
+		"house": "entwurf",
+		"key": "commits_total",
+		"label": "커밋 수",
+		"value": 1777,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "git log",
+				"via": "opus-whose.md:41"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "커밋"
+	},
+	{
+		"id": "m.30",
+		"house": "entwurf",
+		"key": "commit_lines_with_garden",
+		"label": "본문에 garden id가 든 줄",
+		"value": 120,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "git log grep",
+				"via": "opus-whose.md:41"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "줄",
+		"note": "줄 단위 count"
+	},
+	{
+		"id": "m.31",
+		"house": "agent-config",
+		"key": "commits_total",
+		"label": "커밋 수",
+		"value": 840,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "git log",
+				"via": "opus-whose.md:41"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "커밋"
+	},
+	{
+		"id": "m.32",
+		"house": "agent-config",
+		"key": "commit_lines_with_garden",
+		"label": "본문에 garden id가 든 줄",
+		"value": 40,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "git log grep",
+				"via": "opus-whose.md:41"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "줄",
+		"note": "줄 단위 count"
+	},
+	{
+		"id": "m.33",
+		"house": "entwurf",
+		"key": "hook_log_size",
+		"label": "meta-bridge-hook.log 크기",
+		"value": 3.9,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "ls",
+				"via": "opus-whose.md:258"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "MB",
+		"note": "oracle, 11:56"
+	},
+	{
+		"id": "m.34",
+		"house": "pi-durable",
+		"key": "location_files",
+		"label": "<gid>.location.json 파일 수",
+		"value": 654,
+		"evidence": "measured",
+		"receipts": [
+			{
+				"ref": "ls ~/.pi/agent/meta-pi-durable-locations/",
+				"via": "opus-whose.md:263"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "개"
+	},
+	{
+		"id": "m.35",
+		"house": "openclaw",
+		"key": "lab_sample_n",
+		"label": "수신 provenance 관측 표본",
+		"value": 1,
+		"evidence": "inherited",
+		"receipts": [
+			{
+				"ref": "entwurf:NEXT--160-openclaw.md S4 LIVE",
+				"via": "fable-connect.md:198"
+			}
+		],
+		"observed_at": "2026-11-15",
+		"unit": "회",
+		"note": "lab n=1, 2026-11-13"
+	},
+	{
+		"id": "m.36",
+		"house": "entwurf",
+		"key": "fresh_call_backends",
+		"label": "entwurf_fresh_call backend 수",
+		"value": 4,
+		"evidence": "inherited",
+		"receipts": [
+			{
+				"ref": "agent-config:OUROBOROS.md:108",
+				"sha": "7d8052e"
+			}
+		],
+		"observed_at": "2026-09-09",
+		"unit": "개",
+		"note": "pi / claude-code / copilot / omp"
+	},
+	{
+		"id": "m.37",
+		"house": "ouroboros",
+		"key": "runtimes_claimed",
+		"label": "README가 주장하는 런타임 수",
+		"value": 13,
+		"evidence": "inherited",
+		"receipts": [
+			{
+				"ref": "agent-config:OUROBOROS.md:88-89,160",
+				"sha": "7d8052e"
+			}
+		],
+		"observed_at": "2026-09-09",
+		"unit": "개",
+		"note": "문서 표기 '13개' 그대로; 나열된 이름 수는 대조 안 함"
+	},
+	{
+		"id": "m.38",
+		"house": "letta",
+		"key": "tasks",
+		"label": "FrontierMemory 과제 수",
+		"value": 15,
+		"evidence": "claim",
+		"receipts": [
+			{
+				"ref": "frontiermemory 발표·README",
+				"sha": "49bea0f33a72da9771f8ef853ed7e48b69bf53df",
+				"via": "LETTA.md:26,40"
+			}
+		],
+		"observed_at": "2026-10-24",
+		"unit": "개"
+	},
+	{
+		"id": "m.39",
+		"house": "letta",
+		"key": "trajectories",
+		"label": "FrontierMemory trajectory 수 (발표)",
+		"value": 665,
+		"evidence": "claim",
+		"receipts": [
+			{
+				"ref": "frontiermemory.com/blog/v1",
+				"via": "LETTA.md:40"
+			}
+		],
+		"observed_at": "2026-10-24",
+		"unit": "개",
+		"note": "발표는 관련 219/665"
+	},
+	{
+		"id": "m.40",
+		"house": "letta",
+		"key": "trajectories",
+		"label": "FrontierMemory trajectory 수 (README)",
+		"value": 674,
+		"evidence": "claim",
+		"receipts": [
+			{
+				"ref": "frontiermemory:README.md",
+				"sha": "49bea0f33a72da9771f8ef853ed7e48b69bf53df",
+				"via": "LETTA.md:40"
+			}
+		],
+		"observed_at": "2026-10-24",
+		"unit": "개",
+		"note": "665↔674 변경 사유 미대조"
+	},
+	{
+		"id": "m.41",
+		"house": "letta",
+		"key": "attempts_per_task",
+		"label": "과제당 시도 (발표 Figure 2)",
+		"value": 1,
+		"evidence": "claim",
+		"receipts": [
+			{
+				"ref": "frontiermemory.com/blog/v1",
+				"via": "LETTA.md:41"
+			}
+		],
+		"observed_at": "2026-10-24",
+		"unit": "회"
+	},
+	{
+		"id": "m.42",
+		"house": "letta",
+		"key": "attempts_per_task",
+		"label": "과제당 시도 (CLI 기본·규칙)",
+		"value": 3,
+		"evidence": "claim",
+		"receipts": [
+			{
+				"ref": "frontiermemory:cli.py#L297; docs/rules.md",
+				"sha": "49bea0f33a72da9771f8ef853ed7e48b69bf53df",
+				"via": "LETTA.md:41"
+			}
+		],
+		"observed_at": "2026-10-24",
+		"unit": "회"
+	},
+	{
+		"id": "m.43",
+		"house": "letta",
+		"key": "memory_size_limit",
+		"label": "memory 결과 크기 상한",
+		"value": 8,
+		"evidence": "code",
+		"receipts": [
+			{
+				"ref": "frontiermemory:src/frontier_memory/memory.py",
+				"sha": "49bea0f33a72da9771f8ef853ed7e48b69bf53df",
+				"via": "LETTA.md:105"
+			}
+		],
+		"observed_at": "2026-10-24",
+		"unit": "MiB"
+	},
+	{
+		"id": "m.44",
+		"house": "letta",
+		"key": "memory_generation_max",
+		"label": "memory generation 최대 시간",
+		"value": 6,
+		"evidence": "claim",
+		"receipts": [
+			{
+				"ref": "frontiermemory:README/rules",
+				"sha": "49bea0f33a72da9771f8ef853ed7e48b69bf53df",
+				"via": "LETTA.md:43"
+			}
+		],
+		"observed_at": "2026-10-24",
+		"unit": "시간"
+	}
+]

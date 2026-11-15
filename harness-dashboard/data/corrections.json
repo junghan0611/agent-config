@@ -1,0 +1,424 @@
+[
+	{
+		"id": "c.1",
+		"claim": "OpenClaw의 garden은 편지함의 생일이지 서사 주체의 생일이 아니다.",
+		"correction": "철회. 첫 key 고정은 작게 시작하는 구현 제약이고 정체성의 목적 정의가 아니다. 남는 질문은 같은 서사 주체를 유지하려 할 때 주소·기록·몸·집주인의 계약이 어디서 맞고 갈리는가이다.",
+		"retired_by": [
+			{
+				"ref": "entwurf:NEXT--160-openclaw.md:41",
+				"quote": "간단하게 가보는게 언제나 좋아. 되면서 견고해지면 확장"
+			},
+			{
+				"ref": "journal week45.org:1767"
+			},
+			{
+				"ref": "opus-whose.md §2.5"
+			}
+		],
+		"corrected_at": "2026-11-15"
+	},
+	{
+		"id": "c.2",
+		"claim": "용병은 native 명부에만 있어도 충분했을 존재다.",
+		"correction": "철회. native 명부는 Claude Code끼리·같은 호스트·살아 있는 동안만이고, 용병 garden도 커밋 문장에 실제로 남아 돌아갈 길로 쓰인다.",
+		"retired_by": [
+			{
+				"ref": "git log agent-config (명단 밖 garden 20261113T160013-d2c63d가 커밋 문장에 남음)"
+			},
+			{
+				"ref": "opus-whose.md §2.6-1"
+			}
+		],
+		"corrected_at": "2026-11-15"
+	},
+	{
+		"id": "c.3",
+		"claim": "garden id가 Claude Code 형제에게 더해 주는 것은 주소가 아니라 생애다.",
+		"correction": "반만 맞다. 집 사이(pi↔Claude Code, 호스트↔컨테이너)에는 native 주소가 없어 garden은 먼저 주소이고, 생애는 garden이 지금 쥔 것이 아니라 쥐려는 것이다.",
+		"retired_by": [
+			{
+				"ref": "entwurf:pi-extensions/lib/meta-session.ts:370-374",
+				"sha": "88dc684a+dirty"
+			},
+			{
+				"ref": "opus-whose.md §2.6-2"
+			}
+		],
+		"corrected_at": "2026-11-15"
+	},
+	{
+		"id": "c.4",
+		"claim": "Orca 5a2990b6의 in-tree package.json 버전은 1.4.258이다.",
+		"correction": "5a2990b6은 1.4.214(main), c91a7a6e는 1.4.258, 980c0024는 1.4.259. main의 숫자는 릴리스 번호가 아니므로 SHA로 판을 고정한다.",
+		"retired_by": [
+			{
+				"ref": "git show 5a2990b6:package.json",
+				"sha": "5a2990b6"
+			},
+			{
+				"ref": "sonnet-upstream.md:61; opus-whose.md §6-2"
+			}
+		],
+		"corrected_at": "2026-11-15"
+	},
+	{
+		"id": "c.5",
+		"claim": "local entwurf는 37c94798에서 읽었다.",
+		"correction": "조사 중 local HEAD는 88dc684a, 이어 17ef5c90, 2차 배치에서 65c4f6b7+dirty·98c64b08+dirty로 움직였다. 인용마다 SHA를 다시 적는다.",
+		"retired_by": [
+			{
+				"ref": "git rev-parse HEAD (조사 중 반복 측정)"
+			},
+			{
+				"ref": "RESEARCH.md §10; fable-connect.md:190"
+			}
+		],
+		"corrected_at": "2026-11-15"
+	},
+	{
+		"id": "c.6",
+		"claim": "kelpie는 이름+작업 폴더로 identity를 잇는다 (근거: SPEC 문장).",
+		"correction": "같은 문장이 코드로 확인됐다 — 근거 상태가 claim에서 code로 바뀜.",
+		"retired_by": [
+			{
+				"ref": "kelpie:src/slice.rs:1281-1299",
+				"sha": "ba0bf0491cfd"
+			}
+		],
+		"corrected_at": "2026-11-15"
+	},
+	{
+		"id": "c.7",
+		"claim": "Entwurf 편지가 chat.send steer로 들어가면 inter_session 접두로 받을 수 있다.",
+		"correction": "기각. Entwurf chat.send params에 systemInputProvenance가 없어 이 경로의 provenance는 external_user 또는 필드 없음이고 inter_session은 나올 수 없다(런타임 값은 미측정).",
+		"retired_by": [
+			{
+				"ref": "openclaw:chat-user-turn-recorder.ts:100-104",
+				"sha": "847611d"
+			},
+			{
+				"ref": "openclaw:chat-send-input-dispatch.ts:649",
+				"sha": "847611d"
+			},
+			{
+				"ref": "sonnet-upstream.md §X1-1"
+			}
+		],
+		"corrected_at": "2026-11-15"
+	},
+	{
+		"id": "c.8",
+		"claim": "소스로 읽은 모든 집은 자기 주소를 이미 갖고 있다.",
+		"correction": "범위를 좁힌다: 소스로 확인한 집들(OpenClaw·Orca·Herdr 2 core·OpenRig·kelpie)에 한정. 일반 Pi에 집 안 peer 주소가 있는지는 조사하지 않았다.",
+		"retired_by": [
+			{
+				"ref": "opus-whose.md §7.1 L18"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v1 §0"
+	},
+	{
+		"id": "c.9",
+		"claim": "Claude Code 문서의 컨테이너-호스트 불통 문장은 oracle의 OpenClaw Docker 배치의 사례다.",
+		"correction": "철회. 그 문장은 Claude Code 세션끼리의 한계다. 사례는 '컨테이너 안 Claude Code ↔ 호스트 형제'(#109 역사)이고 OpenClaw는 다른 하네스다.",
+		"retired_by": [
+			{
+				"ref": "https://code.claude.com/docs/en/cross-session-messaging"
+			},
+			{
+				"ref": "opus-whose.md §7.1 L39"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v1 §1"
+	},
+	{
+		"id": "c.10",
+		"claim": "집의 출처 문법을 쓰는 길은 '가장 가벼운 쪽'이 있고, admin scope는 '토큰 비접촉'과 부딪힌다.",
+		"correction": "순위 표현을 지형 서술로 교체. admin이 필요한 것은 chat.send system provenance 경로뿐이고 admin 연결도 운영자 설정이 소유할 수 있다 — 걸리는 원칙은 최소 권한·작게 시작이다. 빠졌던 세 번째 실물(플러그인 경로 internal_system/plugin:<id>)을 더했다.",
+		"retired_by": [
+			{
+				"ref": "openclaw:chat-send-request.ts:148-160",
+				"sha": "847611d"
+			},
+			{
+				"ref": "issue-160.md:110 (lab M2)"
+			},
+			{
+				"ref": "opus-whose.md §7.1 L64, §7.2"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v1 §2"
+	},
+	{
+		"id": "c.11",
+		"claim": "Herdr 1은 '멈춘 세대'이고 Herdr 2는 '다른 모양일 가능성이 크다', '더 정직해졌다'.",
+		"correction": "삭제. 사실은 master 2주 무커밋·종료 선언 없음, 그리고 Herdr 2에 발신자 태그와 수신 화면 e2e가 생겼다는 것까지다.",
+		"retired_by": [
+			{
+				"ref": "gh api herdrdev/herdr (pushed_at 11-07, v0.9.5)"
+			},
+			{
+				"ref": "opus-whose.md §7.1 L114, §7.2 L115"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v1 §4b"
+	},
+	{
+		"id": "c.12",
+		"claim": "'다른 기기'는 Herdr 2 안에서 더 이상 비어 있지 않다.",
+		"correction": "범위를 좁힌다: 한 core에 SSH로 등록된 machine 사이의 터미널 자리 주소. 하네스 사이·죽은 뒤 이름은 다루지 않고, Entwurf에도 remote-pair가 있다.",
+		"retired_by": [
+			{
+				"ref": "herdr-core:src/addr.rs:1-3",
+				"sha": "c84d6e76156a"
+			},
+			{
+				"ref": "opus-whose.md §7.1 L116"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v1 §4b-3"
+	},
+	{
+		"id": "c.13",
+		"claim": "발신자 표의 Orca 행: 편지에 실리는 '누가'는 handle 해석 순서다.",
+		"correction": "미관측으로 정정. 읽은 것은 CLI가 발신자를 해석하는 순서이지 수신자가 보는 것이 아니다. --from을 해석 순서 안에 둔 것은 OpenRig(--from 폐기)와 반대 방향이다.",
+		"retired_by": [
+			{
+				"ref": "orca:src/cli/orchestration/identity/terminal-identity.ts:21-48",
+				"sha": "980c0024"
+			},
+			{
+				"ref": "opus-whose.md §7.1 L135"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v1 §4c 표"
+	},
+	{
+		"id": "c.14",
+		"claim": "Entwurf 편지에 '사람 지시 아님' 문구가 없다.",
+		"correction": "범위를 붙인다: native-push 본문에 없음. self-fetch 수신 쪽에는 doorbell과 entwurf_inbox_read 도구 설명에 'untrusted data' 문구가 있다 — 편지가 아니라 수신 도구 층에 있다. 'record·프로세스 마커'는 도구 설명의 말(claim)로 낮춘다.",
+		"retired_by": [
+			{
+				"ref": "이 세션 inbox 알림·entwurf_inbox_read 도구 설명 (측정)"
+			},
+			{
+				"ref": "opus-whose.md §7.1 L136"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v1 §4c 표"
+	},
+	{
+		"id": "c.15",
+		"claim": "OpenRig rebuild에서는 대화가 아니라 자리가 쓴 파일이 다음 점유자에게 간다 (4모드 전반으로 읽힘).",
+		"correction": "rebuild에만 맞다. fork는 원 세션에서 갈라져 살아 있는 맥락을 싣는다(forkedFrom).",
+		"retired_by": [
+			{
+				"ref": "openrig:packages/daemon/src/domain/seat-handover-service.ts:93,122-128",
+				"sha": "13337dee98d7"
+			},
+			{
+				"ref": "opus-whose.md §7.3"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v1 §4c"
+	},
+	{
+		"id": "c.16",
+		"claim": "'Entwurf가 쥐는 것은 이름과 주소의 결합, 모호하면 거절까지'는 운영자 결정의 범위다.",
+		"correction": "journal의 그 문장은 운영 코디 역할의 답변이다. 운영자 원문은 '운영자가 세팅 → 그다음 주고받음'까지다.",
+		"retired_by": [
+			{
+				"ref": "journal week45.org:1885,1920"
+			},
+			{
+				"ref": "opus-whose.md §7.2 L163"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v1 §6"
+	},
+	{
+		"id": "c.17",
+		"claim": "Orca는 주소의 수명을 코드 주석으로 정직하게 적었다.",
+		"correction": "가설로 낮춘다. 그 주석은 remint 뒤 낡은 handle을 막는 방어 코드의 설명이지 설계 선언이 아니다.",
+		"retired_by": [
+			{
+				"ref": "orca:src/cli/orchestration/identity/terminal-identity.ts:21-48",
+				"sha": "980c0024"
+			},
+			{
+				"ref": "sonnet-upstream.md §X1-4"
+			}
+		],
+		"corrected_at": "2026-11-15"
+	},
+	{
+		"id": "c.18",
+		"claim": "한 왕복을 다시 잇는 열쇠는 본문 안 garden 문자열과 시각뿐이다.",
+		"correction": "'뿐'은 과하다. 형제 쪽에는 메시지별 증거인 mailbox archive(.msg.read)가 호스트 로컬에 남는다(corpus 밖).",
+		"retired_by": [
+			{
+				"ref": "entwurf_inbox_read 도구 설명 (.read per-message evidence)"
+			},
+			{
+				"ref": "opus-whose.md §7.1 L149"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v1 §5"
+	},
+	{
+		"id": "c.19",
+		"claim": "OpenClaw 수신 행의 저장된 provenance는 미측정이다.",
+		"correction": "과거 lab n=1 실측이 있었다(external_user, client cli). 미측정은 senderIsOwner·발신자 혼동 쪽이다.",
+		"retired_by": [
+			{
+				"ref": "entwurf:NEXT--160-openclaw.md S4 LIVE (2026-11-13 16:42–16:49) · §4 수신"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v2 §2"
+	},
+	{
+		"id": "c.20",
+		"claim": "v2 §2의 external_user 행은 새 발견·문제 제기다.",
+		"correction": "알고 내린 선택이다 — 160 문서 §7.2의 '사람만 정할 것' 목록에 올라 있었다.",
+		"retired_by": [
+			{
+				"ref": "entwurf:NEXT--160-openclaw.md §7.2"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v2 §2"
+	},
+	{
+		"id": "c.21",
+		"claim": "커밋 garden에서 원문으로 가는 다리는 live meta-record뿐이다.",
+		"correction": "호스트 안에 짝을 남기는 손이 적어도 넷 더 있다(hook 로그, pi-durable location, team.json, 옛 store 백업).",
+		"retired_by": [
+			{
+				"ref": "opus-whose.md §8 ②⑦⑫⑬"
+			},
+			{
+				"ref": "entwurf:pi-extensions/meta-bridge-hook.ts:269",
+				"sha": "65c4f6b7+dirty"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v2 §3-2"
+	},
+	{
+		"id": "c.22",
+		"claim": "생일↔원문 대응에 정본 도장이 없다 (범위 무제한).",
+		"correction": "기기를 건너는 범위에서만 가설로 남는다.",
+		"retired_by": [
+			{
+				"ref": "opus-whose.md §8 '기기 건넘' 열"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v2 §3-2"
+	},
+	{
+		"id": "c.23",
+		"claim": "출하된 Pi·Claude Code OSC 7501 방출기는 0건이다 (core·app·README·로컬 entwurf·agent-config).",
+		"correction": "herdr-core·herdr-app 범위에서 0건. Herdr 1 출하 통합 자산(src/integration/assets/)은 범위에서 빠졌고 pi 설치본 1개만 확인했다.",
+		"retired_by": [
+			{
+				"ref": "herdr-1:h1-tree.txt:1485-1517",
+				"sha": "ee5bfb5041bb"
+			},
+			{
+				"ref": "opus-whose.md §9-1"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH-v3 A3"
+	},
+	{
+		"id": "c.24",
+		"claim": "Herdr 2에서 PI_*/ENTWURF_*/TMUX는 상속 그대로 통과한다.",
+		"correction": "denylist는 맞다. 다만 통과하는 base는 호출자 셸이 아니라 core 프로세스의 env이므로 'core가 그 값을 갖고 떠 있었다면'이라는 조건이 붙는다.",
+		"retired_by": [
+			{
+				"ref": "herdr-core:api/run.rs:113",
+				"sha": "c84d6e76156a"
+			},
+			{
+				"ref": "herdr-core:api/types.rs:631",
+				"sha": "c84d6e76156a"
+			},
+			{
+				"ref": "opus-whose.md §9-3"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "sonnet-upstream §D3; RESEARCH-v3 A3"
+	},
+	{
+		"id": "c.25",
+		"claim": "pi-durable location 파일은 fresh-cut 세대를 건넌다.",
+		"correction": "파일은 남지만 record가 없으면 INERT로 모든 read가 거부된다 — 남는 것은 바이트이지 인정된 다리가 아니다.",
+		"retired_by": [
+			{
+				"ref": "entwurf:lib/pi-durable-location.ts:13-18,27-31",
+				"sha": "65c4f6b7+dirty"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH-v3 A2 표"
+	},
+	{
+		"id": "c.26",
+		"claim": "fresh-cut 기억 소유 문장은 fresh-cut.ts:6-7에 있다.",
+		"correction": "실제 경로는 scripts/meta-bridge-fresh-cut.ts이고 기억 소유 문장은 :14-15다(6-7은 정책 한 문장).",
+		"retired_by": [
+			{
+				"ref": "entwurf:scripts/meta-bridge-fresh-cut.ts:14-15",
+				"sha": "65c4f6b7+dirty"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "opus-whose §8 줄번호"
+	},
+	{
+		"id": "c.27",
+		"claim": "OpenRig compaction 전략은 [주장 — OPENRIG.md 10-14 기록, 오늘 미재확인]이다.",
+		"correction": "같은 날 다른 읽기에서 types.ts:1102의 compactionStrategy 타입으로 코드 확인됐다. 문서 안 행끼리 근거 상태가 어긋나 있었다.",
+		"retired_by": [
+			{
+				"ref": "openrig:packages/daemon/src/domain/types.ts:1102",
+				"sha": "13337dee98d7"
+			},
+			{
+				"ref": "opus-whose.md §7.3"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "RESEARCH v2 §6 표"
+	},
+	{
+		"id": "c.28",
+		"claim": "Orca는 기억·생명주기·내부협업을 모두 가진다.",
+		"correction": "근거는 생명주기·내부협업에만 있다. Orca 기억층은 코드로 읽지 않았고, 'mail and workers live on its own Orca'는 메일함의 위치이지 기억의 소유가 아니다.",
+		"retired_by": [
+			{
+				"ref": "orca:src/cli/orchestration/identity/agent-server-route.ts:36-45",
+				"sha": "980c0024"
+			},
+			{
+				"ref": "opus-whose.md §6-3"
+			}
+		],
+		"corrected_at": "2026-11-15",
+		"scope": "sonnet-upstream §B4"
+	}
+]

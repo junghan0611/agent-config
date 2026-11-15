@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>하네스 외연 관측판</title>
+<style>
+:root{
+	color-scheme:light dark;
+	--bg:#fafaf8;--fg:#1c1c1a;--mut:#6a6a64;--line:#d6d6cf;--card:#fff;--hl:#e8eefc;
+	--addon-bg:rgba(90,110,140,.12);--c-code:#1f5fbf;--c-measured:#0b7a75;--c-claim:#9a6a00;--c-inherited:#7a4fb0;
+	--c-hypothesis:#b0407a;--c-question:#a8531a;--c-unobserved:#5c5c58;
+}
+@media (prefers-color-scheme:dark){:root{
+	--bg:#161614;--fg:#e8e8e2;--mut:#a0a09a;--line:#3a3a36;--card:#1e1e1c;--hl:#26324d;
+	--addon-bg:rgba(150,170,200,.14);--c-code:#7fb0ff;--c-measured:#5fd0c8;--c-claim:#e6b94d;--c-inherited:#c4a0f0;
+	--c-hypothesis:#f09cc4;--c-question:#f0a070;--c-unobserved:#b0b0aa;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,-apple-system,"Noto Sans KR","Malgun Gothic",sans-serif}
+header,main{padding:12px 20px}
+h1{font-size:18px;margin:0 0 4px}
+.mut{color:var(--mut)}
+.banner{border:1px solid var(--c-claim);padding:6px 10px;margin:8px 0;border-radius:4px}
+.err{border:2px solid var(--c-question);padding:8px 10px;margin:8px 0;white-space:pre-wrap;font-family:monospace}
+.houses{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0}
+.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hbox{max-width:300px;border:1px solid var(--line);background:var(--card);padding:4px 8px;border-radius:4px;min-width:130px;font-size:12px}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:8px 0}
+nav button{border:1px solid transparent;border-bottom:0;background:none;color:var(--fg);padding:6px 12px;cursor:pointer;font:inherit}
+nav button[aria-selected=true]{border-color:var(--line);background:var(--card);font-weight:600}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.bar label{display:inline-flex;gap:3px;align-items:center}
+input,select,button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:3px;padding:2px 6px}
+button{cursor:pointer}
+button.on{background:var(--hl);font-weight:600}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+th{background:var(--card)}
+td.cell{cursor:pointer;min-width:130px}
+.tw{overflow-x:auto}
+tbody th{position:sticky;left:0;z-index:1;min-width:150px;max-width:190px}
+thead th{position:sticky;top:0}
+td.cell:hover,td.sel{background:var(--hl)}
+td.unseen{border-style:dashed;color:var(--mut);cursor:default}
+td.stale{box-shadow:inset 4px 0 0 var(--c-claim)}
+.chip{display:inline-block;border:1px solid currentColor;border-radius:10px;padding:0 7px;margin:1px 2px 1px 0;font-size:12px;white-space:nowrap}
+.e-code{color:var(--c-code)}.e-measured{color:var(--c-measured)}.e-claim{color:var(--c-claim)}
+.e-inherited{color:var(--c-inherited)}.e-hypothesis{color:var(--c-hypothesis)}
+.e-question{color:var(--c-question)}.e-unobserved{color:var(--c-unobserved);border-style:dashed}
+.flowsvg{display:block;color:var(--fg)}
+.flowsvg .gbox{fill:var(--addon-bg);stroke:var(--mut);stroke-dasharray:2 3;stroke-width:1}
+.flowsvg .gtxt{fill:var(--mut);font-size:10px}
+.flowsvg .lane{stroke:var(--line);stroke-width:1}
+.flowsvg .ltxt{fill:var(--fg);font-size:11px}
+.flowsvg .step{cursor:pointer;opacity:.9}
+.flowsvg .step.lit,.flowsvg .selstep{opacity:1}
+.flowsvg .step:focus{outline:none}.flowsvg .step:focus .dot{stroke-width:3}
+.flowsvg .dot{fill:var(--card);stroke:currentColor;stroke-width:2}
+.flowsvg .selstep .dot,.flowsvg .lit .dot{fill:currentColor}
+.flowsvg .selstep .ntxt,.flowsvg .lit .ntxt{fill:var(--card)}
+.flowsvg .ntxt{fill:currentColor;font-size:10px;font-weight:700}
+.flowsvg .stxt{fill:var(--fg);font-size:10px}
+.flowsvg .blk rect{fill:var(--hl);stroke:var(--fg)}
+.flowsvg .blk text{fill:var(--fg);font-size:11px}
+.flowwrap{min-width:100%}
+.band{background:var(--addon-bg);border-left:3px dashed var(--mut);padding:2px 4px;margin:3px 0}
+.bandlabel{font-size:11px;color:var(--mut)}
+.grp.addon{background:var(--addon-bg);border-left:3px dashed var(--mut);padding:0 8px;margin:6px 0}
+.mrow{white-space:nowrap;font-weight:400}
+.obs{border:1px solid var(--line);background:var(--card);border-radius:4px;padding:8px 10px;margin:8px 0}
+.obs.dim{opacity:.55}.obs.dim .st{text-decoration:line-through}
+.obs.stale{border-left:4px solid var(--c-claim)}
+.meta{color:var(--mut);font-size:12px}
+.rc{margin:4px 0 0 12px;font-size:12px}
+.rc q{display:block;color:var(--mut)}
+.stalebadge{font-size:12px;border:1px solid var(--c-claim);color:var(--c-claim);border-radius:3px;padding:0 5px}
+pre{white-space:pre-wrap;margin:0;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+	<h1>하네스 외연 관측판 <span class="mut" style="font-weight:400">— 점수·순위 없음. 색은 근거 상태의 종류만 뜻한다.</span></h1>
+	<div class="mut" id="built"></div>
+	<div id="lens" class="meta"></div>
+	<div id="banners"></div>
+	<div class="houses" id="houses"></div>
+</header>
+<main>
+	<nav id="tabs" role="tablist"></nav>
+	<div id="filters"></div>
+	<div id="view"></div>
+</main>
+<script>
+window.addEventListener("error", function (e) {
+	var d = document.createElement("div");
+	d.className = "err";
+	d.textContent = "스크립트 오류: " + e.message + " (" + (e.filename || "").split("/").pop() + ":" + e.lineno + ")";
+	document.body.prepend(d);
+});
+</script>
+<script src="data.js"></script>
+<script>
+var DATA = window.DATA;
+if (!DATA) {
+	var m = document.createElement("div");
+	m.className = "err";
+	m.textContent = "data.js 가 없음 또는 비어 있음. dashboard/ 에서 `python3 build.py` 를 먼저 실행하세요.";
+	document.body.prepend(m);
+	throw new Error("window.DATA 없음");
+}
+
+var EV_LABEL = {code:"코드",measured:"실측",claim:"주장",inherited:"넘겨받음",hypothesis:"가설",question:"질문",unobserved:"미관측"};
+var EV_MARK = {code:"■",measured:"▲",claim:"●",inherited:"◆",hypothesis:"◇",question:"?",unobserved:"∅"};
+var ST_LABEL = {current:"현재",retracted:"철회",superseded:"대체됨",open:"열림"};
+var TABS = [["matrix","집 × 축"],["metrics","숫자"],["flows","흐름"],["questions","열린 질문"],["experiments","실증 계획"],["corrections","정정 기록"],["sources","출처"]];
+var DAY = 86400000;
+
+function h(tag, attrs, kids) {
+	var e = document.createElement(tag);
+	for (var k in (attrs || {})) {
+		if (k === "class") e.className = attrs[k];
+		else if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), attrs[k]);
+		else if (attrs[k] !== false && attrs[k] != null) e.setAttribute(k, attrs[k]);
+	}
+	(kids == null ? [] : [].concat(kids)).flat(Infinity).forEach(function (c) {
+		if (c == null || c === false) return;
+		e.appendChild(typeof c === "string" || typeof c === "number" ? document.createTextNode(String(c)) : c);
+	});
+	return e;
+}
+function byId(list) { var m = {}; list.forEach(function (x) { m[x.id] = x; }); return m; }
+var HOUSE = byId(DATA.houses), AXIS = byId(DATA.axes), OBS = byId(DATA.observations);
+var SUPERSEDED_BY = {};
+DATA.observations.forEach(function (o) { if (o.supersedes) SUPERSEDED_BY[o.supersedes] = o.id; });
+
+/* ---- 상태 (URL hash) ---- */
+var S = {fl:"", hd:"", tab:"matrix", ev:"", st:"", house:"", axis:"", q:"", stale:"0", ref:"", cell:""};
+function readHash() {
+	var p = new URLSearchParams(location.hash.slice(1));
+	for (var k in S) if (p.has(k)) S[k] = p.get(k);
+	if (!S.ref) S.ref = new Date().toISOString().slice(0, 10);
+}
+function writeHash() {
+	var p = new URLSearchParams();
+	var def = {tab:"matrix",stale:"0"};
+	for (var k in S) {
+		if (k === "ref" && S.ref === new Date().toISOString().slice(0, 10)) continue;
+		if (S[k] !== "" && S[k] !== def[k]) p.set(k, S[k]);
+	}
+	history.replaceState(null, "", "#" + p.toString());
+}
+function set(patch) { Object.assign(S, patch); writeHash(); render(); }
+
+/* ---- 계산 ---- */
+function ageDays(date) { return Math.floor((new Date(S.ref) - new Date(date)) / DAY); }
+function isStale(date) { return +S.stale > 0 && ageDays(date) > +S.stale; }
+function matches(o) {
+	if (S.ev && S.ev.split(",").indexOf(o.evidence) < 0) return false;
+	if (S.st && o.status !== S.st) return false;
+	if (S.house && o.houses.indexOf(S.house) < 0) return false;
+	if (S.axis && o.axis !== S.axis) return false;
+	if (S.q) {
+		var hay = JSON.stringify(o).toLowerCase();
+		if (hay.indexOf(S.q.toLowerCase()) < 0) return false;
+	}
+	return true;
+}
+
+/* ---- 머리 ---- */
+function renderHead() {
+	document.getElementById("built").textContent = "data.js 빌드: " + DATA.built_at + " · 관측 " + DATA.observations.length + "행";
+	document.getElementById("lens").textContent = DATA.lens ? "렌즈: " + DATA.lens : "";
+	var b = document.getElementById("banners");
+	b.replaceChildren();
+	if (DATA.used_seed) b.appendChild(h("div", {class:"banner"}, "⚠ 실제 데이터 파일(observations.json 등)이 아직 없어 seed(observations.seed.json) 또는 관측에서 유추한 집으로 표시 중입니다. 예시 행이며 관측판이 아닙니다."));
+	var hs = document.getElementById("houses");
+	hs.replaceChildren();
+	var allReads = [];
+	DATA.houses.forEach(function (x) { (x.sources || []).forEach(function (s) { allReads.push(s.read_at); }); });
+	var lastReads = DATA.houses.map(function (x) { var r = (x.sources || []).map(function (s) { return s.read_at; }).sort(); return r.length ? r[r.length - 1] : null; });
+	var known = lastReads.filter(Boolean).sort();
+	var open = S.hd === "1";
+	hs.style.display = "block";
+	hs.appendChild(h("div", null, [
+		h("button", {"aria-expanded":String(open), onclick:function () { set({hd:open ? "" : "1"}); }}, (open ? "▾ " : "▸ ") + "집 " + DATA.houses.length + " · 가장 오래된 읽은 날 " + (known.length ? known[0] : "기록 없음") + (lastReads.some(function (r) { return !r; }) ? " (읽은 날 없는 집 " + lastReads.filter(function (r) { return !r; }).length + ")" : ""))
+	]));
+	if (!open) return;
+	var wrap = h("div", {class:"houses"});
+	hs.appendChild(wrap);
+	hs = wrap;
+	DATA.houses.forEach(function (x) {
+		var reads = (x.sources || []).map(function (s) { return s.read_at; }).sort();
+		var last = reads.length ? reads[reads.length - 1] : null;
+		var stale = last && isStale(last);
+		hs.appendChild(h("div", {class:"hbox"}, [
+			h("strong", null, x.name),
+			x._derived ? null : h("div", {class:"meta"}, x.kind || ""),
+			h("div", null, ["읽은 날: ", last ? [last, " (", ageDays(last) + "일 전", ")"].join("") : "기록 없음", stale ? h("span", {class:"stalebadge"}, " ⌛ 오래됨") : null]),
+			x.activity ? h("div", {class:"meta clamp", title:x.activity}, x.activity) : null,
+			(function () {
+				var rs = (x.sources || []).filter(function (s) { return s.sha; });
+				if (!rs.length) return null;
+				var l = rs[rs.length - 1];
+				return h("div", {class:"meta"}, ["핀 ", h("code", null, l.sha), rs.length > 1 ? " 외 " + (rs.length - 1) + " (출처 탭)" : ""]);
+			})(),
+		]));
+	});
+}
+
+/* ---- 탭·필터 ---- */
+function renderTabs() {
+	var t = document.getElementById("tabs");
+	t.replaceChildren();
+	TABS.forEach(function (x) {
+		var n = x[0] === "metrics" ? (DATA.metrics || []).length : x[0] === "flows" ? (DATA.flows || []).length : x[0] === "questions" ? DATA.questions.length : x[0] === "experiments" ? DATA.experiments.length : x[0] === "corrections" ? DATA.corrections.length : null;
+		t.appendChild(h("button", {role:"tab","aria-selected":String(S.tab === x[0]), onclick:function () { set({tab:x[0]}); }}, x[1] + (n != null ? " (" + n + ")" : "")));
+	});
+}
+function renderFilters() {
+	var f = document.getElementById("filters");
+	f.replaceChildren();
+	if (S.tab !== "matrix") return;
+	var evs = S.ev ? S.ev.split(",") : [];
+	var evBox = DATA.evidence_states.map(function (e) {
+		return h("label", {class:"e-" + e}, [h("input", {type:"checkbox", checked:evs.indexOf(e) >= 0 ? "" : false, onchange:function (ev) {
+			var cur = S.ev ? S.ev.split(",") : [];
+			cur = ev.target.checked ? cur.concat(e) : cur.filter(function (x) { return x !== e; });
+			set({ev:cur.join(",")});
+		}}), EV_MARK[e] + " " + EV_LABEL[e]]);
+	});
+	function sel(key, label, opts) {
+		return h("label", null, [label + " ", h("select", {onchange:function (e) { var p = {}; p[key] = e.target.value; set(p); }},
+			[h("option", {value:""}, "전체")].concat(opts.map(function (o) { return h("option", {value:o[0], selected:S[key] === o[0] ? "" : false}, o[1]); })))]);
+	}
+	var q = h("input", {type:"search", placeholder:"텍스트 검색", value:S.q, oninput:function (e) { S.q = e.target.value; writeHash(); renderMatrix(); }});
+	var staleBtns = [["0","썩음 끔"],["30","30일"],["90","90일"]].map(function (x) {
+		return h("button", {class:S.stale === x[0] ? "on" : "", onclick:function () { set({stale:x[0]}); }}, x[1]);
+	});
+	f.appendChild(h("div", {class:"bar"}, evBox));
+	f.appendChild(h("div", {class:"bar"}, [
+		sel("st", "status", DATA.statuses.map(function (s) { return [s, ST_LABEL[s] || s]; })),
+		sel("house", "집", DATA.houses.map(function (x) { return [x.id, x.name]; })),
+		sel("axis", "축", DATA.axes.map(function (x) { return [x.id, x.id]; })),
+		q,
+		h("span", {class:"mut"}, "썩음 기준:"), staleBtns,
+		h("label", null, ["기준일 ", h("input", {type:"date", value:S.ref, onchange:function (e) { set({ref:e.target.value}); }})]),
+		h("button", {onclick:function () { S.ev = S.st = S.house = S.axis = S.q = S.cell = ""; writeHash(); render(); }}, "필터 초기화")
+	]));
+}
+
+/* ---- 매트릭스 ---- */
+/* ---- 열(column) 응축 ---- */
+var COLS = (function () {
+	var order = [], map = {};
+	DATA.houses.forEach(function (x) {
+		var c = x.column || x.id;
+		if (!map[c]) { map[c] = {id:c, houses:[], base:null}; order.push(c); }
+		map[c].houses.push(x);
+		if (x.role === "base") map[c].base = x;
+	});
+	return order.map(function (c) {
+		var col = map[c];
+		var base = col.base || col.houses[0];
+		col.baseHouse = base;
+		col.label = (col.base && col.base.column_label) || base.name;
+		// base 먼저, addon은 데이터 순서
+		col.houses = [base].concat(col.houses.filter(function (x) { return x !== base; }));
+		col.addons = col.houses.slice(1);
+		return col;
+	});
+})();
+var COLBYID = byId(COLS);
+function colHouseIds(col) { return col.houses.map(function (x) { return x.id; }); }
+function obsIn(houseId, aid, filtered) {
+	return DATA.observations.filter(function (o) { return o.axis === aid && o.houses.indexOf(houseId) >= 0 && (!filtered || matches(o)); });
+}
+function chips(list) {
+	var c = {};
+	list.forEach(function (o) { c[o.evidence] = (c[o.evidence] || 0) + 1; });
+	return DATA.evidence_states.filter(function (e) { return c[e]; }).map(function (e) {
+		return h("span", {class:"chip e-" + e, title:EV_LABEL[e]}, EV_MARK[e] + " " + EV_LABEL[e] + " " + c[e]);
+	});
+}
+function metricsOf(col) { return (DATA.metrics || []).filter(function (m) { return colHouseIds(col).indexOf(m.house) >= 0; }); }
+function metricText(m) { return m.label + " " + m.value + (m.unit ? " " + m.unit : ""); }
+function renderMatrix() {
+	var v = document.getElementById("view");
+	v.replaceChildren();
+	var cols = S.house ? COLS.filter(function (c) { return colHouseIds(c).indexOf(S.house) >= 0; }) : COLS;
+	var axes = S.axis ? DATA.axes.filter(function (x) { return x.id === S.axis; }) : DATA.axes;
+	var head = h("tr", null, [h("th", null, "축")].concat(cols.map(function (c) {
+		var ms = metricsOf(c).slice(0, 3);
+		return h("th", null, [
+			h("div", null, c.label),
+			c.addons.length ? h("div", {class:"meta", style:"font-weight:400"}, "＋ " + c.addons.map(function (x) { return x.name; }).join(", ")) : null,
+			ms.map(function (m) { return h("div", {class:"meta mrow", title:(m.note || "") + " · " + m.observed_at + " · " + EV_LABEL[m.evidence]}, [h("span", {class:"e-" + m.evidence}, EV_MARK[m.evidence] + " "), metricText(m)]); })
+		]);
+	})));
+	var body = axes.map(function (a) {
+		return h("tr", null, [h("th", null, [h("div", null, a.id), h("div", {class:"meta", style:"font-weight:400"}, a.title)])].concat(cols.map(function (c) {
+			var hs = c.houses;
+			var all = [], vis = [], bands = [];
+			hs.forEach(function (x, i) {
+				var al = obsIn(x.id, a.id, false), vs = obsIn(x.id, a.id, true);
+				all = all.concat(al);
+				vis = vis.concat(vs);
+				if (vs.length) bands.push(h("div", {class:i === 0 ? "bandbase" : "band"}, [i === 0 ? null : h("div", {class:"bandlabel"}, "＋ " + x.name), chips(vs)]));
+			});
+			if (!all.length) return h("td", {class:"cell unseen"}, "아직 안 봄");
+			var live = all.filter(function (o) { return o.status !== "retracted" && o.status !== "superseded"; });
+			var newest = (live.length ? live : all).map(function (o) { return o.observed_at; }).sort().pop();
+			var stale = isStale(newest);
+			var key = c.id + "|" + a.id;
+			var chIds = colHouseIds(c);
+			var cross = vis.some(function (o) { return o.houses.some(function (x) { return chIds.indexOf(x) < 0; }); });
+			return h("td", {class:"cell" + (stale ? " stale" : "") + (S.cell === key ? " sel" : ""), onclick:function () { set({cell:key}); }}, [
+				bands.length ? bands : h("span", {class:"mut"}, "관측 " + all.length + "행이 필터에 가려짐"),
+				cross ? h("span", {class:"chip", title:"다른 열의 집과 이어진 관측 포함 (→)"}, "→") : null,
+				h("div", {class:"meta"}, "최근 " + newest),
+				stale ? h("span", {class:"stalebadge"}, "⌛ " + ageDays(newest) + "일 전") : null
+			]);
+		})));
+	});
+	v.appendChild(h("div", {class:"tw"}, h("table", null, [h("thead", null, head), h("tbody", null, body)])));
+	if (S.cell) {
+		var p = S.cell.split("|");
+		var col = COLBYID[p[0]];
+		if (!col || !AXIS[p[1]]) { v.appendChild(h("div", {class:"err"}, "hash의 칸 '" + S.cell + "' 가 데이터에 없음")); return; }
+		var total = 0, groups = [];
+		col.houses.forEach(function (x, i) {
+			var list = obsIn(x.id, p[1], true);
+			total += list.length;
+			if (!list.length) return;
+			groups.push(h("div", {class:i === 0 ? "grp" : "grp addon"}, [
+				h("h4", null, (i === 0 ? "" : "＋ ") + x.name + (i === 0 ? " (본체)" : " (addon)") + " — " + list.length + "행"),
+				list.map(obsCard)
+			]));
+		});
+		v.appendChild(h("h3", null, col.label + " × " + p[1] + " — " + total + "행"));
+		groups.forEach(function (g) { v.appendChild(g); });
+	}
+}
+function obsCard(o) {
+	var dim = o.status === "retracted" || o.status === "superseded";
+	var stale = isStale(o.observed_at);
+	var route = o.houses.length > 1 ? o.houses.map(function (x) { return HOUSE[x] ? HOUSE[x].name : x; }).join(" → ") : null;
+	var corr = [];
+	if (o.status === "retracted" || o.retired_by) corr.push("철회 근거: " + (o.retired_by || "(retired_by 없음)"));
+	if (SUPERSEDED_BY[o.id]) corr.push("대체한 관측: " + SUPERSEDED_BY[o.id]);
+	else if (o.status === "superseded") corr.push("대체됨 — 대체한 행이 데이터에 없음");
+	if (o.supersedes) corr.push("이 행이 대체함: " + o.supersedes);
+	return h("div", {class:"obs" + (dim ? " dim" : "") + (stale ? " stale" : "")}, [
+		h("div", null, [h("span", {class:"chip e-" + o.evidence}, EV_MARK[o.evidence] + " " + EV_LABEL[o.evidence]), " ", h("span", {class:"st"}, o.statement)]),
+		route ? h("div", {class:"meta"}, "→ " + route) : null,
+		corr.length ? h("div", {class:"meta"}, corr.join(" · ")) : null,
+		o.scope ? h("div", null, [h("strong", null, "scope: "), o.scope]) : null,
+		(o.receipts || []).map(function (r) {
+			return h("div", {class:"rc"}, [h("code", null, r.ref), r.sha ? [" @ ", h("code", null, r.sha)] : "", r.evidence ? h("span", {class:"chip e-" + r.evidence}, EV_LABEL[r.evidence]) : "", r.via ? h("span", {class:"meta"}, " · via " + r.via) : null, r.quote ? h("q", null, r.quote) : null]);
+		}),
+		h("div", {class:"meta"}, [o.id + " · status " + (ST_LABEL[o.status] || o.status) + " · 관측 " + o.observed_at + " (" + ageDays(o.observed_at) + "일 전) · " + o.observer + " ", stale ? h("span", {class:"stalebadge"}, "⌛ 오래됨") : null])
+	]);
+}
+
+/* ---- 보조 탭 ---- */
+function nameList(ids, map) { return (ids || []).map(function (x) { return map[x] ? (map[x].name || x) : x + " (?)"; }); }
+function pillRow(items, cls) { return items.map(function (t) { return h("span", {class:"chip " + (cls || "")}, t); }); }
+function linkBtn(label, patch) { return h("button", {onclick:function () { set(patch); }}, label); }
+function renderQuestions() {
+	var v = document.getElementById("view");
+	v.replaceChildren();
+	if (!DATA.questions.length) { v.appendChild(h("p", {class:"mut"}, "질문 없음 (questions.json 비어 있음).")); return; }
+	DATA.questions.forEach(function (q) {
+		var open = q.status === "open";
+		v.appendChild(h("div", {class:"obs" + (open ? "" : " dim")}, [
+			h("div", null, [h("span", {class:"chip e-question"}, "? " + (open ? "열림" : "답함")), " ", q.text]),
+			h("div", {class:"meta"}, ["축: ", pillRow(q.axes || []), " 집: ", pillRow(nameList(q.houses, HOUSE))]),
+			q.answered_by ? h("div", {class:"meta"}, ["답: ", linkBtn(q.answered_by, {tab:"matrix", q:q.answered_by})]) : null,
+			h("div", {class:"meta"}, q.id + " · 제기 " + q.raised_at + (q.source ? " · 출처 " + q.source : ""))
+		]));
+	});
+}
+function renderExperiments() {
+	var v = document.getElementById("view");
+	v.replaceChildren();
+	if (!DATA.experiments.length) { v.appendChild(h("p", {class:"mut"}, "실증 계획 없음 (experiments.json 비어 있음).")); return; }
+	var QT = byId(DATA.questions);
+	DATA.experiments.forEach(function (x) {
+		v.appendChild(h("div", {class:"obs"}, [
+			h("div", null, [h("span", {class:"chip " + (x.executed ? "e-measured" : "e-hypothesis")}, x.executed ? "▲ executed: true" : "◇ executed: false — 계획만"), " ", h("strong", null, x.title)]),
+			h("div", null, "알게 되는 것: " + x.learns),
+			h("div", null, ["cost: ", h("span", {class:"chip"}, x.cost)]),
+			h("ol", null, (x.steps || []).map(function (s) { return h("li", null, h("code", null, s)); })),
+			h("div", {class:"meta"}, ["답하려는 질문: ", (x.answers || []).map(function (id) { return [linkBtn(id, {tab:"questions"}), QT[id] ? " " + QT[id].text + " " : " (질문 없음) "]; })]),
+			h("div", {class:"meta"}, x.id + (x.source ? " · 출처 " + x.source : ""))
+		]));
+	});
+}
+function renderCorrections() {
+	var v = document.getElementById("view");
+	v.replaceChildren();
+	if (!DATA.corrections.length) { v.appendChild(h("p", {class:"mut"}, "정정 기록 없음 (corrections.json 비어 있음).")); return; }
+	DATA.corrections.forEach(function (c) {
+		v.appendChild(h("div", {class:"obs"}, [
+			h("div", {style:"display:grid;grid-template-columns:1fr 1fr;gap:12px"}, [
+				h("div", {class:"dim", style:"opacity:.6"}, [h("div", {class:"meta"}, "정정된 주장"), h("div", {class:"st"}, c.claim)]),
+				h("div", null, [h("div", {class:"meta"}, "지금 서 있는 문장"), h("div", null, c.correction)])
+			]),
+			c.scope ? h("div", null, [h("strong", null, "범위: "), c.scope]) : null,
+			(c.retired_by || []).map(function (r) { return h("div", {class:"rc"}, ["철회 근거 ", h("code", null, r.ref), r.sha ? [" @ ", h("code", null, r.sha)] : ""]); }),
+			h("div", {class:"meta"}, c.id + " · 정정 " + c.corrected_at)
+		]));
+	});
+}
+function renderMetrics() {
+	var v = document.getElementById("view");
+	v.replaceChildren();
+	var ms = DATA.metrics || [];
+	if (!ms.length) { v.appendChild(h("p", {class:"mut"}, "숫자 없음 (metrics.json 비어 있음 또는 없음).")); return; }
+	var keys = [], first = {};
+	ms.forEach(function (m) { if (!first[m.key]) { first[m.key] = m; keys.push(m.key); } });
+	var hcol = {};
+	COLS.forEach(function (c) { c.houses.forEach(function (x) { hcol[x.id] = c; }); });
+	v.appendChild(h("p", {class:"meta"}, "같은 key끼리 나란히 볼 뿐 — 합계·순위·정렬 없음. 행 순서는 데이터에 처음 나온 순서. 칸에 마우스를 올리면 세는 방법(note)."));
+	var head = h("tr", null, [h("th", null, "key")].concat(COLS.map(function (c) { return h("th", null, c.label); })));
+	var body = keys.map(function (k) {
+		return h("tr", null, [h("th", null, [h("div", null, first[k].label), h("div", {class:"meta", style:"font-weight:400"}, k)])].concat(COLS.map(function (c) {
+			var list = ms.filter(function (m) { return m.key === k && hcol[m.house] === c; });
+			if (!list.length) return h("td", {class:"unseen"}, "—");
+			return h("td", null, list.map(function (m) {
+				var addon = HOUSE[m.house] && HOUSE[m.house] !== c.baseHouse;
+				return h("div", {class:addon ? "band" : "", title:(m.note || "세는 방법 기록 없음")}, [
+					addon ? h("div", {class:"bandlabel"}, "＋ " + HOUSE[m.house].name) : null,
+					h("strong", null, String(m.value) + (m.unit ? " " + m.unit : "")), " ",
+					h("span", {class:"chip e-" + m.evidence}, EV_MARK[m.evidence] + " " + EV_LABEL[m.evidence]),
+					h("div", {class:"meta"}, m.observed_at + (isStale(m.observed_at) ? " ⌛" : ""))
+				]);
+			}));
+		})));
+	});
+	v.appendChild(h("div", {class:"tw"}, h("table", null, [h("thead", null, head), h("tbody", null, body)])));
+}
+
+/* ---- 흐름 ---- */
+var SVGNS = "http://www.w3.org/2000/svg";
+function sv(tag, attrs, kids) {
+	var e = document.createElementNS(SVGNS, tag);
+	for (var k in (attrs || {})) {
+		if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), attrs[k]);
+		else if (attrs[k] != null && attrs[k] !== false) e.setAttribute(k, attrs[k]);
+	}
+	[].concat(kids == null ? [] : kids).flat(Infinity).forEach(function (c) { if (c != null) e.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+	return e;
+}
+var WEAK = {hypothesis:1, unobserved:1, question:1};
+var FLOW_SEL = {};
+var REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+var PLAY = {timers:[], blocks:[]};
+var LANE_H = 44, LEFT = 170, STEP_W = 74, TOP = 22;
+function laneOrder(f) {
+	// 같은 group은 이웃하게(처음 나온 group 순), 그룹 없는 lane은 제자리
+	var groups = [], out = [];
+	f.lanes.forEach(function (l) { var g = l.group || ("\u0000" + l.id); if (groups.indexOf(g) < 0) groups.push(g); });
+	groups.forEach(function (g) { f.lanes.forEach(function (l) { if ((l.group || ("\u0000" + l.id)) === g) out.push(l); }); });
+	return out;
+}
+function flowSvg(f, maxN, onStep, selN) {
+	var lanes = laneOrder(f), y = {};
+	lanes.forEach(function (l, i) { y[l.id] = TOP + i * LANE_H + LANE_H / 2; });
+	var W = LEFT + (maxN + 1) * STEP_W, H = TOP + lanes.length * LANE_H + 6;
+	var svg = sv("svg", {viewBox:"0 0 " + W + " " + H, width:W, height:H, role:"img", "aria-label":f.title, class:"flowsvg"});
+	svg.appendChild(sv("defs", null, DATA.evidence_states.map(function (e) { return sv("marker", {id:"ar-" + f.id + "-" + e, class:"e-" + e, markerUnits:"userSpaceOnUse", markerWidth:9, markerHeight:9, refX:7, refY:4.5, orient:"auto"}, sv("path", {d:"M0,0 L9,4.5 L0,9 z", fill:"currentColor"})); })));
+	// group boxes
+	var gi = {};
+	lanes.forEach(function (l, i) { if (l.group) { (gi[l.group] = gi[l.group] || []).push(i); } });
+	Object.keys(gi).forEach(function (g) {
+		var idx = gi[g], y0 = TOP + idx[0] * LANE_H, y1 = TOP + (idx[idx.length - 1] + 1) * LANE_H;
+		svg.appendChild(sv("rect", {x:4, y:y0 + 1, width:W - 8, height:y1 - y0 - 2, class:"gbox", rx:6}));
+		svg.appendChild(sv("text", {x:8, y:y0 + 11, class:"gtxt"}, "▢ " + g));
+	});
+	lanes.forEach(function (l) {
+		svg.appendChild(sv("line", {x1:LEFT - 10, x2:W - 10, y1:y[l.id], y2:y[l.id], class:"lane"}));
+		svg.appendChild(sv("text", {x:LEFT - 16, y:y[l.id] + 4, "text-anchor":"end", class:"ltxt"}, l.label));
+	});
+	f.steps.slice().sort(function (a, b) { return a.n - b.n; }).forEach(function (st) {
+		var x = LEFT + st.n * STEP_W, weak = !!WEAK[st.evidence];
+		var cls = "step e-" + st.evidence + (selN === st.n ? " selstep" : "");
+		var g = sv("g", {class:cls, "data-n":st.n, tabindex:"0", role:"button", "aria-label":"step " + st.n + " " + st.label + " (" + EV_LABEL[st.evidence] + ")", onclick:function () { onStep(st); }, onkeydown:function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onStep(st); } }});
+		g.appendChild(sv("title", null, st.n + ". " + st.label + (st.carrier ? " [" + st.carrier + "]" : "") + " — " + EV_LABEL[st.evidence]));
+		if (st.from === st.to) {
+			g.appendChild(sv("path", {d:"M" + x + "," + (y[st.from] - 4) + " c18,-22 -18,-22 0,-4", fill:"none", stroke:"currentColor", "stroke-width":2, "stroke-dasharray":weak ? "4 3" : null, "marker-end":"url(#ar-" + f.id + "-" + st.evidence + ")"}));
+		} else {
+			var up = y[st.to] < y[st.from], d = up ? 9 : -9;
+			g.appendChild(sv("line", {x1:x, x2:x, y1:y[st.from], y2:y[st.to] + d, stroke:"currentColor", "stroke-width":2, "stroke-dasharray":weak ? "4 3" : null, "marker-end":"url(#ar-" + f.id + "-" + st.evidence + ")"}));
+		}
+		g.appendChild(sv("rect", {x:x - 22, y:Math.min(y[st.from], y[st.to]) - 12, width:44, height:Math.abs(y[st.to] - y[st.from]) + 24, fill:"transparent"}));
+		g.appendChild(sv("circle", {cx:x, cy:y[st.from], r:9, class:"dot", "stroke-dasharray":weak ? "3 2" : null}));
+		g.appendChild(sv("text", {x:x, y:y[st.from] + 4, "text-anchor":"middle", class:"ntxt"}, String(st.n)));
+		g.appendChild(sv("text", {x:x + 12, y:(y[st.from] + y[st.to]) / 2 + (st.from === st.to ? -22 : 0), class:"stxt"}, st.label.length > 12 ? st.label.slice(0, 11) + "…" : st.label));
+		svg.appendChild(g);
+	});
+	var blk = sv("g", {class:"blk", style:"opacity:0"}, [sv("rect", {x:-11, y:-9, width:22, height:18, rx:3}), sv("text", {x:0, y:4, "text-anchor":"middle"}, "✉")]);
+	svg.appendChild(blk);
+	svg._blk = blk; svg._y = y; svg._flow = f;
+	return svg;
+}
+function stepDetail(f, st) {
+	var L = byId(f.lanes);
+	return h("div", {class:"obs"}, [
+		h("div", null, [h("span", {class:"chip e-" + st.evidence}, EV_MARK[st.evidence] + " " + EV_LABEL[st.evidence]), " ", h("strong", null, st.n + ". " + st.label)]),
+		h("div", {class:"meta"}, (L[st.from] ? L[st.from].label : st.from) + " → " + (L[st.to] ? L[st.to].label : st.to) + (st.carrier ? " · carrier: " + st.carrier : "")),
+		st.note ? h("div", null, st.note) : null,
+		(st.receipts || []).map(function (r) { return h("div", {class:"rc"}, [h("code", null, r.ref), r.sha ? [" @ ", h("code", null, r.sha)] : "", r.via ? h("span", {class:"meta"}, " · via " + r.via) : null, r.quote ? h("q", null, r.quote) : null]); }),
+		!(st.receipts || []).length ? h("div", {class:"meta"}, "receipt 없음 (" + EV_LABEL[st.evidence] + ")") : null
+	]);
+}
+function stopPlay() {
+	PLAY.timers.forEach(clearTimeout); PLAY.timers = [];
+	document.querySelectorAll(".flowsvg").forEach(function (s) { s._blk.style.opacity = 0; });
+	document.querySelectorAll(".step.lit").forEach(function (g) { g.classList.remove("lit"); });
+}
+function play(maxN) {
+	stopPlay();
+	var svgs = [].slice.call(document.querySelectorAll(".flowsvg"));
+	if (REDUCED) { document.querySelectorAll(".step").forEach(function (g) { g.classList.add("lit"); }); return; }
+	var T = 900;
+	for (var n = 1; n <= maxN; n++) (function (n) {
+		PLAY.timers.push(setTimeout(function () {
+			svgs.forEach(function (svg) {
+				var st = svg._flow.steps.filter(function (x) { return x.n === n; })[0];
+				if (!st) return;
+				var x = LEFT + n * STEP_W, blk = svg._blk;
+				blk.style.transition = "none"; blk.style.opacity = 1;
+				blk.style.transform = "translate(" + x + "px," + svg._y[st.from] + "px)";
+				blk.getBoundingClientRect();
+				blk.style.transition = "transform " + (T * 0.7) + "ms ease-in-out";
+				blk.style.transform = "translate(" + x + "px," + svg._y[st.to] + "px)";
+				var g = svg.querySelector('.step[data-n="' + n + '"]'); if (g) g.classList.add("lit");
+			});
+		}, (n - 1) * T));
+	})(n);
+	PLAY.timers.push(setTimeout(function () { svgs.forEach(function (s) { s._blk.style.opacity = 0; }); }, maxN * T + 300));
+}
+function renderFlows() {
+	var v = document.getElementById("view");
+	v.replaceChildren();
+	stopPlay();
+	var fs = DATA.flows || [];
+	if (!fs.length) { v.appendChild(h("p", {class:"mut"}, "흐름 없음 (flows.json 비어 있음 또는 없음).")); return; }
+	var sel = S.fl ? S.fl.split(",").filter(function (id) { return fs.some(function (f) { return f.id === id; }); }) : [];
+	if (!sel.length) sel = [fs[0].id];
+	if (sel.length > 2) sel = sel.slice(0, 2);
+	v.appendChild(h("div", {class:"bar"}, [h("span", {class:"mut"}, "흐름 선택(최대 2 — 둘이면 위아래 같은 시간축 비교):")].concat(fs.map(function (f) {
+		var on = sel.indexOf(f.id) >= 0;
+		return h("label", null, [h("input", {type:"checkbox", checked:on ? "" : false, onchange:function (e) {
+			var cur = sel.slice();
+			if (e.target.checked) cur.push(f.id); else cur = cur.filter(function (x) { return x !== f.id; });
+			if (cur.length > 2) cur = cur.slice(-2);
+			if (!cur.length) cur = [f.id];
+			set({fl:cur.join(",")});
+		}}), f.title]);
+	}))));
+	var chosen = sel.map(function (id) { return fs.filter(function (f) { return f.id === id; })[0]; });
+	var maxN = Math.max.apply(null, chosen.map(function (f) { return Math.max.apply(null, f.steps.map(function (s) { return s.n; })); }));
+	v.appendChild(h("div", {class:"bar"}, [
+		h("button", {onclick:function () { play(maxN); }}, REDUCED ? "▶ 모든 step 표시 (모션 줄임 설정)" : "▶ 재생"),
+		h("button", {onclick:stopPlay}, "■ 멈춤"),
+		h("span", {class:"meta"}, "실선=관측된 근거, 점선=가설·미관측·질문. 화살표 색은 근거 상태. step을 누르면 근거.")
+	]));
+	chosen.forEach(function (f) {
+		var detail = h("div");
+		var wrap = h("div", {class:"flowwrap"});
+		function draw(selN) {
+			wrap.replaceChildren(flowSvg(f, maxN, function (st) { detail.replaceChildren(stepDetail(f, st)); draw(st.n); }, selN));
+		}
+		draw(null);
+		v.appendChild(h("div", {class:"obs"}, [
+			h("strong", null, f.title), h("span", {class:"meta"}, "  " + f.id + " · 관측 " + f.observed_at + (f.houses && f.houses.length ? " · " + nameList(f.houses, HOUSE).join(", ") : "")),
+			h("div", {class:"tw"}, wrap),
+			detail,
+			(f.gaps || []).length ? h("div", null, [h("strong", null, "못 본 구간"), h("ul", null, f.gaps.map(function (g) { return h("li", null, g); }))]) : null
+		]));
+	});
+}
+
+function renderSources() {
+	var v = document.getElementById("view");
+	v.replaceChildren();
+	var rows = [];
+	DATA.houses.forEach(function (x) {
+		if (!(x.sources || []).length) rows.push(h("tr", null, [h("td", null, x.name), h("td", {colspan:"6", class:"mut"}, "출처 기록 없음")]));
+		(x.sources || []).forEach(function (s) {
+			rows.push(h("tr", null, [h("td", null, x.name), h("td", null, s.kind || "repo"), h("td", null, s.repo), h("td", null, s.sha ? h("code", null, s.sha) : h("span", {class:"mut"}, "—")), h("td", null, s.tag || ""), h("td", null, s.read_at + " (" + ageDays(s.read_at) + "일 전)" + (isStale(s.read_at) ? " ⌛" : "")), h("td", {class:"meta"}, s.note || "")]));
+		});
+	});
+	DATA.houses.forEach(function (x) { if (x.activity) rows.push(h("tr", null, [h("td", null, x.name), h("td", {colspan:"6", class:"meta"}, "activity: " + x.activity)])); });
+	v.appendChild(h("div", {class:"tw"}, h("table", null, [h("thead", null, h("tr", null, ["집","kind","repo","SHA","tag","읽은 날","note"].map(function (t) { return h("th", null, t); }))), h("tbody", null, rows)])));
+}
+
+function render() {
+	renderHead(); renderTabs(); renderFilters();
+	if (S.tab === "matrix") renderMatrix();
+	else if (S.tab === "questions") renderQuestions();
+	else if (S.tab === "experiments") renderExperiments();
+	else if (S.tab === "corrections") renderCorrections();
+	else if (S.tab === "metrics") renderMetrics();
+	else if (S.tab === "flows") renderFlows();
+	else if (S.tab === "sources") renderSources();
+	else throw new Error("알 수 없는 탭: " + S.tab);
+}
+readHash();
+window.addEventListener("hashchange", function () { readHash(); render(); });
+render();
+</script>
+</body>
+</html>

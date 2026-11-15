@@ -1,0 +1,309 @@
+[
+	{
+		"id": "entwurf",
+		"name": "Entwurf",
+		"kind": "garden id로 집 밖 시민을 부르는 주소·배달 층 (이 조사에서는 움직이는 로컬 작업본)",
+		"sources": [
+			{
+				"repo": "junghan0611/entwurf",
+				"sha": "88dc684a+dirty",
+				"read_at": "2026-11-15",
+				"note": "meta-session.ts 등 첫 배치 read",
+				"kind": "repo"
+			},
+			{
+				"repo": "junghan0611/entwurf",
+				"sha": "17ef5c90",
+				"read_at": "2026-11-15",
+				"note": "openclaw-gateway.ts·meta-mailbox-body.ts, clean 작업본",
+				"kind": "repo"
+			},
+			{
+				"repo": "junghan0611/entwurf",
+				"sha": "65c4f6b7+dirty",
+				"read_at": "2026-11-15",
+				"note": "branch 160-openclaw, 2차 배치 §10·A4",
+				"kind": "repo"
+			},
+			{
+				"repo": "junghan0611/entwurf",
+				"sha": "98c64b08+dirty",
+				"read_at": "2026-11-15",
+				"note": "opus §8 돌아갈 근거 표",
+				"kind": "repo"
+			}
+		],
+		"column": "entwurf",
+		"role": "base",
+		"column_label": "Entwurf"
+	},
+	{
+		"id": "agent-config",
+		"name": "agent-config",
+		"kind": "스킬 SSOT·하네스 링크·commit 관행이 사는 집",
+		"sources": [
+			{
+				"repo": "agent-config:skills/commit/SKILL.md",
+				"kind": "docs",
+				"read_at": "2026-11-15"
+			},
+			{
+				"repo": "agent-config:AGENTS.md",
+				"kind": "docs",
+				"read_at": "2026-11-15"
+			}
+		],
+		"column": "entwurf",
+		"role": "addon"
+	},
+	{
+		"id": "andenken",
+		"name": "Andenken",
+		"kind": "세션·가든 corpus를 임베딩해 다시 읽히게 하는 기억 층",
+		"sources": [
+			{
+				"repo": "junghan0611/andenken",
+				"sha": "04c29c5",
+				"read_at": "2026-11-15",
+				"kind": "repo"
+			}
+		],
+		"column": "entwurf",
+		"role": "addon"
+	},
+	{
+		"id": "pi",
+		"name": "Pi (일반 형제)",
+		"kind": "Entwurf 위의 일반 Pi 시민 — 소스는 entwurf 쪽 파일로만 읽음",
+		"sources": [],
+		"column": "pi",
+		"role": "base",
+		"column_label": "Pi"
+	},
+	{
+		"id": "pi-durable",
+		"name": "pi-durable",
+		"kind": "한 garden이 SQLite 한 대화를 달 단위로 쥐는 상주 시민",
+		"sources": [
+			{
+				"repo": "agent-config:PI-DURABLE.md",
+				"kind": "docs",
+				"read_at": "2026-11-15"
+			}
+		],
+		"column": "pi",
+		"role": "addon"
+	},
+	{
+		"id": "claude-code",
+		"name": "Claude Code",
+		"kind": "native 이름으로 살아 있는 세션끼리 메시징하는 하네스 (문서 + 실물 명부)",
+		"sources": [
+			{
+				"repo": "https://code.claude.com/docs/en/cross-session-messaging",
+				"kind": "docs",
+				"read_at": "2026-11-15"
+			},
+			{
+				"repo": "claude-code CLI",
+				"kind": "version",
+				"tag": "2.1.325",
+				"read_at": "2026-11-15",
+				"note": "claude --version 측정 (oracle)"
+			}
+		],
+		"column": "claude-code",
+		"role": "base",
+		"column_label": "Claude Code"
+	},
+	{
+		"id": "openclaw",
+		"name": "OpenClaw",
+		"kind": "봇의 집을 관리하는 집주인 — Gateway 안 세션 key 주소",
+		"sources": [
+			{
+				"repo": "openclaw",
+				"sha": "847611d",
+				"read_at": "2026-11-15",
+				"tag": "v2026.11.3",
+				"note": "owner 문서에 미기재. main fd3d80e4는 문서 수준만 재확인",
+				"kind": "repo"
+			}
+		],
+		"column": "openclaw",
+		"role": "base",
+		"column_label": "OpenClaw"
+	},
+	{
+		"id": "orca",
+		"name": "Orca",
+		"kind": "Run/Dispatch로 작업을 감독하는 작업대",
+		"sources": [
+			{
+				"repo": "stablyai/orca",
+				"sha": "980c0024",
+				"read_at": "2026-11-15",
+				"tag": "v1.4.259",
+				"kind": "repo"
+			},
+			{
+				"repo": "stablyai/orca",
+				"sha": "5a2990b6",
+				"read_at": "2026-11-15",
+				"note": "main, in-tree package.json 1.4.214 (릴리스 번호 아님)",
+				"kind": "repo"
+			},
+			{
+				"repo": "stablyai/orca",
+				"sha": "c91a7a6e",
+				"read_at": "2026-11-15",
+				"tag": "v1.4.258",
+				"note": "비교용",
+				"kind": "repo"
+			}
+		],
+		"column": "orca",
+		"role": "base",
+		"column_label": "Orca"
+	},
+	{
+		"id": "herdr-1",
+		"name": "Herdr 1",
+		"kind": "Rust TUI 터미널 멀티플렉서 1세대 — plugin·integration 계층",
+		"sources": [
+			{
+				"repo": "herdrdev/herdr",
+				"sha": "ee5bfb5041bb",
+				"read_at": "2026-11-15",
+				"note": "master 2026-10-29; 최신 릴리스 v0.9.5(10-14)는 이 SHA가 아님. tree/raw API로만 읽음",
+				"kind": "repo"
+			}
+		],
+		"activity": "master는 11-01 관측 ref 이후 커밋 0(마지막 2026-10-29), 최신 릴리스 v0.9.5(10-14), archived 아님; core/app의 AGENTS·CHANGELOG·README 범위에서 지원 종료 선언 문장은 못 찾음 (gh api·grep, 2026-11-15)",
+		"column": "herdr",
+		"role": "addon"
+	},
+	{
+		"id": "herdr-core",
+		"name": "Herdr 2 core",
+		"kind": "터미널 슬롯 tN을 주소로 삼는 core (그리지 않음)",
+		"sources": [
+			{
+				"repo": "herdrdev/herdr-core",
+				"sha": "c84d6e76156a",
+				"read_at": "2026-11-15",
+				"tag": "v0.1.21",
+				"kind": "repo"
+			}
+		],
+		"activity": "11-01 관측 ref de82c962fa6d 이후 135커밋, 태그 v0.1.21, GitHub Release 없음 (gh api, 2026-11-15)",
+		"column": "herdr",
+		"role": "base",
+		"column_label": "Herdr"
+	},
+	{
+		"id": "herdr-app",
+		"name": "Herdr 2 app",
+		"kind": "core 터미널을 GPUI로 그리는 GUI 클라이언트·mods",
+		"sources": [
+			{
+				"repo": "herdrdev/herdr-app",
+				"sha": "5216e6f9f8c0",
+				"read_at": "2026-11-15",
+				"tag": "v0.1.15",
+				"kind": "repo"
+			}
+		],
+		"activity": "11-01 관측 ref d524ec51bf9a 이후 248커밋, 태그 v0.1.15, GitHub Release 없음 (gh api, 2026-11-15)",
+		"column": "herdr",
+		"role": "addon"
+	},
+	{
+		"id": "openrig",
+		"name": "OpenRig",
+		"kind": "자리(seat)가 이어지고 점유자 세대가 바뀌는 rig daemon",
+		"sources": [
+			{
+				"repo": "mvschwarz/openrig",
+				"sha": "13337dee98d7",
+				"read_at": "2026-11-15",
+				"note": "main 2026-11-15; 최신 릴리스 v0.7.15는 이 SHA로 확인 안 함",
+				"kind": "repo"
+			}
+		],
+		"activity": "10-14 관측(6448f6b, v0.6.10) 이후 1520커밋, 최신 릴리스 v0.7.15 (gh api·git, 2026-11-15)",
+		"column": "openrig",
+		"role": "base",
+		"column_label": "OpenRig"
+	},
+	{
+		"id": "kelpie",
+		"name": "kelpie",
+		"kind": "Herdr 이웃 — logical agent가 pane·프로세스·native 대화와 따로 사는 바깥 선례 (★0, 스스로 alpha)",
+		"sources": [
+			{
+				"repo": "dcadenas/kelpie",
+				"sha": "ba0bf0491cfd",
+				"read_at": "2026-11-15",
+				"kind": "repo"
+			}
+		],
+		"column": "kelpie",
+		"role": "base",
+		"column_label": "kelpie"
+	},
+	{
+		"id": "ouroboros",
+		"name": "Ouroboros",
+		"kind": "Seed(불변 스펙) + SQLite EventStore를 런타임 사이에 공유하는 세대 루프 엔진",
+		"sources": [
+			{
+				"repo": "Q00/ouroboros",
+				"kind": "repo",
+				"sha": "398f588c",
+				"read_at": "2026-09-09",
+				"note": "origin/main 클론 HEAD, 태그 핀 없음 (OUROBOROS.md 측정 git log -1)"
+			},
+			{
+				"repo": "agent-config:OUROBOROS.md",
+				"kind": "docs",
+				"read_at": "2026-11-15",
+				"note": "관측 문서 @7d8052e"
+			}
+		],
+		"column": "ouroboros",
+		"role": "base",
+		"column_label": "Ouroboros"
+	},
+	{
+		"id": "letta",
+		"name": "Letta",
+		"kind": "agent_id 아래 경험·기억을 잇는 지속 에이전트 제품(Letta Code)과 같은 조직의 기억 효과 평가면(FrontierMemory)",
+		"sources": [
+			{
+				"repo": "letta-ai/letta-code",
+				"kind": "repo",
+				"sha": "75d7921f1666b92b4a82acca64e5ef09001c1eb3",
+				"tag": "package 0.34.23",
+				"read_at": "2026-10-24"
+			},
+			{
+				"repo": "letta-ai/frontiermemory",
+				"kind": "repo",
+				"sha": "49bea0f33a72da9771f8ef853ed7e48b69bf53df",
+				"tag": "package 0.1.0 / 평가명 1.0",
+				"read_at": "2026-10-24",
+				"note": "평가면 — Letta Code의 기억 엔진으로 부르지 않음"
+			},
+			{
+				"repo": "agent-config:LETTA.md",
+				"kind": "docs",
+				"read_at": "2026-11-15",
+				"note": "관측 문서 @5bf7ced"
+			}
+		],
+		"column": "letta",
+		"role": "base",
+		"column_label": "Letta"
+	}
+]

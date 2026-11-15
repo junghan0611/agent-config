@@ -1,6 +1,6 @@
 ---
 name: harness-bench
-description: "하네스 리서치 장기 관측소 — agent-config 루트의 대문자 하네스 문서(HERMES / OMP / OUROBOROS / HERDR / PRIME / YEGGE / UNCLEBOB / XIRP / PI / PI-DURABLE / OPENRIG / LETTA)를 상태·증거로 갱신한다. 채택·성능·좋고 나쁨 판정이 아니다. RLM 기억, native 형제 delivery/UX 대칭성, 역할이 아닌 다른 학교 모델과의 협업, 스펙 전 탐색 대화, 그리고 그 하네스가 무엇으로 자기를 증명하는가(검증면 — 테스트 배치·게이트 자기검증·문서계약)를 본다. 스킬 주입·라이브 setup 금지. 트리거: '하네스 리서치', 'HERMES', 'OMP.md', 'OUROBOROS', 'HERDR', 'PRIME', 'prime-agent', 'YEGGE', 'UNCLEBOB', '밥 마틴', 'CRAP', 'XIRP', 'PI.md', 'PI-DURABLE', 'pi-durable', 'OPENRIG', 'openrig', 'LETTA', 'Letta', 'MemGPT', 'FrontierMemory', 'LoCoMo', 'LongMemEval', '독립 하네스', '하네스 명부', '검증면', '테스트 배치', '게이트', '벤치', '대문자 문서', 'harness bench', 'harness research'."
+description: "하네스 리서치 장기 관측소 — agent-config 루트의 대문자 하네스 문서(HERMES / OMP / OUROBOROS / HERDR / PRIME / YEGGE / UNCLEBOB / XIRP / PI / PI-DURABLE / OPENRIG / LETTA)를 상태·증거로 갱신한다. 채택·성능·좋고 나쁨 판정이 아니다. RLM 기억, native 형제 delivery/UX 대칭성, 역할이 아닌 다른 학교 모델과의 협업, 스펙 전 탐색 대화, 그리고 그 하네스가 무엇으로 자기를 증명하는가(검증면 — 테스트 배치·게이트 자기검증·문서계약)를 본다. 스킬 주입·라이브 setup 금지. 트리거: '하네스 리서치', 'HERMES', 'OMP.md', 'OUROBOROS', 'HERDR', 'PRIME', 'prime-agent', 'YEGGE', 'UNCLEBOB', '밥 마틴', 'CRAP', 'XIRP', 'PI.md', 'PI-DURABLE', 'pi-durable', 'OPENRIG', 'openrig', 'LETTA', 'Letta', 'MemGPT', 'FrontierMemory', 'LoCoMo', 'LongMemEval', '독립 하네스', '하네스 명부', '검증면', '테스트 배치', '게이트', '벤치', '대문자 문서', '하네스 대시보드', 'harness-dashboard', '관측판 업데이트', 'harness bench', 'harness research'."
 user_invocable: true
 ---
 
@@ -13,6 +13,7 @@ Repo: `~/repos/gh/agent-config`. The files are the subjects. This skill does not
 | `status` | none | `python3 {baseDir}/scripts/status.py` |
 | `show` | `NAME` (file stem) | `python3 {baseDir}/scripts/status.py OUROBOROS` |
 | update | after research | append a dated `## [YYYY-MM-DD]` heading to that `NAME.md`. Do not rewrite |
+| dashboard | after research, or when a row went stale | add/supersede rows in `harness-dashboard/data/*.json`, then `python3 harness-dashboard/build.py`. Read [DASHBOARD.md](DASHBOARD.md) first. ⚠️ `deploy.sh` only when GLG asked |
 
 `status` lists every root `ALLCAPS.md` bench/observation file with its kind and latest 상태 date. `show` prints the `## 상태` (or first dated) section.
 

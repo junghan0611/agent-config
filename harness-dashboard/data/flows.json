@@ -1,0 +1,974 @@
+[
+	{
+		"id": "f.1",
+		"title": "entwurf self-fetch mailbox — 알림 뒤 받는 쪽이 스스로 가져간다",
+		"houses": [
+			"entwurf",
+			"claude-code"
+		],
+		"lanes": [
+			{
+				"id": "sender",
+				"label": "보내는 시민",
+				"group": "한 호스트"
+			},
+			{
+				"id": "v2",
+				"label": "entwurf_v2 decider",
+				"group": "한 호스트"
+			},
+			{
+				"id": "box",
+				"label": "meta-mailbox (.msg)",
+				"group": "한 호스트"
+			},
+			{
+				"id": "recv",
+				"label": "받는 시민 (Claude Code 등)",
+				"group": "한 호스트"
+			}
+		],
+		"steps": [
+			{
+				"from": "sender",
+				"to": "v2",
+				"label": "entwurf_v2(target, message, wants_reply)",
+				"evidence": "measured",
+				"receipts": [
+					{
+						"ref": "이 세션 entwurf_v2 receipt 'meta-mailbox → enqueued'",
+						"via": "opus-whose.md:112"
+					}
+				],
+				"carrier": "MCP 도구 호출",
+				"n": 1
+			},
+			{
+				"from": "v2",
+				"to": "box",
+				"label": "envelope 5줄(from·session·at·wants reply + 회신 절차)을 본문에 직렬화한 .msg 한 통",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:pi-extensions/lib/meta-mailbox-body.ts:74-97",
+						"sha": "65c4f6b7+dirty"
+					},
+					{
+						"ref": "entwurf:entwurf-v2-mailbox.ts:66",
+						"sha": "65c4f6b7+dirty"
+					}
+				],
+				"carrier": "파일",
+				"n": 2
+			},
+			{
+				"from": "box",
+				"to": "recv",
+				"label": "doorbell 알림 — 'untrusted data' 해석 지시는 알림과 도구 설명에 있고 본문 밖",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:pi/meta-bridge/entwurf-meta-receive/scripts/doorbell.sh",
+						"sha": "65c4f6b7+dirty"
+					}
+				],
+				"carrier": "hook 알림",
+				"n": 3
+			},
+			{
+				"from": "recv",
+				"to": "box",
+				"label": "entwurf_inbox_read가 미읽음 본문을 돌려주고 .read로 archive, lastReadAt 기록",
+				"evidence": "claim",
+				"receipts": [
+					{
+						"ref": "entwurf_inbox_read tool description",
+						"via": "opus-whose.md:232"
+					}
+				],
+				"carrier": "MCP 도구 호출",
+				"n": 4
+			},
+			{
+				"from": "recv",
+				"to": "sender",
+				"label": "replyable이면 envelope의 garden으로 entwurf_v2 회신",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:pi-extensions/lib/meta-mailbox-body.ts:74-97",
+						"sha": "65c4f6b7+dirty"
+					}
+				],
+				"carrier": "MCP 도구 호출",
+				"n": 5
+			}
+		],
+		"observed_at": "2026-11-15",
+		"gaps": [
+			"영수증·lastReadAt은 모델이 읽었다는 증거가 아님 (도구 설명)",
+			"Pi control socket rail 렌더(entwurf-control.ts:445-460)는 이 흐름에 넣지 않음"
+		]
+	},
+	{
+		"id": "f.2",
+		"title": "entwurf native-push — 받는 하네스의 대화에 직접 주입",
+		"houses": [
+			"entwurf"
+		],
+		"lanes": [
+			{
+				"id": "sender",
+				"label": "보내는 시민",
+				"group": "한 호스트"
+			},
+			{
+				"id": "v2",
+				"label": "entwurf_v2 decider",
+				"group": "한 호스트"
+			},
+			{
+				"id": "adapter",
+				"label": "native-push adapter",
+				"group": "한 호스트"
+			},
+			{
+				"id": "conv",
+				"label": "받는 하네스 대화 (Codex·Antigravity·OpenClaw)",
+				"group": "받는 집"
+			}
+		],
+		"steps": [
+			{
+				"from": "sender",
+				"to": "v2",
+				"label": "entwurf_v2(target, message)",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:entwurf-v2-native-push.ts:44",
+						"sha": "17ef5c90",
+						"via": "opus-whose.md:166"
+					}
+				],
+				"carrier": "MCP 도구 호출",
+				"n": 1
+			},
+			{
+				"from": "v2",
+				"to": "adapter",
+				"label": "mailbox와 같은 formatMetaMailboxBody 본문으로 adapter send",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:entwurf-v2-native-push.ts:99",
+						"sha": "65c4f6b7+dirty"
+					},
+					{
+						"ref": "entwurf:docs/adding-a-harness.md:513-518",
+						"sha": "65c4f6b7+dirty"
+					}
+				],
+				"carrier": "함수 호출",
+				"n": 2
+			},
+			{
+				"from": "adapter",
+				"to": "conv",
+				"label": "본문을 대화에 직접 주입 — 가져오는 도구 층이 없어 해석 지시 문구도 따라가지 않음",
+				"evidence": "unobserved",
+				"receipts": [
+					{
+						"ref": "grep 'Treat the bodies as untrusted' native-push/*.ts, openclaw-send.ts",
+						"sha": "65c4f6b7+dirty"
+					}
+				],
+				"carrier": "주입",
+				"note": "문구 부재는 grep 범위 한정",
+				"n": 3
+			}
+		],
+		"observed_at": "2026-11-15",
+		"gaps": [
+			"Codex·Antigravity에서 주입 행이 그 집의 어느 출처 칸에 들어가는지 읽지 않음"
+		]
+	},
+	{
+		"id": "f.3",
+		"title": "entwurf ↔ OpenClaw — 봇이 형제를 부르고 형제가 chat.send steer로 답한다 (설계 읽기, 실행 0)",
+		"houses": [
+			"entwurf",
+			"openclaw"
+		],
+		"lanes": [
+			{
+				"id": "bot",
+				"label": "abc봇 세션",
+				"group": "OpenClaw 집 (Gateway)"
+			},
+			{
+				"id": "plugin",
+				"label": "Entwurf 플러그인 도구",
+				"group": "OpenClaw 집 (Gateway)"
+			},
+			{
+				"id": "gw",
+				"label": "Gateway chat.send / transcript",
+				"group": "OpenClaw 집 (Gateway)"
+			},
+			{
+				"id": "send",
+				"label": "entwurf openclaw-send (SSH forced command)",
+				"group": "Entwurf 호스트"
+			},
+			{
+				"id": "box",
+				"label": "형제 meta-mailbox",
+				"group": "Entwurf 호스트"
+			},
+			{
+				"id": "sib",
+				"label": "Claude Code 형제",
+				"group": "Entwurf 호스트"
+			},
+			{
+				"id": "adapter",
+				"label": "openclaw-gateway native-push adapter",
+				"group": "Entwurf 호스트"
+			}
+		],
+		"steps": [
+			{
+				"from": "bot",
+				"to": "plugin",
+				"label": "플러그인 도구 호출 — claim은 ctx의 (agentId, sessionKey)로 만든다",
+				"evidence": "inherited",
+				"receipts": [
+					{
+						"ref": "entwurf:.agent-reports/20261115-openclaw-mailbox/issue-160.md:108,150",
+						"via": "opus-whose.md:111"
+					}
+				],
+				"carrier": "도구 호출",
+				"n": 1
+			},
+			{
+				"from": "plugin",
+				"to": "send",
+				"label": "SSH forced command가 entwurf openclaw-send를 실행, 선언 scope 안 자기신고",
+				"evidence": "claim",
+				"receipts": [
+					{
+						"ref": "issue-160.md:242-244 규칙 9·10",
+						"via": "opus-whose.md:112"
+					}
+				],
+				"carrier": "SSH",
+				"n": 2
+			},
+			{
+				"from": "send",
+				"to": "box",
+				"label": ".msg 한 통, envelope from/session에 abc봇 garden",
+				"evidence": "claim",
+				"receipts": [
+					{
+						"ref": "issue-160.md 규칙 9·10",
+						"via": "opus-whose.md:112"
+					}
+				],
+				"carrier": "파일",
+				"n": 3
+			},
+			{
+				"from": "box",
+				"to": "sib",
+				"label": "inbox_read 결과가 형제 transcript의 tool result로 남음",
+				"evidence": "claim",
+				"receipts": [
+					{
+						"ref": "opus-whose.md:113 (이 세션 inbox 형식과 같은 모양)"
+					}
+				],
+				"carrier": "MCP 도구 호출",
+				"n": 4
+			},
+			{
+				"from": "sib",
+				"to": "adapter",
+				"label": "entwurf_v2 회신 → native-push adapter",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:pi-extensions/lib/native-push/openclaw-gateway.ts:285-290",
+						"sha": "17ef5c90",
+						"via": "opus-whose.md:166"
+					}
+				],
+				"carrier": "함수 호출",
+				"n": 5
+			},
+			{
+				"from": "adapter",
+				"to": "gw",
+				"label": "openclaw gateway call chat.send {sessionKey, message, idempotencyKey, queueMode:'steer'} — provenance 키 없음, CLI는 SESSION_WRITE scope만",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:openclaw-gateway.ts:116-132",
+						"sha": "17ef5c90"
+					},
+					{
+						"ref": "openclaw:session-method-scopes-base.ts:49-55",
+						"sha": "847611d"
+					}
+				],
+				"carrier": "CLI → Gateway RPC",
+				"n": 6
+			},
+			{
+				"from": "gw",
+				"to": "bot",
+				"label": "busy면 steer 주입, idle이면 dispatch — 둘 다 userTurnTranscriptRecorder로 기록, provenance external_user 또는 없음",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "openclaw:chat-send-message-injection.ts:164-219",
+						"sha": "847611d"
+					},
+					{
+						"ref": "openclaw:chat-send-agent-dispatch.ts:441-446",
+						"sha": "847611d"
+					},
+					{
+						"ref": "openclaw:chat-user-turn-recorder.ts:100-104",
+						"sha": "847611d"
+					}
+				],
+				"carrier": "주입/턴",
+				"n": 7
+			},
+			{
+				"from": "adapter",
+				"to": "sib",
+				"label": "receipt native-push → delivered (S4)",
+				"evidence": "inherited",
+				"receipts": [
+					{
+						"ref": "issue-160.md:142",
+						"via": "opus-whose.md:114"
+					}
+				],
+				"carrier": "도구 결과",
+				"n": 8
+			}
+		],
+		"observed_at": "2026-11-15",
+		"gaps": [
+			"senderIsOwner·sender 실제 저장값 미측정 (lab n=1은 external_user/cli만)",
+			"봇이 memory 파일에 무엇을 쓰는지는 코드로 정해지지 않음",
+			"OpenClaw 컨테이너·호스트 배치의 실제 SSH 경로는 이 조사에서 실행 안 함"
+		]
+	},
+	{
+		"id": "f.4",
+		"title": "OpenClaw 집 안 sessions_send — 같은 Gateway의 봇끼리",
+		"houses": [
+			"openclaw"
+		],
+		"lanes": [
+			{
+				"id": "a",
+				"label": "봇 A 세션",
+				"group": "같은 Gateway"
+			},
+			{
+				"id": "gw",
+				"label": "Gateway",
+				"group": "같은 Gateway"
+			},
+			{
+				"id": "b",
+				"label": "봇 B 세션",
+				"group": "같은 Gateway"
+			}
+		],
+		"steps": [
+			{
+				"from": "a",
+				"to": "gw",
+				"label": "sessions_send(sessionKey|label|agentId, message, timeoutSeconds) — 매 전송마다 접근 판정",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "openclaw:sessions-send-communication.ts:296-345",
+						"sha": "847611d",
+						"via": "sonnet-upstream.md:51"
+					}
+				],
+				"carrier": "도구 호출",
+				"n": 1
+			},
+			{
+				"from": "gw",
+				"to": "b",
+				"label": "inter_session provenance + 'sourceSession=<key> … isUser=false' 헤더와 설명문을 접두",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "openclaw:sessions-send-tool.ts:470-477",
+						"sha": "847611d"
+					},
+					{
+						"ref": "openclaw:input-provenance.ts:275-291",
+						"sha": "847611d"
+					}
+				],
+				"carrier": "프롬프트 접두",
+				"n": 2
+			},
+			{
+				"from": "b",
+				"to": "a",
+				"label": "답은 한 번 — inline 또는 늦으면 deliverRequesterReply로 inter-session 입력",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "openclaw:sessions-send-tool.a2a.ts:150-215",
+						"sha": "847611d"
+					}
+				],
+				"carrier": "inter-session 입력",
+				"n": 3
+			},
+			{
+				"from": "a",
+				"to": "a",
+				"label": "timeoutSeconds 0이면 enqueue 후 바로 반환(fire-and-forget)",
+				"evidence": "claim",
+				"receipts": [
+					{
+						"ref": "openclaw:docs/concepts/session-tool.md:256-258",
+						"sha": "847611d"
+					}
+				],
+				"carrier": "—",
+				"n": 4
+			}
+		],
+		"observed_at": "2026-11-15",
+		"gaps": [
+			"교차-Gateway 경로의 코드상 부재는 확인 안 함 (same Gateway는 문서 주장)",
+			"sessions-send* 테스트 파일은 열지 않음"
+		]
+	},
+	{
+		"id": "f.5",
+		"title": "Herdr 2 hc send — 터미널 입력으로 붙여넣기 (원격 machine/tN 포함)",
+		"houses": [
+			"herdr-core"
+		],
+		"lanes": [
+			{
+				"id": "st",
+				"label": "보내는 터미널 tN (HC_TERMINAL_ID)",
+				"group": "기기 A core"
+			},
+			{
+				"id": "core",
+				"label": "core input 큐",
+				"group": "기기 A core"
+			},
+			{
+				"id": "rt",
+				"label": "받는 터미널 PTY",
+				"group": "기기 A core"
+			},
+			{
+				"id": "rcore",
+				"label": "원격 core (machine/tN)",
+				"group": "기기 B core"
+			}
+		],
+		"steps": [
+			{
+				"from": "st",
+				"to": "core",
+				"label": "hc send <addr> text — 호출자 주소는 HC_TERMINAL_ID",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "herdr-core:src/api/types.rs:304,425,505",
+						"sha": "c84d6e76156a"
+					}
+				],
+				"carrier": "소켓 API",
+				"n": 1
+			},
+			{
+				"from": "core",
+				"to": "core",
+				"label": "받는 쪽 blocked면 거절, --if 불일치면 status_mismatch, 사람이 타이핑 중이면 draft_wait 보류, 시작 직후면 settle",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "herdr-core:src/input.rs:423-446",
+						"sha": "c84d6e76156a"
+					}
+				],
+				"carrier": "—",
+				"n": 2
+			},
+			{
+				"from": "core",
+				"to": "rt",
+				"label": "bracketed paste + 200ms + Enter; 양쪽이 보고하는 에이전트면 <hc from=…> 태그",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "herdr-core:src/input.rs:405-470",
+						"sha": "c84d6e76156a"
+					},
+					{
+						"ref": "herdr-core:src/notes.rs:140-163",
+						"sha": "c84d6e76156a"
+					}
+				],
+				"carrier": "PTY 입력",
+				"n": 3
+			},
+			{
+				"from": "core",
+				"to": "st",
+				"label": "영수증 {status, turn, started|null}",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "herdr-core:src/api/types.rs:517-526",
+						"sha": "c84d6e76156a"
+					}
+				],
+				"carrier": "API 응답",
+				"n": 4
+			},
+			{
+				"from": "core",
+				"to": "rcore",
+				"label": "machine/tN 주소면 추가된 기기마다 열어 둔 framed connection 하나로 호출",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "herdr-core:src/remote.rs:1-4",
+						"sha": "c84d6e76156a"
+					},
+					{
+						"ref": "herdr-core:src/machines.rs:11-23",
+						"sha": "c84d6e76156a"
+					}
+				],
+				"carrier": "SSH framed connection",
+				"n": 5
+			}
+		],
+		"observed_at": "2026-11-15",
+		"gaps": [
+			"원격 재연결 코드(remote.rs 본문) 미독",
+			"원격 쪽에서의 붙여넣기 단계는 로컬과 같은지 단언 미독"
+		]
+	},
+	{
+		"id": "f.6",
+		"title": "Orca 메시지 송신 — 발신측 CLI까지",
+		"houses": [
+			"orca"
+		],
+		"lanes": [
+			{
+				"id": "cli",
+				"label": "orca orchestration send (발신 터미널)",
+				"group": "Orca 런타임"
+			},
+			{
+				"id": "rt",
+				"label": "Orca 런타임",
+				"group": "Orca 런타임"
+			},
+			{
+				"id": "inbox",
+				"label": "수신 inbox",
+				"group": "Orca 런타임"
+			}
+		],
+		"steps": [
+			{
+				"from": "cli",
+				"to": "cli",
+				"label": "발신자 신원 해석: 주입된 agent session id → --from → ORCA_TERMINAL_HANDLE(검증/재발급) → 암묵 추측은 거절",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "orca:src/cli/orchestration/identity/terminal-identity.ts:21-48",
+						"sha": "980c0024"
+					}
+				],
+				"carrier": "—",
+				"n": 1
+			},
+			{
+				"from": "cli",
+				"to": "rt",
+				"label": "from(handle)·senderPaneKey를 런타임 호출에 싣는다; worker_done/heartbeat는 @그룹 주소 거절",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "orca:message-send-handler.ts:70-73,107-125",
+						"sha": "980c0024"
+					}
+				],
+				"carrier": "런타임 호출",
+				"n": 2
+			},
+			{
+				"from": "rt",
+				"to": "inbox",
+				"label": "수신자는 orca orchestration check로 inbox를 읽는다",
+				"evidence": "claim",
+				"receipts": [
+					{
+						"ref": "orca:docs/.../orchestration.mdx:53-59,131-135",
+						"sha": "980c0024"
+					}
+				],
+				"carrier": "inbox",
+				"n": 3
+			}
+		],
+		"observed_at": "2026-11-15",
+		"gaps": [
+			"런타임 쪽 그룹 소속 판정(Run 밖 발신자 거절) 코드 미독",
+			"수신 측 발신자 렌더 경로 미발견 (980c0024 사본 4개 범위)"
+		]
+	},
+	{
+		"id": "f.7",
+		"title": "OpenRig rig send — seat env에서 발신자를 찍고 pane에 타이핑",
+		"houses": [
+			"openrig"
+		],
+		"lanes": [
+			{
+				"id": "seat",
+				"label": "보내는 seat",
+				"group": "rig 호스트"
+			},
+			{
+				"id": "daemon",
+				"label": "rig daemon",
+				"group": "rig 호스트"
+			},
+			{
+				"id": "pane",
+				"label": "받는 seat pane (tmux)",
+				"group": "rig 호스트"
+			},
+			{
+				"id": "remote",
+				"label": "hosts.yaml 원격 daemon",
+				"group": "원격 호스트"
+			}
+		],
+		"steps": [
+			{
+				"from": "seat",
+				"to": "daemon",
+				"label": "seat env OPENRIG_SESSION_NAME → X-OpenRig-Session 헤더, --from은 무시",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "openrig:packages/cli/src/commands/send.ts:265",
+						"sha": "13337dee98d7"
+					},
+					{
+						"ref": "openrig:packages/cli/src/sender-identity.ts",
+						"sha": "13337dee98d7"
+					}
+				],
+				"carrier": "CLI → daemon",
+				"n": 1
+			},
+			{
+				"from": "daemon",
+				"to": "daemon",
+				"label": "From 도출 + envelope 감싸기, 발신 점유자 세대 genUuid(없으면 생략), 해석 불가면 <unknown sender>",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "openrig:send.ts:28-58",
+						"sha": "13337dee98d7"
+					},
+					{
+						"ref": "openrig:pane-envelope.ts:114",
+						"sha": "13337dee98d7"
+					}
+				],
+				"carrier": "—",
+				"n": 2
+			},
+			{
+				"from": "daemon",
+				"to": "pane",
+				"label": "tmux paste-buffer/send-keys로 pane에 타이핑",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "openrig:tmux-control.ts:55-61",
+						"sha": "13337dee98d7"
+					},
+					{
+						"ref": "openrig:tmux.ts:1098-1104",
+						"sha": "13337dee98d7"
+					}
+				],
+				"carrier": "PTY 입력",
+				"n": 3
+			},
+			{
+				"from": "seat",
+				"to": "pane",
+				"label": "--verify: 보낸 뒤 pane 내용 확인, exit 1은 미확인",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "openrig:send.ts:22,255",
+						"sha": "13337dee98d7"
+					}
+				],
+				"carrier": "pane 캡처",
+				"n": 4
+			},
+			{
+				"from": "seat",
+				"to": "remote",
+				"label": "--host <id>: ssh shell-out 또는 http daemon 직결, relay가 인증 문맥에서 출처를 다시 찍음",
+				"evidence": "claim",
+				"receipts": [
+					{
+						"ref": "openrig:send.ts:263-265 option text",
+						"sha": "13337dee98d7"
+					}
+				],
+				"carrier": "SSH/HTTP",
+				"n": 5
+			}
+		],
+		"observed_at": "2026-11-15",
+		"gaps": [
+			"컨테이너 도달 한계 문장 못 찾음",
+			"send.test.ts 등 단언 미독"
+		]
+	},
+	{
+		"id": "f.8",
+		"title": "entwurf remote-pair — 선언된 쌍 사이에서 SSH 한 번으로 편지를 보내고 답한다",
+		"houses": [
+			"entwurf"
+		],
+		"lanes": [
+			{
+				"id": "a_cit",
+				"label": "보내는 시민 (A)",
+				"group": "보내는 호스트 A"
+			},
+			{
+				"id": "a_v2",
+				"label": "A의 entwurf_v2 bridge",
+				"group": "보내는 호스트 A"
+			},
+			{
+				"id": "a_ssh",
+				"label": "ssh 자식 프로세스 (send당 1개)",
+				"group": "보내는 호스트 A"
+			},
+			{
+				"id": "b_entry",
+				"label": "entwurf remote-pair-receive --pair",
+				"group": "받는 호스트 B"
+			},
+			{
+				"id": "b_v2",
+				"label": "B의 로컬 entwurf_v2 dispatch",
+				"group": "받는 호스트 B"
+			},
+			{
+				"id": "b_cit",
+				"label": "받는 시민 (B)",
+				"group": "받는 호스트 B"
+			}
+		],
+		"steps": [
+			{
+				"from": "a_cit",
+				"to": "a_v2",
+				"label": "entwurf_v2(target=B의 garden, message)",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:mcp/entwurf-bridge/src/index.ts:495-520",
+						"sha": "391a5500"
+					}
+				],
+				"carrier": "MCP 도구 호출",
+				"n": 1
+			},
+			{
+				"from": "a_v2",
+				"to": "a_v2",
+				"label": "send마다 entwurf-remote-pair.json을 읽음; target이 route에 없으면 로컬 경로, 로컬 흔적이 있으면 remote-route-local-conflict, 보낸 쪽이 선언된 local이 아니면 remote-sender-not-declared (모두 SSH 0)",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:pi-extensions/lib/remote-pair-send.ts:320-344",
+						"sha": "391a5500"
+					},
+					{
+						"ref": "entwurf:mcp/entwurf-bridge/src/index.ts:502-508",
+						"sha": "391a5500"
+					}
+				],
+				"carrier": "—",
+				"n": 2
+			},
+			{
+				"from": "a_v2",
+				"to": "a_ssh",
+				"label": "claim {from, fromAgentId, fromCwd, target, message, wantsReply}을 stdin으로, argv는 ssh -o BatchMode=yes -o ConnectTimeout=10 <alias> entwurf remote-pair-receive --pair <remotePairFile> (shell 없음, 30초 bound)",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:pi-extensions/lib/remote-pair-send.ts:78,193-207,345-356",
+						"sha": "391a5500"
+					},
+					{
+						"ref": "entwurf:pi-extensions/lib/remote-pair-transport.ts:27-79",
+						"sha": "391a5500"
+					}
+				],
+				"carrier": "SSH stdin",
+				"n": 3
+			},
+			{
+				"from": "a_ssh",
+				"to": "b_entry",
+				"label": "B의 entry는 --pair가 자기 opt-in 경로와 정규화 일치할 때만 받음(아니면 exit 2)",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:scripts/remote-pair-receive.ts:54-61",
+						"sha": "391a5500"
+					}
+				],
+				"carrier": "SSH",
+				"n": 4
+			},
+			{
+				"from": "b_entry",
+				"to": "b_entry",
+				"label": "route 선택: from이 선언 안 됐으면 remote-pair-from-mismatch, 다른 local을 가리키면 remote-pair-target-mismatch (mailbox 변경 전, exit 3)",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:pi-extensions/lib/remote-pair-receive.ts:141-161",
+						"sha": "391a5500"
+					}
+				],
+				"carrier": "—",
+				"n": 5
+			},
+			{
+				"from": "b_entry",
+				"to": "b_v2",
+				"label": "일치하면 발신자 envelope(replyable=false, remote {via: alias, replyRoute: 'declared'})로 B의 기존 로컬 entwurf_v2 dispatch에 넘김",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:pi-extensions/lib/remote-pair-receive.ts:163-191",
+						"sha": "391a5500"
+					},
+					{
+						"ref": "entwurf:scripts/remote-pair-receive.ts:67-73",
+						"sha": "391a5500"
+					}
+				],
+				"carrier": "함수 호출",
+				"n": 6
+			},
+			{
+				"from": "b_v2",
+				"to": "b_cit",
+				"label": "대상 rail의 로컬 규칙대로 배달; 본문 session 줄은 'remote via <alias>; reply route declared, not probed', cwd는 sender-host path",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:pi-extensions/lib/meta-mailbox-body.ts:38-40,78-88",
+						"sha": "391a5500"
+					}
+				],
+				"carrier": "self-fetch mailbox (측정된 쌍)",
+				"n": 7
+			},
+			{
+				"from": "b_entry",
+				"to": "a_v2",
+				"label": "B의 receipt JSON을 stdout으로 — exit 0 dispatched / 4 remote-reported-error / 3 pair 거절 / 2 invalid / 그 밖은 remote-indeterminate, 재시도 없음",
+				"evidence": "code",
+				"receipts": [
+					{
+						"ref": "entwurf:scripts/remote-pair-receive.ts:14-24",
+						"sha": "391a5500"
+					},
+					{
+						"ref": "entwurf:pi-extensions/lib/remote-pair-send.ts:221-296",
+						"sha": "391a5500"
+					}
+				],
+				"carrier": "SSH stdout",
+				"n": 8
+			},
+			{
+				"from": "b_cit",
+				"to": "a_cit",
+				"label": "B가 답하려면 B 쪽 같은 route로 같은 과정을 반대 방향으로(한 route가 두 방향을 맡음)",
+				"evidence": "claim",
+				"receipts": [
+					{
+						"ref": "entwurf:DELIVERY.md:606-612",
+						"sha": "391a5500"
+					}
+				],
+				"carrier": "SSH (역방향)",
+				"n": 9
+			},
+			{
+				"from": "a_cit",
+				"to": "b_cit",
+				"label": "실 SSH 왕복 한 번: 이미 열린 pi-durable 형제 둘 사이 nonce B→A→B (#107, e632294, 2026-10-20, 두 Linux 호스트)",
+				"evidence": "claim",
+				"receipts": [
+					{
+						"ref": "entwurf:DELIVERY.md:639",
+						"sha": "391a5500"
+					}
+				],
+				"carrier": "SSH",
+				"n": 10
+			}
+		],
+		"observed_at": "2026-11-15",
+		"gaps": [
+			"DELIVERY.md:640이 미측정으로 적은 것: OFF target, 실 SSH 위의 음성 경로, 다른 rail, 실 SSH에서 2쌍 이상, 서로 다른 릴리스 간, 비-Linux",
+			"control-socket·native-push 쪽 표시는 증명 안 됨 (DELIVERY.md Display 항목)",
+			"실 왕복 영수증(#107 댓글) 본문은 이번에 읽지 않음 — DELIVERY.md 문장으로만 인용",
+			"SSH 부수효과(known-hosts 등)는 운영자 소유, 측정 안 됨"
+		]
+	}
+]

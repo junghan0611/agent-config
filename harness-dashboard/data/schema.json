@@ -1,0 +1,161 @@
+{
+	"_about": "하네스 외연 관측 데이터의 계약. 뷰어는 이 파일과 observations.json만 읽는다. 점수·순위·좋고나쁨 필드는 두지 않는다.",
+	"evidence_states": {
+		"code": "고정 SHA 소스를 직접 읽음",
+		"measured": "직접 실행해 관찰함 (receipt 필수)",
+		"claim": "그 집의 문서·README가 스스로 한 말 (코드 미확인)",
+		"inherited": "다른 형제·문서에서 넘겨받고 아직 직접 확인 안 함 (출처 명시)",
+		"hypothesis": "가설",
+		"question": "열린 질문",
+		"unobserved": "찾았으나 못 봄 — scope 필수. '없다'가 아니다"
+	},
+	"statuses": [
+		"current",
+		"retracted",
+		"superseded",
+		"open"
+	],
+	"house": {
+		"id": "슬러그",
+		"name": "표시명",
+		"kind": "한 줄 성격(판정 아님)",
+		"sources": [
+			{
+				"repo": "owner/name 또는 문서 URL",
+				"kind": "repo | docs | version",
+				"sha": "선택(kind=repo면 필수): 고정 SHA",
+				"tag": "선택",
+				"read_at": "YYYY-MM-DD",
+				"note": "선택: 릴리스 번호와 SHA 불일치 등"
+			}
+		],
+		"activity": "선택: 그 집의 최근 움직임 사실 한 줄(커밋 수·기간·읽은 날). 판정 아님",
+		"column": "열 id — 같은 column의 집은 매트릭스에서 한 열로 응축된다 (예: entwurf 열 = entwurf + agent-config + andenken, pi 열 = pi + pi-durable)",
+		"role": "base | addon — base는 그 열의 하네스 본체, addon은 본체에 없는 것을 채우는 플러그인/부속(다른 색 띠로 병기)",
+		"column_label": "선택: role=base인 집에만. 열 머리 표시명"
+	},
+	"axis": {
+		"id": "슬러그",
+		"title": "관측 질문 한 줄",
+		"note": "무엇을 보고 무엇을 안 보는지"
+	},
+	"observation": {
+		"id": "house.axis.n",
+		"axis": "axis id",
+		"statement": "한 문장 사실 또는 질문",
+		"evidence": "statement 전체의 가장 약한 근거 상태 (혼합이면 receipt별 evidence를 따른다)",
+		"receipts": [
+			{
+				"ref": "path:line 또는 URL",
+				"sha": "그 줄을 읽은 고정 SHA (움직이는 작업본이면 +dirty 표기)",
+				"quote": "결정적 줄(선택, 짧게)",
+				"evidence": "이 receipt 한 줄의 근거 상태",
+				"via": "선택: 이 영수증 줄이 적힌 연구 노트 위치 (예: sonnet-upstream.md:22)"
+			}
+		],
+		"observed_at": "YYYY-MM-DD",
+		"observer": "garden id 또는 역할",
+		"status": "statuses 값",
+		"supersedes": "선택: 이전 observation id",
+		"retired_by": "선택: 철회시킨 receipt",
+		"scope": "선택: 부재 주장(미관측)일 때 검색한 범위. 범위 없는 '없음'은 싣지 않는다",
+		"houses": [
+			"house id 하나 이상 — 집 사이 관측(예: entwurf→openclaw)은 둘을 순서대로"
+		]
+	},
+	"_lens": "entwurf·agent-config 메인테이너의 자리에서 본다: 다른 집의 작업대·기억·수명·정체성을 존중한 채 주소/왕복/연속이 서는가. 기능 수·성능·채택 여부는 축이 아니다.",
+	"files": "각 파일은 최상위 배열 하나: houses, axes, observations, questions, experiments, corrections, metrics, flows",
+	"question": {
+		"id": "q.n",
+		"text": "질문 한 문장",
+		"axes": [
+			"axis id"
+		],
+		"houses": [
+			"house id"
+		],
+		"raised_at": "YYYY-MM-DD",
+		"source": "문서 절",
+		"status": "open|answered",
+		"answered_by": "선택: observation id"
+	},
+	"experiment": {
+		"id": "x.n",
+		"title": "한 줄",
+		"learns": "이것으로 무엇을 알게 되는가",
+		"steps": [
+			"명령 또는 절차"
+		],
+		"cost": "API-0 | 설치 필요 | GLG 결정 필요",
+		"executed": false,
+		"answers": [
+			"question id"
+		],
+		"source": "문서 절"
+	},
+	"correction": {
+		"id": "c.n",
+		"claim": "철회·정정된 문장",
+		"correction": "지금 서 있는 문장",
+		"retired_by": [
+			{
+				"ref": "receipt",
+				"sha": "선택"
+			}
+		],
+		"corrected_at": "YYYY-MM-DD",
+		"scope": "선택: 어느 범위에서만 정정됐는지"
+	},
+	"metric": {
+		"id": "m.n",
+		"house": "house id",
+		"key": "슬러그(예: commits_since, tools_registered, version)",
+		"label": "표시명",
+		"value": "숫자 또는 짧은 문자열",
+		"unit": "선택",
+		"evidence": "evidence_states 키",
+		"receipts": [
+			{
+				"ref": "…",
+				"sha": "선택"
+			}
+		],
+		"observed_at": "YYYY-MM-DD",
+		"note": "선택: 세는 방법. 순위·점수로 쓰지 않는다 — 같은 key끼리 나란히 볼 뿐"
+	},
+	"flow": {
+		"id": "f.n",
+		"title": "한 줄 (예: entwurf remote-pair — 다른 머신으로 편지 보내고 받기)",
+		"houses": [
+			"house id"
+		],
+		"lanes": [
+			{
+				"id": "슬러그",
+				"label": "행위자/프로세스/머신",
+				"group": "선택: 머신·집 묶음 이름"
+			}
+		],
+		"steps": [
+			{
+				"n": 1,
+				"from": "lane id",
+				"to": "lane id",
+				"label": "무엇이 건너가는가",
+				"carrier": "선택: 파일/소켓/RPC/SSH/주입 등",
+				"evidence": "evidence_states 키",
+				"receipts": [
+					{
+						"ref": "…",
+						"sha": "선택"
+					}
+				],
+				"note": "선택"
+			}
+		],
+		"observed_at": "YYYY-MM-DD",
+		"gaps": [
+			"선택: 이 흐름에서 못 본 구간(scope 포함)"
+		]
+	}
+}

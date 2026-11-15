@@ -1,0 +1,104 @@
+[
+	{
+		"id": "x.1",
+		"title": "S6.4 lab 왕복 영수증에 출처 열 더하기",
+		"learns": "Entwurf 편지가 OpenClaw transcript에 어떤 provenance·senderIsOwner·sender 값으로 기록되는가, 같은 왕복에서 CommandAuthorized 경로가 어떻게 되는가",
+		"steps": [
+			"이미 계획된 S6.4 lab 왕복 하나에서 transcript user entry의 provenance / senderIsOwner / sender 값을 영수증 열로 기록",
+			"본문이 envelope로 시작할 때 슬래시 해석이 일어나지 않는지 같은 왕복에서 확인"
+		],
+		"cost": "GLG 결정 필요",
+		"executed": false,
+		"answers": [
+			"q.1",
+			"q.10"
+		],
+		"source": "RESEARCH.md §8-1; opus-whose.md §5-1; NEXT.md 1"
+	},
+	{
+		"id": "x.2",
+		"title": "커밋 garden → 원문 되짚기",
+		"learns": "커밋 문장의 garden id가 meta-record → native id → corpus 파일까지 되짚히는지/끊기는지, 호스트별 store 차이",
+		"steps": [
+			"커밋 본문에 남은 garden id 몇 개 선택(예: 20261113T160013-d2c63d)",
+			"meta-record → nativeSessionId → corpus 파일 존재 여부만 확인(세션 본문 열지 않음)",
+			"oracle/thinkpad store 차이 기록"
+		],
+		"cost": "API-0",
+		"executed": false,
+		"answers": [
+			"q.2",
+			"q.7"
+		],
+		"source": "RESEARCH.md §8-2; opus-whose.md §5-2; NEXT.md 2"
+	},
+	{
+		"id": "x.3",
+		"title": "Orca 첫 PTY 전후 extensions 목록",
+		"learns": "Orca 기본 설정에서 첫 PTY가 실제로 Pi agent dir extensions/에 쓰는가 (whose-home Orca 칸을 코드에서 측정으로)",
+		"steps": [
+			"thinkpad 격리 환경에서 Orca 첫 PTY 전후 ~/.pi/agent/extensions 목록 비교"
+		],
+		"cost": "설치 필요",
+		"executed": false,
+		"answers": [],
+		"source": "RESEARCH.md §8-3; NEXT.md 3; #164 댓글"
+	},
+	{
+		"id": "x.4",
+		"title": "hook 로그가 처음부터 잘리지 않았는가",
+		"learns": "hook 로그의 첫 타임스탬프와 native= 줄 형식이 언제부터 실렸는가",
+		"steps": [
+			"head -c 25 ~/.pi/agent/meta-bridge-hook.log (첫 타임스탬프만)",
+			"git -C ~/repos/gh/entwurf log -S 'native=${sessionId}' --oneline -- pi-extensions/meta-bridge-hook.ts"
+		],
+		"cost": "API-0",
+		"executed": false,
+		"answers": [
+			"q.2"
+		],
+		"source": "RESEARCH-v3.md D; opus-whose.md §8"
+	},
+	{
+		"id": "x.5",
+		"title": "hook 로그·location 파일이 다른 기기에도 있는가",
+		"learns": "기기를 건너는 범위에서 짝을 남기는 손이 있는가",
+		"steps": [
+			"각 기기에서 ls -la ~/.pi/agent/meta-bridge-hook.log ~/.pi/agent/meta-pi-durable-locations | head -3 (이름·크기만)"
+		],
+		"cost": "API-0",
+		"executed": false,
+		"answers": [
+			"q.7"
+		],
+		"source": "RESEARCH-v3.md D; opus-whose.md §8"
+	},
+	{
+		"id": "x.6",
+		"title": "옛 Pi 파일명 종이 corpus에 남았는가",
+		"learns": "native→garden이 파일명으로 남은 옛 종(06-03~08-06)의 실물 수",
+		"steps": [
+			"find \"$ANDENKEN_SESSION_CORPUS\" -name '*_202[56][01][0-9][0-3][0-9]T[0-9]*-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].jsonl' | wc -l (파일명만)"
+		],
+		"cost": "API-0",
+		"executed": false,
+		"answers": [
+			"q.2"
+		],
+		"source": "RESEARCH-v3.md D; opus-whose.md §8"
+	},
+	{
+		"id": "x.7",
+		"title": "Herdr 2에서 7501을 내지 않는 Pi가 어떻게 보이는가",
+		"learns": "Herdr 2 안 일반 Pi의 상태 표시·발신자 태그·영수증",
+		"steps": [
+			"Herdr 2 설치 후 일반 Pi를 터미널에서 실행해 관찰"
+		],
+		"cost": "설치 필요",
+		"executed": false,
+		"answers": [
+			"q.16"
+		],
+		"source": "RESEARCH-v3.md D"
+	}
+]
