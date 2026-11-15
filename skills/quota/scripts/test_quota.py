@@ -82,12 +82,6 @@ class QuotaTests(unittest.TestCase):
                     "reset_at": int((self.now + datetime.timedelta(days=2)).timestamp())}}},
             collect.AGY_BASE + "loadCodeAssist": {
                 "currentTier": {"name": "Antigravity"}, "paidTier": {"name": "Google AI Pro"}},
-            collect.AGY_BASE + "retrieveUserQuotaSummary": {"groups": [{
-                "displayName": "Claude and GPT models", "buckets": [
-                    {"bucketId": "3p-weekly", "window": "weekly", "resetTime": end,
-                     "remainingFraction": 0.6},
-                    {"bucketId": "3p-5h", "window": "5h", "resetTime": end,
-                     "remainingFraction": 1}]}]},
             collect.AGY_BASE + "retrieveUserQuota": {"buckets": [
                 {"modelId": "gemini-3-flash", "resetTime": end, "remainingFraction": 0.9},
                 {"modelId": "gemini-2.5-pro", "resetTime": end, "remainingFraction": 0.8},
@@ -114,18 +108,18 @@ class QuotaTests(unittest.TestCase):
         snap = collect.snapshot(force=True)
         self.assert_active(snap)
         self.assertEqual([r["status"] for r in snap["rails"]], ["ok"] * 3)
-        self.assertEqual([r["gauges"][0]["used_pct"] for r in snap["rails"]], [20, 30, 40])
+        self.assertEqual([r["gauges"][0]["used_pct"] for r in snap["rails"]], [20, 30, 20])
         agy = snap["rails"][2]
         self.assertEqual(agy["plan"], "Google AI Pro")
         self.assertEqual([(g["label"], g["used_pct"]) for g in agy["gauges"]],
-                         [("7d Claude/GPT", 40), ("5h Claude/GPT", 0), ("Gemini models", 20)])
+                         [("5h Gemini", 20)])
         self.assertEqual(snap["rails"][1]["plan"], "ChatGPT Pro (prolite)")
         self.assertEqual(snap["rails"][1]["gauges"][0]["window"], "7d")
         self.assertTrue(snap["rails"][0]["gauges"][0]["active"])
         self.assertEqual({c.args[0] for c in self.http.call_args_list}, set(responses))
         self.assertEqual([c.args[0] for c in self.load.call_args_list],
                          [collect._q.CLAUDE_CREDS, collect._q.PI_AUTH, collect._q.AGY_TOKEN])
-        self.assertEqual(self.http.call_count, 5)
+        self.assertEqual(self.http.call_count, 4)
 
     def test_expired_agy_token_is_not_refreshed_or_sent(self):
         self.fake_vendors()

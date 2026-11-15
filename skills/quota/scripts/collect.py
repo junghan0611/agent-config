@@ -159,7 +159,6 @@ def collect_claude():
 
 
 AGY_BASE = "https://daily-cloudcode-pa.googleapis.com/v1internal:"
-AGY_WINDOWS = {"weekly": "7d", "5h": "5h"}
 
 
 class AgyTokenExpired(Exception):
@@ -187,31 +186,23 @@ def collect_antigravity():
 
     tier = post("loadCodeAssist", {"metadata": {"ideType": "ANTIGRAVITY"}})
     plan = (tier.get("paidTier") or tier.get("currentTier") or {}).get("name")
+    # Only Gemini is routed through agy (GLG, 2026-11-15); the grouped
+    # Claude/GPT weekly/5h limits from retrieveUserQuotaSummary are not shown.
+    # Gemini has no grouped summary; its per-model buckets share one fraction,
+    # so show the tightest one.
     gauges = []
-    # Grouped weekly/5h limits shared by the third-party models (Claude, GPT-OSS).
-    for g in post("retrieveUserQuotaSummary", {}).get("groups") or []:
-        group = "Claude/GPT" if "Claude" in (g.get("displayName") or "") else g.get("displayName")
-        for b in g.get("buckets") or []:
-            window = AGY_WINDOWS.get(b.get("window"), b.get("window"))
-            rf = b.get("remainingFraction")
-            gauges.append(gauge(
-                b.get("bucketId"), f"{window} {group}",
-                None if rf is None else (1 - rf) * 100,
-                resets_at=_iso(datetime.datetime.fromisoformat(b["resetTime"]))
-                if b.get("resetTime") else None,
-                window=window, basis="anchor"))
-    # Gemini models carry no grouped summary; per-model buckets share one
-    # fraction, so show the tightest one. Its window length is not reported.
     gem = [b for b in post("retrieveUserQuota", {}).get("buckets") or []
            if (b.get("modelId") or "").startswith("gemini-")
            and b.get("remainingFraction") is not None]
     if gem:
         b = min(gem, key=lambda b: b["remainingFraction"])
         gauges.append(gauge(
-            "gemini", "Gemini models", (1 - b["remainingFraction"]) * 100,
+            "gemini", "5h Gemini", (1 - b["remainingFraction"]) * 100,
             resets_at=_iso(datetime.datetime.fromisoformat(b["resetTime"]))
             if b.get("resetTime") else None,
-            basis="anchor", note="window length not reported"))
+            # Not reported; inferred: resetTime held still across polls and
+            # sat exactly 5h after the first use (2026-11-15).
+            window="5h", basis="anchor"))
     return {"plan": plan, "gauges": gauges}
 
 

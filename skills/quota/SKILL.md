@@ -1,6 +1,6 @@
 ---
 name: quota
-description: "세 개 활성 모델 구독(rail)의 남은 쿼터를 한 번에 조회 — ChatGPT Pro/Codex의 plan-provided 윈도우, Claude 5h/7d 윈도우, Google AI Pro(Antigravity/agy)의 Claude·GPT 5h/7d와 Gemini 버킷. Grok·Copilot은 사용 중단으로 수집하지 않는다. GLG가 다음 분신을 어느 rail로 보낼지 결정할 때 쓴다. Use when: '쿼터', '얼마 남았', '남은 크레딧', '어디로 보낼까', 'quota', 'usage', 'how much is left', 'which rail', 'rate limit check', 'agy 쿼터', 'antigravity', 'gemini 쿼터'."
+description: "세 개 활성 모델 구독(rail)의 남은 쿼터를 한 번에 조회 — ChatGPT Pro/Codex의 plan-provided 윈도우, Claude 5h/7d 윈도우, Google AI Pro(Antigravity/agy)의 Gemini 5h 버킷. Grok·Copilot은 사용 중단으로 수집하지 않는다. GLG가 다음 분신을 어느 rail로 보낼지 결정할 때 쓴다. Use when: '쿼터', '얼마 남았', '남은 크레딧', '어디로 보낼까', 'quota', 'usage', 'how much is left', 'which rail', 'rate limit check', 'agy 쿼터', 'antigravity', 'gemini 쿼터'."
 user_invocable: true
 ---
 
@@ -68,7 +68,7 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 |---|---|---|---|---|
 | claude | 7d | 월 06:59:59 | `anchor` | 절대 시각만 옴. 5h/7d/7d-scoped 셋이 같은 경계 |
 | codex | plan-provided (현재 Pro: 7d primary) | 응답 `reset_at` | `rolling` | product tier가 아니라 응답 window이 정본 |
-| antigravity | Claude/GPT 7d·5h, Gemini 창 길이 미보고 | 응답 `resetTime` | `anchor` | 안 쓰면 `resetTime`이 매 조회 now+창으로 밀린다(첫 사용 시점에 고정되는 것으로 보임, 2026-11-15 실측) |
+| antigravity | Gemini 5h (응답에 창 길이 없음 — 추정) | 응답 `resetTime` | `anchor` | 사용 중엔 `resetTime`이 조회 사이에 고정, 첫 사용 정확히 5h 뒤였다. 안 쓰던 Claude/GPT 버킷은 매 조회 now+창으로 밀렸다 — 첫 사용 시점 고정으로 보임 (2026-11-15 실측) |
 `basis`는 **엔드포인트가 실제로 알려준 것만** 기록한다. 절대 시각 하나만 오는 rail을
 "롤링"이라 단정하지 않는다(`anchor`). 그래서 화면은 항상 요일과 남은 시간을 같이 찍는다 —
 "7일 남음"만으로는 어느 요일에 벽이 오는지 알 수 없다.
@@ -111,7 +111,7 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 |---|---|---|
 | codex | ChatGPT Pro / Codex — endpoint가 준 primary·secondary window 사용률 | `GET chatgpt.com/backend-api/wham/usage` |
 | claude | Claude Code 구독 — `limits[]` (5h 세션 · 7d 전체 · 7d 모델별) | `GET api.anthropic.com/api/oauth/usage` |
-| antigravity | Google AI Pro — Claude/GPT 그룹 weekly·5h + Gemini 모델 버킷 최솟값. `remainingFraction`만 와서 퍼센트만 | `POST daily-cloudcode-pa.googleapis.com/v1internal:` `loadCodeAssist`(plan=`paidTier.name`) · `retrieveUserQuotaSummary` · `retrieveUserQuota` |
+| antigravity | Google AI Pro — Gemini 모델 버킷 최솟값만. `remainingFraction`만 와서 퍼센트만 | `POST daily-cloudcode-pa.googleapis.com/v1internal:` `loadCodeAssist`(plan=`paidTier.name`) · `retrieveUserQuota` |
 
 ## 자격증명
 
@@ -147,10 +147,11 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
   승격(2026-09-10) 직후 receipt는 `plan_type:"prolite"`, `7d primary`, 0%였다; 화면은 이
   내부 식별자를 `ChatGPT Pro (prolite)`로 보인다.
 - **antigravity**: agy 바이너리가 `quota_manager` / `Cache(retrieveUserQuotaSummary)`로 때리는
-  Cloud Code 내부 API(`daily-cloudcode-pa`, agy 로그에서 발견, 2026-11-15). 읽기 전용 3회 POST,
-  `MIN_INTERVAL` 180초. Summary는 Claude/GPT 그룹만 주고 Gemini는 모델별 버킷뿐이라, Gemini는
-  `gemini-*` 버킷 중 최소 `remainingFraction`을 한 게이지로 묶는다(실측상 전부 같은 값). Gemini 창
-  길이는 응답에 없어서 배속을 찍지 않는다. `currentTier`는 `free-tier`로 오고 구독은 `paidTier`
+  Cloud Code 내부 API(`daily-cloudcode-pa`, agy 로그에서 발견, 2026-11-15). 읽기 전용 2회 POST,
+  `MIN_INTERVAL` 180초. agy로는 Gemini만 쓴다(GLG, 2026-11-15) — `retrieveUserQuotaSummary`가
+  주는 Claude/GPT 그룹 weekly·5h는 일부러 안 찍고 호출도 안 한다. Gemini는 그룹 요약이 없어
+  `gemini-*` 버킷 중 최소 `remainingFraction`을 한 게이지로 묶는다(실측상 전부 같은 값). 창
+  길이는 응답에 없고 5h는 위 리셋 표의 관측에서 추정한 값이다. `currentTier`는 `free-tier`로 오고 구독은 `paidTier`
   (`g1-pro-tier` / Google AI Pro)에 실린다.
 
 검증 원본(실제 응답 예시, 발견 경위, 채택하지 않기로 한 오픈소스 대안 비교)은
