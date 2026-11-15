@@ -19,7 +19,7 @@ import render
 import serve
 
 
-ACTIVE = ["claude", "codex"]
+ACTIVE = ["claude", "codex", "antigravity"]
 RETIRED = ["zai", "grok"]
 
 
@@ -66,6 +66,10 @@ class QuotaTests(unittest.TestCase):
         auth = {
             collect._q.PI_AUTH: {"openai-codex": {"access": "fake-codex", "accountId": "fixture"}},
             collect._q.CLAUDE_CREDS: {"claudeAiOauth": {"accessToken": "fake-claude"}},
+            collect._q.AGY_TOKEN: {"token": {
+                "access_token": "fake-agy",
+                "expiry": (self.now + datetime.timedelta(minutes=30)).isoformat()[:19]
+                + ".123456789+09:00"}},
         }
         self.load.side_effect = lambda path: auth[path]
         end = (self.now + datetime.timedelta(days=2)).isoformat()
@@ -76,9 +80,21 @@ class QuotaTests(unittest.TestCase):
                 "plan_type": "prolite", "rate_limit": {"primary_window": {
                     "limit_window_seconds": 604800, "used_percent": 30,
                     "reset_at": int((self.now + datetime.timedelta(days=2)).timestamp())}}},
+            collect.AGY_BASE + "loadCodeAssist": {
+                "currentTier": {"name": "Antigravity"}, "paidTier": {"name": "Google AI Pro"}},
+            collect.AGY_BASE + "retrieveUserQuotaSummary": {"groups": [{
+                "displayName": "Claude and GPT models", "buckets": [
+                    {"bucketId": "3p-weekly", "window": "weekly", "resetTime": end,
+                     "remainingFraction": 0.6},
+                    {"bucketId": "3p-5h", "window": "5h", "resetTime": end,
+                     "remainingFraction": 1}]}]},
+            collect.AGY_BASE + "retrieveUserQuota": {"buckets": [
+                {"modelId": "gemini-3-flash", "resetTime": end, "remainingFraction": 0.9},
+                {"modelId": "gemini-2.5-pro", "resetTime": end, "remainingFraction": 0.8},
+                {"modelId": "claude-opus-5-5-high", "resetTime": end, "remainingFraction": 0.1}]},
         }
 
-        def get(url, headers):
+        def get(url, headers, data=None, method=None):
             self.assertIn(url, responses)
             return None, json.dumps(responses[url]).encode()
 
@@ -97,21 +113,35 @@ class QuotaTests(unittest.TestCase):
         self.legacy_cache()
         snap = collect.snapshot(force=True)
         self.assert_active(snap)
-        self.assertEqual([r["status"] for r in snap["rails"]], ["ok"] * 2)
-        self.assertEqual([r["gauges"][0]["used_pct"] for r in snap["rails"]], [20, 30])
+        self.assertEqual([r["status"] for r in snap["rails"]], ["ok"] * 3)
+        self.assertEqual([r["gauges"][0]["used_pct"] for r in snap["rails"]], [20, 30, 40])
+        agy = snap["rails"][2]
+        self.assertEqual(agy["plan"], "Google AI Pro")
+        self.assertEqual([(g["label"], g["used_pct"]) for g in agy["gauges"]],
+                         [("7d Claude/GPT", 40), ("5h Claude/GPT", 0), ("Gemini models", 20)])
         self.assertEqual(snap["rails"][1]["plan"], "ChatGPT Pro (prolite)")
         self.assertEqual(snap["rails"][1]["gauges"][0]["window"], "7d")
         self.assertTrue(snap["rails"][0]["gauges"][0]["active"])
         self.assertEqual({c.args[0] for c in self.http.call_args_list}, set(responses))
         self.assertEqual([c.args[0] for c in self.load.call_args_list],
-                         [collect._q.CLAUDE_CREDS, collect._q.PI_AUTH])
-        self.assertEqual(self.http.call_count, 2)
+                         [collect._q.CLAUDE_CREDS, collect._q.PI_AUTH, collect._q.AGY_TOKEN])
+        self.assertEqual(self.http.call_count, 5)
+
+    def test_expired_agy_token_is_not_refreshed_or_sent(self):
+        self.fake_vendors()
+        self.load.side_effect = lambda path: {"token": {
+            "access_token": "fake-agy", "expiry": "2020-01-01T00:00:00.123456789+09:00"}}
+        snap = collect.snapshot(only={"antigravity"}, force=True)
+        rail = snap["rails"][0]
+        self.assertEqual(rail["status"], "unavailable")
+        self.assertIn("open agy", rail["reason"])
+        self.http.assert_not_called()
 
     def test_legacy_cache_is_not_an_active_rail(self):
         snap = self.cached_snapshot()
         self.assert_active(snap)
-        self.assertEqual([r["status"] for r in snap["rails"]], ["ok", "stale"])
-        self.assertEqual([r["gauges"] for r in snap["rails"]], [self.gauges] * 2)
+        self.assertEqual([r["status"] for r in snap["rails"]], ["ok", "stale", "ok"])
+        self.assertEqual([r["gauges"] for r in snap["rails"]], [self.gauges] * 3)
         self.cache_save.assert_not_called()
 
     def test_retired_only_selector_does_not_load_auth_or_poll(self):
@@ -126,7 +156,7 @@ class QuotaTests(unittest.TestCase):
         self.load.side_effect = FileNotFoundError(2, "missing", "fixture-auth.json")
         snap = collect.snapshot()
         self.assert_active(snap)
-        self.assertEqual([r["status"] for r in snap["rails"]], ["unavailable"] * 2)
+        self.assertEqual([r["status"] for r in snap["rails"]], ["unavailable"] * 3)
         self.assertTrue(all("credential file missing" in r["reason"] for r in snap["rails"]))
         self.http.assert_not_called()
 
@@ -137,7 +167,7 @@ class QuotaTests(unittest.TestCase):
         self.load.side_effect = error
         snap = collect.snapshot(force=True)
         self.assert_active(snap)
-        self.assertEqual([r["status"] for r in snap["rails"]], ["stale"] * 2)
+        self.assertEqual([r["status"] for r in snap["rails"]], ["stale"] * 3)
         self.cache_save.assert_called_once()
         self.load.reset_mock()
         snap = collect.snapshot(force=True)

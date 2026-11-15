@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Local web view of the quota snapshot.
 
-    serve.py [--port 8787] [--ttl 120]
+    serve.py [--port 8787] [--ttl 300]
 
 Serves 127.0.0.1 only. Calling it again on the same port stops the
 running server (toggle). Routes:
@@ -9,7 +9,7 @@ running server (toggle). Routes:
     /api/snapshot.json the normalized snapshot
     /api/stop          graceful shutdown (localhost toggle)
 
-The snapshot is cached for --ttl seconds (default 120) and shared by
+The snapshot is cached for --ttl seconds (default 300) and shared by
 every request, so leaving the tab open all day does not hammer the vendor
 endpoints. claude's api/oauth/usage answers 429 with Retry-After ~165s
 when polled hard -- collect.py holds that rail to one poll per 180s
@@ -175,7 +175,7 @@ load();setInterval(load,60000);setInterval(draw,30000);
 
 
 class Handler(BaseHTTPRequestHandler):
-    ttl = 120
+    ttl = 300
 
     def _send(self, code, ctype, body):
         self.send_response(code)
@@ -304,10 +304,10 @@ def bind(port):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8787)
-    ap.add_argument("--ttl", type=int, default=120,
+    ap.add_argument("--ttl", type=int, default=300,
                     help="seconds a snapshot is reused before re-polling vendors. "
-                         "Safe at 120 because collect.py guards claude separately "
-                         "at MIN_INTERVAL=180s -- the page cadence and the "
+                         "300 because claude answers 429 when polled hard; collect.py also guards "
+                         "claude and antigravity at MIN_INTERVAL=180s -- the page cadence and the "
                          "sensitive rail's cadence are no longer the same number.")
     a = ap.parse_args()
     Handler.ttl = a.ttl

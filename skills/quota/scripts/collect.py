@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect the two active model rails into one normalized snapshot.
+"""Collect the three active model rails into one normalized snapshot.
 
 This is the single source of truth: quota.py (text), --watch (TUI) and
 serve.py (web) all render *this* dict and never call a vendor endpoint
@@ -34,6 +34,7 @@ into request headers and discarded.
 import datetime
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -157,6 +158,63 @@ def collect_claude():
     return {"plan": None, "gauges": gauges}
 
 
+AGY_BASE = "https://daily-cloudcode-pa.googleapis.com/v1internal:"
+AGY_WINDOWS = {"weekly": "7d", "5h": "5h"}
+
+
+class AgyTokenExpired(Exception):
+    """agy refreshes its own token; we read it and never refresh it."""
+
+
+def _agy_expiry(s):
+    # agy writes Go RFC3339Nano (9 fractional digits); trim to microseconds.
+    return datetime.datetime.fromisoformat(re.sub(r"(\.\d{6})\d+", r"\1", s))
+
+
+def collect_antigravity():
+    tok = _q._load_json(_q.AGY_TOKEN)["token"]
+    if _agy_expiry(tok["expiry"]) <= datetime.datetime.now(datetime.timezone.utc):
+        raise AgyTokenExpired("agy token expired — open agy once to refresh it")
+    headers = {"Authorization": f"Bearer {tok['access_token']}",
+               "Content-Type": "application/json",
+               "User-Agent": "antigravity",
+               "Accept": "application/json"}
+
+    def post(method, body):
+        _, raw = _q._get(AGY_BASE + method, headers=headers,
+                         data=json.dumps(body).encode(), method="POST")
+        return json.loads(raw)
+
+    tier = post("loadCodeAssist", {"metadata": {"ideType": "ANTIGRAVITY"}})
+    plan = (tier.get("paidTier") or tier.get("currentTier") or {}).get("name")
+    gauges = []
+    # Grouped weekly/5h limits shared by the third-party models (Claude, GPT-OSS).
+    for g in post("retrieveUserQuotaSummary", {}).get("groups") or []:
+        group = "Claude/GPT" if "Claude" in (g.get("displayName") or "") else g.get("displayName")
+        for b in g.get("buckets") or []:
+            window = AGY_WINDOWS.get(b.get("window"), b.get("window"))
+            rf = b.get("remainingFraction")
+            gauges.append(gauge(
+                b.get("bucketId"), f"{window} {group}",
+                None if rf is None else (1 - rf) * 100,
+                resets_at=_iso(datetime.datetime.fromisoformat(b["resetTime"]))
+                if b.get("resetTime") else None,
+                window=window, basis="anchor"))
+    # Gemini models carry no grouped summary; per-model buckets share one
+    # fraction, so show the tightest one. Its window length is not reported.
+    gem = [b for b in post("retrieveUserQuota", {}).get("buckets") or []
+           if (b.get("modelId") or "").startswith("gemini-")
+           and b.get("remainingFraction") is not None]
+    if gem:
+        b = min(gem, key=lambda b: b["remainingFraction"])
+        gauges.append(gauge(
+            "gemini", "Gemini models", (1 - b["remainingFraction"]) * 100,
+            resets_at=_iso(datetime.datetime.fromisoformat(b["resetTime"]))
+            if b.get("resetTime") else None,
+            basis="anchor", note="window length not reported"))
+    return {"plan": plan, "gauges": gauges}
+
+
 # --- per-rail cache -------------------------------------------------------
 #
 # Two jobs. (1) Do not re-poll a rail that answered moments ago -- claude's
@@ -169,7 +227,8 @@ def collect_claude():
 CACHE_DIR = os.path.expanduser("~/.local/share/quota")
 CACHE = os.path.join(CACHE_DIR, "rails.json")
 
-MIN_INTERVAL = {"claude": 180}  # seconds; measured Retry-After was 165
+MIN_INTERVAL = {"claude": 180,       # seconds; measured Retry-After was 165
+                "antigravity": 180}  # undocumented; poll no harder than claude
 STALE_MAX = 6 * 3600            # older than this and the numbers are noise
 
 
@@ -202,6 +261,7 @@ def _age(entry, now):
 RAILS = [
     ("claude", collect_claude),
     ("codex", collect_codex),
+    ("antigravity", collect_antigravity),
 ]
 
 
@@ -226,6 +286,8 @@ def _reason(e):
         return f"HTTP {e.code} from vendor endpoint"
     if isinstance(e, FileNotFoundError):
         return f"credential file missing: {e.filename}"
+    if isinstance(e, AgyTokenExpired):
+        return str(e)
     if isinstance(e, KeyError):
         return f"expected field/credential missing: {e}"
     return f"{type(e).__name__}: {e}"

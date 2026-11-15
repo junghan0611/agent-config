@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Credential loading and HTTP for the Claude and Codex quota rails.
+"""Credential loading and HTTP for the Claude, Codex and Antigravity quota rails.
 
 Never prints a raw token: credentials are read from local files straight
 into request headers and discarded. No retired-rail auth reads or refreshes.
@@ -12,6 +12,8 @@ import urllib.request
 HOME = os.path.expanduser("~")
 PI_AUTH = os.path.join(HOME, ".pi", "agent", "auth.json")
 CLAUDE_CREDS = os.path.join(HOME, ".claude", ".credentials.json")
+# Written and refreshed by agy itself; we only read it (never refresh).
+AGY_TOKEN = os.path.join(HOME, ".gemini", "antigravity-cli", "antigravity-oauth-token")
 
 TIMEOUT = 15
 

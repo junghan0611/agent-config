@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Remaining quota across the two active model rails GLG routes siblings onto.
+"""Remaining quota across the three active model rails GLG routes siblings onto.
 
     quota.py                one shot, plain text
-    quota.py --watch [SEC]  TUI: full-screen, refreshes in place (default 120s)
+    quota.py --watch [SEC]  TUI: full-screen, refreshes in place (default 300s)
     quota.py --json         normalized snapshot (same data the web serves)
 
 All three render collect.snapshot(); no renderer ever calls a vendor
@@ -25,7 +25,7 @@ import render
 def watch(interval):
     """Full-screen refresh loop.
 
-    Vendor endpoints are polled once per `interval` (default 120s, the
+    Vendor endpoints are polled once per `interval` (default 300s, the
     same TTL serve.py caches on). claude's api/oauth/usage answers 429
     with Retry-After ~165s when polled harder, and a 429 there reads as
     "quota exhausted" when it is really "you polled too fast" -- so
@@ -56,7 +56,7 @@ def main(argv):
         return 0
     if "--watch" in args:
         rest = [a for a in args[args.index("--watch") + 1:] if not a.startswith("-")]
-        watch(int(rest[0]) if rest else 120)
+        watch(int(rest[0]) if rest else 300)
         return 0
     print(render.render_text(collect.snapshot(), color=sys.stdout.isatty()))
     return 0
