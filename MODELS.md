@@ -15,7 +15,7 @@ For a sibling request, resolve the model name below without asking again.
 | Astra | `openai-codex/gpt-6-astra` | Codex subscription |
 | Luna | `openai-codex/gpt-6-luna` | Codex subscription |
 
-- `entwurf_fresh_call`: use the exact ID with `:medium`, e.g. `entwurf/claude-opus-5-5:medium`.
+- `entwurf_fresh_call`: pass the exact catalog ID, e.g. `entwurf/claude-opus-5-5`, without a thinking suffix. Entwurf requires an exact curated ACP ID; `:medium` is rejected before launch. Keep Pi's `defaultThinkingLevel` at `medium`; a project override or GLG's explicit session choice takes precedence.
 - Claude uses `entwurf` first. Native `claude-code` only when GLG explicitly requests that harness; use the versioned model ID, not `opus`/`sonnet`/`fable` aliases.
 - Only the listed rails are authorized. OpenRouter is not a sibling inference rail.
 - `pi --list-models` / `./run.sh models` inspect the catalog; they do not expand this roster.

@@ -18,7 +18,7 @@ This is a front door, not a manual. It is written for someone who wants to see *
 |---|---|
 | *What can these agents actually do?* | [§ Skills](#skills-skills) · [§ Semantic Memory](#semantic-memory--andenken) |
 | *How does context survive a new session?* | [§ Why This Exists](#why-this-exists) · [§ Session Management](docs/memory-and-sessions.md#session-management--new--recall) |
-| *Is any of this measured, or just asserted?* | [§ Agent Runtime Bench](docs/runtime-bench.md#agent-runtime-bench) · [OMP.md](OMP.md) · [MODELS.md](MODELS.md) |
+| *Is any of this measured, or just asserted?* | [§ Agent Runtime Bench](docs/runtime-bench.md#agent-runtime-bench) · [data-first dashboard](harness-dashboard/README.md) · [MODELS.md](MODELS.md) |
 
 **4. Sentences here try to carry their evidence.** Where a claim was measured, the receipt is named — a date, a host, a file, a version. Where it is inherited or still open, it says so. A sentence that cannot name one of those is a hypothesis, including in this document. This is the same rule the agents working in this repo are held to.
 
@@ -104,9 +104,13 @@ Root `NAME.md` bench files ([OMP.md](OMP.md), [PI-DURABLE.md](PI-DURABLE.md), [H
 
 The same `skills/` SSOT reaches pi (+ entwurf), Claude Code, Codex CLI, Antigravity CLI, Copilot CLI, Kiro CLI (optional) and OpenClaw; pi-durable reads it through Pi's own skill loader; OMP deliberately receives no shared skills. OpenCode is not used. Memory, skills and ownership per harness: [docs/harness-surfaces.md § Harness Support](docs/harness-surfaces.md#harness-support).
 
+Sibling launches follow the exact versioned IDs in [MODELS.md](MODELS.md); thinking level is a separate Pi setting, not an Entwurf model-ID suffix. A project may keep a gitignored `team.json` as human-maintained bookmarks, but it grants no task, permission or lifecycle authority. Fresh identity comes from the matching callback and owner records, not from a window title or this bookmark.
+
 ### Semantic Memory → [andenken](https://github.com/junghan0611/andenken)
 
 Sessions, the public garden export and private OpenClaw bot memory are three separately labeled axes owned by andenken; agent-config owns the consumer doors (`semantic-memory`, `session-recap`, `memory-sync`). Details: [docs/memory-and-sessions.md](docs/memory-and-sessions.md#semantic-memory--andenken).
+
+**Measure the whole backlog before spending.** A parser or policy change can make the next incremental run, including automatic warm, more than a small refresh. `memory-sync` directs first use and unknown backlogs to Andenken's authority workbench for an API-0 estimate and scope/cost acceptance. Historical re-extraction is a separate candidate build: a successful build is not production adoption. OpenClaw vector harvest makes no embedding calls; rebuilding the bots' upstream indexes is a different, potentially paid operation. See [memory operations](docs/memory-and-sessions.md#sessions-sync-operations).
 
 #### Session Originals
 
@@ -118,7 +122,7 @@ Local Pi lifecycle, provider and TUI hands — `background-bash`, `review`, `goa
 
 ### Skills ([`skills/`](skills/))
 
-47 skills (tracked directory and named-set equality rechecked 2026-10-27, both 47, both set differences empty; the list below names all 47). A machine may also carry an untracked local symlink — `butlercli` does on the workstation — which the `*/` glob counts but this number does not. Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query, timeline), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (dm, slack-latest, jiracli, telegram), code surface (forge — linked, owned by sorge-config), work workbench (plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli, subtract, evidence-closure), entwurf (entwurf-peek), cross-repo care (sorge — linked, owned by its own repo), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), harness bench (harness-bench), tools (emacs, tmux, diskspace, cloudflare — drives the installed official `cf` and `wrangler`, keeps only `cf-doctor` for token coverage, quota).
+47 skills (tracked directory and named-set equality rechecked 2026-11-16, both 47, both set differences empty; the list below names all 47). Machine-local untracked symlinks such as `butlercli` are not part of that count; the `*/` glob is not a repository inventory. Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query, timeline), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (dm, slack-latest, jiracli, telegram), code surface (forge — linked, owned by sorge-config), work workbench (plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli, subtract, evidence-closure), entwurf (entwurf-peek), cross-repo care (sorge — linked, owned by its own repo), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), harness bench (harness-bench), tools (emacs, tmux, diskspace, cloudflare — drives the installed official `cf` and `wrangler`, keeps only `cf-doctor` for token coverage, quota).
 
 Linked skills (`sorge`, `forge`), binary skills and their provenance gate, and the skill doc principle: [docs/skills.md](docs/skills.md).
 

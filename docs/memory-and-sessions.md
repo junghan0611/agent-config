@@ -121,7 +121,9 @@ These are steps 1) and 2) of the four-step operating procedure GLG fixed on 2026
 | After embedding | nothing | `sessions.lance` + manifest → oracle, **and** `corpus:replicate` → oracle, together |
 | Oracle's bot sees | last `--global` | now |
 | Fails when | local rsync fails | a rostered active device is unreachable (`--strict`) |
-| Cost | ~$0.000–0.001 | same |
+| Cost | ~$0.000–0.001 for a typical small steady-state increment — an example, not a cap | same |
+
+**There is no spend cap.** Existing rows do not impose one: in both modes and the Pi warm pulse, an eligible pending send set can be submitted without an estimate or cost prompt (other guards and failures still apply); Andenken `sync-sessions.sh` Step 3b refuses only an empty index (read at Andenken `71e77ca`, 2026-11-16). After a parser or policy change, or whenever the backlog is unknown, stop before any sync, warm release or local fallback and follow the authority `andenken-embed` § "First run after the writer-recovery release (once)": incremental backlog (A) → `estimate:sessions`, full historical candidate (B) → `candidate:sessions:plan`, both API 0, then GLG accepts the whole scope and cost — not a missing-row count alone. The skill carries this as its first stop row.
 
 The canonical form of this table is the script's own `--help` (`sync-sessions.sh --help`, read 2026-09-03 after the andenken steward widened the help range to include it).
 
@@ -131,7 +133,7 @@ The canonical form of this table is the script's own `--help` (`sync-sessions.sh
 
 0. **gather this device only.** `gather-corpus.sh --only <local device>` copies this machine's admitted live sessions into `$ANDENKEN_SESSION_CORPUS`. The indexer reads the corpus, never the live store, so this local copy is what makes "new sessions land immediately" true. Local disk only; a failure here still aborts with "refusing to index a corpus of unknown freshness" — a local rsync that fails is a real failure.
 1. dim 4096 preflight (1 call) when there is work.
-2. `to_index=0` → API-0 exit. Safe to re-call right after a run.
+2. `to_index=0` → exit with no embedding call (gather, locks and manifest work still ran). Safe to re-call right after a completed run.
 3. embeds only the new sessions.
 
 **What local buys is not availability but not waiting.** An unreachable oracle was already a warning, not a failure, in the full gather (`gather-corpus.sh`, "An unreachable remote is a warning, not a failure"; read 2026-09-03). What local removes is the ssh connect timeout, the remote enumeration and the rsync round trip that every full gather pays — zero ssh, every call.
@@ -140,7 +142,7 @@ The canonical form of this table is the script's own `--help` (`sync-sessions.sh
 
 **`--global`**:
 
-0. gather **every** active device (`gather-corpus.sh --strict`). An unreachable active device is a failure in this mode, not a warning — "global" promises both sides agree, and a push without oracle's sessions in it does not deliver that. Strict fails *last*: every reachable device is gathered and the manifest updated, then exit 1 — it reports incompleteness, it does not undo work. **A `--global` that fails because a peer is down is not a broken script: run local, and run `--global` again when the peer is back.** The full gather's own default stays lenient; only `--global` asks for strict.
+0. gather **every** active device (`gather-corpus.sh --strict`). An unreachable active device is a failure in this mode, not a warning — "global" promises both sides agree, and a push without oracle's sessions in it does not deliver that. Strict fails *last*: every reachable device is gathered and the manifest updated, then exit 1 — it reports incompleteness, it does not undo work. **A `--global` that fails because a peer is down is not a broken script: run local, and run `--global` again when the peer is back** — provided the first-use cost gate above is already cleared, because local embeds the same `to_index`. The full gather's own default stays lenient; only `--global` asks for strict.
 1–3. as local.
 4. `verify sessions` (API 0) — a failed verify refuses the push. Same rule as andenken-embed's "verify BEFORE pushing", now on this path too.
 5. push `sessions.lance` + `session-manifest.json` → oracle (`rsync --delete`, authority-guarded), **and** `corpus:replicate` → oracle. The two never travel apart: on 2026-09-03 the index was pushed without the corpus and the replica sat at 75,326 chunks against the canonical 75,922 — asking the bot about that day returned nothing. Runs even when `to_index=0` (catch-up path); skipped entirely if the embed step did not complete cleanly.

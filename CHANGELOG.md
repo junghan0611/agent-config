@@ -7,6 +7,38 @@
 
 ## Unreleased
 
+## v2026.11.16 — 과거 기억의 새 후보와 적용 전 경계
+
+### 과거를 다시 읽은 후보, 아직 바꾸지 않은 실사용
+
+* **노트북에서 과거 세션을 현재 파서로 재추출한 별도 후보를 만들고 기본 검수를 마쳤다.** Andenken `71e77ca` 소스로 3,306개 JSONL 파일과 이미 승인된 closed durable 스냅샷 1건을 처리했다. 단일 fresh 실행은 12:02→15:17, build·measure 모두 exit0이었다. 133,711 unique/4096d(JSONL133,608 + durable103), manifest 쌍 일치와 S0 hits0을 실행 원문·measure JSON으로 인수했다. 후보 전체 allocated는 약2.377GB다. FTS true는 존재 플래그이며 전행 lexical coverage·semantic 품질 인증이 아니다.
+* **비용과 제외 범위를 숨기지 않았다.** 성공4,338/HTTP시도4,383, 재시도45회는 모두429였고 공식 유한 재시도 안에서 완료됐다. Provider 보고 prompt49,679,177 tokens를 설정 단가로 환산하면 약$0.497이며 실제 청구와 재시도 이중 과금은 미확인이다. S0 whole-message hold44청크/5메시지는 송신하지 않았고, 15파일의 JSON 파싱 불가56줄은 기존 production parser와 같이 건너뛰는 기지 경고로 고정했다. 원문을 고쳐 숫자를 맞추지 않았다.
+* **교체 도구는 준비·독립 검토까지만 마쳤다.** 세대에 묶인 비공개 일회성 pinned→pinned 도구에서 DB 디렉터리만 교환하고 기존 DB·메타·다른 축을 보존하도록 했다. 자식 비정상 종료 때 writer lock을 남기는 경로, 코드·측정 후보 바인딩, 예측 가능한 임시파일 제거를 교차 검토로 보완했다. 최종 격리 실행의40 subject/300 assertion·실패0과24개 kernel 경계 사실을 로컬 원문으로 인수했다. SIGKILL은 전원 손실 증명이 아니고 native LanceDB는 이 fixture에서 열지 않았다. 임시 도구·원문 영수증은 로컬에 보존하며 공개 제품 기능으로 배포하지 않는다.
+* **이 태그는 production 채택이 아니다.** 실제 교체 도구의 production check/apply, 새 후보의 실사용 전환, Oracle 게시, warm 보류 해제는 아직 실행하지 않았다. 원문·annex·기존 DB·사고/검수 영수증을 보존하고, 이후 별도 승인 시 check→교체→native 검수→inspect를 단일 실행자로 진행한다.
+
+### OpenClaw 업그레이드 검수 — 확인한 것과 빈칸
+
+* **OpenClaw 2026.11.3의6 configured 봇을 적용 없이 검수했다.** Export snapshot10,163행 모두 Qwen3-Embedding-8B/4096d·chunking v6·clean rebuild marker였고, staged delta 전행에서4096 finite 요소와 정상 norm을 집계했다. 기존 staging을 먼저 보존했고 import·watermark 변경·upstream 재색인·prune·게시를 하지 않았다. 이는 스냅샷의 벡터 형식 확인이지 원문 전체 coverage나 검색 유용성 판정이 아니다.
+* **상태 조회가 막힌 것을 정상으로 포장하지 않았다.** Plain memory CLI는 실행 중 Gateway의 offline ownership 경계에서 거절됐다. 같은 버전의 설치 dist를 읽어 공식 live `memory.status` RPC도 찾았지만, 실제 경로가 SQLite 쓰기 초기화를 거치므로 읽기 전용 검수에서는 호출하지 않았다. Identity-valid·dirty·mem-lag는 미측정이다. 현재 증거만으로 추가 upstream 전량 재임베딩을 권하지 않으며, 우리 수집본 갱신도 별도 적용 게이트로 남겼다.
+
+### 얇은 소비자 면의 수선
+
+* **memory-sync의 작은 가격 예시를 비용 상한처럼 읽지 않게 고쳤다.** 기존 행이 있어도 미확인 backlog는 비용 확인 없이 송신될 수 있다. 첫 사용·파서/정책 변경·미확인 backlog는 authority workbench에서 증분 견적과 과거 전체 candidate plan을 구분하고 전체 범위·비용을 수락한 뒤 진행하도록 연결했다. 연결 실패의 local fallback에도 같은 선행 게이트를 적용했다. API0와 무부작용을 구분하고 archive의 운영 전 대기 문구를11/3의 한정된 실제 영수증에 맞췄다.
+* **모델 명부와 팀 책갈피의 경계를 실제 소비면에서 확인했다.** `MODELS.md`는 기본 Pi/medium과 버전 명시 Entwurf Claude 구독 모델을 안내한다. Fresh의 exact curated-ID 검사가 `:medium` 접미사를 창 생성 전에 거절한 원문과 Pi 기본 설정을 대조해 예시를 순수 모델 ID로 정정했다. 두 집 Opus와 단일 Sonnet의 정확 callback·owner record를 확인해 gitignored `team.json`에 기록했다. 책갈피는 권한·liveness·라우팅 설정이 아니며 이 태그에 싣지 않는다.
+* **README에 비용·후보/채택·팀 경계를 짧게 연결했다.** 추적 스킬47개와 이름 집합47개의 양쪽 차집합0을 재계산했다. 모델·기억·원문·테스트 도구의 합을 정체성이나 새 하네스로 소개하지 않았다.
+
+### 이전 태그 이후의 닫힌 변경
+
+* **사용하지 않던 session-recall을 은퇴시키고 이식 경계를 보고하게 했다.** `1c5b893`·`d78f2cb`. 지원 Pi package 목록과 compat를 제거하되 다른 기기의 사용자 소유 등록은 자동 삭제하지 않는다. String/object 등록·dangling compat·잘못된 설정을 읽기 전용으로 탐지해 정확한 제거 안내와 nonzero로 보고한다.
+* **Pi1.5.2+ 참조 설정과 구독 레일을 정리했다.** `a81b341`·`9389087`·`89936b3`·`722d749`·`0c7fc2a`. Entwurf Opus/Sonnet5.5의 truthful1M 문맥에 reserve500k를 지정한 모델별 compaction 참조, Terra 기본 모델, Codex/Claude/agy Gemini bucket 쿼터와 현재 모델 명부를 반영했다. 설정 소스 공개가 기존 프로세스 재적재나 live 적용을 뜻하지 않는다.
+* **하네스 관측을 날짜·SHA·영수증이 붙은 데이터로 세웠다.** `38d4b48`. `harness-dashboard/`는 관측·정정·지표·흐름을 보는 정적 viewer이고 채택 판정이나 성능 순위가 아니다. `harness-bench`의 갱신 절차·증거 상태·게시 경계를 함께 남겼다. 이 컷에서 사이트 배포나 Access 변경은 하지 않았다.
+* **검사 안전망과 화면 조작 문서를 좁혔다.** `e1973a0`은 독립 검증된 OpenClaw 공개 artifact의 정확 filename/checksum 한 쌍만 허용하며 주변 비밀·다른 hash·key 대입은 계속 막는다. `a9aa18a`는 tmux 표시 이름과 상대 순서 조작을 주소·liveness와 분리했다. Hook 우회나 자동 창 정렬은 넣지 않았다.
+* **11/5 Oracle 인계와11/9 정상 증분은 날짜가 있는 닫힌 운영으로 남겼다.** `9c0d7c9`·`4276bf5`와 당시 원문 인수 기준, Oracle FTS 채택은 완료됐고 이전 세대는 보존됐다. 11/9에는 sessions118,191/가든11,240/OpenClaw10,824 unique·4096d를 양쪽에서 검증·게시했다. 보존 archive932행을 유지하고, 백업·실재검사 뒤 확정 superseded84행만 정리했다. 그때의 freshness·native FTS 건강성을 오늘 새 후보의 반영이나 전행 검색 품질로 확대하지 않는다.
+
+### 이번 컷의 오프라인 확인
+
+* Release-note extractor7건, 은퇴 Pi package의 합성8상태×2회·실제 Pi 시작 전 smoke 거절3건, dashboard 데이터 검증·로컬 build, Bash/Python/JSON 문법과 diffcheck를 확인했다. 스킬47/이름47·양쪽 차집합0, memory-sync4,088B/description579자, private 책갈피 제외와 이전 CHANGELOG bytes 보존도 확인했다. 이는 오늘 공개 문서 컷의 검사이며 실제 하네스 설치·quota API·사이트 배포·production 채택을 재실행한 것이 아니다.
+
 ## v2026.11.5 — 기억의 빠진 검색문과 안전한 수선
 
 ### 이미 모은 기억을 찾는 문
