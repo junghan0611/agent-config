@@ -36,11 +36,10 @@ _pi_garden_pi() { command pi "$@"; }
 # (`pihome`, the --telegram presence variant, was dropped 2026-08-06 with the bridge)
 pia() { _pi_garden_pi --entwurf-control --emacs-agent-socket server "$@"; }
 
-# Current model launchers (GLG-supplied mapping, 2026-10-27; see MODELS.md).
+# Current model launchers (see MODELS.md); default effort is medium.
 # openai-codex/gpt-6.1-terra is listed with 500K context; no inference test here.
 pit() { _pi_garden_pi --entwurf-control --emacs-agent-socket server --model openai-codex/gpt-6.1-terra --thinking medium "$@"; }
 pis() { _pi_garden_pi --entwurf-control --emacs-agent-socket server --model openai-codex/gpt-6.1-sol --thinking medium "$@"; }
-pish() { _pi_garden_pi --entwurf-control --emacs-agent-socket server --model openai-codex/gpt-6.1-sol --thinking high "$@"; }
 
 # pi-durable: env-first BG aggregate + native badge. Current supplier: Entwurf 0.45.0 / Pi 1.4.0 SDK.
 # Historical API-0 and installed fixture scopes remain in pi-durable/README.md.
@@ -51,7 +50,7 @@ pdt() {
 		--width task-wide --native-module "$HOME/repos/gh/agent-config/pi-durable/index.mjs" "$@"
 }
 pds() {
-	entwurf pi-durable --provider openai-codex --model gpt-6.1-sol:high \
+	entwurf pi-durable --provider openai-codex --model gpt-6.1-sol:medium \
 		--width task-wide --native-module "$HOME/repos/gh/agent-config/pi-durable/index.mjs" "$@"
 }
 # Reopen this cwd's newest-created saved session. Do not pass fresh-only provider/model/width flags.
