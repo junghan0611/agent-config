@@ -2,6 +2,12 @@
 
 # RAIL — 현재 좌표
 
+- [ ] **1. OpenClaw 생산 지연의 실효 정책 확인** ← CURRENT: 확대검수 원문 `EXPANDED-RESULT.md` 인수·DM1181 완료. 11/17 10:04/10:35 readonly 관측에서 bbot/mini 새파일이 색인에 없고 revision 변화0; 원인·실제 eligibility/mount 일치는U. GLG 요청으로 Oracle6f가 nixos-config 측 정책/trigger/hotfix를 검토하도록 ddb597 요청(운영 수선 승인 아님).
+- [x] **2. 최소 API-0 관측** — 정상readonly집계2회·기존자료대조완료. SQLite read-mark부작용가능성명시. copy실험의원본hash불변은관측했으나kernel격리계약은미달이다. 최적화/토크나이저결과를적격production근거나보장으로승격하지않는다.
+- [x] **3. 실제 질문의 검색 유용성** — 초기10개+확대22개query로FTS/vector/hybrid/strict·related분리. 4agent회수관측,조사형·긴꼬리miss남음. 확대817provider보고tokens/재시도0,실청구미확인. 일반적합격판정아님·운영reindex0.
+
+## 닫힌 11/16 운영 좌표 — 재실행 대상 아님
+
 - [x] **1. 과거 세션 B 후보 구축·기본 검수** — 구축 당시 범위와 비용·제외 경계는 CHANGELOG `v2026.11.16` 참조. 릴리즈 뒤 실제 채택은 아래3/4에서 완료했다.
 - [x] **2. 교체 도구 구현·격리 검증·독립 리뷰** — 최종 generation `30a1741b…c67192`, 격리300/0·경계24/24. 코드 검토 마감이지 production 실행 인증은 아니다.
 - [x] **3. 노트북 실사용 채택** — 16:50 실제 check/apply/native verify/inspect 전부0, unique133711/dim4096/dup0/orphan0·adopted-verified. 코디가 실행 원문을 읽어 인수(`G5-ACCEPTED.md`); 옛 DB·메타 보존, warm held.
@@ -11,7 +17,10 @@
 
 # NOW — 다음 한 걸음
 
-- **다음 한 수:** 이번 세션 범위(B 후보 → 노트북·Oracle sessions 채택 → OpenClaw import·게시 → G8)는 닫혔다. 수동 증분·gather·`--global`·유료 호출은 실행 0. Sessions reversal 창은 합의된 계약대로 G8 warm 해제(17:55)에 이미 닫혔다. 다음 Pi 세션의 local warm은 새 행을 추가할 수 있으며, 되돌리기는 GLG 결정의 별도 수동 작업이다. 11/16 완료는 다음 유료 증분의 범위·비용 승인까지 뜻하지 않는다. 이후 sync/`--global`은 기존 authority·요청 범위를 따르며, 새 파서·정책 또는 미확인 backlog의 첫 사용은 전체 작업량·비용 확인과 GLG 수락이 별도다. Git 반영 여부는 GLG 결정. 후속은 아래 OpenClaw 남은 경계와 보존물 정리 판단.
+- **다음 한 수:** Oracle6f의 정책 검토 회신을 받아 bbot/mini의 의도된 eligibility·watch mount·lazy manager/trigger와 실제 지연을 구분한다. 재검수/강제 reindex/서비스 restart부터 하지 않는다. f41·877·444 확대 실무는 마감했고 새 실험은 중단 상태다. 11.4 gpt 새행은 관측됐으므로 전체 생산 동결로 판정하지 않는다.
+- **닫힌 확대 검수:** `.agent-reports/20261117-openclaw-producer-quality/{FINAL-E2E,EXPANDED-RESULT}.md`가 원문. 초기10질문은유리한서지장르였고,추가22질문은한query embedding을FTS/vector/hybrid에재사용했다. KEPT/SAID·4agent의회수와항목별leg보완을관측했지만조사형·긴꼬리miss가남았다. 일반적합격/문서-query정렬전체인증아님. 확대22calls/817보고tokens/재시도0·env단가약$0.0000082,실청구미확인. 시간표시는index/update time으로additive수선했고기존updated_at키/검색정책/DBschema는유지;owner877이최종3파일source diff와worker회귀영수증을맡는다. 이번GLG요청은양쪽commit/push이며배포·새운영수선은별도다.
+- **복사 실험 경계:** 원본contenthash전후불변은관측했으나unshare-rn/env-i/pathguard만으로production경로·credentials가숨겨지거나kernelRO가되지는않았다. 요청한격리계약미달(deviation),실험결과는한정진단으로만보존한다. 6.45s→0.055s는첫openwarmup이섞인표본관측이며production속도보장아님. 적격재실험·생산optimize/FTS변경은새격리/범위GO가필요하다. 원문·DB·보존사본삭제0,강제임베딩/재시작0.
+- **11/16 닫힌 배치:** 이번 세션 범위(B 후보 → 노트북·Oracle sessions 채택 → OpenClaw import·게시 → G8)는 닫혔다. 수동 증분·gather·`--global`·유료 호출은 실행 0. Sessions reversal 창은 합의된 계약대로 G8 warm 해제(17:55)에 이미 닫혔다. 다음 Pi 세션의 local warm은 새 행을 추가할 수 있으며, 되돌리기는 GLG 결정의 별도 수동 작업이다. 11/16 완료는 다음 유료 증분의 범위·비용 승인까지 뜻하지 않는다. 이후 sync/`--global`은 기존 authority·요청 범위를 따르며, 새 파서·정책 또는 미확인 backlog의 첫 사용은 전체 작업량·비용 확인과 GLG 수락이 별도다. Git 반영 여부는 GLG 결정. 후속은 아래 OpenClaw 남은 경계와 보존물 정리 판단.
 - **동결:** `.agent-reports/20261116-authority-first-use/adoption/generation.json` SHA **`30a1741b6f19252d75d503393e69ae3e7b662ded4467636aa7ba04a5eac67192`**. 옛 `2343aa2d…` 사용 금지. `TEMP-FIX-RESULT.md`·`TEMP-FIX-CLOSURE.md`·`AMENDMENT-RESULT.md`가 코드/운영 원문이다.
 - **닫힌 sessions 실행:** G5/G9 양쪽 check→apply→nativeverify→inspect는 이미 끝났으므로 재실행하지 않는다. Oracle실행세대SHA `fe04c17c3d1b81fa7e5df8680e8bf3e18f67a21a71ff0c3fa84d34dc99cb8ba6`. FreshCLI 검수는133711/4096/dup0/orphan0이며 full FTS/semantic·장수cachedreader는인증하지않았다. PID1461537/a30dda 상관은 owner resume영수증에대한68bd94보고를6f에게상속했고, 개인hold 자기보고도교환전도착했다. 전호스트census/FD폐쇄증명아님.
 - **실패:** source/input/생산 메타 drift·busy/stale·용량·검수 오류는 즉시 중단. 자동 rollback·resume·KEPT lock 삭제/회수 금지. 원문·annex·기존 DB·후보 증거·옛 checkpoint를 보존한다. 노트북과Oracle 실제 실행 영수증을 모두 인수했다.
