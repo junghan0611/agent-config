@@ -14,6 +14,11 @@ HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ZERO="0000000000000000000000000000000000000000"
 overall=0
 
+# Both the scanner and the delegated hook need the original Git ref stream.
+refs=$(mktemp) || exit 1
+trap 'rm -f "$refs"' EXIT
+cat > "$refs" || exit 1
+
 while IFS=' ' read -r local_ref local_sha remote_ref remote_sha; do
   # Skip deletion refs
   [ "$local_sha" = "$ZERO" ] && continue
@@ -23,10 +28,10 @@ while IFS=' ' read -r local_ref local_sha remote_ref remote_sha; do
   if [ $rc -ne 0 ]; then
     overall=$rc
   fi
-done
+done < "$refs"
 
 if [ $overall -ne 0 ]; then
   exit $overall
 fi
 
-"$HOOK_DIR/_delegate.sh" pre-push "$@"
+"$HOOK_DIR/_delegate.sh" pre-push "$@" < "$refs"
