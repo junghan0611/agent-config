@@ -7,6 +7,29 @@
 
 ## Unreleased
 
+## v2026.11.20 — 설치 프로필: entwurf 사용자에게는 core, GLG에게는 full
+
+### 기본 설치가 core가 됐다 (#34)
+
+* **`./run.sh setup`의 기본값을 `--profile core`로 바꿨다.** `skill-tiers.tsv`가 core로 표시한 스킬만 Pi(`~/.pi/agent/skills/pi-skills/`), Entwurf Claude plugin, Claude Code(`~/.claude/skills/`)에 개별 링크한다. clone·build·설정 병합·확장·hooks·네트워크는 건드리지 않는다. 처음 오는 entwurf 사용자가 안전한 쪽으로 가고, 사정을 아는 GLG 기기가 `--profile full`을 명시한다. full은 이전 setup을 그대로 실행한다.
+* **`--profile work`는 core에 회사 도구 스킬(jiracli, slack-latest, plane)을, `--with net,memory`는 웹 검색 키·andenken 기억 스킬을 더한다.** 서버 overlay(`is_server_device`)와는 독립된 축이다.
+* **core는 쓰기 전에 검증하고 계획한다.** Manifest 형식·tier·이름·중복·tracked 집합 일치를 먼저 확인하고, 링크 계획 전체를 세운 뒤에 쓴다. 기존 항목은 바꾸지 않고, symlink인 중간 부모를 따라 쓰지 않으며, 보존한 항목이 있으면 `DONE (partial)`로 알린다. 새 clone에서 형제 리포로 가는 full 티어 링크(sorge, forge)가 끊긴 것은 허용한다.
+* **full의 self-refresh 재시작이 받은 인자를 그대로 넘긴다.** 기본값이 core가 된 뒤 `--profile full`이 재시작에서 빠지면 전체 설치가 조용히 축소될 수 있었다. GLG 쪽 문서·스킬·확장 안내의 `./run.sh setup`·`setup:links`도 `--profile full`로 갱신했다.
+* **commit, tag-release, command-recall을 core에 실었다.** agenda·기억 검색·day-axis CLI가 없으면 해당 단계를 건너뛴다. GLG 환경의 절차 본문은 바꾸지 않았다. browser-tools, medium-extractor, ghcli는 full에 남겼다.
+* **독립 수용 테스트 `tests/test-setup-profiles.py`(15건)를 구현과 다른 형제가 계약만 보고 작성했다.** 합성 HOME과 합성 repo에서 네트워크 없이 실행한다. 원자적 실패, manifest 결함, 정확한 링크 집합, 보호 파일 불변, 기존 링크·중간 부모 보존, 멱등성, full dispatch를 검사한다. full 실제 설치와 git 없는 환경의 untracked 스킬 구분은 범위 밖이다.
+
+### 문서·설정 정리
+
+* **현행 문서에서 OpenCode 언급을 걷어냈다.** README, AGENTS, harness-surfaces, agent-config 스킬이 대상이다. 연구 기록과 이전 CHANGELOG는 보존했다.
+* **`MODELS.md`의 Sol·Astra를 Pi 카탈로그에 실재하는 `gpt-6.2-sol`·`gpt-6.2-astra`로 갱신했다.**
+* **일반 Pi에서 Code Mode를 전역으로 켰다(#33).** 참조 설정 `pi/settings.json`에 `defaultTools: ["+codemode"]`를 넣었다. Pi의 도구 설명에는 Web API(`TextEncoder` 등)가 없다는 말이 빠져 첫 스크립트가 실패한 일이 있었다. 그래서 QuickJS 실측 전역 목록을 live `APPEND_SYSTEM.md`에 두었다. pi-durable 적용은 entwurf#155에 다음 묶음 후보로 보류했다.
+* **개인·회사 이메일 하드코딩을 스킬·명령·ENV-SETUP·테스트 픽스처에서 뺐다.** gog는 `GOG_ACCOUNT` 기본값, jira는 설정된 login을 쓴다. harness-surfaces의 pi-durable 행은 Entwurf 0.55.1과 Pi 1.5.2 SDK 10종으로 갱신했다.
+* **이전 태그 뒤의 NEXT 기록 커밋(`687a06e`, `5ba5806`, `22f1896`)은 기억축 운영 레인의 좌표 갱신이다.** NEXT.md는 이 컷에서 줄이지 않았다.
+
+### 이번 컷의 확인
+
+* 수용 테스트 15건, 기존 run.sh·Pi package 테스트 4종, timeline 테스트, `bash -n`, `git diff --check`가 모두 통과했다. 이메일 패턴 잔존 0건(CHANGELOG 제외)을 확인했다. 새 `git clone`·`git archive` 사본에서 core 설치 rc0을 측정했다. 실제 HOME에서의 core 설치와 full 재실행은 하지 않았다.
+
 ## v2026.11.16 — 과거 기억의 새 후보와 적용 전 경계
 
 ### 과거를 다시 읽은 후보, 아직 바꾸지 않은 실사용
