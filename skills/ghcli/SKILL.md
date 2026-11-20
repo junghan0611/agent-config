@@ -86,8 +86,8 @@ gh api notifications --jq '.[:10][] | {reason, title: .subject.title, repo: .rep
 ### User accounts
 
 The user has two GitHub accounts:
-- **Personal**: junghan0611 (junghanacs@gmail.com) - repos in ~/repos/gh/
-- **Work**: jhkim2goqual (jhkim2@goqual.com) - repos in ~/repos/work/
+- **Personal**: junghan0611 - repos in ~/repos/gh/
+- **Work**: jhkim2goqual - repos in ~/repos/work/
 
 Default `gh` auth uses the personal account.
 

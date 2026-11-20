@@ -60,9 +60,9 @@ bibcli search "<YYYYMMDD>" --dir ~/org/resources
 ### 5. 일정/할일 (gogcli, 선택)
 
 ```bash
-gog -j calendar list --from <DATE>T00:00:00+09:00 --to <NEXT_DATE>T00:00:00+09:00 --account junghanacs@gmail.com
-gog -j tasks lists --account junghanacs@gmail.com
-gog -j tasks list <listId> --all --account junghanacs@gmail.com
+gog -j calendar list --from <DATE>T00:00:00+09:00 --to <NEXT_DATE>T00:00:00+09:00
+gog -j tasks lists
+gog -j tasks list <listId> --all
 ```
 
 Google Calendar 일정, Tasks 할일.
@@ -144,5 +144,5 @@ gitcli timeline --month 2026-02 --me --repos ~/repos/work
 gitcli day --days-ago 1 --me --summary
 denotecli day --days-ago 1 --dirs ~/org
 lifetract read $(date -d yesterday +%Y-%m-%d) --data-dir ~/repos/gh/self-tracking-data
-gog -j calendar list --from $(date -d yesterday +%Y-%m-%d)T00:00:00+09:00 --to $(date +%Y-%m-%d)T00:00:00+09:00 --account junghanacs@gmail.com
+gog -j calendar list --from $(date -d yesterday +%Y-%m-%d)T00:00:00+09:00 --to $(date +%Y-%m-%d)T00:00:00+09:00
 ```

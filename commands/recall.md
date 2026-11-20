@@ -226,7 +226,7 @@ lifetract read <DATE> --data-dir ~/repos/gh/self-tracking-data
 Add calendar when relevant:
 
 ```bash
-gog -j calendar list --from <DATE>T00:00:00+09:00 --to <NEXT_DATE>T00:00:00+09:00 --account junghanacs@gmail.com
+gog -j calendar list --from <DATE>T00:00:00+09:00 --to <NEXT_DATE>T00:00:00+09:00   # account = $GOG_ACCOUNT
 ```
 
 This axis is the most expensive and the most likely to be skipped. The operator will ask if they want it — do not preempt.

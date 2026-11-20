@@ -44,9 +44,6 @@ Kiro도 **skills만** agent-config다. `kiro-cli`가 `PATH`에 있을 때만
 `~/.kiro/skills`를 연결한다. `~/.kiro/settings/`, `agents/`, `sessions/`는 Kiro runtime
 소유이며, Kiro는 의도적으로 entwurf citizen surface에 넣지 않는다.
 
-OpenCode 는 쓰지 않는다 — `run.sh` 에 분기가 없고 `~/.config/opencode/skills` 도 만든 적이
-없다. 문서에만 있던 하네스라 2026-07-14 에 걷어냈다.
-
 `./run.sh setup` 전체 순서: `refresh_self → preflight → repos(clone/pull) → build →
 links → npm → git-hooks`. 스킬만 다시 펼치려면 빌드 없이 **`./run.sh setup:links`** 한 방.
 

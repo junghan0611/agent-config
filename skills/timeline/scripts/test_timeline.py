@@ -638,7 +638,7 @@ def test_the_operator_is_known_by_his_address_not_his_display_name():
     import tempfile
     from collect import Repos, collect_git
 
-    mine = [("Jung Han", "junghanacs@gmail.com", "the name with a space"),
+    mine = [("Jung Han", "junghan@example.invalid", "the name with a space"),
             ("mayor", "31724164+junghan0611@users.noreply.github.com", "a nickname"),
             ("정한", "jhkim2@example.invalid", "the name in Korean")]
     with tempfile.TemporaryDirectory() as tmp:
@@ -646,7 +646,7 @@ def test_the_operator_is_known_by_his_address_not_his_display_name():
                                         text=True, check=True)
         run("init", "-q", "-b", "main")
         run("commit", "-q", "--allow-empty", "-m", "plain junghan",
-            "--author", "junghan <junghanacs@gmail.com>")
+            "--author", "junghan <junghan@example.invalid>")
         for name, email, subject in mine:
             run("commit", "-q", "--allow-empty", "-m", subject,
                 "--author", f"{name} <{email}>")

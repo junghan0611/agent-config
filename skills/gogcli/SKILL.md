@@ -18,7 +18,7 @@ Health check: `gog auth list --check --json --no-input`.
 
 | Account | `-a` | Client | Use |
 |---------|------|--------|-----|
-| Personal | `junghanacs@gmail.com` | `personal` | Search Console, Blogger, YouTube reads, personal calendar |
+| Personal | `$GOG_ACCOUNT` (operator's personal Google account) | `personal` | Search Console, Blogger, YouTube reads, personal calendar |
 | Work | the `work` row of `gog auth list` (Workspace) | `work` | Chat (Workspace only), work calendar/drive/gmail |
 
 `GOG_ACCOUNT=<email>` sets the default. The calendarId is usually the account email.

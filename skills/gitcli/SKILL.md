@@ -104,7 +104,7 @@ Output: period, total_commits, active_days, daily[].{date, commits, repos[], hou
 ```
 # 한 줄에 하나, 대소문자 무관 부분 일치
 junghan     # 개인: junghan, junghan0611, Jung Han, junghanacs
-jhkim2      # 회사: Junghan Kim <jhkim2@goqual.com>
+jhkim2      # 회사 계정
 ```
 
 ## Repo Groups

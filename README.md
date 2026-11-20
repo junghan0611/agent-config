@@ -102,7 +102,7 @@ Root `NAME.md` bench files ([OMP.md](OMP.md), [PI-DURABLE.md](PI-DURABLE.md), [H
 
 ### Harnesses
 
-The same `skills/` SSOT reaches pi (+ entwurf), Claude Code, Codex CLI, Antigravity CLI, Copilot CLI, Kiro CLI (optional) and OpenClaw; pi-durable reads it through Pi's own skill loader; OMP deliberately receives no shared skills. OpenCode is not used. Memory, skills and ownership per harness: [docs/harness-surfaces.md § Harness Support](docs/harness-surfaces.md#harness-support).
+The same `skills/` SSOT reaches pi (+ entwurf), Claude Code, Codex CLI, Antigravity CLI, Copilot CLI, Kiro CLI (optional) and OpenClaw; pi-durable reads it through Pi's own skill loader; OMP deliberately receives no shared skills. Memory, skills and ownership per harness: [docs/harness-surfaces.md § Harness Support](docs/harness-surfaces.md#harness-support).
 
 Sibling launches follow the exact versioned IDs in [MODELS.md](MODELS.md); thinking level is a separate Pi setting, not an Entwurf model-ID suffix. A project may keep a gitignored `team.json` as human-maintained bookmarks, but it grants no task, permission or lifecycle authority. Fresh identity comes from the matching callback and owner records, not from a window title or this bookmark.
 

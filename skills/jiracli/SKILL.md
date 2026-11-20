@@ -13,7 +13,7 @@ description: Jira CLI for issue tracking, project management, and sprint/board o
 - **인증**: `JIRA_API_TOKEN` in `~/.env.local` (export 필수)
 - **설정**: `~/.config/.jira/.config.yml`
 - **기본 프로젝트**: MAT (경동 Matter)
-- **사용자**: jhkim2@goqual.com
+- **사용자**: jira-cli 설정의 login (`jira me`로 확인)
 
 ## 필수: 환경변수 로드
 
@@ -72,7 +72,7 @@ source ~/.env.local && jira issue create
 source ~/.env.local && jira issue move MAT-77 "개발 완료"
 
 # 이슈 할당
-source ~/.env.local && jira issue assign MAT-77 "jhkim2@goqual.com"
+source ~/.env.local && jira issue assign MAT-77 "$(jira me)"
 
 # 코멘트 추가
 source ~/.env.local && jira issue comment add MAT-77 "코멘트 내용"

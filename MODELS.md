@@ -1,4 +1,4 @@
-# Models — sibling launch roster (2026-11-16)
+# Models — sibling launch roster (2026-11-20)
 
 Default: `backend: pi`, thinking `medium`. GLG adjusts effort per session; do not raise it automatically.
 For a sibling request, resolve the model name below without asking again.
@@ -11,8 +11,8 @@ For a sibling request, resolve the model name below without asking again.
 | Flash | `entwurf/agy-gemini-3.8-flash` | agy Pro; limited quota |
 | Hydrogen | `entwurf/agy-gemini-4-hydrogen` | agy Pro; limited quota |
 | Terra | `openai-codex/gpt-6.1-terra` | Codex subscription |
-| Sol | `openai-codex/gpt-6.1-sol` | Codex subscription |
-| Astra | `openai-codex/gpt-6-astra` | Codex subscription |
+| Sol | `openai-codex/gpt-6.2-sol` | Codex subscription |
+| Astra | `openai-codex/gpt-6.2-astra` | Codex subscription |
 | Luna | `openai-codex/gpt-6-luna` | Codex subscription |
 
 - `entwurf_fresh_call`: pass the exact catalog ID, e.g. `entwurf/claude-opus-5-5`, without a thinking suffix. Entwurf requires an exact curated ACP ID; `:medium` is rejected before launch. Keep Pi's `defaultThinkingLevel` at `medium`; a project override or GLG's explicit session choice takes precedence.

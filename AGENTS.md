@@ -206,8 +206,6 @@ Production memory axes are **sessions + md**. `sessions.lance` holds pi/Claude s
 | Claude Code (direct) | `semantic-memory` SKILL.md skill (`~/.claude/skills/semantic-memory/`) |
 | OpenClaw (4 bots) | same `skills/` directory via symlink mount; host binaries via Nix store mount inside Docker |
 
-**OpenCode is not used and not wired.** `run.sh` has no OpenCode branch and never created `~/.config/opencode/skills`; the row that claimed it did was removed 2026-07-14.
-
 Call rule: **use whichever surface your schema shows first**. registerTool and SKILL.md skill coexist on pi by design (no conflict). Slash command equivalent (`/recall`, etc.) is also wired across direct + plugin + pi-prompt surfaces — see `commands/` and `run.sh § Claude Code Commands`.
 
 Multi-source session indexing: `~/.pi/agent/sessions/` (`source: "pi"`) + `~/.claude/projects/` (`source: "claude"`) + explicitly admitted **closed** durable snapshots (`source: "pi-durable"`, andenken#15, 2026-10-15). Durable is not automatically gathered from live SQLite: Andenken owns `corpus:durable-admit` → `index:durable --dry-run` → explicit paid indexing, and normal global sync publishes the completed rows/checkpoint/corpus. Filter by `source`. CLI/Pi excerpts dispatch by source; durable `lineNumber` means entryId, not a JSONL line. `session-recap` remains JSONL-only; use the shared excerpt or Andenken `durable:read` for durable context. Sessions writers share Andenken's owner-token lock (busy/stale exit75); builds do not refresh already-loaded Pi code. Exact calls and boundaries: `skills/semantic-memory/SKILL.md`, `skills/memory-sync/SKILL.md`, Andenken's `andenken-embed` authority skill.

@@ -11,11 +11,14 @@
 
   "_tui": "tmux에서 쓰기 위해 tuiMode는 regular로 둔다(GLG 결정 2026-10-03, Oracle live 설정 확인). Pi 1.0 기본값 fullscreen 대신 일반 화면을 쓰는 사용자 선택이며, 하네스 결함 판정은 아니다.",
 
+  "_codemode": "GLG enabled Code Mode globally on 2026-11-20 after a pitc trial (#33): `+codemode` adds the tool beside the defaults, codemode.mode stays the default `on`, so the model chooses per task. Pi's tool description only says 'No Node, file system, network, or timers', which let a model reach for TextEncoder; the measured QuickJS globals live in ~/.pi/agent/APPEND_SYSTEM.md (live-only, not linked by run.sh). A project .pi/APPEND_SYSTEM.md replaces that file rather than combining. Undo: drop defaultTools.",
+
   "_common": {
     "tuiMode": "regular",
     "defaultProvider": "openai-codex",
     "defaultModel": "gpt-6.1-terra",
     "hideThinkingBlock": false,
+    "defaultTools": ["+codemode"],
     "compaction": {
       "modelOverrides": {
         "entwurf/claude-opus-5-5": {

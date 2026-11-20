@@ -7,7 +7,7 @@ pi-skills CLI들이 정상 동작하려면 아래 환경변수가 필요합니�
 | 변수 | 값 | 용도 |
 |------|-----|------|
 | `BIBCLI_DIR` | `~/sync/emacs/zotero-config/output` | bibcli bib 파일 경로 |
-| `GOG_ACCOUNT` | `junghanacs@gmail.com` | gogcli 기본 Google 계정 |
+| `GOG_ACCOUNT` | `<personal-google-account>` | gogcli 기본 Google 계정 |
 
 ## 선택
 
@@ -65,7 +65,7 @@ entwurf pi-durable --continue \
 
 ```
 BIBCLI_DIR=/home/junghan/sync/emacs/zotero-config/output
-GOG_ACCOUNT=junghanacs@gmail.com
+GOG_ACCOUNT=<personal-google-account>
 ```
 
 새 세션에서 자동 적용됨. 현재 세션에는 수동 export 필요.
@@ -76,7 +76,7 @@ GOG_ACCOUNT=junghanacs@gmail.com
 
 ```
 BIBCLI_DIR=/data/org/resources
-GOG_ACCOUNT=junghanacs@gmail.com
+GOG_ACCOUNT=<personal-google-account>
 ```
 
 ## gog(Google) 인증 — 기기 추가 / 스코프 확장
@@ -100,7 +100,7 @@ GOG_ACCOUNT=junghanacs@gmail.com
 
 ```bash
 # step 1 (헤드리스 기기) — 인증 URL 출력
-gog auth add junghanacs@gmail.com --client personal \
+gog auth add "$GOG_ACCOUNT" --client personal \
   --services gmail \
   --extra-scopes=https://www.googleapis.com/auth/blogger \
   --force-consent --remote --step 1
@@ -110,7 +110,7 @@ gog auth add junghanacs@gmail.com --client personal \
 # 주소창 URL을 통째로 복사.
 
 # step 2 (같은 기기) — 코드 교환 + 토큰 저장
-gog auth add junghanacs@gmail.com --client personal \
+gog auth add "$GOG_ACCOUNT" --client personal \
   --services gmail \
   --extra-scopes=https://www.googleapis.com/auth/blogger \
   --force-consent --remote --step 2 \
@@ -125,8 +125,8 @@ verifier 없는 제3자는 교환할 수 없다. 만료됐으면 step 1부터 �
 검증은 라벨이 아니라 실호출로:
 
 ```bash
-gog calendar list -a junghanacs@gmail.com --max 2
-gog api call blogger v3 blogs.listByUser --params '{"userId":"self"}' -a junghanacs@gmail.com
+gog calendar list -a "$GOG_ACCOUNT" --max 2
+gog api call blogger v3 blogs.listByUser --params '{"userId":"self"}' -a "$GOG_ACCOUNT"
 ```
 
 `--params`는 JSON 오브젝트여야 한다(`key=value` 아님). Blogger 사용법은
