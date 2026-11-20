@@ -188,7 +188,7 @@ When GLG wants to publish session artifacts as **evidence** for how the harness 
 
 ### Session Management — /new + Semantic Search
 
-Compaction is an allowed harness lifecycle, not a policy switch for us to suppress. Pi owns compaction through its built-in text summarization for every provider, including Codex; entwurf must likewise leave compaction policy untouched. The Codex-native checkpoint extension was retired on 2026-10-03. Do not resume its old checkpoint sessions without that extension; start a new Pi process/session and use recall instead. `/new` + recall remains the explicit cross-harness continuity practice, not a replacement for normal in-session compaction. See [Session Management](docs/memory-and-sessions.md#session-management--new--recall). Multi-harness session-recap: `--source pi | claude | all`.
+Compaction is an allowed harness lifecycle, not a policy switch for us to suppress. Pi owns compaction of its own history through built-in text summarization, including for Codex. Pi host settings do not control an ACP backend's own compaction. The Codex-native checkpoint extension was retired on 2026-10-03. Do not resume its old checkpoint sessions without that extension; start a new Pi process/session and use recall instead. `/new` + recall remains the explicit cross-harness continuity practice, not a replacement for normal in-session compaction. See [Session Management](docs/memory-and-sessions.md#session-management--new--recall). Multi-harness session-recap: `--source pi | claude | all`.
 
 ---
 

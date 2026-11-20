@@ -38,11 +38,11 @@ Compaction is an allowed lifecycle on every harness; agent-config and entwurf do
 |---|---|---|
 | `~/.claude/settings.json` | **no compaction key at all** | oracle, 2026-09-04 |
 | `~/.pi/agent/settings.json` (live) | `compaction.enabled: true` | oracle, 2026-09-04 |
-| `pi/settings.json` (this repo's reference) | No `enabled` override; exact-model token budgets added below | 2026-11-13 |
+| `pi/settings.json` (this repo's reference) | No compaction overrides | Source checked 2026-11-20 |
 
-entwurf retired `autoCompactEnabled` and `env.DISABLE_AUTOCOMPACT` from its managed settings in 0.17.2 (#94). That retirement leaves timing and enablement to the harness that owns them; it does not prescribe a state. `pi/settings.json` likewise carries no compaction enable/disable override. The explicit operator-selected token budgets below use Pi's own lifecycle rather than replacing it.
+entwurf retired `autoCompactEnabled` and `env.DISABLE_AUTOCOMPACT` from its managed settings in 0.17.2 (#94). That retirement leaves timing and enablement to the harness that owns them; it does not prescribe a state. `pi/settings.json` likewise carries no compaction overrides.
 
-As of 2026-10-03, compaction is left to **Pi's built-in text summarization for every provider, including `openai-codex`**. The Codex-native checkpoint extension is retired; no replacement compaction extension is installed. Text summaries are readable and can travel across models; faster compaction is not guaranteed. `/recall` still serves the distinct job of crossing sessions and harnesses.
+As of 2026-10-03, compaction is left to **Pi's built-in text summarization for Pi-managed history, including `openai-codex` sessions**. The Codex-native checkpoint extension is retired; no replacement compaction extension is installed. Text summaries are readable and can travel across models; faster compaction is not guaranteed. `/recall` still serves the distinct job of crossing sessions and harnesses.
 
 **Migration:** removing a package from `pi/packages.json` does not uninstall it on an existing device. Run `pi remove npm:@ogulcancelik/pi-codex-compaction` on each device, then start a **new Pi process and session**. A running process may retain the loaded extension. Do not resume an old native-checkpoint session without it: the visible summary is only a marker, while the actual context requires the removed extension's `details.replacementHistory` handling. Keep old transcripts as evidence and recover through `/recall` instead.
 
@@ -58,13 +58,11 @@ The answer must state which axes were seen and which were not. This keeps `/reca
 
 The protocol itself lives in [`commands/recall.md`](../commands/recall.md). The 2026-05-08 derivation history and raw evidence log are kept as a Denote llmlog note (`20260508T090911`, `~/org/llmlog/`) rather than as in-repo docs — `/recall` is a resident-side memory workflow, not a spec this repo carries. Renamed from `/recap` on 2026-05-12 to avoid shadowing Claude Code's built-in `/recap` (one-line session summary, feature-flagged via `tengu_sedge_lantern`); the two now coexist.
 
-### Per-model auto-compaction budgets
+### Pi host and ACP backend compaction
 
-On 2026-11-13 GLG explicitly requested automatic compaction above approximately 500k tokens for Entwurf Opus and Sonnet. Pi 1.5.2's existing `compaction.modelOverrides` supports this without an extension or a false model context window. The curated registry was read locally: exact keys `entwurf/claude-opus-5-5` and `entwurf/claude-sonnet-5-5`, both with `contextWindow: 1000000`. The reference's `_common` sets `reserveTokens: 500000` for those two keys only; Pi's strict comparison is `contextTokens > contextWindow - reserveTokens`. GPT and other model keys retain their ordinary token settings; the default reserve is 16384 and default recent tail is 20000. `enabled` remains a global Pi setting, not a per-model flag.
+The 500k overrides added on 2026-11-13 for Entwurf Opus and Sonnet were removed from the reference on 2026-11-20. Pi's `compaction.modelOverrides` controls Pi's own history, not when an ACP backend compacts its session. ACP context usage reported to Pi is telemetry, not a backend compaction control.
 
-This is `compaction.modelOverrides` in **settings.json**, not model metadata overrides in models.json. Both device overlays inherit the reference. Existing live settings are co-owned and win setup merges, so the explicitly requested Oracle live keys were also updated while preserving other values. Settings already cached in a running Pi need `/reload` or a new process; no session was restarted or forced to compact for this change.
-
-For ACP Claude, the inspected producer puts context occupancy from `usage_update.used` in Pi's `usage.totalTokens`, while turn-wide accounting stays under `usage.acp`; these are different quantities. Missing notifications may retain an earlier observation or fall back to Pi's local estimate, so the threshold is not a live measurement of an exact vendor boundary. After compaction the changed history fails ACP's reuse-prefix check, causing a fresh child session with the Pi summary and recent context. GLG explicitly accepted that reconstruction. Actual compaction success and total cache/billing savings were not measured; a new ACP session does not prove that every common prompt prefix is cold.
+Setup preserves existing live keys. Removing these overrides from the reference does not clear them from `~/.pi/agent/settings.json` on existing installs.
 
 ## Session originals under version control — #32 v1 preparation
 
