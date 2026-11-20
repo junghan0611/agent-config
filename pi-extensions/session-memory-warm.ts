@@ -47,7 +47,7 @@ function getSkillsDir(): string {
 
 export function getWarmScriptPath(): string {
 	const script = join(getSkillsDir(), "memory-sync", "scripts", "warm-local.sh");
-	if (!existsSync(script)) throw new Error(`session-memory-warm: missing launcher ${script}; run ./run.sh setup:links`);
+	if (!existsSync(script)) throw new Error(`session-memory-warm: missing launcher ${script}; run ./run.sh setup:links --profile full`);
 	return script;
 }
 

@@ -149,11 +149,14 @@ Linked skills (`sorge`, `forge`), binary skills and their provenance gate, and t
 ```bash
 git clone https://github.com/junghan0611/agent-config.git
 cd agent-config
-./run.sh setup    # provision CLIs + links + owned settings merges + dependencies
+./run.sh setup    # default profile core: link only the portable skills into Pi / Entwurf Claude / Claude Code
+# ./run.sh setup --profile work            # core + company tools (jiracli, slack-latest, plane)
+# ./run.sh setup --profile core --with net,memory   # + web-search keys / andenken memory skills
+# ./run.sh setup --profile full            # the operator's own machines: CLIs + links + settings merges + dependencies
 ./run.sh env      # verify: system, API keys, links, binaries, memory index
 ```
 
-This provisions **one operator's working environment**, including user-wide links, settings and hooks. Read [AGENTS.md](AGENTS.md) and the ownership notes first; it is not a sandboxed generic installer, a credential bundle or a way to install entwurf implicitly.
+`--profile full` provisions **one operator's working environment**, including user-wide links, settings and hooks; the default `core` touches only skill links and preserves anything already there. Which skill sits in which profile is [`skill-tiers.tsv`](skill-tiers.tsv). Read [AGENTS.md](AGENTS.md) and the ownership notes first; it is not a sandboxed generic installer, a credential bundle or a way to install entwurf implicitly.
 
 What `setup` performs step by step, what it deliberately leaves to entwurf and the bench, and the shell helper examples: [docs/setup.md](docs/setup.md).
 

@@ -19,7 +19,7 @@ Repo: `~/repos/gh/agent-config`. 이 집이 무엇인지(정신)는 `AGENTS.md`�
 
 ```
 skills/<name>/SKILL.md (+바이너리)   ← SSOT (이 repo)
-        │  ./run.sh setup → setup_links
+        │  ./run.sh setup --profile full → setup_links
         ▼
    ┌─ ~/.pi/agent/skills/pi-skills/<name>          (pi, 개별 링크)
    ├─ ~/.pi/agent/claude-plugin/skills/<name>      (entwurf Claude, 개별 — SDK 격리)
@@ -44,8 +44,10 @@ Kiro도 **skills만** agent-config다. `kiro-cli`가 `PATH`에 있을 때만
 `~/.kiro/skills`를 연결한다. `~/.kiro/settings/`, `agents/`, `sessions/`는 Kiro runtime
 소유이며, Kiro는 의도적으로 entwurf citizen surface에 넣지 않는다.
 
-`./run.sh setup` 전체 순서: `refresh_self → preflight → repos(clone/pull) → build →
-links → npm → git-hooks`. 스킬만 다시 펼치려면 빌드 없이 **`./run.sh setup:links`** 한 방.
+`./run.sh setup --profile full` 전체 순서: `refresh_self → preflight → repos(clone/pull) → build →
+links → npm → git-hooks`. 스킬만 다시 펼치려면 빌드 없이 **`./run.sh setup:links --profile full`** 한 방.
+**`--profile` 없는 `setup`/`setup:links`는 core**(#34) — GLG 기기에서는 반드시 `full`을 붙인다.
+새 스킬은 `skill-tiers.tsv`에 티어 한 줄을 같이 넣는다(빠지면 테스트가 실패).
 
 ## 스킬을 추가/수정한다 — 두 종류
 
@@ -56,7 +58,7 @@ links → npm → git-hooks`. 스킬만 다시 펼치려면 빌드 없이 **`./r
 mkdir -p skills/<name>/scripts
 $EDITOR skills/<name>/SKILL.md          # frontmatter: name + description(트리거 풍부히)
 # 스크립트는 skills/<name>/scripts/ 에. {baseDir} placeholder 그대로 둘 것
-./run.sh setup:links                    # 개별-링크 하네스에 펼침
+./run.sh setup:links --profile full     # 개별-링크 하네스에 펼침 (+ skill-tiers.tsv 한 줄)
 ./run.sh env                            # 링크 검증 (아래 진단 참조)
 ```
 
@@ -222,7 +224,7 @@ scanbook이 MinerU 원격 서버 삽질을 담듯, 이 스킬은 fan-out 삽질�
 ## 새 기기 setup (재현 가능성)
 
 ```bash
-cd ~/repos/gh/agent-config && ./run.sh setup
+cd ~/repos/gh/agent-config && ./run.sh setup --profile full
 ```
 - **server vs dev 기기 자동 분기**: `~/.current-forge-profile`가 `oracle`/`work`면 server
   → consumer pi install 경로 + `pi/settings.server.json`. 클라이언트(thinkpad/laptop/nuc)는

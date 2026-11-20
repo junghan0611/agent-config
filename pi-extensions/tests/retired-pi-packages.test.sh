@@ -107,7 +107,7 @@ fake_install "$d"
 compat_link "$d"
 check_door object 1 \
 	"+retired Pi package still registered (filtered object): $RECALL — remove with: pi remove $RECALL" \
-	"+retired Pi extension still present: $d/home/.pi/agent/extensions/session-recall-compat.ts — remove with: ./run.sh setup:links" \
+	"+retired Pi extension still present: $d/home/.pi/agent/extensions/session-recall-compat.ts — remove with: ./run.sh setup:links --profile full" \
 	"+retired Pi package leftovers remain: $RECALL $d/home/.pi/agent/extensions/session-recall-compat.ts" \
 	"-no retired package registered"
 [ -f "$d/home/.pi/agent/npm/node_modules/@ogulcancelik/pi-session-recall/package.json" ] || fail object "fake install was removed"
@@ -137,7 +137,7 @@ echo "== pi-packages-smoke refusals (before any pi start)"
 check_smoke object "+pi remove $RECALL" "-no manifest"
 # Registered, never installed: must still name the recall leftover, not a missing manifest.
 check_smoke string "+pi remove $RECALL" "-no manifest"
-check_smoke link-only "+run: ./run.sh setup:links"
+check_smoke link-only "+run: ./run.sh setup:links --profile full"
 
 if [ "$FAILS" -gt 0 ]; then
 	echo "FAIL: $FAILS check(s) failed" >&2

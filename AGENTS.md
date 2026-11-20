@@ -49,7 +49,8 @@ GLG의 1KB 정체성이 어느 하네스로 가도 같은 중력을 발휘하도
 ## 빠른 시작
 
 ```bash
-./run.sh setup    # one-command: clone/pull + build + link + npm — reproducible on any device
+./run.sh setup --profile full   # GLG's devices: clone/pull + build + link + npm — reproducible on any of them
+./run.sh setup                  # default = core: entwurf users get only portable skills (agent-config#34, skill-tiers.tsv)
 ```
 
 > **ROADMAP.md** — repo 차원의 중기 방향과 후속 축.
@@ -250,7 +251,7 @@ agent-config is the resident-side evidence that entwurf's "no backend differenti
 
 Two operational corollaries the consumer surface enforces:
 
-- **Skill set parity — directly installed hosts only.** `./skills/` is the single source; `run.sh setup` symlinks the same set into every host it *directly installs into*. A skill missing there is a consumer-side break to fix here, not a backend limitation. The invariant stops at the isolation boundary: an entwurf-spawned ACP child runs under an isolated `HOME` / `SNOWFLAKE_HOME` overlay **by design** (`entwurf/docs/acp-backend-rail.md` D1–D2), so host-global skills are invisible to it and that absence is *not* a break. Do not "fix" it in `run.sh` — the links would land outside the child's HOME and change nothing.
+- **Skill set parity — directly installed hosts only.** `./skills/` is the single source; `run.sh setup --profile full` symlinks the same set into every host it *directly installs into*. A skill missing there is a consumer-side break to fix here, not a backend limitation. The invariant stops at the isolation boundary: an entwurf-spawned ACP child runs under an isolated `HOME` / `SNOWFLAKE_HOME` overlay **by design** (`entwurf/docs/acp-backend-rail.md` D1–D2), so host-global skills are invisible to it and that absence is *not* a break. Do not "fix" it in `run.sh` — the links would land outside the child's HOME and change nothing.
 - **YOLO harness invariant for spawn.** Entwurf spawn target is always a YOLO harness process (`pi`, `claude-code`). Backend CLIs (`codex exec`, `gemini -p`) reach the same frontier models but are model carriers, not spawn targets; they default to permission-ask sandboxes that break async throw-and-recall. Canonical spec: [entwurf `AGENTS.md` § Entwurf](https://github.com/junghan0611/entwurf/blob/main/AGENTS.md) — "Source-agnostic does not mean harness-agnostic".
 
 #### Claude Code Permission Model — Two Gotchas
@@ -266,7 +267,7 @@ Both are binary-hardcoded in Claude Code; `permissions.allow` cannot override ei
 
 That failure mode then produced its own textbook case, found 2026-09-18 by a reader re-deriving the arithmetic while writing `UNCLEBOB.md`. **This very rule said `N = M + 2` while also stating the glob already matches the symlinks — it double-counted them**, and anyone who followed it literally would have "corrected" a healthy 48 up to 50. Meanwhile README's *numbers* were both right (48 and 46) and its *composition* was wrong in two places that cancelled: the list named `butlercli`, which has never existed as a tracked directory in this repo, and omitted `subtract`, which landed in `6548399`. So verify the **named set**, not just the total: `python3 -c` the category groups against the tracked listing above (not `os.listdir('skills')` — 2026-09-21 measured that it returns 47 here against 46 tracked, because of the untracked `butlercli` link) and print both set differences. A matching count over a wrong set is the same defect this paragraph exists to catch. On 2026-09-21 the same paragraph was stale a third time in the other direction: the total said 48 against 46 tracked, and the two names it held out had both left the repo months earlier — which is why the offset is now forbidden outright.
 
-`./skills/` is the SSOT. `run.sh setup` symlinks them into pi, Claude Code, Codex, Antigravity, Copilot CLI (`~/.copilot/skills`), Kiro CLI (`~/.kiro/skills`, only when `kiro-cli` is installed), and the entwurf Claude plugin farm. Kiro is a skill-only surface, not an entwurf citizen. (The Gemini CLI legacy surface was retired 2026-08-06 — the binary is gone. `~/.gemini/` still belongs to Antigravity.) See [README § What's Here](README.md#whats-here) for categories.
+`./skills/` is the SSOT. `run.sh setup --profile full` symlinks them into pi, Claude Code, Codex, Antigravity, Copilot CLI (`~/.copilot/skills`), Kiro CLI (`~/.kiro/skills`, only when `kiro-cli` is installed), and the entwurf Claude plugin farm. Kiro is a skill-only surface, not an entwurf citizen. (The Gemini CLI legacy surface was retired 2026-08-06 — the binary is gone. `~/.gemini/` still belongs to Antigravity.) See [README § What's Here](README.md#whats-here) for categories.
 
 **Cortex Code is not in that list, and its paths are its own (2026-07-31).** It loads global skills from `$SNOWFLAKE_HOME/cortex/skills/` and project skills from `<cwd>/.claude/skills/` (Claude-compatible), plus bundled ones from inside the binary. Three facts an agent will otherwise misdiagnose:
 

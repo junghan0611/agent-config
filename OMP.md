@@ -22,7 +22,7 @@ Hermes와 다른 점 하나: omp 설치는 `run.sh`에 함수가 없다. curl �
 GLG decided that OMP is the single visible **실무 잠수함**: its in-process team reduces
 tmux-visible siblings and the associated inspection burden. The team definition is therefore
 agent-config operational configuration, not a shared-skill injection: `omp/agents/*.md` is
-the source and `./run.sh setup:links` links each file into `~/.omp/agent/agents/`.
+the source and `./run.sh setup:links --profile full` links each file into `~/.omp/agent/agents/`.
 
 - The catalog is `terra`, `glm`, `grok`, `sonnet`, `opus`, `deepseek-pro`, and
   `deepseek-flash`. Each profile contains only its name, provider-specific `model:` selector,

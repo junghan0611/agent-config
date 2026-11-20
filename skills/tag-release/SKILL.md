@@ -1,6 +1,6 @@
 ---
 name: tag-release
-description: "Cut an OpenClaw-style CalVer snapshot tag AND publish the matching GitHub Release. Tag loop = collect commits + closed NEXT.md items, move them to CHANGELOG.md, remove only those closed items from NEXT.md, then pre-flight/tag/push/gh-release/stamp when explicitly requested. The GitHub Release is REQUIRED — GLG reads release notes on github.com, so a tag with no release is an unfinished cut. Attaching build artifacts is the optional part. Not SemVer/deploy; doc/ops repos tag too. ROADMAP.md is optional/manual. Triggers: 태그 박자, 릴리즈 컷, 릴리즈 노트, changelog 정리, NEXT 비우자/갈무리, cut a release/tag, publish release, vYYYY.M.D[-suffix]."
+description: "Cut an OpenClaw-style CalVer snapshot tag AND publish the matching GitHub Release. Tag loop = collect commits + closed NEXT.md items, move them to CHANGELOG.md, remove only those closed items from NEXT.md, then pre-flight/tag/push/gh-release/stamp when explicitly requested. The GitHub Release is REQUIRED — the user reads release notes on github.com, so a tag with no release is an unfinished cut. Attaching build artifacts is the optional part. Not SemVer/deploy; doc/ops repos tag too. ROADMAP.md is optional/manual. Triggers: 태그 박자, 릴리즈 컷, 릴리즈 노트, changelog 정리, NEXT 비우자/갈무리, cut a release/tag, publish release, vYYYY.M.D[-suffix]."
 ---
 
 # tag-release — CalVer snapshot for NEXT → CHANGELOG
@@ -27,16 +27,16 @@ commits + closed NEXT items -> CHANGELOG ## Unreleased
 ```
 
 Rules:
-- Tag format: `vYYYY.M.D[-suffix]`. Same-day follow-ups are normal: `v2026.6.12`, `v2026.6.12-fix.1`, `v2026.6.12-docs.2`.
+- Tag format: if the repo already has a tag convention, follow it; otherwise `vYYYY.M.D[-suffix]`. Same-day follow-ups are normal: `v2026.6.12`, `v2026.6.12-fix.1`, `v2026.6.12-docs.2`.
 - Suffix is free-form follow-up text, not SemVer prerelease pressure.
 - `CHANGELOG.md` = past / what closed. `ROADMAP.md` = future / where to go, optional and manual.
 - Do not create a `docs/archive` graveyard just to hide closed NEXT items. Detailed docs are fine if reachable from `AGENTS.md`, `README.md`, `NEXT.md`, or workspace SSOT pointers.
-- **A tag without a GitHub Release is an unfinished cut, not a style choice.** GLG reads release notes on github.com — that page, not `CHANGELOG.md`, is where a cut becomes visible. `git push origin "$TAG"` creates no release; `gh release create` does. If a previous tag has no release, backfill it in the same session and say so.
+- **A tag without a GitHub Release is an unfinished cut, not a style choice.** The user reads release notes on github.com — that page, not `CHANGELOG.md`, is where a cut becomes visible. `git push origin "$TAG"` creates no release; `gh release create` does. If a previous tag has no release, backfill it in the same session and say so.
 - Release notes contain the CHANGELOG section for that tag, without re-summarizing. Like `entwurf-release`, extraction joins wrapped continuation lines within paragraphs/list items: GitHub release bodies render source newlines as line breaks, unlike file views. Only whitespace may change; fenced code, blank-line boundaries, headings, quotes, tables and explicit Markdown hard breaks are preserved.
 - Preserve the repository's CHANGELOG source style (hard-wrapped or unwrapped); do not reflow older sections. Soft-wrap only the extracted release notes, never the source file.
 - **Attaching build artifacts is optional and off by default.** Source tarballs are auto-attached by GitHub. Add `--attach` only for a binary a user cannot produce themselves; never attach gitignored build output as if it were reviewed.
 - Boundary truth is `git log <baseline>..HEAD`; date-based `gitcli log` is only a readable timeline aid.
-- Agent edits only `CHANGELOG.md` + `NEXT.md`. No automatic `ROADMAP.md` / `AGENTS.md` edits. No unsolicited tag-release; Make runs only on an explicit GLG request/approval. Never `--no-verify`.
+- Agent edits only `CHANGELOG.md` + `NEXT.md`. No automatic `ROADMAP.md` / `AGENTS.md` edits. No unsolicited tag-release; Make runs only on an explicit user request/approval. Never `--no-verify`.
 
 ## Prepare — no tag, no push
 
@@ -56,7 +56,7 @@ Rules:
 5. **Promote**
    - Rename filled `## Unreleased` to `## $TAG`; create a fresh empty `## Unreleased` above.
    - Title suffix allowed: `## v2026.6.12 — 문서 구조 재정렬`.
-6. **Trim `NEXT.md`**
+6. **Trim `NEXT.md`** (skip if the repo has no `NEXT.md`)
    - Remove only closed items just migrated to `CHANGELOG.md`.
    - Keep active blockers / next moves / unstarted work. Refresh top pointer so it is not stale.
 7. **Gate + commit**
@@ -64,7 +64,7 @@ Rules:
    - Commit release-prep files via `commit` skill, e.g. `chore(release): prepare v2026.6.12-fix.1`.
    - Continue to Make only if the current request/approval explicitly includes tagging/release execution; otherwise stop here.
 
-## Make — after GLG approval
+## Make — after user approval
 
 Pre-flight; abort on first failure:
 
@@ -89,15 +89,16 @@ Release — **required, same breath as the push.** Extract and soft-wrap the sec
 NOTES=$(mktemp)
 SCRIPT="$HOME/.pi/agent/skills/pi-skills/tag-release/scripts/release_notes.py"
 [ -f "$SCRIPT" ] || SCRIPT="$HOME/.claude/skills/tag-release/scripts/release_notes.py"
+[ -f "$SCRIPT" ] || SCRIPT="{baseDir}/scripts/release_notes.py"  # last resort for other harness installs
 TITLE=$(python3 "$SCRIPT" CHANGELOG.md "$TAG" "$NOTES") || exit 1
 test -s "$NOTES" || exit 1
 gh release create "$TAG" --title "$TITLE" --notes-file "$NOTES"
-gh release view "$TAG" --json url -q .url          # receipt: paste this to GLG
+gh release view "$TAG" --json url -q .url          # receipt: paste this to the user
 ```
 
 Offline regression: `python3 "$(dirname "$SCRIPT")/test_release_notes.py"`.
 
-Optional, only when asked: `--attach <file>` for a binary a user cannot build, `--latest=false` for a backfill, `--draft` when GLG wants to read before it is public.
+Optional, only when asked: `--attach <file>` for a binary a user cannot build, `--latest=false` for a backfill, `--draft` when the user wants to read before it is public.
 
 Backfill a tag that was pushed without a release (same extraction, no new tag):
 
@@ -105,7 +106,7 @@ Backfill a tag that was pushed without a release (same extraction, no new tag):
 gh release create "$OLDTAG" --title "$TITLE" --notes-file "$NOTES" --latest=false
 ```
 
-Stamp after successful remote push:
+Stamp after successful remote push — only if the `agenda` skill is installed (`agenda-stamp.sh` exists at one of the two paths below); otherwise skip and say so in one line:
 
 ```bash
 SCRIPT="$HOME/.pi/agent/skills/pi-skills/agenda/scripts/agenda-stamp.sh"; [ -x "$SCRIPT" ] || SCRIPT="$HOME/.claude/skills/agenda/scripts/agenda-stamp.sh"
@@ -118,5 +119,5 @@ URL=$(git remote get-url origin | sed -E 's|git@github(-[a-z]+)?\.com:|https://g
 ## Failure
 
 - Hook block: fix diff; no bypass. Stamp failure: stop and report exact command + error.
-- Wrong local unpushed tag: `git tag -d "$TAG"`, fix HEAD, redo. Wrong pushed tag: report to GLG.
+- Wrong local unpushed tag: `git tag -d "$TAG"`, fix HEAD, redo. Wrong pushed tag: report to the user.
 - `gh release create` fails after the tag is pushed: the tag is live and the cut is **not** done. Fix and re-run the release step alone — do not delete or move the tag. Wrong notes on a live release: `gh release edit "$TAG" --notes-file <fixed>`.

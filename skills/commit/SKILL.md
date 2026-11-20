@@ -19,12 +19,12 @@ Create a git commit for the current changes using a concise Conventional Commits
 - Do NOT include breaking-change markers or footers.
 - Do NOT add sign-offs (no `Signed-off-by`).
 - Do NOT add AI attribution (no `Generated with Claude`, `Co-Authored-By: Claude`, etc.). Keep the log clean.
-- Add a plain body sentence for the work device and known participating garden IDs: `Worked on <device> with <garden-id>, <garden-id>.` Read the device from `~/.current-device`; this names the current work environment, not every participant's machine. It is a trail back to the conversations and an expression of responsibility and thanks, not model attribution or a `Key: value` trailer.
+- Device/garden-id line — only if your operator's AGENTS.md asks for it; otherwise skip this bullet and the next two. Add a plain body sentence for the work device and known participating garden IDs: `Worked on <device> with <garden-id>, <garden-id>.` Read the device from `~/.current-device`; this names the current work environment, not every participant's machine. It is a trail back to the conversations and an expression of responsibility and thanks, not model attribution or a `Key: value` trailer.
 - List your own garden ID when known, then the IDs of siblings already known to have taken part in this change (including discussion or review). IDs only: no model names. Never search sessions or records just to fill this list; omissions are fine and do not block a commit.
 - If no IDs are known, write `Worked on <device>.` using the actual device value. If the device file is unavailable, omit the device rather than guess; write `Worked with <garden-id>, <garden-id>.` when IDs are known. If neither is known, omit the sentence. Do not rewrite old commits to backfill it.
-- Commit only by default. Push only when GLG explicitly requests `push` or `commit + push` in the
+- Commit only by default. Push only when the user explicitly requests `push` or `commit + push` in the
   current session. A commit request alone never implies push; commits may be batched before one
-  push so the agenda timeline stays useful.
+  push (so the agenda timeline, if installed, stays useful).
 - If it is unclear whether a file should be included, ask the user which files to commit.
 - Treat any caller-provided arguments as additional commit guidance. Common patterns:
   - Freeform instructions should influence scope, summary, and body.
@@ -39,14 +39,16 @@ Create a git commit for the current changes using a concise Conventional Commits
 4. If there are ambiguous extra files, ask the user for clarification before committing.
 5. Stage only the intended files (all changes if no files specified).
 6. Run `git commit -m "<subject>"` (and `-m "<body>"` if needed).
-7. If GLG explicitly requested push in the current session:
+7. If the user explicitly requested push in the current session:
    - verify the current branch, upstream and worktree state;
    - use an ordinary push only — never force, bypass hooks or set an unsafe override;
-   - after push succeeds, stamp the agenda as described below.
+   - after push succeeds, stamp the agenda as described below (only if the `agenda` skill is installed; else skip).
 
-## Post-push — agenda stamp (required)
+## Post-push — agenda stamp (required when the `agenda` skill is installed)
 
-The commit is the agent's job; **GLG decides whether and when to push**. An explicit push request
+Skip the stamp and the Google Chat block if `agenda-stamp.sh` is not found at either path in step 2; report the skip in one line. Do not look elsewhere or create the script. The Google Chat block stays optional: use it only where `gog` and `GOG_CHAT_*` are configured.
+
+The commit is the agent's job; **the user decides whether and when to push**. An explicit push request
 authorizes the agent to execute it. Never infer push from a commit request alone. Once a requested
 push succeeds, stamp it so the agenda link resolves. Do not stamp local-only commits — the link may
 break.

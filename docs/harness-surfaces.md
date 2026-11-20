@@ -76,7 +76,7 @@ entwurf runs Claude with `settingSources: []` (SDK isolation), so `~/.claude/ski
 
 What this repo does is narrower: `run.sh setup` builds **one local consumer layout** under `~/.pi/agent/claude-plugin/` (manifest + per-skill symlinks back to `agent-config/skills/`) and points this repo's pi settings at that path. That path is an agent-config convention, not a entwurf contract.
 
-Adding a new skill here still works the same way: drop it into `agent-config/skills/<name>/SKILL.md` and re-run `./run.sh setup`. The same SSOT fans out to pi, Claude Code, the entwurf Claude plugin, Codex, Antigravity, and Copilot when its runtime/home is present. When `kiro-cli` is installed, it also links Kiro's personal root at `~/.kiro/skills/`.
+Adding a new skill here still works the same way: drop it into `agent-config/skills/<name>/SKILL.md` add its tier to `skill-tiers.tsv`, and re-run `./run.sh setup --profile full`. The same SSOT fans out to pi, Claude Code, the entwurf Claude plugin, Codex, Antigravity, and Copilot when its runtime/home is present. When `kiro-cli` is installed, it also links Kiro's personal root at `~/.kiro/skills/`.
 
 > `~/.gemini/` is Antigravity's home, not Gemini CLI's. The standalone `gemini` binary is gone from this machine and its legacy surface (`~/.gemini/settings.json`, `~/.gemini/skills/`) was retired 2026-08-06 — but `~/.gemini/antigravity-cli/` and `~/.gemini/config/` are live and must survive any cleanup of that directory.
 

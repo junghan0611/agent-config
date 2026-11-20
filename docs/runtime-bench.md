@@ -71,7 +71,7 @@ The two responsibility boundaries remain distinct:
 | *Is omp addressable as one garden citizen?* | `entwurf` | **Yes** — one process = one garden id. In-process agents are not citizens and do not widen the contract. |
 | *Does the working submarine reduce GLG's inspection hops?* | `agent-config` | **Not established** — GLG reports opaque, verbose delegation and token burden (2026-10-14, subjective); the D-axis is not a measured benefit. |
 
-This repo wires the OMP **task-agent catalog only**: `omp/agents/*.md` is linked by `./run.sh setup:links` into `~/.omp/agent/agents/`. OMP installation remains outside `run.sh` and `nixos-config`, and the shared skills SSOT is still not injected into `~/.omp`; the operational team stays reproducible without turning the measurement surface into a furnished copy. The provider seal, bridge ownership, operator boundary, and reproduce block live in [OMP.md](../OMP.md).
+This repo wires the OMP **task-agent catalog only**: `omp/agents/*.md` is linked by `./run.sh setup:links --profile full` into `~/.omp/agent/agents/`. OMP installation remains outside `run.sh` and `nixos-config`, and the shared skills SSOT is still not injected into `~/.omp`; the operational team stays reproducible without turning the measurement surface into a furnished copy. The provider seal, bridge ownership, operator boundary, and reproduce block live in [OMP.md](../OMP.md).
 
 ### The third subject is one GLG is building
 

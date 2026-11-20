@@ -41,7 +41,7 @@
  * HF is session sharing. Only the model picker changes.
  *
  * To bring one back: drop it from HIDDEN_PROVIDER_KEYS and from env-loader's
- * SKIP_KEYS, then re-run `./run.sh setup:links`.
+ * SKIP_KEYS, then re-run `./run.sh setup:links --profile full`.
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";

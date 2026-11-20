@@ -84,6 +84,8 @@ git -C <PROJECT_PATH> log --since="yesterday" --oneline
 
 ### 3. Semantic recall — two axes, one call each
 
+Skip this section if neither `session_search`/`knowledge_search` nor the `semantic-memory` skill is available; write `semantic: 없음(미설치)` in the output and move on.
+
 Run **both**, with concrete proper nouns drawn from §1–§2, not abstract restatements:
 
 - Session axis: call the native `session_search` tool when visible; otherwise load the
@@ -103,7 +105,7 @@ from, hand its `file` to `session-recap --session-file`. The path joins; the `li
 
 ### 4. Day-axis only on explicit request
 
-Use `gitcli day`, `denotecli day`, `lifetract`, calendar only when the user asks for full yesterday/today/day-axis restoration.
+If `gitcli`/`denotecli`/`lifetract` are not installed, skip and say so. Use `gitcli day`, `denotecli day`, `lifetract`, calendar only when the user asks for full yesterday/today/day-axis restoration.
 
 ## Output mode
 

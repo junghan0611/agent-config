@@ -1,0 +1,65 @@
+# skill-tiers.tsv — SSOT for which skills each `./run.sh setup --profile` installs (agent-config#34).
+# Format: <skill><TAB><tier>. One line per tracked skills/<name> directory; tests enforce the set match.
+#
+# Tiers:
+#   core          entwurf users: needs only Pi / Claude Code / Entwurf, git, python3, gh
+#   core-pending  meant for core, still carries GLG-only steps; installed as full until split
+#   net           optional (--with net): needs the user's own web/API key
+#   memory        optional (--with memory): needs andenken (semantic memory)
+#   work          --profile work: company tools; the user configures credentials
+#   full          GLG's own environment (Org/Emacs/denote/agenda/personal CLIs and services)
+#
+# Profiles: core = core | work = core + work | full = everything. --with adds net/memory to core/work.
+
+diskspace	core
+entwurf-peek	core
+evidence-closure	core
+improve-agent	core
+next-handoff	core
+session-recap	core
+subtract	core
+tmux	core
+
+command-recall	core
+commit	core
+tag-release	core
+
+brave-search	net
+exa-search	net
+summarize	net
+transcribe	net
+
+memory-sync	memory
+semantic-memory	memory
+
+jiracli	work
+plane	work
+slack-latest	work
+
+agenda	full
+autholog-mend	full
+bibcli	full
+botlog	full
+botment	full
+browser-tools	full
+cloudflare	full
+command-glgimage	full
+day-query	full
+denotecli	full
+dictcli	full
+dm	full
+emacs	full
+forge	full
+ghcli	full
+gitcli	full
+gogcli	full
+harness-bench	full
+lifetract	full
+logickocli	full
+medium-extractor	full
+punchout	full
+quota	full
+sorge	full
+telegram	full
+timeline	full
+youtube-transcript	full

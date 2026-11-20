@@ -465,7 +465,7 @@ check_retired_pi_packages() {
   for name in "${RETIRED_PI_EXTENSIONS[@]}"; do
     path="$HOME/.pi/agent/extensions/$name"
     [ -e "$path" ] || [ -L "$path" ] || continue
-    warn "retired Pi extension still present: $path — remove with: ./run.sh setup:links"
+    warn "retired Pi extension still present: $path — remove with: ./run.sh setup:links --profile full"
     RETIRED_PI_LEFTOVERS+=("$path")
   done
   [ ${#RETIRED_PI_LEFTOVERS[@]} -gt 0 ] || ok "pi packages: no retired package registered"
@@ -716,7 +716,9 @@ setup_refresh_self() {
   set -e
   if [ "$rc" -eq 10 ]; then
     ok "agent-config: fast-forwarded; restarting setup with updated run.sh"
-    exec env AGENT_CONFIG_SETUP_SELF_REFRESHED=1 "$SCRIPT_DIR/run.sh" setup
+    # Re-exec with the caller's own arguments. Since #34 a bare `setup` means core, so
+    # dropping `--profile full` here would silently shrink a full install mid-run.
+    exec env AGENT_CONFIG_SETUP_SELF_REFRESHED=1 "$SCRIPT_DIR/run.sh" setup "$@"
   fi
 }
 
@@ -1688,10 +1690,10 @@ setup_hermes() {
 # --- setup — 원커맨드: clone + build + link + pnpm ---
 
 setup_all() {
-  echo "🔧 agent-config setup ($ARCH)"
+  echo "🔧 agent-config setup --profile full ($ARCH)"
   echo "   SSOT: $SKILLS_DIR"
 
-  setup_refresh_self
+  setup_refresh_self "$@"
   setup_preflight || return 1
   setup_repos
   setup_refresh_managed_repos
@@ -1734,7 +1736,7 @@ setup_all() {
   echo "  Pi ext:   $(ls -d "$HOME/.pi/agent/extensions"/*.ts 2>/dev/null | wc -l) extensions"
   echo "  Pi skill: $(ls -d "$HOME/.pi/agent/skills/pi-skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
   echo "  Claude:   $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged (keyset, not linked)' || echo 'absent'; })"
-  echo "  Codex:    $([ -f "$HOME/.codex/config.toml" ] && { [ -L "$HOME/.codex/config.toml" ] && echo 'legacy symlink (run setup:links)' || echo 'regular config'; } || echo 'config absent') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
+  echo "  Codex:    $([ -f "$HOME/.codex/config.toml" ] && { [ -L "$HOME/.codex/config.toml" ] && echo 'legacy symlink (run setup:links --profile full)' || echo 'regular config'; } || echo 'config absent') + $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) skills"
   echo "  Antigrav: $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo 'skills not linked') (settings + mcp: entwurf-owned)"
   echo "  Copilot:  $(readlink "$HOME/.copilot/skills" 2>/dev/null || echo 'skills not linked') (settings/plugins: entwurf-owned)"
   echo "  Kiro:     $(readlink "$HOME/.kiro/skills" 2>/dev/null || echo 'skills not linked') (optional; Kiro-owned settings/agents/sessions)"
@@ -1754,6 +1756,246 @@ setup_all() {
   echo "DONE: agent-config setup complete"
 }
 
+# --- setup profiles (agent-config#34) ---
+#
+# `./run.sh setup` defaults to core: an entwurf user who clones this repo gets only the
+# skills that work without GLG's environment, linked into Pi and Claude Code, and
+# nothing else is touched. GLG's machines pass `--profile full`, which runs setup_all
+# unchanged. skill-tiers.tsv is the SSOT for which skill belongs to which tier.
+
+SKILL_TIERS_FILE="$SCRIPT_DIR/skill-tiers.tsv"
+SETUP_PROFILE=""
+SETUP_WITH=""
+
+# Parse `--profile P` / `--with a,b` into SETUP_PROFILE / SETUP_WITH. Fails before any write.
+parse_setup_args() {
+  SETUP_PROFILE="core"
+  SETUP_WITH=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --profile) [ $# -ge 2 ] || { fail "--profile needs a value (core|work|full)"; return 2; }
+                 SETUP_PROFILE="$2"; shift 2 ;;
+      --profile=*) SETUP_PROFILE="${1#--profile=}"; shift ;;
+      --with) [ $# -ge 2 ] || { fail "--with needs a value (net,memory)"; return 2; }
+              SETUP_WITH="$2"; shift 2 ;;
+      --with=*) SETUP_WITH="${1#--with=}"; shift ;;
+      *) fail "unknown setup argument: $1 (use --profile core|work|full, --with net,memory)"; return 2 ;;
+    esac
+  done
+  case "$SETUP_PROFILE" in
+    core|work|full) ;;
+    *) fail "unknown profile: $SETUP_PROFILE (core|work|full)"; return 2 ;;
+  esac
+  local extra
+  for extra in ${SETUP_WITH//,/ }; do
+    case "$extra" in
+      net|memory) ;;
+      *) fail "unknown --with tier: $extra (net|memory)"; return 2 ;;
+    esac
+  done
+  if [ "$SETUP_PROFILE" = "full" ] && [ -n "$SETUP_WITH" ]; then
+    fail "--with applies to core/work only; full already installs every tier"
+    return 2
+  fi
+  return 0
+}
+
+# Validate skill-tiers.tsv before anything is written: two tab fields per line, a known
+# tier, no duplicates, and a skills/<name>/SKILL.md behind every name.
+validate_skill_tiers() {
+  [ -f "$SKILL_TIERS_FILE" ] || { fail "missing $SKILL_TIERS_FILE"; return 1; }
+  [ -r "$SKILL_TIERS_FILE" ] || { fail "cannot read $SKILL_TIERS_FILE"; return 1; }
+  local line name tier rest n=0 bad=0
+  local -A seen=()
+  while IFS= read -r line || [ -n "$line" ]; do
+    n=$((n + 1))
+    case "$line" in ''|'#'*) continue ;; esac
+    rest=${line//[!$'\t']/}
+    if [ "${#rest}" -ne 1 ]; then
+      fail "skill-tiers.tsv:$n: expected exactly <skill><TAB><tier>"; bad=1; continue
+    fi
+    name=${line%%$'\t'*}
+    tier=${line#*$'\t'}
+    if ! [[ "$name" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+      fail "skill-tiers.tsv:$n: '$name' is not a plain skill name ([a-z0-9-], no path)"; bad=1; continue
+    fi
+    case "$tier" in
+      core|core-pending|net|memory|work|full) ;;
+      *) fail "skill-tiers.tsv:$n: unknown tier '$tier'"; bad=1; continue ;;
+    esac
+    if [ -n "${seen[$name]:-}" ]; then
+      fail "skill-tiers.tsv:$n: $name listed twice"; bad=1; continue
+    fi
+    seen[$name]=1
+    # full-tier skills may be links into sibling repos that only `--profile full` clones
+    # (sorge, forge), so a fresh checkout legitimately has them dangling.
+    # Only a symlink may dangle, and only in the full tier.
+    if [ ! -f "$SKILLS_DIR/$name/SKILL.md" ] && { [ "$tier" != "full" ] || [ ! -L "$SKILLS_DIR/$name" ]; }; then
+      fail "skill-tiers.tsv:$n: skills/$name/SKILL.md is missing"; bad=1
+    fi
+  done < "$SKILL_TIERS_FILE"
+
+  # Every shipped skill needs a tier: a new skill without a row would otherwise be
+  # silently left out of every profile. Prefer git's tracked set (machine-local
+  # untracked links stay out of it); fall back to every skills/*/SKILL.md.
+  local tracked skill
+  if tracked=$(git -C "$SCRIPT_DIR" ls-files -- skills 2>/dev/null) && [ -n "$tracked" ]; then
+    tracked=$(printf '%s\n' "$tracked" | cut -d/ -f2 | sort -u)
+  else
+    tracked=$(cd "$SKILLS_DIR" && for skill in */; do [ -f "$skill/SKILL.md" ] && printf '%s\n' "${skill%/}"; done; true)
+  fi
+  local -A shipped=()
+  while IFS= read -r skill; do
+    case "$skill" in ''|.gitkeep) continue ;; esac
+    shipped[$skill]=1
+    [ -n "${seen[$skill]:-}" ] || { fail "skills/$skill has no row in skill-tiers.tsv"; bad=1; }
+  done <<< "$tracked"
+  for skill in "${!seen[@]}"; do
+    [ -n "${shipped[$skill]:-}" ] || { fail "skill-tiers.tsv names $skill, which is not a shipped skill"; bad=1; }
+  done
+  [ "$bad" -eq 0 ]
+}
+
+# Print the skill names selected by a profile (+ --with tiers), one per line.
+# Call only after validate_skill_tiers succeeded.
+profile_skills() {
+  local profile=$1 with=$2 tiers="core"
+  [ "$profile" = "work" ] && tiers="$tiers work"
+  tiers="$tiers ${with//,/ }"
+  local name tier
+  while IFS=$'\t' read -r name tier || [ -n "$name" ]; do
+    case "$name" in ''|'#'*) continue ;; esac
+    case " $tiers " in *" $tier "*) printf '%s\n' "$name" ;; esac
+  done < "$SKILL_TIERS_FILE" || return 1
+}
+
+# True when every existing directory between $HOME (exclusive) and $1 (inclusive) is a
+# real directory. A symlinked parent (~/.pi, ~/.claude, ~/.pi/agent, ...) would make
+# mkdir/ln write somewhere the user owns, so core/work never write through one.
+# $HOME itself may be a symlink; that is the account's own layout, not ours to judge.
+profile_parent_chain_ok() {
+  local dir=$1 rel part cur="$HOME"
+  case "$dir" in "$HOME"/*) rel=${dir#"$HOME"/} ;; *) return 1 ;; esac
+  local IFS=/
+  for part in $rel; do
+    cur="$cur/$part"
+    if [ -L "$cur" ]; then PROFILE_BLOCKER="$cur is a symlink → $(readlink "$cur")"; return 1; fi
+    if [ -e "$cur" ] && [ ! -d "$cur" ]; then PROFILE_BLOCKER="$cur exists and is not a directory"; return 1; fi
+  done
+  return 0
+}
+
+# Classify one link without writing. Appends to PLAN_* arrays.
+#   ok        already our link
+#   create    absent, parent chain clean
+#   conflict  something else is there (preserved)
+#   blocked   a parent is a symlink or a file (nothing written there)
+profile_plan_link() {
+  local target=$1 link=$2 state note=""
+  PROFILE_BLOCKER=""
+  if ! profile_parent_chain_ok "$(dirname "$link")"; then
+    state=blocked; note=$PROFILE_BLOCKER
+  elif [ -L "$link" ]; then
+    if [ "$(readlink "$link")" = "$target" ]; then state=ok
+    else state=conflict; note="exists → $(readlink "$link")"; fi
+  elif [ -e "$link" ]; then
+    state=conflict; note="exists (not a link)"
+  else
+    state=create
+  fi
+  PLAN_TARGET+=("$target"); PLAN_LINK+=("$link"); PLAN_STATE+=("$state"); PLAN_NOTE+=("$note")
+}
+
+setup_profile_links() {
+  local profile=$1 with=$2
+
+  # 1) Validate and select — no writes yet.
+  validate_skill_tiers || return 1
+  local selection
+  selection=$(profile_skills "$profile" "$with") || { fail "could not read $SKILL_TIERS_FILE"; return 1; }
+  local -a selected=()
+  local skill
+  while IFS= read -r skill; do
+    [ -n "$skill" ] && selected+=("$skill")
+  done <<< "$selection"
+  [ "${#selected[@]}" -gt 0 ] || { fail "profile $profile selected no skills"; return 1; }
+
+  # Diagnose only: no install, no network.
+  section "Harnesses"
+  if command -v pi >/dev/null 2>&1; then ok "pi found"; else warn "pi not in PATH — skills are linked for it anyway"; fi
+  if command -v claude >/dev/null 2>&1; then ok "claude found"; else warn "claude not in PATH — skills are linked for it anyway"; fi
+  if command -v entwurf >/dev/null 2>&1 || command -v entwurf-bridge >/dev/null 2>&1; then ok "entwurf found"
+  else warn "entwurf not in PATH — install it from github.com/junghan0611/entwurf"; fi
+
+  # 2) Plan every link — still no writes.
+  PLAN_TARGET=(); PLAN_LINK=(); PLAN_STATE=(); PLAN_NOTE=()
+  local root skipped_roots=0
+  for root in "$HOME/.pi/agent/skills/pi-skills" "$HOME/.pi/agent/claude-plugin/skills" "$HOME/.claude/skills"; do
+    if [ -L "$root" ]; then
+      if [ "$(readlink "$root")" = "$SKILLS_DIR" ]; then
+        log "$root → $SKILLS_DIR (full-style directory link); every skill is already visible, left as is"
+      else
+        warn "$root is a symlink → $(readlink "$root"); left as is, skills not linked there"
+        skipped_roots=$((skipped_roots + 1))
+      fi
+      continue
+    fi
+    for skill in "${selected[@]}"; do
+      profile_plan_link "$SKILLS_DIR/$skill" "$root/$skill"
+    done
+  done
+  profile_plan_link "$SCRIPT_DIR/pi/claude-plugin.json" "$HOME/.pi/agent/claude-plugin/.claude-plugin/plugin.json"
+
+  # 3) Apply only the creates; every failure stops the run.
+  local i created=0 conflicts=$skipped_roots blocked=0 link
+  section "Links"
+  for i in "${!PLAN_LINK[@]}"; do
+    link=${PLAN_LINK[$i]}
+    case "${PLAN_STATE[$i]}" in
+      ok) ;;
+      conflict) warn "$link ${PLAN_NOTE[$i]}; left as is"; conflicts=$((conflicts + 1)) ;;
+      blocked)  warn "$link not written: ${PLAN_NOTE[$i]}"; blocked=$((blocked + 1)) ;;
+      create)
+        mkdir -p "$(dirname "$link")" || { fail "mkdir failed for $(dirname "$link")"; return 1; }
+        ln -s "${PLAN_TARGET[$i]}" "$link" || { fail "ln failed for $link"; return 1; }
+        ok "$link → ${PLAN_TARGET[$i]}"
+        created=$((created + 1)) ;;
+    esac
+  done
+
+  section "Summary"
+  echo "  Profile:   $profile${with:+ (+$with)}"
+  echo "  Skills:    ${#selected[@]} selected — ${selected[*]}"
+  echo "  New links: $created"
+  echo "  Conflicts: $conflicts (preserved; see ⚠ above)"
+  echo "  Blocked:   $blocked (symlinked or non-directory parent; nothing written there)"
+  echo "  Untouched: settings, extensions, hooks, prompts, HOME AGENTS/CLAUDE, git config"
+  echo "  GLG's own machines: ./run.sh setup --profile full"
+  PROFILE_PARTIAL=$((conflicts + blocked))
+  return 0
+}
+
+# Entry point for `setup` and `setup:links`. $1 = full-profile function to run.
+setup_with_profile() {
+  local full_fn=$1
+  shift
+  parse_setup_args "$@" || return 2
+  if [ "$SETUP_PROFILE" = "full" ]; then
+    "$full_fn" "$@"
+    return
+  fi
+  echo "🔧 agent-config setup --profile $SETUP_PROFILE${SETUP_WITH:+ --with $SETUP_WITH} ($ARCH)"
+  echo "   SSOT: $SKILLS_DIR (tiers: $SKILL_TIERS_FILE)"
+  PROFILE_PARTIAL=0
+  setup_profile_links "$SETUP_PROFILE" "$SETUP_WITH" || return 1
+  echo ""
+  if [ "$PROFILE_PARTIAL" -gt 0 ]; then
+    echo "DONE (partial): agent-config setup --profile $SETUP_PROFILE — $PROFILE_PARTIAL link(s) skipped to preserve existing files; see ⚠ above"
+  else
+    echo "DONE: agent-config setup --profile $SETUP_PROFILE"
+  fi
+}
+
 # --- help ---
 
 help() {
@@ -1763,11 +2005,17 @@ agent-config — 에이전트 인프라 원커맨드 CLI
 Usage: ./run.sh <command> [args]
 
 === 설치 ===
-  setup                       원커맨드 전체 설치 (이것만 기억하면 됨)
-                              → clone + build + link + pnpm 전부 수행
-                              → 어떤 디바이스든 이것 하나로 재현
+  setup [--profile P] [--with T]
+                              원커맨드 설치. 기본 profile = core (agent-config#34)
+                              → core: entwurf 사용자용. skill-tiers.tsv 의 core 스킬만
+                                Pi / Entwurf Claude plugin / Claude Code 에 개별 링크.
+                                clone·build·설정·훅·확장은 건드리지 않는다
+                              → work: core + 회사 도구 스킬(jiracli, slack-latest, plane)
+                              → full: GLG 기기 — clone + build + link + pnpm 전부 (예전 setup)
+                              → --with net,memory: core/work 에 선택 티어 추가
 
-  setup:preflight|repos|build|links|pnpm 개별 단계 (디버깅용, 보통 불필요)
+  setup:preflight|repos|build|pnpm  full 의 개별 단계 (디버깅용, 보통 불필요)
+  setup:links [--profile P]   링크만 다시. 기본 core, GLG 기기는 --profile full
   setup:pi-packages           pi/packages.json의 지원 Pi 패키지 설치/검증 + 은퇴 패키지 잔존 보고(남으면 exit 1, 제거는 안 함)
   setup:git-hooks             글로벌 git 안전망 설치 (core.hooksPath)
                               → 공개 repo에 민감 단어/시크릿 commit/push 차단
@@ -1882,7 +2130,7 @@ case "${1:-help}" in
 
   # === Setup ===
   setup)
-    setup_all ;;
+    shift; setup_with_profile setup_all "$@" ;;
   setup:preflight)
     setup_preflight ;;
   setup:repos)
@@ -1892,7 +2140,7 @@ case "${1:-help}" in
   doctor|doctor:bins)
     doctor_bins ;;
   setup:links)
-    setup_links ;;
+    shift; setup_with_profile setup_links "$@" ;;
   setup:pnpm|setup:npm)
     setup_npm
     retired_pi_packages_rc ;;
@@ -2032,7 +2280,7 @@ console.log('\n💰 Est: ~' + (est/1000).toFixed(0) + 'K tokens, ~\$' + (est/1e6
     echo "  Claude conf:  $(readlink "$HOME/.claude/settings.json" 2>/dev/null || { [ -f "$HOME/.claude/settings.json" ] && echo 'merged keyset (real file, co-owned w/ entwurf)' || echo '❌ absent'; })"
     echo "  Claude skills:$(readlink "$HOME/.claude/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Claude status:  entwurf-owned (meta-bridge statusLine; no repo copy since 2026-09-01)"
-    echo "  Codex conf:   $([ -f "$HOME/.codex/config.toml" ] && { [ -L "$HOME/.codex/config.toml" ] && echo '⚠ legacy symlink (run setup:links)' || echo 'regular file (agent-config defaults; entwurf atoms preserved)'; } || echo '❌ absent')"
+    echo "  Codex conf:   $([ -f "$HOME/.codex/config.toml" ] && { [ -L "$HOME/.codex/config.toml" ] && echo '⚠ legacy symlink (run setup:links --profile full)' || echo 'regular file (agent-config defaults; entwurf atoms preserved)'; } || echo '❌ absent')"
     echo "  Codex skills: $(ls -d "$HOME/.codex/skills"/*/SKILL.md 2>/dev/null | wc -l) linked"
     echo "  Antigrav skills: $(readlink "$HOME/.gemini/antigravity-cli/skills" 2>/dev/null || echo '❌ not linked')"
     echo "  Antigrav conf:   entwurf-owned (install-agy-statusline / doctor-agy-statusline)"

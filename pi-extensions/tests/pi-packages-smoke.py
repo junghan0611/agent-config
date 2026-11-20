@@ -147,7 +147,7 @@ def main() -> None:
     compat = GLOBAL_EXTENSIONS / "session-recall-compat.ts"
     if compat.exists() or compat.is_symlink():
         fail(f"retired session-recall compatibility extension is still present: {compat}; "
-             "run: ./run.sh setup:links")
+             "run: ./run.sh setup:links --profile full")
     assert_builtin_compaction(packages)
 
     with tempfile.TemporaryDirectory(prefix="pi-package-smoke-") as temp_dir:

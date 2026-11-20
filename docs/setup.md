@@ -4,7 +4,9 @@ Moved from the root README at `f05f103` (2026-10-30) without rewriting; only lin
 
 ## What `./run.sh setup` performs
 
-`./run.sh setup` performs:
+Since agent-config#34 a bare `./run.sh setup` means `--profile core`: it links only the skills [`skill-tiers.tsv`](../skill-tiers.tsv) marks `core` (plus `work` with `--profile work`, plus `net`/`memory` with `--with`) into `~/.pi/agent/skills/pi-skills/`, `~/.pi/agent/claude-plugin/skills/` and `~/.claude/skills/`, never replaces an existing entry, and touches nothing else — no clone, build, settings, extensions, hooks or network.
+
+`./run.sh setup --profile full` (the operator's own devices) performs:
 
 - Clone missing tracked repos (`setup` does **not** pull existing repos; use `./run.sh update` for pulls)
 - Build native CLI binaries (Go + GraalVM) — **gated**: each Go CLI must pass its sibling repo's test suite and be built from committed sources, or it is not installed. `skills/.provenance.json` records what actually landed; `./run.sh doctor:bins` warns when a live binary drifts from its recorded build, is stale against its source, or was built for another arch
