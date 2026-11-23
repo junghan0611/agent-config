@@ -1,7 +1,7 @@
-# Microsoft 365 integration direction
+# Microsoft 365 integration
 
-**Status: design only.** There is no installable Microsoft 365 skill in this repository. This page does not authorize installation, sign-in, consent, or live queries.
+The [`m365-web` skill](../skills/m365-web/SKILL.md) uses separate third-party web-session CLIs for Teams, Outlook, and SharePoint. It is not Microsoft Graph OAuth. Follow the skill for installation, local NixOS patch requirements, login, and read-only defaults. Use only where company policy permits; explicit user instruction is required for writes.
 
-Prefer one existing open-source CLI over separate tools or a new wrapper. [PnP CLI for Microsoft 365](https://github.com/pnp/cli-microsoft365) is the candidate for Teams conversations, Outlook mail and calendars, and OneDrive and SharePoint document workflows. Document uploads are in scope; messages to people remain human-sent. An agent may prepare a draft for the operator, but the integration should not request message-send permissions.
+Keep credentials, tenant configuration, and workplace content out of this public repository, shared transcripts, session embeddings, and public exports.
 
-Publish a skill only after the chosen commands, permission boundaries, credential storage, and upload behavior are verified in an approved environment. Keep organization-specific connectors, tenant configuration, and pilot records outside this public repository. Do not put work data into shared transcripts, session embeddings, or public exports.
+The earlier design considered [PnP CLI for Microsoft 365](https://github.com/pnp/cli-microsoft365) as a single-CLI candidate. The current approach uses the web-session tools instead.

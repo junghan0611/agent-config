@@ -122,9 +122,9 @@ Local Pi lifecycle, provider and TUI hands — `background-bash`, `review`, `goa
 
 ### Skills ([`skills/`](skills/))
 
-47 skills (tracked directory and named-set equality rechecked 2026-11-16, both 47, both set differences empty; the list below names all 47). Machine-local untracked symlinks such as `butlercli` are not part of that count; the `*/` glob is not a repository inventory. Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query, timeline), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (dm, slack-latest, jiracli, telegram), code surface (forge — linked, owned by sorge-config), work workbench (plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli, subtract, evidence-closure), entwurf (entwurf-peek), cross-repo care (sorge — linked, owned by its own repo), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), harness bench (harness-bench), tools (emacs, tmux, diskspace, cloudflare — drives the installed official `cf` and `wrangler`, keeps only `cf-doctor` for token coverage, quota).
+48 skills (the list below names all 48). Machine-local untracked symlinks such as `butlercli` are not part of that count; the `*/` glob is not a repository inventory. Categories: data access (denotecli, bibcli, gitcli, lifetract, gogcli, ghcli, day-query, timeline), agent memory (session-recap, dictcli, semantic-memory, memory-sync, improve-agent), writing (botlog, botment, agenda, punchout, autholog-mend), communication (dm, slack-latest, m365-web, jiracli, telegram), code surface (forge — linked, owned by sorge-config), work workbench (plane), web/media (brave-search, exa-search, browser-tools, youtube-transcript, medium-extractor, summarize, transcribe), release hygiene (commit, tag-release, next-handoff), reasoning (logickocli, subtract, evidence-closure), entwurf (entwurf-peek), cross-repo care (sorge — linked, owned by its own repo), harness wrappers (command-recall, command-glgimage — for harnesses with no custom-command surface), harness bench (harness-bench), tools (emacs, tmux, diskspace, cloudflare — drives the installed official `cf` and `wrangler`, keeps only `cf-doctor` for token coverage, quota).
 
-Microsoft 365 is [design only](docs/microsoft-365.md); no runnable skill is shipped.
+Microsoft 365 uses the [m365-web skill](docs/microsoft-365.md) with third-party web-session CLIs.
 
 Linked skills (`sorge`, `forge`), binary skills and their provenance gate, and the skill doc principle: [docs/skills.md](docs/skills.md).
 
@@ -152,7 +152,7 @@ Linked skills (`sorge`, `forge`), binary skills and their provenance gate, and t
 git clone https://github.com/junghan0611/agent-config.git
 cd agent-config
 ./run.sh setup    # default profile core: link only the portable skills into Pi / Entwurf Claude / Claude Code
-# ./run.sh setup --profile work            # core + company tools (jiracli, slack-latest, plane)
+# ./run.sh setup --profile work            # core + company tools (jiracli, slack-latest, m365-web, plane)
 # ./run.sh setup --profile core --with net,memory   # + web-search keys / andenken memory skills
 # ./run.sh setup --profile full            # the operator's own machines: CLIs + links + settings merges + dependencies
 ./run.sh env      # verify: system, API keys, links, binaries, memory index
