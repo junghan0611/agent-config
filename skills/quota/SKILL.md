@@ -1,6 +1,6 @@
 ---
 name: quota
-description: "세 개 활성 모델 구독(rail)의 남은 쿼터를 한 번에 조회 — ChatGPT Pro/Codex의 plan-provided 윈도우, Claude 5h/7d 윈도우, Google AI Pro(Antigravity/agy)의 Gemini 5h 버킷. Grok·Copilot은 사용 중단으로 수집하지 않는다. GLG가 다음 분신을 어느 rail로 보낼지 결정할 때 쓴다. Use when: '쿼터', '얼마 남았', '남은 크레딧', '어디로 보낼까', 'quota', 'usage', 'how much is left', 'which rail', 'rate limit check', 'agy 쿼터', 'antigravity', 'gemini 쿼터'."
+description: "회사 Codex·Claude·개인 agy 구독 상태를 한 번에 표시 — ChatGPT Pro/Codex의 plan-provided 윈도우, Claude 5h/7d 윈도우, Google AI Pro(Antigravity/agy)의 Gemini 5h 버킷. Grok·Copilot은 사용 중단으로 수집하지 않는다. GLG가 다음 분신을 어느 rail로 보낼지 결정할 때 쓴다. Use when: '쿼터', '얼마 남았', '남은 크레딧', '어디로 보낼까', 'quota', 'usage', 'how much is left', 'which rail', 'rate limit check', 'agy 쿼터', 'antigravity', 'gemini 쿼터'."
 user_invocable: true
 ---
 
@@ -20,14 +20,14 @@ python3 {baseDir}/scripts/quota.py --json     # 정규화 스냅샷
 ./run.sh quota:json            # 정규화 스냅샷
 ```
 
-세 active rail을 조회해서 한 화면에 정렬한다. 과거 이력도, 알림도 아니다 — **지금 이 순간의 상태**만
+회사 Codex 두 로그인(Pi와 CLI), Claude, 개인 agy 쿼터를 한 화면에 정렬한다. 과거 이력도, 알림도 아니다 — **지금 이 순간의 상태**만
 답한다. 스크립트가 숫자를 찍으면, 에이전트가 그걸 읽어 GLG에게 산문으로 설명한다.
 
 ## 구조 — 수집 1개, 렌더러 3개
 
 ```
 scripts/railauth.py   자격증명 로딩 · HTTP
-scripts/collect.py    3 rail 조회 → 정규화 스냅샷  ← 유일한 진실
+scripts/collect.py    4 rail 조회 → 정규화 스냅샷  ← 유일한 진실
 scripts/render.py     막대 · 리셋 시계 · 텍스트 레이아웃 (TUI와 웹이 공유)
 scripts/quota.py      1회 / --watch(TUI) / --json
 scripts/serve.py      127.0.0.1 웹 + /api/snapshot.json
@@ -57,7 +57,7 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
                "resets_at","window","basis","active","note"}]}]}
 ```
 
-세 active vendor 화면이 전부 같은 물건이다 — **레이블 + 퍼센트 + (선택) 사용/한도 + 리셋 시각**.
+각 계정 화면이 전부 같은 물건이다 — **레이블 + 퍼센트 + (선택) 사용/한도 + 리셋 시각**.
 차이는 단위뿐(요청 수 / 크레딧 / 퍼센트만).
 
 ## 리셋 기준 — rail마다 다르다
@@ -67,7 +67,7 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 | rail | 창 | 다음 리셋 (KST) | basis | 근거 |
 |---|---|---|---|---|
 | claude | 7d | 월 06:59:59 | `anchor` | 절대 시각만 옴. 5h/7d/7d-scoped 셋이 같은 경계 |
-| codex | plan-provided (현재 Pro: 7d primary) | 응답 `reset_at` | `rolling` | product tier가 아니라 응답 window이 정본 |
+| pi-codex | plan-provided (현재 Pro: 7d primary) | 응답 `reset_at` | `rolling` | product tier가 아니라 응답 window이 정본 |
 | antigravity | Gemini 5h (응답에 창 길이 없음 — 추정) | 응답 `resetTime` | `anchor` | 사용 중엔 `resetTime`이 조회 사이에 고정, 첫 사용 정확히 5h 뒤였다. 안 쓰던 Claude/GPT 버킷은 매 조회 now+창으로 밀렸다 — 첫 사용 시점 고정으로 보임 (2026-11-15 실측) |
 `basis`는 **엔드포인트가 실제로 알려준 것만** 기록한다. 절대 시각 하나만 오는 rail을
 "롤링"이라 단정하지 않는다(`anchor`). 그래서 화면은 항상 요일과 남은 시간을 같이 찍는다 —
@@ -80,7 +80,7 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 
 | rail | 창 | 경과 | 사용 | 배속 | 읽기 |
 |---|---|---|---|---|---|
-| codex | 7d | 17% | 49% | **2.9배** | 하루 만에 사흘치를 태움 |
+| pi-codex | 7d | 17% | 49% | **2.9배** | 하루 만에 사흘치를 태움 |
 | claude | 7d Fable | 18% | 28% | 1.5배 | 약간 앞섬 |
 
 - 막대의 `┃`(웹은 파란 세로선)가 **기간 경과 지점**. 채움이 마커를 넘어가면 앞당겨 쓴 것.
@@ -109,21 +109,23 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 
 | rail | 무엇을 재나 | 엔드포인트 |
 |---|---|---|
-| codex | ChatGPT Pro / Codex — endpoint가 준 primary·secondary window 사용률 | `GET chatgpt.com/backend-api/wham/usage` |
+| pi-codex | 회사 Codex 구독 — endpoint가 준 primary·secondary window 사용률 | `GET chatgpt.com/backend-api/wham/usage` |
 | claude | Claude Code 구독 — `limits[]` (5h 세션 · 7d 전체 · 7d 모델별) | `GET api.anthropic.com/api/oauth/usage` |
-| antigravity | Google AI Pro — Gemini 모델 버킷 최솟값만. `remainingFraction`만 와서 퍼센트만 | `POST daily-cloudcode-pa.googleapis.com/v1internal:` `loadCodeAssist`(plan=`paidTier.name`) · `retrieveUserQuota` |
+| codex-cli | 회사 Codex CLI에 로그인된 ChatGPT 구독의 primary·secondary window | `GET chatgpt.com/backend-api/wham/usage` |
+| antigravity | 개인 Google AI Pro — Gemini 모델 버킷 최솟값만. `remainingFraction`만 와서 퍼센트만 | `POST daily-cloudcode-pa.googleapis.com/v1internal:` `loadCodeAssist`(plan=`paidTier.name`) · `retrieveUserQuota` |
 
 ## 자격증명
 
 토큰은 파일에서 읽어 요청 헤더로 바로 흘려보내고 절대 출력/로그하지 않는다.
 
-- `~/.pi/agent/auth.json` — `openai-codex`(`access` + `accountId`)
+- `~/.pi/agent/auth.json` — 회사 `openai-codex`(`access` + `accountId`)는 기존 WHAM 조회를 사용한다. 개인 `openai`는 새 Sign in with ChatGPT OAuth로, 토큰 audience는 `https://api.openai.com/v1`이다. Pi의 개인 `openai` 토큰은 수집기가 읽지 않는다. 기존 `codex` 캐시는 계정 전환 전 수치일 수 있어 새 회사 항목에 이월하지 않는다. [OpenAI token reference](https://developers.openai.com/siwc/token-sharing-open-source/token-reference)
+- `${CODEX_HOME:-~/.codex}/auth.json` — 회사 Codex CLI의 ChatGPT 로그인에서 `tokens.access_token`과 `tokens.account_id`를 읽는다. `codex-cli`은 이 로그인에서 WHAM이 반환한 창이다. 두 회사 항목은 로그인별 조회 결과다. 합산하지 않는다. 이전 `codex-personal` 캐시는 회사 항목으로 이월하지 않는다. Pi의 개인 `openai`는 잔여량 조회 경로가 확인되지 않았다.
 - `~/.claude/.credentials.json` — `claudeAiOauth.accessToken`
 - `~/.gemini/antigravity-cli/antigravity-oauth-token` — `token.access_token`. **agy가 스스로 갱신하는 토큰을 읽기만 한다 — refresh하지 않는다.** 1시간 만료라, agy를 한동안 안 켜면 `stale`(캐시 6시간 안) 또는 `UNAVAILABLE — agy token expired — open agy once to refresh it`. 토큰 파일 구조를 볼 때 값을 출력하지 말 것 — 키 이름과 길이만.
 
 ## 취약점 — 정직하게
 
-세 rail의 엔드포인트 중 **공식 문서에 실린 것은 없다**. 전부 각 벤더의 공식 CLI/앱이 내부적으로
+세 종류의 엔드포인트 중 **공식 문서에 실린 것은 없다**. 전부 각 벤더의 공식 CLI/앱이 내부적으로
 때리는 걸 관찰해서 찾은 것 — 벤더가 언제든 바꿀 수 있다. 실패는 개별 rail 단위로 격리된다:
 한 엔드포인트가 죽어도 `UNAVAILABLE — <이유>`만 찍고 나머지는 계속 진행한다.
 

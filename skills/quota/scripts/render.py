@@ -176,7 +176,7 @@ def render_text(snap, color=True, barw=20):
     for rail in snap["rails"]:
         name = rail["rail"]
         if rail["status"] == "unavailable":
-            lines.append(f"{c(pad(name, 13), BOLD)}{c('UNAVAILABLE — ' + (rail['reason'] or ''), RED)}")
+            lines.append(f"{c(pad(name, 18), BOLD)}{c('UNAVAILABLE — ' + (rail['reason'] or ''), RED)}")
             lines.append("")
             continue
         plan = f"  {c(rail['plan'], DIM)}" if rail.get("plan") else ""
@@ -188,7 +188,7 @@ def render_text(snap, color=True, barw=20):
             tag = c(f"  stale — {rail.get('reason') or ''} (as of {fmt_when(rail.get('fetched_at'), now)})", YELLOW)
         elif age and age >= 60:
             tag = c(f"  as of {fmt_when(rail.get('fetched_at'), now)}", DIM)
-        lines.append(f"{c(pad(name, 13), BOLD)}{plan}{tag}")
+        lines.append(f"{c(pad(name, 18), BOLD)}{plan}{tag}")
         for g in rail["gauges"]:
             mark = c("●", CYAN) if g.get("active") else " "
             pct = g.get("used_pct")

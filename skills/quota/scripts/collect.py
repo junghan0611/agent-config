@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect the three active model rails into one normalized snapshot.
+"""Collect subscription quota rails into one normalized snapshot.
 
 This is the single source of truth: quota.py (text), --watch (TUI) and
 serve.py (web) all render *this* dict and never call a vendor endpoint
@@ -88,10 +88,22 @@ CODEX_PLAN_LABELS = {
 
 def collect_codex():
     oc = _q._load_json(_q.PI_AUTH)["openai-codex"]
+    return _collect_wham(oc["access"], oc["accountId"])
+
+
+def collect_work_codex_cli():
+    auth = _q._load_json(_q.CODEX_AUTH)
+    if auth.get("auth_mode") != "chatgpt":
+        raise ValueError("Work Codex CLI quota requires a ChatGPT login in CODEX_HOME")
+    tokens = auth["tokens"]
+    return _collect_wham(tokens["access_token"], tokens["account_id"])
+
+
+def _collect_wham(access_token, account_id):
     _, body = _q._get(
         "https://chatgpt.com/backend-api/wham/usage",
-        headers={"Authorization": f"Bearer {oc['access']}",
-                 "chatgpt-account-id": oc["accountId"],
+        headers={"Authorization": f"Bearer {access_token}",
+                 "chatgpt-account-id": account_id,
                  "Accept": "application/json",
                  "User-Agent": "codex_cli_rs/0.1",
                  "originator": "codex_cli_rs"},
@@ -251,7 +263,8 @@ def _age(entry, now):
 
 RAILS = [
     ("claude", collect_claude),
-    ("codex", collect_codex),
+    ("pi-codex", collect_codex),
+    ("codex-cli", collect_work_codex_cli),
     ("antigravity", collect_antigravity),
 ]
 

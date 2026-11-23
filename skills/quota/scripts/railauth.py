@@ -11,6 +11,7 @@ import urllib.request
 
 HOME = os.path.expanduser("~")
 PI_AUTH = os.path.join(HOME, ".pi", "agent", "auth.json")
+CODEX_AUTH = os.path.join(os.environ.get("CODEX_HOME") or os.path.join(HOME, ".codex"), "auth.json")
 CLAUDE_CREDS = os.path.join(HOME, ".claude", ".credentials.json")
 # Written and refreshed by agy itself; we only read it (never refresh).
 AGY_TOKEN = os.path.join(HOME, ".gemini", "antigravity-cli", "antigravity-oauth-token")
