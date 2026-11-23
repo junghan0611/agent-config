@@ -147,7 +147,7 @@
     "claude-api": "off"
   },
   "language": "Korean",
-  "effortLevel": "high",
+  "effortLevel": "medium",
   "editorMode": "normal",
   "preferredNotifChannel": "notifications_disabled",
   "agentPushNotifEnabled": true,
