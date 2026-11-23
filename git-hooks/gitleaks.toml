@@ -34,18 +34,20 @@ regexes = [
   '''(?i)example|placeholder|your[-_]?api[-_]?key|xxx+|test[-_]?key|sample|dummy|fake''',
 ]
 
-# OpenClaw 2026.11.3 public artifact checksum, independently verified at:
-# https://unpkg.com/openclaw@2026.11.3/dist/session-key-CSDERtm3.mjs
-# Inherit the default rule; exempt only this exact filename/checksum match.
+# OpenClaw public artifact checksums, each independently verified at:
+# https://unpkg.com/openclaw@2026.11.3/dist/session-key-CSDERtm3.mjs  (11.3, also 11.4)
+# https://unpkg.com/openclaw@2026.11.7/dist/session-key-CqAyZeVk.mjs  (11.7, same sha as the live Docker dist)
+# Inherit the default rule; exempt only these exact filename/checksum pairs.
 # Do not exempt the entire file, all SHA-256 values, or the surrounding line.
 [[rules]]
 id = "generic-api-key"
 
 [[rules.allowlists]]
-description = "Verified OpenClaw session-key artifact checksum pin"
+description = "Verified OpenClaw session-key artifact checksum pins"
 regexTarget = "match"
 regexes = [
   '''^session-key-CSDERtm3[.]mjs", "ce1d2ed04cd22cfedaf92acefb59e32c9c522e5b75c6907fccf9f9d80df67299"$''',
+  '''^session-key-CqAyZeVk[.]mjs", "170317b6f76d44a271d5a0fbc411b27ddcbb8ab493838c2120a9e8bd697bd735"$''',
 ]
 
 # ============================================================

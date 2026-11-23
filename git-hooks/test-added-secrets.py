@@ -40,18 +40,24 @@ def main():
 	cases = [(*case, "ledger.txt") for case in cases]
 	# Public artifact pin, not a credential. Keep the exception match-scoped:
 	# a different digest, filename, assignment or adjacent secret must still fail.
-	checksum = "ce1d2ed04cd22cfedaf92acefb59e32c9c522e5b75c6907fccf9f9d80df67299"
-	pin = '\t\t"helper": ("session-key-CSDERtm3.mjs", "' + checksum + '", "isCronSessionKey as S"),\n'
-	for path in ["docker/openclaw/patch-memory-cron-parent.py", "patch-memory-cron-parent.py"]:
-		for name, content, blocked in [
-			("checksum-pin", pin, False),
-			("checksum-modified", pin.replace(checksum, digest), True),
-			("checksum-wrong-asset", pin.replace("CSDERtm3", "DIFFERENT"), True),
-			("checksum-as-api-key", 'api_key="' + checksum + '"\n', True),
-			("checksum-same-line-secret", pin.rstrip() + '; api_key="' + digest + '"\n', True),
-			("checksum-same-file-token", pin + secret + "\n", True),
-		]:
-			cases.append((name + "-" + str(len(cases)), "safe\n", content, blocked, False, path))
+	pins = [
+		("CSDERtm3", "ce1d2ed04cd22cfedaf92acefb59e32c9c522e5b75c6907fccf9f9d80df67299", "S"),  # 11.3/11.4
+		("CqAyZeVk", "170317b6f76d44a271d5a0fbc411b27ddcbb8ab493838c2120a9e8bd697bd735", "x"),  # 11.7
+	]
+	for i, (asset, checksum, export) in enumerate(pins):
+		pin = '\t\t"helper": ("session-key-' + asset + '.mjs", "' + checksum + '", "isCronSessionKey as ' + export + '"),\n'
+		other = pins[1 - i][1]
+		for path in ["docker/openclaw/patch-memory-cron-parent.py", "patch-memory-cron-parent.py"]:
+			for name, content, blocked in [
+				("checksum-pin", pin, False),
+				("checksum-modified", pin.replace(checksum, digest), True),
+				("checksum-wrong-asset", pin.replace(asset, "DIFFERENT"), True),
+				("checksum-cross-pair", pin.replace(checksum, other), True),
+				("checksum-as-api-key", 'api_key="' + checksum + '"\n', True),
+				("checksum-same-line-secret", pin.rstrip() + '; api_key="' + digest + '"\n', True),
+				("checksum-same-file-token", pin + secret + "\n", True),
+			]:
+				cases.append((name + "-" + asset + "-" + str(len(cases)), "safe\n", content, blocked, False, path))
 	checks = 0
 	with tempfile.TemporaryDirectory(prefix="hook-added-secrets-") as temp:
 		for name, before, after, blocked, allowlisted, path in cases:

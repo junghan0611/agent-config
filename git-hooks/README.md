@@ -104,11 +104,15 @@ It performs no commit or push to a real repository and no network request.
 
 `generic-api-key` can mistake a filename containing `session-key` followed by a
 SHA-256 pin for a credential. The config inherits that default rule and adds one
-**match-scoped** exception: the exact `session-key-CSDERtm3.mjs` filename plus its
-verified OpenClaw 2026.11.3 checksum. The source is the public
-[distribution artifact](https://unpkg.com/openclaw@2026.11.3/dist/session-key-CSDERtm3.mjs);
-its SHA-256 is recorded in the config. This is not a blanket hash, line, or file
-exception. Other digests, filenames, key assignments and secrets on the same line
+**match-scoped** exception per OpenClaw release whose `session-key` chunk changed:
+the exact filename plus its verified checksum — `session-key-CSDERtm3.mjs`
+(2026.11.3, unchanged in 11.4) and `session-key-CqAyZeVk.mjs` (2026.11.7). The
+sources are the public distribution artifacts
+([11.3](https://unpkg.com/openclaw@2026.11.3/dist/session-key-CSDERtm3.mjs),
+[11.7](https://unpkg.com/openclaw@2026.11.7/dist/session-key-CqAyZeVk.mjs)), each
+matching the live Docker dist; the SHA-256 values are recorded in the config. This
+is not a blanket hash, line, or file exception. A new OpenClaw release that
+renames the chunk adds one more verified pair here, with its test row. Other digests, filenames, key assignments and secrets on the same line
 or elsewhere in the same file remain subject to scanning. `.git-hooks-allow`
 cannot resolve this kind of gitleaks finding.
 
