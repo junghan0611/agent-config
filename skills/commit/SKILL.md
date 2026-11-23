@@ -46,7 +46,7 @@ Create a git commit for the current changes using a concise Conventional Commits
 
 ## Post-push — agenda stamp (required when the `agenda` skill is installed)
 
-Skip the stamp and the Google Chat block if `agenda-stamp.sh` is not found at either path in step 2; report the skip in one line. Do not look elsewhere or create the script. The Google Chat block stays optional: use it only where `gog` and `GOG_CHAT_*` are configured.
+Skip the stamp if `agenda-stamp.sh` is not found at either path in step 2; report the skip in one line. Do not look elsewhere or create the script.
 
 The commit is the agent's job; **the user decides whether and when to push**. An explicit push request
 authorizes the agent to execute it. Never infer push from a commit request alone. Once a requested
@@ -70,17 +70,7 @@ SCRIPT="$HOME/.pi/agent/skills/pi-skills/agenda/scripts/agenda-stamp.sh"
   "pi:commit:${REPO_TAG}"
 ```
 
-Optional — Google Chat notification (one CLI call, no token cost):
-
-```bash
-source ~/.env.local && gog chat messages send "$GOG_CHAT_SPACE_ID" \
-  --account "$GOG_CHAT_ACCOUNT" \
-  --text "🔨 *${REPO_NAME}* commit: ${MSG}
-→ ${REPO_URL}/commit/${SHA}"
-```
-
 Notes:
 - Multiple sequential commits → stamp only the last one.
-- Env vars (`GOG_CHAT_*`) live in `~/.env.local` (see PRIVATE.md).
 - If `agenda-stamp.sh` fails after reasonable retries, STOP and report the exact command + error. Never fall back to `Write`/`Edit`/heredoc on the same target.
 - For **release tags** (not commits), the stamp uses `pi:release:` — see the `tag-release` skill.
