@@ -139,15 +139,34 @@ class QuotaTests(unittest.TestCase):
         self.load.assert_called_once_with(collect._q.CODEX_AUTH)
         self.http.assert_not_called()
 
-    def test_expired_agy_token_is_not_refreshed_or_sent(self):
+    def test_expired_agy_token_triggers_refresh_and_fails_closed_if_still_expired(self):
         self.fake_vendors()
         self.load.side_effect = lambda path: {"token": {
             "access_token": "fake-agy", "expiry": "2020-01-01T00:00:00.123456789+09:00"}}
-        snap = collect.snapshot(only={"antigravity"}, force=True)
+        with patch.object(collect, "_refresh_agy_token") as refresh:
+            snap = collect.snapshot(only={"antigravity"}, force=True)
+        refresh.assert_called_once_with()
         rail = snap["rails"][0]
         self.assertEqual(rail["status"], "unavailable")
         self.assertIn("open agy", rail["reason"])
         self.http.assert_not_called()
+
+    def test_expired_agy_token_succeeds_after_refresh(self):
+        self.fake_vendors()
+        expired = {"token": {
+            "access_token": "stale-agy", "expiry": "2020-01-01T00:00:00.123456789+09:00"}}
+        fresh = {"token": {
+            "access_token": "fresh-agy",
+            "expiry": (self.now + datetime.timedelta(minutes=59)).isoformat()[:19]
+            + ".123456789+09:00"}}
+        self.load.side_effect = [expired, fresh]
+        with patch.object(collect, "_refresh_agy_token") as refresh:
+            snap = collect.snapshot(only={"antigravity"}, force=True)
+        refresh.assert_called_once_with()
+        rail = snap["rails"][0]
+        self.assertEqual(rail["status"], "ok")
+        self.assertEqual(rail["plan"], "Google AI Pro")
+        self.assertEqual(self.http.call_count, 2)
 
     def test_legacy_cache_is_not_an_active_rail(self):
         snap = self.cached_snapshot()

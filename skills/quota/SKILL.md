@@ -121,7 +121,7 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 - `~/.pi/agent/auth.json` — 회사 `openai-codex`(`access` + `accountId`)는 기존 WHAM 조회를 사용한다. 개인 `openai`는 새 Sign in with ChatGPT OAuth로, 토큰 audience는 `https://api.openai.com/v1`이다. Pi의 개인 `openai` 토큰은 수집기가 읽지 않는다. 기존 `codex` 캐시는 계정 전환 전 수치일 수 있어 새 회사 항목에 이월하지 않는다. [OpenAI token reference](https://developers.openai.com/siwc/token-sharing-open-source/token-reference)
 - `${CODEX_HOME:-~/.codex}/auth.json` — 회사 Codex CLI의 ChatGPT 로그인에서 `tokens.access_token`과 `tokens.account_id`를 읽는다. `codex-cli`은 이 로그인에서 WHAM이 반환한 창이다. 두 회사 항목은 로그인별 조회 결과다. 합산하지 않는다. 이전 `codex-personal` 캐시는 회사 항목으로 이월하지 않는다. Pi의 개인 `openai`는 잔여량 조회 경로가 확인되지 않았다.
 - `~/.claude/.credentials.json` — `claudeAiOauth.accessToken`
-- `~/.gemini/antigravity-cli/antigravity-oauth-token` — `token.access_token`. **agy가 스스로 갱신하는 토큰을 읽기만 한다 — refresh하지 않는다.** 1시간 만료라, agy를 한동안 안 켜면 `stale`(캐시 6시간 안) 또는 `UNAVAILABLE — agy token expired — open agy once to refresh it`. 토큰 파일 구조를 볼 때 값을 출력하지 말 것 — 키 이름과 길이만.
+- `~/.gemini/antigravity-cli/antigravity-oauth-token` — `token.access_token`. **직접 OAuth refresh는 하지 않고, 만료(`expiry <= now`) 시에만 `agy models`를 1회 실행해 agy가 스스로 갱신하게 한 뒤 다시 읽는다.** 여전히 만료면 `stale`(캐시 6시간 안) 또는 `UNAVAILABLE — agy token expired — open agy once to refresh it`. 토큰 파일 구조를 볼 때 값을 출력하지 말 것 — 키 이름과 길이만.
 
 ## 취약점 — 정직하게
 

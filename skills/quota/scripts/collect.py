@@ -35,6 +35,7 @@ import datetime
 import json
 import os
 import re
+import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -174,7 +175,7 @@ AGY_BASE = "https://daily-cloudcode-pa.googleapis.com/v1internal:"
 
 
 class AgyTokenExpired(Exception):
-    """agy refreshes its own token; we read it and never refresh it."""
+    """agy refreshes its own token; we trigger agy only when expired."""
 
 
 def _agy_expiry(s):
@@ -182,10 +183,30 @@ def _agy_expiry(s):
     return datetime.datetime.fromisoformat(re.sub(r"(\.\d{6})\d+", r"\1", s))
 
 
+def _agy_is_expired(tok):
+    return _agy_expiry(tok["expiry"]) <= datetime.datetime.now(datetime.timezone.utc)
+
+
+def _refresh_agy_token():
+    try:
+        subprocess.run(
+            ["agy", "models"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=15,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 def collect_antigravity():
     tok = _q._load_json(_q.AGY_TOKEN)["token"]
-    if _agy_expiry(tok["expiry"]) <= datetime.datetime.now(datetime.timezone.utc):
-        raise AgyTokenExpired("agy token expired — open agy once to refresh it")
+    if _agy_is_expired(tok):
+        _refresh_agy_token()
+        tok = _q._load_json(_q.AGY_TOKEN)["token"]
+        if _agy_is_expired(tok):
+            raise AgyTokenExpired("agy token expired — open agy once to refresh it")
     headers = {"Authorization": f"Bearer {tok['access_token']}",
                "Content-Type": "application/json",
                "User-Agent": "antigravity",
