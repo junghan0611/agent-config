@@ -1,5 +1,16 @@
 # NEXT — agent-config
 
+## RAIL — Cyborg 정본 이관 (2026-11-25)
+
+1. **데이터 배치 완료:** 업무/COS, `repos/gh`(`memex-kb` 포함), `sync`/Org 체크섬 확인. `~/nixos-config` 링크·Home Manager tmux 확인. Syncthing 등록은 GLG 몫. 프로젝트별 비밀 설정과 USB에만 있는 자료는 아직 미대조.
+2. **개발 환경 마감:** Pi·Claude·Codex 설치, Entwurf **소비자판** 0.62.0/core PASS. 새 Cyborg 세션만 시작. 로그인 및 Codex 최초 훅 승인 GLG 몫. full의 `lifetract` 자정 의존 테스트 2건 남음; `browser-tools` 의존성 설치 및 합성 5건 통과(실브라우저 미검증), `gog` 설치·인증 별개. 시스템 switch 미실행.
+3. **CURRENT — 아카이브 정본과 실행 기기를 Cyborg에서 확정:** 격리본은 laptop 원본과 전송 검증 통과. 기존 매니페스트 3,942건 중 3,783건 일치, 159건은 원본부터 annex 포인터만 있음(Oracle 125, ThinkPad 34). 포인터는 본문 아님. USB·Oracle 등에서 해시가 맞는 본문을 회수하고 집계 이후 누락을 대조한다. 원래 기기별 경로 유지, Cyborg를 실행 기기로 지정하되 옛 기기 레이블은 바꾸지 않는다.
+4. **다음 한 수:** Andenken authority 스킬로 Cyborg에서 기기 판별·gather 입력/대상·annex 원격/객체 소유권·비용 추정을 API-0으로 확인한다. Git/annex는 기존 이력·객체를 재연결할 수 있는지 먼저 검증하고, 곧장 재초기화하거나 옛 매니페스트를 덮어쓰지 않는다. 회수되지 않은 포인터는 별도 누락으로 기록하고 승인된 범위만 사용한다. 검증이 끝나면 Cyborg를 단일 작업 정본으로 지정하고, 기존 사본은 보존용으로만 구분한다. 사본 삭제는 별도 판단. 활성 세션 복원/재개 없음, 유료 임베딩·Oracle 게시 별도 승인.
+
+- **`pass` 복구 완료:** 절차는 `nixos-config/docs/new-pc-migration.md`에 인계했다.
+
+---
+
 # RAIL — 현재 좌표
 
 - [ ] **1. OpenClaw 생산 지연의 실효 정책 확인** ← CURRENT: 확대검수 원문 `EXPANDED-RESULT.md` 인수·DM1181 완료. 11/17 10:04/10:35 readonly 관측에서 bbot/mini 새파일이 색인에 없고 revision 변화0; 원인·실제 eligibility/mount 일치는U. GLG 요청으로 Oracle6f가 nixos-config 측 정책/trigger/hotfix를 검토하도록 ddb597 요청(운영 수선 승인 아님).
