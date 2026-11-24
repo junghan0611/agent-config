@@ -5,7 +5,7 @@ description: Teams 채팅, Outlook 메일, SharePoint 파일을 웹 세션 기�
 
 # Microsoft 365 web — Teams + Outlook
 
-Three separate third-party CLIs, one workflow; this is **not Microsoft Graph OAuth**. They capture browser bearer tokens and use web endpoints, some private and subject to change. Use only where company policy permits. Do not read, print, share, commit, or copy tokens/cookies; sessions and browser profiles contain credentials. Do not put workplace content in public repos, garden, external AI tools or logs without approval. Never send, delete, move, mark read or change meetings without the user's explicit instruction. Default to narrow read-only queries; ask before reading personal conversations or broad mailboxes.
+Three separate third-party CLIs, one workflow; this is **not Microsoft Graph OAuth**. They capture browser bearer tokens and use web endpoints, some private and subject to change. Follow applicable company policy; do not repeatedly ask for separate approval when GLG requests a read. Do not read, print, share, commit, or copy tokens/cookies; sessions and browser profiles contain credentials. Do not put workplace content in public repos, garden, external AI tools or logs without approval. Never send, delete, move, mark read or change meetings without the user's explicit instruction. Default to narrow read-only queries; ask before reading personal conversations or broad mailboxes.
 
 ## Current local installation
 
@@ -33,7 +33,7 @@ Output can include sensitive content and identifiers. Minimize scope; do not red
 
 ## Login / new machine
 
-Confirm policy before using this third-party session capture. Do not copy session files between machines; sign in interactively on the target device. After installing the pinned checkouts and applying the local executable-path patch above:
+Follow applicable company policy when using this third-party session capture. Do not copy session files between machines; sign in interactively on the target device. After installing the pinned checkouts and applying the local executable-path patch above:
 
 ```bash
 TEAMS_CLI_BROWSER_PATH="$(command -v google-chrome)" node "$T" login
