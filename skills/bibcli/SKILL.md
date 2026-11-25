@@ -1,12 +1,17 @@
 ---
 name: bibcli
-description: "로컬 BibTeX SSOT 검색/조회 + URL 원샷 입수. ‘작업함에 담아줘’ 또는 ‘Zotero에 넣지 마’면 ~/sync/org/resources/bib/work.bib에 직접 기록(Zotero 미사용). 유튜브·X(트위터)·책·블로그·웹 URL을 에이전트에게 주면 save→스타일·키 판단→pin --sync 로 같은 세션에 Zotero 적소 분류 + 인용 키 확정(시점 분리 금지). X는 수동 메타데이터 보정, YouTube는 무의미한 플랫폼 안내문을 abstract로 남기지 않는다. 폰 캡처 후엔 bib sync. orphan #+print_bibliography: 금지."
+description: "로컬 BibTeX SSOT 검색/조회 + URL 원샷 입수. ‘작업함에 담아줘’ 또는 ‘Zotero에 넣지 마’면 work.bib에 직접 기록(Zotero 미사용; 호스트 ~/sync/org/resources/bib, OpenClaw 컨테이너 /home/junghan/org/resources/bib). 유튜브·X(트위터)·책·블로그·웹 URL을 에이전트에게 주면 save→스타일·키 판단→pin --sync 로 같은 세션에 Zotero 적소 분류 + 인용 키 확정(시점 분리 금지). X는 수동 메타데이터 보정, YouTube는 무의미한 플랫폼 안내문을 abstract로 남기지 않는다. 폰 캡처 후엔 bib sync. orphan #+print_bibliography: 금지."
 ---
 
 # bibcli — meta-bib SSOT + URL 입수 (org 에이전트 기본)
 
 Binary: `{baseDir}/bibcli`
-Live bibliography: `~/sync/org/resources/bib` (always pass `--dir` until the installed binary is rebuilt)
+| Environment | Bibliography directory (`--dir`) | Work tray |
+|---|---|---|
+| Host | `~/sync/org/resources/bib` | `~/sync/org/resources/bib/work.bib` |
+| OpenClaw gateway container | `/home/junghan/org/resources/bib` | `/home/junghan/org/resources/bib/work.bib` |
+
+These are two views of the same mounted files. In the gateway, use the absolute mount path even if `ZOTERO_BIB_DIR` is unset; `~` may resolve to `/home/node`. If the expected directory is missing or not writable, report it instead of creating a substitute directory. Always pass the matching `--dir` to `bibcli`; examples below use the host path.
 Renderer/operator logic: `~/repos/gh/zotero-config/.claude/skills/zotero-config/SKILL.md`
 공개 담당자 문서: `denote:20260304T105300` (§zotero-config) — 교리·경계가 바뀌면 그 방 갱신 (새 llmlog 금지)
 
@@ -49,7 +54,7 @@ cache 순서를 지우고, Syncthing은 완성된 `bib/*.bib`만 나른다.
 
 | User request | Destination and action |
 |---|---|
-| “작업함에 담아줘” / “Zotero에 넣지 마” | Edit `~/sync/org/resources/bib/work.bib` directly (create on first capture). Follow GLG’s existing BibTeX style, reuse the entry for the same URL, and add a short note on why to revisit it. Do not run `save`, `pin`, or Zotero sync for this route. |
+| “작업함에 담아줘” / “Zotero에 넣지 마” | Edit `work.bib` at the environment-specific path above (create on first capture only in the existing bibliography directory). Follow GLG’s existing BibTeX style, reuse the entry for the same URL, and add a short note on why to revisit it. Do not run `save`, `pin`, or Zotero sync for this route. |
 | URL only / “Zotero에 담아줘” | Follow the Zotero one-shot workflow below. Do not infer the work tray from the topic. |
 
 For the work tray, record only verified metadata. Do not store URLs with access tokens or send private links to public crawlers.
@@ -85,9 +90,7 @@ cd ~/repos/gh/zotero-config
 {baseDir}/bibcli show "UNIQUE-KEY" --dir ~/sync/org/resources/bib
 ```
 
-**컨테이너(OpenClaw gateway)에서:** `ZOTERO_TRANSLATION_SERVER`(호스트 TS)와
-`ZOTERO_BIB_DIR`(/home/junghan/org/resources/bib)가 환경에 이미 박혀 있다 —
-`cd ~/repos/gh/zotero-config && ./run.sh save/pin` 그대로 쓰면 된다.
+**Zotero route in the OpenClaw gateway:** `save`/`pin` use the configured `ZOTERO_TRANSLATION_SERVER` (host TS) and `ZOTERO_BIB_DIR` (the bibliography mount above). Verify that configuration if it is missing; the work tray does not require those variables.
 `server start/stop/restart`는 원격 모드에서 정직하게 거부된다: Translation Server는
 호스트 자산(oracle: systemd unit `translation-server.service`, 부팅 시 자동)이며
 컨테이너가 중복 실행하면 안 된다. `bib sync`의 flock(.sync/.lock)은 호스트와 같은
