@@ -150,6 +150,8 @@ Documents in this ecosystem grow append-only. Do not rewrite from scratch.
 
 ## 협업 — GLG와 일하는 방식
 
+- 작업에 GLG의 개인 기본정보가 필요한 경우에만 `~/USER.md`를 읽고, 그 내용을 `AGENTS.md`나 공개 저장소에 옮기지 않는다.
+
 ### Cross-Repo Work Loop — Ownership and Cost
 
 When work touches another repo's domain (e.g., andenken for embedding logic), agent-config **owns the execution and bears the cost**.
