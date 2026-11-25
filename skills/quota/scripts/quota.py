@@ -2,7 +2,7 @@
 """Remaining quota across the three active model rails GLG routes siblings onto.
 
     quota.py                one shot, plain text
-    quota.py --watch [SEC]  TUI: full-screen, refreshes in place (default 300s)
+    quota.py --watch [SEC]  TUI: full-screen, refreshes in place (default 60s)
     quota.py --json         normalized snapshot (same data the web serves)
 
 All three render collect.snapshot(); no renderer ever calls a vendor
@@ -25,17 +25,12 @@ import render
 def watch(interval):
     """Full-screen refresh loop.
 
-    Vendor endpoints are polled once per `interval` (default 300s, the
-    same TTL serve.py caches on). claude's api/oauth/usage answers 429
-    with Retry-After ~165s when polled harder, and a 429 there reads as
-    "quota exhausted" when it is really "you polled too fast" -- so
-    collect.py holds that one rail to a poll per 180s no matter what
-    interval is set here.
+    Each refresh can poll one due rail; collect.py owns intervals and backoff.
     """
     sys.stdout.write("\033[?25l")  # hide cursor
     try:
         while True:
-            snap = collect.snapshot()
+            snap = collect.snapshot(automatic=True)
             body = render.render_text(snap, color=sys.stdout.isatty())
             sys.stdout.write("\033[H\033[2J" + body)
             sys.stdout.write(
@@ -56,7 +51,7 @@ def main(argv):
         return 0
     if "--watch" in args:
         rest = [a for a in args[args.index("--watch") + 1:] if not a.startswith("-")]
-        watch(int(rest[0]) if rest else 300)
+        watch(int(rest[0]) if rest else 60)
         return 0
     print(render.render_text(collect.snapshot(), color=sys.stdout.isatty()))
     return 0

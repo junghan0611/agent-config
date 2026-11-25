@@ -158,7 +158,9 @@ def bar(g, width=20, color=True, now=None):
 def fmt_amount(g):
     if g.get("used") is None or g.get("limit") is None:
         if g.get("used") is not None:
-            return f"{g['used']:,.0f} {g.get('unit') or ''}".strip()
+            unit = g.get("unit") or ""
+            precision = 2 if unit in {"USD", "CNY"} else 0
+            return f"{g['used']:,.{precision}f} {unit}".strip()
         return ""
     return f"{g['used']:,.0f}/{g['limit']:,.0f} {g.get('unit') or ''}".strip()
 

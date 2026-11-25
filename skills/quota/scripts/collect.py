@@ -87,15 +87,10 @@ CODEX_PLAN_LABELS = {
 }
 
 
-def collect_codex():
-    oc = _q._load_json(_q.PI_AUTH)["openai-codex"]
-    return _collect_wham(oc["access"], oc["accountId"])
-
-
 def collect_work_codex_cli():
     auth = _q._load_json(_q.CODEX_AUTH)
     if auth.get("auth_mode") != "chatgpt":
-        raise ValueError("Work Codex CLI quota requires a ChatGPT login in CODEX_HOME")
+        raise ValueError("Work quota requires a ChatGPT login in CODEX_HOME")
     tokens = auth["tokens"]
     return _collect_wham(tokens["access_token"], tokens["account_id"])
 
@@ -252,52 +247,87 @@ CACHE_DIR = os.path.expanduser("~/.local/share/quota")
 CACHE = os.path.join(CACHE_DIR, "rails.json")
 
 MIN_INTERVAL = {"claude": 180,       # seconds; measured Retry-After was 165
-                "antigravity": 180}  # undocumented; poll no harder than claude
+                "antigravity": 180,  # undocumented; poll no harder than claude
+                "deepseek": 300, "openrouter": 300}
 STALE_MAX = 6 * 3600            # older than this and the numbers are noise
 
 
 def _cache_load():
     try:
         with open(CACHE) as f:
-            return json.load(f)
+            data = json.load(f)
+        return {k: v for k, v in data.items() if isinstance(v, dict)} if isinstance(data, dict) else {}
     except (OSError, ValueError):
         return {}
 
 
 def _cache_save(cache):
+    tmp = CACHE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(cache, f, ensure_ascii=False)
+    os.replace(tmp, CACHE)
+
+
+def _timestamp(value):
     try:
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        tmp = CACHE + ".tmp"
-        with open(tmp, "w") as f:
-            json.dump(cache, f, ensure_ascii=False)
-        os.replace(tmp, CACHE)
-    except OSError:
-        pass  # a read-only cache must never break the reading
+        stamp = datetime.datetime.fromisoformat(value)
+        return stamp if stamp.tzinfo is not None else None
+    except (ValueError, TypeError):
+        return None
 
 
 def _age(entry, now):
-    try:
-        return (now - datetime.datetime.fromisoformat(entry["ts"])).total_seconds()
-    except (KeyError, ValueError, TypeError):
-        return None
+    stamp = _timestamp(entry.get("ts"))
+    return (now - stamp).total_seconds() if stamp else None
+
+
+def _balance_json(key_name, url):
+    key = _q._api_key(key_name)
+    if not key:
+        raise ValueError(f"{key_name} is not configured")
+    _, body = _q._get(url, headers={"Authorization": f"Bearer {key}", "Accept": "application/json"})
+    return json.loads(body)
+
+
+def collect_deepseek():
+    data = _balance_json("DEEPSEEK_API_KEY", "https://api.deepseek.com/user/balance")
+    gauges = [gauge(row["currency"], "Remaining balance", None,
+                    used=float(row["total_balance"]), unit=row["currency"])
+              for row in data["balance_infos"]]
+    if not gauges:
+        raise ValueError("DeepSeek returned no balance")
+    return {"plan": "API wallet", "gauges": gauges}
+
+
+def collect_openrouter():
+    data = _balance_json("OPENROUTER_API_KEY", "https://openrouter.ai/api/v1/credits")["data"]
+    remaining = round(float(data["total_credits"]) - float(data["total_usage"]), 6)
+    return {"plan": "API wallet", "gauges": [gauge("credits", "Remaining account credits", None,
+                                                     used=remaining, unit="USD")]}
 
 
 RAILS = [
     ("claude", collect_claude),
-    ("pi-codex", collect_codex),
     ("codex-cli", collect_work_codex_cli),
     ("antigravity", collect_antigravity),
+    ("deepseek", collect_deepseek),
+    ("openrouter", collect_openrouter),
 ]
 
 
-def _retry_after(e):
+def _retry_after(e, now):
     """Seconds the vendor asked us to wait, if it said."""
     if not isinstance(e, urllib.error.HTTPError) or e.code != 429 or not e.headers:
         return None
     try:
         return max(0, int(e.headers.get("Retry-After") or 0)) or None
     except ValueError:
-        return None
+        from email.utils import parsedate_to_datetime
+        try:
+            stamp = parsedate_to_datetime(e.headers["Retry-After"])
+            return max(0, (stamp - now).total_seconds()) or None
+        except (ValueError, TypeError):
+            return None
 
 
 def _reason(e):
@@ -318,7 +348,16 @@ def _reason(e):
     return f"{type(e).__name__}: {e}"
 
 
-def snapshot(only=None, force=False):
+def snapshot(only=None, force=False, automatic=False):
+    # Manual, web and watch share one cache; never overwrite a concurrent update.
+    import fcntl
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    with open(os.path.join(CACHE_DIR, "automatic.lock"), "a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        return _snapshot(only, force and not automatic, automatic=automatic)
+
+
+def _snapshot(only=None, force=False, automatic=False):
     """Collect every rail. Failures are isolated per rail, never fatal.
 
     A rail polled within its MIN_INTERVAL is served from cache; a rail that
@@ -328,6 +367,25 @@ def snapshot(only=None, force=False):
     now = datetime.datetime.now(KST)
     cache = _cache_load()
     rails, dirty = [], False
+    selected = None
+    if automatic:
+        attempted = cache.get("_automatic_attempts", {})
+        floor = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
+        last = max((_timestamp(v) or floor for v in attempted.values()), default=floor)
+        spacing_ok = (now - last).total_seconds() >= 60
+        due = []
+        for name, _ in RAILS:
+            row = cache.get(name, {})
+            previous = max(_timestamp(attempted.get(name)) or floor, _timestamp(row.get("ts")) or floor)
+            until = _timestamp(row.get("blocked_until"))
+            if (only and name not in only) or (until and until > now):
+                continue
+            if (now - previous).total_seconds() >= MIN_INTERVAL.get(name, 180):
+                due.append((previous, name))
+        if spacing_ok and due:
+            selected = min(due)[1]
+            cache["_automatic_attempts"] = {**attempted, selected: now.isoformat()}
+            _cache_save(cache)  # Persist the start before the request; failure stops polling.
     for name, fn in RAILS:
         if only and name not in only:
             continue
@@ -338,10 +396,7 @@ def snapshot(only=None, force=False):
         # window just burns another request against the same bucket.
         blocked = cached.get("blocked_until") if cached else None
         if blocked:
-            try:
-                until = datetime.datetime.fromisoformat(blocked)
-            except ValueError:
-                until = None
+            until = _timestamp(blocked)
             if until and now < until:
                 wait = int((until - now).total_seconds())
                 reason = f"HTTP 429 rate-limited by the endpoint — retry in {wait}s (not re-polled)"
@@ -355,27 +410,38 @@ def snapshot(only=None, force=False):
                                   "age_seconds": None})
                 continue
 
-        if not force and cached and age is not None and age < MIN_INTERVAL.get(name, 0):
+        if not force and cached and not cached.get("error") and age is not None and age < MIN_INTERVAL.get(name, 0):
             rails.append({"rail": name, "status": "ok", "reason": None,
                           "plan": cached.get("plan"), "gauges": cached["gauges"],
                           "fetched_at": cached["ts"], "age_seconds": int(age)})
             continue
+        if automatic and name != selected:
+            have_cache = bool(cached and cached.get("gauges") and age is not None and age < STALE_MAX)
+            rails.append({"rail": name, "status": "stale" if have_cache else "unavailable",
+                          "reason": (cached or {}).get("error") or "Waiting for an automatic polling turn",
+                          "plan": cached.get("plan") if have_cache else None,
+                          "gauges": cached["gauges"] if have_cache else [],
+                          "fetched_at": cached.get("ts") if have_cache else None,
+                          "age_seconds": int(age) if have_cache else None})
+            continue
         try:
             r = fn()
-            cache[name] = {"ts": now.isoformat(), "plan": r.get("plan"),
+            fetched = datetime.datetime.now(KST).isoformat()
+            cache[name] = {"ts": fetched, "plan": r.get("plan"),
                            "gauges": r["gauges"]}  # success clears blocked_until
             dirty = True
             rails.append({"rail": name, "status": "ok", "reason": None,
                           "plan": r.get("plan"), "gauges": r["gauges"],
-                          "fetched_at": now.isoformat(), "age_seconds": 0})
+                          "fetched_at": fetched, "age_seconds": 0})
         except Exception as e:  # noqa: BLE001 -- one dead vendor must not stop the rest
             reason = _reason(e)
-            wait = _retry_after(e)
+            received = datetime.datetime.now(KST)
+            wait = _retry_after(e, received)
+            entry = {**(cached or {}), "error": reason}
             if wait:
-                entry = dict(cached or {})
-                entry["blocked_until"] = (now + datetime.timedelta(seconds=wait)).isoformat()
-                cache[name] = entry
-                dirty = True
+                entry["blocked_until"] = (received + datetime.timedelta(seconds=wait)).isoformat()
+            cache[name] = entry
+            dirty = True
             if cached and cached.get("gauges") and age is not None and age < STALE_MAX:
                 rails.append({"rail": name, "status": "stale", "reason": reason,
                               "plan": cached.get("plan"), "gauges": cached["gauges"],

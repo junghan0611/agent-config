@@ -19,7 +19,7 @@ For a sibling request, resolve the model name below without asking again.
 
 - For Pi GPT selection, use the exact provider-qualified ID. Unqualified Terra follows the current Pi default (work). For other GPT models on the personal account, confirm the exact `openai/` entry in the authenticated picker before adding it to this roster.
 - Native Codex CLI also uses the work account. Pi’s `openai` Sign in with ChatGPT uses the personal account.
-- `./run.sh quota` reports the two work login sources as `pi-codex` (Pi) and `codex-cli` (native CLI). Read them as two views of the work account. Personal Pi `openai` quota has no verified lookup path.
+- `./run.sh quota` reports the work account once as `codex-cli` (native CLI). Pi’s work login is not polled separately. Personal Pi `openai` quota has no verified lookup path.
 - `entwurf_fresh_call`: pass the exact catalog ID, e.g. `entwurf/claude-opus-5-5`, without a thinking suffix. Entwurf requires an exact curated ACP ID; `:medium` is rejected before launch. Keep Pi's `defaultThinkingLevel` at `medium`; a project override or GLG's explicit session choice takes precedence.
 - Claude uses `entwurf` first. Native `claude-code` only when GLG explicitly requests that harness; use the versioned model ID, not `opus`/`sonnet`/`fable` aliases.
 - Only the listed rails are authorized. OpenRouter is not a sibling inference rail.

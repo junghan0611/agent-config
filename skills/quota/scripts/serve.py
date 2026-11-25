@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Local web view of the quota snapshot.
 
-    serve.py [--port 8787] [--ttl 300]
+    serve.py [--port 8787] [--ttl 60]
 
 Serves 127.0.0.1 only. Calling it again on the same port stops the
 running server (toggle). Routes:
@@ -9,7 +9,7 @@ running server (toggle). Routes:
     /api/snapshot.json the normalized snapshot
     /api/stop          graceful shutdown (localhost toggle)
 
-The snapshot is cached for --ttl seconds (default 300) and shared by
+The snapshot is cached for --ttl seconds (default 60) and shared by
 every request, so leaving the tab open all day does not hammer the vendor
 endpoints. claude's api/oauth/usage answers 429 with Retry-After ~165s
 when polled hard -- collect.py holds that rail to one poll per 180s
@@ -50,7 +50,7 @@ def get_snapshot(ttl):
     with _lock:
         if _cache["snap"] and time.time() - _cache["at"] < ttl:
             return _cache["snap"]
-        snap = collect.snapshot()
+        snap = collect.snapshot(automatic=True)
         _cache["snap"], _cache["at"] = snap, time.time()
     try:
         os.makedirs(STATE_DIR, exist_ok=True)
@@ -118,10 +118,11 @@ grid-template-areas:"lbl track pct pace" "rst rst amt amt";padding:6px 0}
 </div><script>
 const WD=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const pad=n=>String(n).padStart(2,"0");
-function when(iso,now){if(!iso)return "—";const d=new Date(iso);
- if(d.toDateString()===now.toDateString())return pad(d.getHours())+":"+pad(d.getMinutes());
- return pad(d.getMonth()+1)+"-"+pad(d.getDate())+"("+WD[(d.getDay()+6)%7]+") "
-  +pad(d.getHours())+":"+pad(d.getMinutes());}
+const asKst=d=>new Date(+new Date(d)+9*3600000);
+function when(iso,now){if(!iso)return "—";const d=asKst(iso);
+ if(d.toISOString().slice(0,10)===asKst(now).toISOString().slice(0,10))return pad(d.getUTCHours())+":"+pad(d.getUTCMinutes());
+ return pad(d.getUTCMonth()+1)+"-"+pad(d.getUTCDate())+"("+WD[(d.getUTCDay()+6)%7]+") "
+  +pad(d.getUTCHours())+":"+pad(d.getUTCMinutes());}
 function left(iso,now){if(!iso)return "";let s=(new Date(iso)-now)/1000;
  if(s<=0)return "resetting";const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),
  m=Math.floor(s%3600/60);
@@ -141,14 +142,15 @@ function lvl(g,now){const p=g.used_pct;
  if(pace>=2)return "crit"; if(pace>=1.3||p>=80)return "warn"; return "ok";}
 function paceTxt(g,now){const[el,pace]=pacing(g,now);
  return (pace==null||el<5)?"":pace.toFixed(1)+"x";}
-function amt(g){const f=n=>n.toLocaleString();
+function amt(g){const currency=["USD","CNY"].includes(g.unit);
+ const f=n=>n.toLocaleString(undefined,currency?{minimumFractionDigits:2,maximumFractionDigits:2}:{});
  if(g.used!=null&&g.limit!=null)return `${f(g.used)}/${f(g.limit)} ${g.unit||""}`;
  if(g.used!=null)return `${f(g.used)} ${g.unit||""}`;return "";}
 let snap=null;
 function draw(){if(!snap)return;const now=new Date();
- const ts=new Date(snap.ts);
- sub.textContent=`${ts.getFullYear()}-${pad(ts.getMonth()+1)}-${pad(ts.getDate())}`
-  +`(${WD[(ts.getDay()+6)%7]}) ${pad(ts.getHours())}:${pad(ts.getMinutes())} KST`;
+ const ts=asKst(snap.ts);
+ sub.textContent=`${ts.getUTCFullYear()}-${pad(ts.getUTCMonth()+1)}-${pad(ts.getUTCDate())}`
+  +`(${WD[(ts.getUTCDay()+6)%7]}) ${pad(ts.getUTCHours())}:${pad(ts.getUTCMinutes())} KST`;
  rails.innerHTML=snap.rails.map(r=>{
   if(r.status==="unavailable")return `<div class="card"><div class="rail"><b>${r.rail}</b></div>
    <div class="bad">UNAVAILABLE — ${r.reason||""}</div></div>`;
@@ -175,7 +177,7 @@ load();setInterval(load,60000);setInterval(draw,30000);
 
 
 class Handler(BaseHTTPRequestHandler):
-    ttl = 300
+    ttl = 60
 
     def _send(self, code, ctype, body):
         self.send_response(code)
@@ -304,11 +306,8 @@ def bind(port):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8787)
-    ap.add_argument("--ttl", type=int, default=300,
-                    help="seconds a snapshot is reused before re-polling vendors. "
-                         "300 because claude answers 429 when polled hard; collect.py also guards "
-                         "claude and antigravity at MIN_INTERVAL=180s -- the page cadence and the "
-                         "sensitive rail's cadence are no longer the same number.")
+    ap.add_argument("--ttl", type=int, default=60,
+                    help="snapshot reuse in seconds; automatic polling remains staggered independently")
     a = ap.parse_args()
     Handler.ttl = a.ttl
     if already_ours(a.port):

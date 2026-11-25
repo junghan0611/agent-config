@@ -1,6 +1,6 @@
 ---
 name: quota
-description: "회사 Codex·Claude·개인 agy 구독 상태를 한 번에 표시 — ChatGPT Pro/Codex의 plan-provided 윈도우, Claude 5h/7d 윈도우, Google AI Pro(Antigravity/agy)의 Gemini 5h 버킷. Grok·Copilot은 사용 중단으로 수집하지 않는다. GLG가 다음 분신을 어느 rail로 보낼지 결정할 때 쓴다. Use when: '쿼터', '얼마 남았', '남은 크레딧', '어디로 보낼까', 'quota', 'usage', 'how much is left', 'which rail', 'rate limit check', 'agy 쿼터', 'antigravity', 'gemini 쿼터'."
+description: "회사 Codex·Claude·개인 agy 구독 상태를 한 번에 표시 — ChatGPT Pro/Codex의 plan-provided 윈도우, Claude 5h/7d 윈도우, Google AI Pro(Antigravity/agy)의 Gemini 5h 버킷, DeepSeek·OpenRouter API 잔액. Grok·Copilot은 사용 중단으로 수집하지 않는다. GLG가 다음 분신을 어느 rail로 보낼지 결정할 때 쓴다. Use when: '쿼터', '얼마 남았', '남은 크레딧', '어디로 보낼까', 'quota', 'usage', 'how much is left', 'which rail', 'rate limit check', 'agy 쿼터', 'antigravity', 'gemini 쿼터'."
 user_invocable: true
 ---
 
@@ -15,19 +15,19 @@ python3 {baseDir}/scripts/quota.py --json     # 정규화 스냅샷
 
 # GLG (손으로 치는 면)
 ./run.sh quota                 # 1회 출력
-./run.sh quota:watch [초]      # TUI, 제자리 갱신 (기본 120초)
+./run.sh quota:watch [초]      # TUI, 제자리 갱신 (기본 60초)
 ./run.sh quota:web [포트]      # http://127.0.0.1:8787 토글 (기본 8787; 떠 있으면 끔)
 ./run.sh quota:json            # 정규화 스냅샷
 ```
 
-회사 Codex 두 로그인(Pi와 CLI), Claude, 개인 agy 쿼터를 한 화면에 정렬한다. 과거 이력도, 알림도 아니다 — **지금 이 순간의 상태**만
+회사 Codex(네이티브 CLI), Claude, 개인 agy 쿼터와 DeepSeek·OpenRouter API 잔액을 한 화면에 정렬한다. 과거 이력도, 알림도 아니다 — **지금 이 순간의 상태**만
 답한다. 스크립트가 숫자를 찍으면, 에이전트가 그걸 읽어 GLG에게 산문으로 설명한다.
 
 ## 구조 — 수집 1개, 렌더러 3개
 
 ```
 scripts/railauth.py   자격증명 로딩 · HTTP
-scripts/collect.py    4 rail 조회 → 정규화 스냅샷  ← 유일한 진실
+scripts/collect.py    5 rail 조회 → 정규화 스냅샷  ← 유일한 진실
 scripts/render.py     막대 · 리셋 시계 · 텍스트 레이아웃 (TUI와 웹이 공유)
 scripts/quota.py      1회 / --watch(TUI) / --json
 scripts/serve.py      127.0.0.1 웹 + /api/snapshot.json
@@ -37,7 +37,7 @@ scripts/serve.py      127.0.0.1 웹 + /api/snapshot.json
 
 Grok collection, credential reads and OIDC refresh were removed on 2026-11-13. Old Grok cache entries are ignored; credential files are not deleted. Already-running TUI/web processes may retain old code and need reopening to use this change.
 
-폴링 방어는 두 층이다. `serve.py`가 스냅샷 전체를 TTL 300초(`--ttl`)로 캐시하고, 그와 별개로
+Web and TUI default to 60-second refreshes. Across both, at most one due rail is polled per 60 seconds, oldest attempt first. Manual one-shot output still checks eligible rails sequentially. `serve.py` caches the snapshot for its `--ttl`; independently,
 `collect.py`가 **레일별 캐시**(`~/.local/share/quota/rails.json`)를 둔다. 레일 캐시는
 두 가지를 한다 — `MIN_INTERVAL` 안에 다시 부르면 재폴링하지 않고, 폴링이 실패하면 마지막
 성공값을 `stale`로 표시해 계속 보여준다. `collect.py --force`로 간격 가드만 건너뛸 수 있다.
@@ -109,17 +109,19 @@ rail `status`는 셋이다: `ok` / `stale`(마지막 성공값 + 실패 이유) 
 
 | rail | 무엇을 재나 | 엔드포인트 |
 |---|---|---|
-| pi-codex | 회사 Codex 구독 — endpoint가 준 primary·secondary window 사용률 | `GET chatgpt.com/backend-api/wham/usage` |
+| codex-cli | 회사 Codex 구독 — endpoint가 준 primary·secondary window 사용률 | `GET chatgpt.com/backend-api/wham/usage` |
+| deepseek | Remaining balance per currency | `GET api.deepseek.com/user/balance` |
+| openrouter | Remaining account credits (`total_credits − total_usage`), not a key spending cap | `GET openrouter.ai/api/v1/credits` |
 | claude | Claude Code 구독 — `limits[]` (5h 세션 · 7d 전체 · 7d 모델별) | `GET api.anthropic.com/api/oauth/usage` |
-| codex-cli | 회사 Codex CLI에 로그인된 ChatGPT 구독의 primary·secondary window | `GET chatgpt.com/backend-api/wham/usage` |
 | antigravity | 개인 Google AI Pro — Gemini 모델 버킷 최솟값만. `remainingFraction`만 와서 퍼센트만 | `POST daily-cloudcode-pa.googleapis.com/v1internal:` `loadCodeAssist`(plan=`paidTier.name`) · `retrieveUserQuota` |
 
 ## 자격증명
 
 토큰은 파일에서 읽어 요청 헤더로 바로 흘려보내고 절대 출력/로그하지 않는다.
 
-- `~/.pi/agent/auth.json` — 회사 `openai-codex`(`access` + `accountId`)는 기존 WHAM 조회를 사용한다. 개인 `openai`는 새 Sign in with ChatGPT OAuth로, 토큰 audience는 `https://api.openai.com/v1`이다. Pi의 개인 `openai` 토큰은 수집기가 읽지 않는다. 기존 `codex` 캐시는 계정 전환 전 수치일 수 있어 새 회사 항목에 이월하지 않는다. [OpenAI token reference](https://developers.openai.com/siwc/token-sharing-open-source/token-reference)
-- `${CODEX_HOME:-~/.codex}/auth.json` — 회사 Codex CLI의 ChatGPT 로그인에서 `tokens.access_token`과 `tokens.account_id`를 읽는다. `codex-cli`은 이 로그인에서 WHAM이 반환한 창이다. 두 회사 항목은 로그인별 조회 결과다. 합산하지 않는다. 이전 `codex-personal` 캐시는 회사 항목으로 이월하지 않는다. Pi의 개인 `openai`는 잔여량 조회 경로가 확인되지 않았다.
+- `${CODEX_HOME:-~/.codex}/auth.json` — Work ChatGPT login for the `codex-cli` quota rail. Pi’s work token and old `pi-codex` cache are not used.
+- API wallets read `DEEPSEEK_API_KEY` / `OPENROUTER_API_KEY` from the process environment or simple literal assignments in `~/.env.local` (not sourced). Balance reads make no inference requests and are cached for five minutes.
+- Pi’s personal `openai` (Sign in with ChatGPT) has no verified quota lookup path (work endpoint returned 401). It is not polled or substituted with work usage. Reopen any quota TUI/web process started before this change.
 - `~/.claude/.credentials.json` — `claudeAiOauth.accessToken`
 - `~/.gemini/antigravity-cli/antigravity-oauth-token` — `token.access_token`. **직접 OAuth refresh는 하지 않고, 만료(`expiry <= now`) 시에만 `agy models`를 1회 실행해 agy가 스스로 갱신하게 한 뒤 다시 읽는다.** 여전히 만료면 `stale`(캐시 6시간 안) 또는 `UNAVAILABLE — agy token expired — open agy once to refresh it`. 토큰 파일 구조를 볼 때 값을 출력하지 말 것 — 키 이름과 길이만.
 

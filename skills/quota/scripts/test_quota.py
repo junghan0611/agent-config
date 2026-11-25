@@ -19,8 +19,8 @@ import render
 import serve
 
 
-ACTIVE = ["claude", "pi-codex", "codex-cli", "antigravity"]
-RETIRED = ["zai", "grok"]
+ACTIVE = ["claude", "codex-cli", "antigravity", "deepseek", "openrouter"]
+RETIRED = ["zai", "grok", "pi-codex"]
 
 
 class QuotaTests(unittest.TestCase):
@@ -28,9 +28,13 @@ class QuotaTests(unittest.TestCase):
         # Fail closed if any test accidentally reaches real auth, cache or HTTP.
         self.load = self.enterContext(patch.object(
             collect._q, "_load_json", side_effect=AssertionError("real auth read")))
+        self.api_key = self.enterContext(patch.object(
+            collect._q, "_api_key", side_effect=lambda _: self.load("fixture-env")))
         self.http = self.enterContext(patch.object(
             collect._q, "_get", side_effect=AssertionError("real vendor request")))
         self.enterContext(patch("urllib.request.urlopen", side_effect=AssertionError("network")))
+        cache_dir = self.enterContext(tempfile.TemporaryDirectory())
+        self.enterContext(patch.object(collect, "CACHE_DIR", cache_dir))
         self.cache_load = self.enterContext(patch.object(collect, "_cache_load", return_value={}))
         self.cache_save = self.enterContext(patch.object(collect, "_cache_save"))
         self.now = datetime.datetime.now(collect.KST)
@@ -64,9 +68,7 @@ class QuotaTests(unittest.TestCase):
 
     def fake_vendors(self):
         auth = {
-            collect._q.PI_AUTH: {"openai-codex": {"access": "fake-codex", "accountId": "fixture"}},
-            collect._q.CODEX_AUTH: {"auth_mode": "chatgpt", "tokens": {
-                "access_token": "fake-cli-work", "account_id": "cli-work-fixture"}},
+            collect._q.CODEX_AUTH: {"auth_mode": "chatgpt", "tokens": {"access_token": "fake-codex", "account_id": "fixture"}},
             collect._q.CLAUDE_CREDS: {"claudeAiOauth": {"accessToken": "fake-claude"}},
             collect._q.AGY_TOKEN: {"token": {
                 "access_token": "fake-agy",
@@ -74,8 +76,11 @@ class QuotaTests(unittest.TestCase):
                 + ".123456789+09:00"}},
         }
         self.load.side_effect = lambda path: auth[path]
+        self.api_key.side_effect = lambda name: "fake-" + name
         end = (self.now + datetime.timedelta(days=2)).isoformat()
         responses = {
+            "https://api.deepseek.com/user/balance": {"balance_infos": [{"currency": "USD", "total_balance": "4.80"}]},
+            "https://openrouter.ai/api/v1/credits": {"data": {"total_credits": 10, "total_usage": 3.85}},
             "https://api.anthropic.com/api/oauth/usage": {"limits": [
                 {"kind": "weekly_all", "percent": 20, "resets_at": end, "is_active": True}]},
             "https://chatgpt.com/backend-api/wham/usage": {
@@ -109,9 +114,10 @@ class QuotaTests(unittest.TestCase):
         self.legacy_cache()
         snap = collect.snapshot(force=True)
         self.assert_active(snap)
-        self.assertEqual([r["status"] for r in snap["rails"]], ["ok"] * 4)
-        self.assertEqual([r["gauges"][0]["used_pct"] for r in snap["rails"] if r["gauges"]], [20, 30, 30, 20])
-        agy = snap["rails"][3]
+        self.assertEqual([r["status"] for r in snap["rails"]], ["ok"] * len(ACTIVE))
+        self.assertEqual([r["gauges"][0]["used_pct"] for r in snap["rails"] if r["gauges"]], [20, 30, 20, None, None])
+        self.assertEqual([r["gauges"][0]["used"] for r in snap["rails"][3:]], [4.8, 6.15])
+        agy = snap["rails"][2]
         self.assertEqual(agy["plan"], "Google AI Pro")
         self.assertEqual([(g["label"], g["used_pct"]) for g in agy["gauges"]],
                          [("5h Gemini", 20)])
@@ -120,23 +126,46 @@ class QuotaTests(unittest.TestCase):
         self.assertTrue(snap["rails"][0]["gauges"][0]["active"])
         self.assertEqual({c.args[0] for c in self.http.call_args_list}, set(responses))
         self.assertEqual([c.args[0] for c in self.load.call_args_list],
-                         [collect._q.CLAUDE_CREDS, collect._q.PI_AUTH, collect._q.CODEX_AUTH, collect._q.AGY_TOKEN])
-        self.assertEqual(self.http.call_count, 5)
+                         [collect._q.CLAUDE_CREDS, collect._q.CODEX_AUTH, collect._q.AGY_TOKEN])
+        self.assertEqual(self.http.call_count, 6)
         wham_headers = [c.kwargs["headers"] for c in self.http.call_args_list
                         if c.args[0].endswith("/wham/usage")]
         self.assertEqual([(h["Authorization"], h["chatgpt-account-id"]) for h in wham_headers],
-                         [("Bearer fake-codex", "fixture"),
-                          ("Bearer fake-cli-work", "cli-work-fixture")])
+                         [("Bearer fake-codex", "fixture")])
 
-    def test_codex_cli_never_reuses_pi_or_old_personal_cache(self):
-        cache = self.legacy_cache()
-        cache["codex"] = cache["pi-codex"]
-        cache["codex-personal"] = cache.pop("codex-cli")
-        snap = collect.snapshot(only={"codex-cli"})
-        rail, = snap["rails"]
-        self.assertEqual(rail["status"], "unavailable")
-        self.assertEqual(rail["gauges"], [])
-        self.load.assert_called_once_with(collect._q.CODEX_AUTH)
+    def test_automatic_polls_one_due_rail_and_spaces_attempts(self):
+        self.fake_vendors()
+        cache = self.cache_load.return_value
+        collect._snapshot(automatic=True)
+        self.assertEqual(set(cache["_automatic_attempts"]), {"antigravity"})
+        self.assertEqual(self.http.call_count, 2)  # two requests within this one rail
+        collect._snapshot(automatic=True)
+        self.assertEqual(self.http.call_count, 2)
+        cache["_automatic_attempts"]["antigravity"] = (self.now - datetime.timedelta(seconds=61)).isoformat()
+        collect._snapshot(automatic=True)
+        self.assertEqual(set(cache["_automatic_attempts"]), {"antigravity", "claude"})
+        self.assertEqual(self.http.call_count, 3)
+
+    def test_automatic_cache_write_failure_does_not_poll(self):
+        self.cache_save.side_effect = OSError("read-only cache")
+        with self.assertRaises(OSError):
+            collect.snapshot(automatic=True)
+        self.http.assert_not_called()
+        self.load.assert_not_called()
+
+    def test_retry_after_supports_http_date(self):
+        import urllib.error
+        from email.utils import format_datetime
+        now = self.now.replace(microsecond=0)
+        until = now + datetime.timedelta(seconds=165)
+        error = urllib.error.HTTPError("fixture", 429, "limited", {"Retry-After": format_datetime(until)}, None)
+        self.assertEqual(collect._retry_after(error, now), 165)
+
+    def test_retired_pi_codex_never_reads_auth_or_uses_cached_quota(self):
+        self.legacy_cache()
+        snap = collect.snapshot(only={"pi-codex"})
+        self.assertEqual(snap["rails"], [])
+        self.load.assert_not_called()
         self.http.assert_not_called()
 
     def test_expired_agy_token_triggers_refresh_and_fails_closed_if_still_expired(self):
@@ -171,9 +200,10 @@ class QuotaTests(unittest.TestCase):
     def test_legacy_cache_is_not_an_active_rail(self):
         snap = self.cached_snapshot()
         self.assert_active(snap)
-        self.assertEqual([r["status"] for r in snap["rails"]], ["ok", "stale", "stale", "ok"])
-        self.assertEqual([r["gauges"] for r in snap["rails"]], [self.gauges] * 4)
-        self.cache_save.assert_not_called()
+        self.assertEqual([r["status"] for r in snap["rails"]], ["ok", "stale", "ok", "ok", "ok"])
+        self.assertEqual([r["gauges"] for r in snap["rails"]], [self.gauges] * len(ACTIVE))
+        self.cache_save.assert_called_once()
+        self.assertIn("real auth read", self.cache_load.return_value["codex-cli"]["error"])
 
     def test_retired_only_selector_does_not_load_auth_or_poll(self):
         self.legacy_cache()
@@ -187,7 +217,7 @@ class QuotaTests(unittest.TestCase):
         self.load.side_effect = FileNotFoundError(2, "missing", "fixture-auth.json")
         snap = collect.snapshot()
         self.assert_active(snap)
-        self.assertEqual([r["status"] for r in snap["rails"]], ["unavailable"] * 4)
+        self.assertEqual([r["status"] for r in snap["rails"]], ["unavailable"] * len(ACTIVE))
         self.assertTrue(all("credential file missing" in r["reason"] for r in snap["rails"]))
         self.http.assert_not_called()
 
@@ -198,7 +228,7 @@ class QuotaTests(unittest.TestCase):
         self.load.side_effect = error
         snap = collect.snapshot(force=True)
         self.assert_active(snap)
-        self.assertEqual([r["status"] for r in snap["rails"]], ["stale"] * 4)
+        self.assertEqual([r["status"] for r in snap["rails"]], ["stale"] * len(ACTIVE))
         self.cache_save.assert_called_once()
         self.load.reset_mock()
         snap = collect.snapshot(force=True)
