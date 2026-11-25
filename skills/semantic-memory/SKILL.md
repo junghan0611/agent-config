@@ -103,10 +103,11 @@ corpus the question asks for. `search-openclaw` is the harvested bot-memory and
 bot-session axis. The runtime's native `memory_search` tool is denied by OpenClaw
 tool policy, so a bot cannot enter its slow SQLite query path. This does **not**
 disable `memory.search`: OpenClaw continues embedding `memory` and `sessions`, and
-Andenken harvests those existing 4096d vectors without re-embedding. Credentials
-may come from `~/.env.local` or the process environment; the OpenClaw container
-uses its compose-injected process environment, so a missing `~/.env.local` is not
-a configuration failure.
+Cyborg harvests the Oracle-produced OpenRouter BGE-M3 / 1024d vectors into a
+separate generation without re-embedding. Cyborg uses local Ollama for queries;
+OpenClaw search requires an explicit compatibility attestation backed by
+acceptance evidence. If the new generation or attestation is absent, report that
+search is unavailable; do not use the old index or a paid fallback.
 
 OpenClaw's workspace-skill registry and Claude's native-skill registry discover
 separate mounts. Whichever registry a bot's runtime uses must resolve this same
