@@ -1,6 +1,6 @@
 ---
 name: bibcli
-description: "로컬 BibTeX SSOT 검색/조회 + URL 원샷 입수. 유튜브·X(트위터)·책·블로그·웹 URL을 에이전트에게 주면 save→스타일·키 판단→pin --sync 로 같은 세션에 Zotero 적소 분류 + 인용 키 확정(시점 분리 금지). X는 수동 메타데이터 보정, YouTube는 무의미한 플랫폼 안내문을 abstract로 남기지 않는다. 폰 캡처 후엔 bib sync. orphan #+print_bibliography: 금지."
+description: "로컬 BibTeX SSOT 검색/조회 + URL 원샷 입수. ‘작업함에 담아줘’ 또는 ‘Zotero에 넣지 마’면 ~/sync/org/resources/bib/work.bib에 직접 기록(Zotero 미사용). 유튜브·X(트위터)·책·블로그·웹 URL을 에이전트에게 주면 save→스타일·키 판단→pin --sync 로 같은 세션에 Zotero 적소 분류 + 인용 키 확정(시점 분리 금지). X는 수동 메타데이터 보정, YouTube는 무의미한 플랫폼 안내문을 abstract로 남기지 않는다. 폰 캡처 후엔 bib sync. orphan #+print_bibliography: 금지."
 ---
 
 # bibcli — meta-bib SSOT + URL 입수 (org 에이전트 기본)
@@ -23,7 +23,7 @@ Zotero Cloud                    = 여러 기기에서 함께 쓰는 캡처 금�
 org note                        = #+reference: KEY 로 소비
 ```
 
-어느 기기의 org 담당자든 자기 기기에서 URL을 바로 `save → pin --sync` 한다.
+기본 Zotero 경로에서는 어느 기기의 org 담당자든 자기 기기에서 URL을 바로 `save → pin --sync` 한다. 작업함 경로는 §2를 따른다.
 일상 입수·인용에 Git pull/push는 없다. Zotero Cloud와 결정론적 렌더가 기기별
 cache 순서를 지우고, Syncthing은 완성된 `bib/*.bib`만 나른다.
 
@@ -32,7 +32,7 @@ cache 순서를 지우고, Syncthing은 완성된 `bib/*.bib`만 나른다.
 | 한 세션 | URL 입수와 인용 키 확정을 **나누지 않는다** |
 | SSOT | `bibcli show` 되는 키만 서지로 인정 |
 | dateAdded | 성스러움 — `pin` whitelist만, 일괄 enrich 금지 |
-| 손편집 `*.bib` | 금지 (다음 sync에 덮임) |
+| 손편집 `*.bib` | Zotero 생성 파일은 금지 (다음 sync에 덮임); `work.bib`는 직접 편집 |
 | 별표 스크랩 | 경계 밖 (YouTube 별표 목록 등 직접 수집 금지) |
 
 ## 1) 읽기 (로컬 only)
@@ -45,7 +45,16 @@ cache 순서를 지우고, Syncthing은 완성된 `bib/*.bib`만 나른다.
 {baseDir}/bibcli lookup ISBN|제목   # 선택 보조, 타임아웃 가능, 필수 아님
 ```
 
-## 2) URL → 글에 쓸 키 (모든 유형 공통 원샷)
+## 2) URL intake — choose the destination first
+
+| User request | Destination and action |
+|---|---|
+| “작업함에 담아줘” / “Zotero에 넣지 마” | Edit `~/sync/org/resources/bib/work.bib` directly (create on first capture). Follow GLG’s existing BibTeX style, reuse the entry for the same URL, and add a short note on why to revisit it. Do not run `save`, `pin`, or Zotero sync for this route. |
+| URL only / “Zotero에 담아줘” | Follow the Zotero one-shot workflow below. Do not infer the work tray from the topic. |
+
+For the work tray, record only verified metadata. Do not store URLs with access tokens or send private links to public crawlers.
+
+### Zotero one-shot workflow
 
 ```text
 [1] save --json URL     Translation Server → Cloud (날것, zoteroKey)
