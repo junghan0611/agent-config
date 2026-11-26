@@ -1,5 +1,5 @@
-model = "gpt-5.6-sol"
-model_reasoning_effort = "high"
+model = "gpt-6.2-sol"
+model_reasoning_effort = "medium"
 model_reasoning_summary = "detailed"
 model_verbosity = "high"
 approval_policy = "never"
@@ -7,8 +7,10 @@ sandbox_mode = "danger-full-access"
 approvals_reviewer = "user"
 personality = "pragmatic"
 web_search = "live"
+
 [notice]
 hide_full_access_warning = true
+hide_rate_limit_model_nudge = true
 
 [projects."/home/junghan"]
 trust_level = "trusted"
@@ -34,18 +36,16 @@ trust_level = "trusted"
 [projects."/home/junghan/.openclaw"]
 trust_level = "trusted"
 
-[notice.model_migrations]
-"gpt-5.3-codex" = "gpt-5.4"
-"gpt-5.4" = "gpt-5.5"
-
 [tui]
-status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-used", "weekly-limit", "context-window-size"]
-theme = "zenburn"
+terminal_title = ["activity", "project-name", "thread-id"]
+status_line = ["thread-title", "model-with-reasoning", "current-dir", "git-branch", "context-used", "weekly-limit", "context-window-size"]
+theme = "dracula"
+screen_reader_detection_done = true
+notification_condition = "unfocused"
 
 [tui.model_availability_nux]
 "gpt-5.5" = 4
 "gpt-5.6-sol" = 2
-
 
 [plugins."google-calendar@openai-curated"]
 enabled = false
