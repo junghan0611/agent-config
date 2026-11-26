@@ -69,7 +69,7 @@ RAIL 계약:
 
 ### Single repo: RAIL / NOW / RECENT / LEDGER
 
-Use when one repo has one main workstream.
+Use when one repo has one main workstream. When creating or updating `NOW`, prefer one non-empty `- Current:` sentence stating where the work stands. Keep it distinct from `Next` (the next action) and RAIL (the checkpoint position). Existing handoffs without `Current` remain valid; a reader should show no summary and link to the original handoff rather than infer one.
 
 ```markdown
 # RAIL — 현재 좌표
@@ -78,7 +78,7 @@ Use when one repo has one main workstream.
 - [ ] **3. <later>**
 
 # NOW
-- Current: <where we stand>
+- Current: The candidate passed CLI checks; verification in Pi is still pending.
 - Next: (1) <do> → (2) <verify> → (3) <decide>
 - Blocker: <none / exact blocker>
 - Read: <doc/path/heading>
