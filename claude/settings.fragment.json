@@ -60,6 +60,28 @@
   },
   "language": "Korean",
   "effortLevel": "medium",
+  "modelSettings": {
+    "claude-opus-5": {
+      "effortLevel": "high",
+      "autoCompactWindow": 400000
+    },
+    "claude-sonnet-5": {
+      "effortLevel": "high",
+      "autoCompactWindow": 400000
+    },
+    "claude-fable-5-2": {
+      "effortLevel": "medium",
+      "autoCompactWindow": 400000
+    },
+    "claude-opus-5-5": {
+      "effortLevel": "high",
+      "autoCompactWindow": 400000
+    },
+    "claude-sonnet-5-5": {
+      "effortLevel": "low",
+      "autoCompactWindow": 400000
+    }
+  },
   "editorMode": "normal",
   "preferredNotifChannel": "notifications_disabled",
   "agentPushNotifEnabled": true,
