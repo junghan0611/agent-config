@@ -18,6 +18,11 @@ The executable is a Bash wrapper and its shebang selects the interpreter. Prepen
 `python3` makes Python parse Bash and fail at `set -euo pipefail`; do not infer an
 interpreter that the API did not name. The table below omits the executable prefix.
 
+By default the wrapper sources `~/.env.local`. With `ANDENKEN_ENV_MODE=process-only`
+it does not, so the process environment is the whole configuration; any other
+non-empty value exits 2. This does not clear inherited variables or override
+`BASH_ENV` — for an isolated check start from `env -i`.
+
 **The CLI surface is exactly `search-sessions | search-md | search-openclaw |
 search-knowledge | status | reindex`** — anything else named here is a *sibling skill*,
 invoked on its own, not a subcommand. Calling one as a subcommand returns

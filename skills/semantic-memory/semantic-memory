@@ -10,8 +10,25 @@
 # weaker of the two — see SKILL.md § "Absent axis".
 set -euo pipefail
 
-# Load API keys
-[[ -f "${HOME}/.env.local" ]] && source "${HOME}/.env.local"
+# ANDENKEN_ENV_MODE, same three answers as andenken scripts/lib/env-mode.sh
+# (inlined so the wrapper does not depend on which andenken checkout is present):
+#   unset / empty   source ~/.env.local (API keys, andenken settings)
+#   process-only    never touch the dotenv; the process env is the whole config
+#   anything else   refuse, so a typo cannot fall back to the dotenv
+# This cannot undo BASH_ENV: bash reads that before the first line here, so a
+# process-only caller must not carry a BASH_ENV that points at a dotenv.
+case "${ANDENKEN_ENV_MODE:-}" in
+  "")
+    if [[ -f "${HOME}/.env.local" ]]; then
+      source "${HOME}/.env.local"
+    fi
+    ;;
+  process-only) ;;
+  *)
+    printf "semantic-memory: ANDENKEN_ENV_MODE='%s' is not a known mode (only: process-only); nothing was read\n" "$ANDENKEN_ENV_MODE" >&2
+    exit 2
+    ;;
+esac
 
 ANDENKEN_DIR="${HOME}/repos/gh/andenken"
 TSX_CLI="${ANDENKEN_DIR}/node_modules/tsx/dist/cli.mjs"
