@@ -62,3 +62,7 @@ skills/timeline/scripts/domains.local.json
 
 # Caller-maintained sibling bookmarks; not runtime configuration.
 /team.json
+
+# Keep the v2 holdout private for future comparisons (tests/memory-task-eval/README.md).
+# A variant freeze does not authorize publishing the holdout.
+tests/memory-task-eval/v2/

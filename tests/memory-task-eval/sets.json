@@ -1,0 +1,16 @@
+{
+ "v1": {
+  "fixtures": "779f446aa82babeda48835a7d67efb0d90748f4a0fceb950927f65b8ce9828c9",
+  "rows": 56, "files": 24, "seed": 20261127, "maxToolAttempts": 8,
+  "arms": ["off", "baseline"], "guard": false,
+  "planWindow": ["2026-10-01T00:00:00+09:00", "2026-11-01T00:00:00+09:00"]
+ },
+ "v2": {
+  "fixtures": "0ed27c5881e2a136afe6a27231c5f74c96308d0c4ffd6f93865e874041218fad",
+  "freezeJsonSha256": "3e32a1908cbb0a82b53ee58e54fa2ae682c1f24c255140590cd1c106c3471e6b",
+  "rows": 496, "files": 176, "seed": 2026112702, "maxToolAttempts": 4,
+  "arms": ["baseline", "improved"], "guard": true,
+  "baseCommit": "90ee1841e1a96feb1cd5af77eec0aa3bfe61556b",
+  "planWindow": ["2026-09-01T00:00:00+09:00", "2026-11-01T00:00:00+09:00"]
+ }
+}
