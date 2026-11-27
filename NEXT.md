@@ -21,9 +21,11 @@
 
 # RAIL — 현재 좌표
 
-- [ ] **1. OpenClaw 생산 지연의 실효 정책 확인** ← CURRENT: 확대검수 원문 `EXPANDED-RESULT.md` 인수·DM1181 완료. 11/17 10:04/10:35 readonly 관측에서 bbot/mini 새파일이 색인에 없고 revision 변화0; 원인·실제 eligibility/mount 일치는U. GLG 요청으로 Oracle6f가 nixos-config 측 정책/trigger/hotfix를 검토하도록 ddb597 요청(운영 수선 승인 아님).
+- [ ] **1. OpenClaw 생산 지연의 실효 정책 확인** ← 별도 레인: 확대검수 원문 `EXPANDED-RESULT.md` 인수·DM1181 완료. 11/17 10:04/10:35 readonly 관측에서 bbot/mini 새파일이 색인에 없고 revision 변화0; 원인·실제 eligibility/mount 일치는U. GLG 요청으로 Oracle6f가 nixos-config 측 정책/trigger/hotfix를 검토하도록 ddb597 요청(운영 수선 승인 아님).
 - [x] **2. 최소 API-0 관측** — 정상readonly집계2회·기존자료대조완료. SQLite read-mark부작용가능성명시. copy실험의원본hash불변은관측했으나kernel격리계약은미달이다. 최적화/토크나이저결과를적격production근거나보장으로승격하지않는다.
 - [x] **3. 실제 질문의 검색 유용성** — 초기10개+확대22개query로FTS/vector/hybrid/strict·related분리. 4agent회수관측,조사형·긴꼬리miss남음. 확대817provider보고tokens/재시도0,실청구미확인. 일반적합격판정아님·운영reindex0.
+
+- [ ] **4. 에이전트 세션 검색의 개선 효과 검수** ← CURRENT: 변경이 발동할 수 있는 독립 평가부터 선정.
 
 ## 닫힌 11/16 운영 좌표 — 재실행 대상 아님
 
@@ -36,8 +38,9 @@
 
 # NOW — 다음 한 걸음
 
-- Current: Cyborg의 BGE-M3 세 축 후보는 구축했으며, 세션·가든의 Pi 실사용 검수와 OpenClaw 교차 검색 검증은 남았다.
-- **다음 한 수:** Oracle6f의 정책 검토 회신을 받아 bbot/mini의 의도된 eligibility·watch mount·lazy manager/trigger와 실제 지연을 구분한다. 재검수/강제 reindex/서비스 restart부터 하지 않는다. f41·877·444 확대 실무는 마감했고 새 실험은 중단 상태다. 11.4 gpt 새행은 관측됐으므로 전체 생산 동결로 판정하지 않는다.
+- Current: 세션·가든 도구의 Pi 연결과 합성 세션 과제에서의 효용은 확인했고, 실제 세션 주제 검색과 순위 개선 효과는 미확인이다.
+- **다음 한 수 (세션 검수):** Andenken 코디와 개선 조건이 발동할 수 있는 독립 평가를 먼저 고른다. 같은 DB·검색 예산에서 첫 근거 노출과 최종 판단·인용을 분리한다. 비공개 세션은 외부 모델에 넘기지 않는다. `tests/memory-task-eval/README.md`가 재실행 진입점이다(`d13308c`, `a5b3bc3`; Andenken `ca4ccca`). v2는 이번 순위 변경을 구조적으로 판별할 수 없어 미실행·비공개 보존했다. 무회귀로 읽거나 반복 실행하지 않는다.
+- **별도 OpenClaw 레인:** Oracle6f의 정책 검토 회신을 받아 bbot/mini의 의도된 eligibility·watch mount·lazy manager/trigger와 실제 지연을 구분한다. 재검수/강제 reindex/서비스 restart부터 하지 않는다. 11.4 gpt 새행은 관측됐으므로 전체 생산 동결로 판정하지 않는다. 운영 전환·자동 색인·게시·삭제는 별도 승인.
 - **닫힌 확대 검수:** `.agent-reports/20261117-openclaw-producer-quality/{FINAL-E2E,EXPANDED-RESULT}.md`가 원문. 초기10질문은유리한서지장르였고,추가22질문은한query embedding을FTS/vector/hybrid에재사용했다. KEPT/SAID·4agent의회수와항목별leg보완을관측했지만조사형·긴꼬리miss가남았다. 일반적합격/문서-query정렬전체인증아님. 확대22calls/817보고tokens/재시도0·env단가약$0.0000082,실청구미확인. 시간표시는index/update time으로additive수선했고기존updated_at키/검색정책/DBschema는유지;owner877이최종3파일source diff와worker회귀영수증을맡는다. 이번GLG요청은양쪽commit/push이며배포·새운영수선은별도다.
 - **복사 실험 경계:** 원본contenthash전후불변은관측했으나unshare-rn/env-i/pathguard만으로production경로·credentials가숨겨지거나kernelRO가되지는않았다. 요청한격리계약미달(deviation),실험결과는한정진단으로만보존한다. 6.45s→0.055s는첫openwarmup이섞인표본관측이며production속도보장아님. 적격재실험·생산optimize/FTS변경은새격리/범위GO가필요하다. 원문·DB·보존사본삭제0,강제임베딩/재시작0.
 - **11/16 닫힌 배치:** 이번 세션 범위(B 후보 → 노트북·Oracle sessions 채택 → OpenClaw import·게시 → G8)는 닫혔다. 수동 증분·gather·`--global`·유료 호출은 실행 0. Sessions reversal 창은 합의된 계약대로 G8 warm 해제(17:55)에 이미 닫혔다. 다음 Pi 세션의 local warm은 새 행을 추가할 수 있으며, 되돌리기는 GLG 결정의 별도 수동 작업이다. 11/16 완료는 다음 유료 증분의 범위·비용 승인까지 뜻하지 않는다. 이후 sync/`--global`은 기존 authority·요청 범위를 따르며, 새 파서·정책 또는 미확인 backlog의 첫 사용은 전체 작업량·비용 확인과 GLG 수락이 별도다. Git 반영 여부는 GLG 결정. 후속은 아래 OpenClaw 남은 경계와 보존물 정리 판단.
