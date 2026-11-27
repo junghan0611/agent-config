@@ -24,6 +24,7 @@ v2 is a separate set, not a retuning of v1. Its public pins: `freeze.json` sha25
    ```
 
    A build directory is `git archive <base>` (plus, for the improved arm, `git apply` of the one diff), the built `dist/`, and a `node_modules` that both arms share. The command refuses unless the baseline source equals the base commit, the improved source equals base plus exactly that diff (which may not touch dependencies, config or build output), the shared dependencies equal the owner's ledger, and each `dist/` equals a fresh compile of its verified source. The record holds hashes, counts, the Node version and a time, no paths; `pin`, `retrieve` and `run` re-hash dist, source and dependency bytes. It does not judge whether a set can discriminate the pinned diff.
+   Then fix what both arms share with `drive.py consumer-manifest --build … --improved-build … --variant-freeze … --record consumer-manifest.json`. It derives each arm's real sandbox command, environment, agent settings and probe invocation, replaces host and build paths with placeholders and refuses unless the two are identical; it also pins the Pi, Node and sandbox bytes, model, prompts, limits, guard, probe and scorer. It is path-free and deterministic. A v2 `pin` needs it (`--consumer-manifest`), and `retrieve` / `run` recompute it and refuse drift.
 2. Until then the build side receives **only metadata and freeze hashes**: no v2 corpus, tasks, gold, controls or generator.
 3. Afterwards the index owner receives the corpus **only**.
 

@@ -212,40 +212,89 @@ class VariantFreeze(unittest.TestCase):
 
 	def test_two_build_sets_cannot_be_pinned_without_it(self):
 		with pair() as p:
-			t, base, good = p.t, p.base, p.good; other = p.build("other", True); (other/"dist/index.js").write_text("other")
-			freeze = p.freeze(); fx = Path(t)/"fx"; fx.mkdir(); (fx/"tasks.json").write_text("[]"); (fx/"freeze.json").write_text("{}")
-			saved = D.check_fixtures, D.corpus_root, D.index_gate
-			D.check_fixtures, D.corpus_root, D.index_gate = (lambda *a: None), (lambda *a: fx), (lambda *a: {})
-			try:
-				pin = ["pin","--set","v2","--fixtures",str(fx),"--index",str(fx),"--build",str(base),"--record",str(Path(t)/"r.json")]
-				for extra, why in (([], "variant-freeze"), (["--improved-build",str(good)], "variant-freeze"), (["--improved-build",str(other),"--variant-freeze",str(freeze)], "differs from the variant freeze")):
+			other = p.build("other", True); (other/"dist/index.js").write_text("other")
+			freeze = p.freeze(); fx = p.t/"fx"; fx.mkdir(); (fx/"tasks.json").write_text("[]"); (fx/"freeze.json").write_text("{}")
+			with fake_host(p), pinned_fixtures(fx):
+				pin = ["pin","--set","v2","--fixtures",str(fx),"--index",str(fx),"--build",str(p.base),"--record",str(p.t/"r.json")]
+				full = ["--improved-build",str(p.good),"--variant-freeze",str(freeze)]
+				for extra, why in (([], "variant-freeze"), (["--improved-build",str(p.good)], "variant-freeze"), (full, "consumer-manifest"),
+						(["--improved-build",str(other),"--variant-freeze",str(freeze),"--consumer-manifest","x"], "differs from the variant freeze")):
 					with self.assertRaises(SystemExit) as e: D.main(pin+extra)
-					self.assertIn(why, str(e.exception)); self.assertFalse((Path(t)/"r.json").exists())
-			finally: D.check_fixtures, D.corpus_root, D.index_gate = saved
+					self.assertIn(why, str(e.exception)); self.assertFalse((p.t/"r.json").exists())
 
 	def test_run_record_carries_pins_and_load_rechecks_them(self):
 		with pair() as p:
-			t, base, good = p.t, p.base, p.good
-			freeze = p.freeze(); fx = Path(t)/"fx"; fx.mkdir(); (fx/"tasks.json").write_text("[]"); (fx/"freeze.json").write_text("{}")
-			# Stand-in for the held-back set directory, so this runs in a clone without v2/.
-			here = Path(t)/"here"; (here/"v2").mkdir(parents=True); (here/"v2/score.py").write_text("# placeholder\n"); shutil.copy(HERE/"sets.json", here/"sets.json")
-			saved = D.check_fixtures, D.corpus_root, D.index_gate, D.HERE
-			D.check_fixtures, D.corpus_root, D.index_gate, D.HERE = (lambda *a: None), (lambda *a: fx), (lambda *a: {}), here
-			try:
-				out = Path(t)/"record.json"
+			freeze = p.freeze(); fx = p.t/"fx"; fx.mkdir(); (fx/"tasks.json").write_text("[]"); (fx/"freeze.json").write_text("{}")
+			with fake_host(p), pinned_fixtures(fx):
+				out, manifest = p.t/"record.json", p.t/"manifest.json"
 				with contextlib.redirect_stdout(io.StringIO()):
-					D.main(["pin","--set","v2","--fixtures",str(fx),"--index",str(fx),"--build",str(base),"--improved-build",str(good),"--variant-freeze",str(freeze),"--record",str(out)])
+					D.main(manifest_args(p, freeze, manifest))
+					D.main(["pin","--set","v2","--fixtures",str(fx),"--index",str(fx),"--build",str(p.base),"--improved-build",str(p.good),"--variant-freeze",str(freeze),"--consumer-manifest",str(manifest),"--record",str(out)])
 				rec = json.loads(out.read_text())
 				self.assertEqual(rec["variantFreeze"]["pins"], json.loads(freeze.read_text()))
 				self.assertEqual(rec["variantFreeze"]["pins"]["baseCommit"], p.commit); self.assertEqual(rec["dist"], rec["variantFreeze"]["pins"]["dist"])
-				load = lambda r: (out.write_text(json.dumps(r)), D.load_record(type("A",(),{"record":str(out),"andenken":None})()))
+				self.assertEqual(rec["consumerManifest"]["sha256"], D.sha_file(manifest))
+				load = lambda r: (out.write_text(json.dumps(r)), D.load_record(type("A",(),{"record":str(out),"andenken":None,"pi_package":None})()))
 				load(rec)
 				forged = json.loads(json.dumps(rec)); forged["variantFreeze"]["pins"]["patchSha256"] = "0"*64
-				dropped = {**rec, "variantFreeze": None}
-				for bad, why in ((forged,"pins differ"), (dropped,"missing or changed")):
+				for bad, why in ((forged,"pins differ"), ({**rec,"variantFreeze":None},"variant freeze missing"), ({**rec,"consumerManifest":None},"consumer manifest missing")):
 					with self.assertRaises(SystemExit) as e: load(bad)
 					self.assertIn(why, str(e.exception))
-			finally: D.check_fixtures, D.corpus_root, D.index_gate, D.HERE = saved
+
+@contextlib.contextmanager
+def pinned_fixtures(fx):
+	"""Skip the fixture, corpus and index checks (covered elsewhere); everything about builds stays real."""
+	saved = D.check_fixtures, D.corpus_root, D.index_gate
+	D.check_fixtures, D.corpus_root, D.index_gate = (lambda *a: None), (lambda *a: fx), (lambda *a: {})
+	try: yield
+	finally: D.check_fixtures, D.corpus_root, D.index_gate = saved
+
+@contextlib.contextmanager
+def fake_host(p):
+	"""A stand-in Pi package, node, bwrap and set directory, so manifest logic runs in any clone."""
+	pkg = p.t/"store/node_modules/@earendil-works/pi-coding-agent"; pkg.mkdir(parents=True); (pkg/"package.json").write_text(json.dumps({"version":D.PI_VERSION}))
+	for dep in ("jiti","undici"):
+		(p.t/"store/node_modules"/dep).mkdir(); (p.t/"store/node_modules"/dep/"index.js").write_text(dep)
+	node, bwrap = p.t/"tools/bin/node", p.t/"tools/bwrap"; node.parent.mkdir(parents=True); node.write_text("node"); bwrap.write_text("bwrap")
+	here = p.t/"harness"; (here/"v2").mkdir(parents=True); shutil.copy(HERE/"sets.json", here/"sets.json")
+	for f in ("score.py","guard.mjs","probe.mjs"): (here/"v2"/f).write_text("# placeholder " + f)
+	saved = D.host_tools, D.pi_package, D.HERE, D.must_version, D.SETS["v2"].get("freezeJsonSha256")
+	D.host_tools, D.pi_package, D.HERE, D.must_version = (lambda: (str(node), str(bwrap))), (lambda a: pkg), here, (lambda: "v0.0.0")
+	try: yield here
+	finally: D.host_tools, D.pi_package, D.HERE, D.must_version = saved[:4]
+
+def manifest_args(p, freeze, out):
+	return ["consumer-manifest","--build",str(p.base),"--improved-build",str(p.good),"--variant-freeze",str(freeze),"--record",str(out)]
+
+class ConsumerManifest(unittest.TestCase):
+	def test_arms_are_identical_but_for_the_build_and_the_record_is_path_free(self):
+		with pair() as p:
+			freeze = p.freeze()
+			with fake_host(p) as here:
+				out = p.t/"manifest.json"
+				with contextlib.redirect_stdout(io.StringIO()): D.main(manifest_args(p, freeze, out))
+				text = out.read_text(); m = json.loads(text)
+				self.assertNotIn(str(p.t), text); self.assertTrue(m["arms"]["identicalAfterNormalisation"])
+				cmd = m["arms"]["normalised"]["agent"]
+				self.assertIn("<BUILD>/dist", cmd); self.assertIn("<DEPS>", cmd); self.assertIn("/guard/guard.mjs", cmd)
+				self.assertEqual(m["arms"]["normalised"]["probe"][-2:], D.PROBE_ARGV)
+				self.assertEqual(m["arms"]["normalised"]["agentSettings"]["retry"], {"enabled":False,"provider":{"maxRetries":0}})
+				with contextlib.redirect_stdout(io.StringIO()): D.main(manifest_args(p, freeze, p.t/"again.json"))
+				self.assertEqual((p.t/"again.json").read_bytes(), out.read_bytes())
+				D.check_consumer_manifest(None, "v2", {"baseline":str(p.base),"improved":str(p.good)}, freeze, out)
+				(here/"v2/guard.mjs").write_text("changed budget")
+				with self.assertRaises(SystemExit): D.check_consumer_manifest(None, "v2", {"baseline":str(p.base),"improved":str(p.good)}, freeze, out)
+
+	def test_an_arm_specific_difference_is_refused(self):
+		with pair() as p:
+			freeze = p.freeze()
+			with fake_host(p):
+				real = D.pi_args
+				D.pi_args = lambda name, arm, text=None: real(name, arm, text) + (["--extra"] if arm == "improved" else [])
+				try:
+					with self.assertRaises(SystemExit) as e: D.main(manifest_args(p, freeze, p.t/"m.json"))
+				finally: D.pi_args = real
+				self.assertIn("more than the build", str(e.exception)); self.assertFalse((p.t/"m.json").exists())
 
 class RunLoop(unittest.TestCase):
 	"""The batch loop with the sandbox and model replaced by a local fake process and a fake credential."""

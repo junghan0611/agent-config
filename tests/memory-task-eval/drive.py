@@ -12,6 +12,9 @@
                     verifies source=base, source=base+one diff, one shared node_modules equal to the
                     owner's ledger, dist=fresh compile; writes a path-free variant freeze. Required
                     BEFORE any v2 corpus, task, gold, control or generator leaves the evaluator
+  drive.py consumer-manifest --build BASE_DIR --improved-build DIR --variant-freeze F --record NEW.json
+                    path-free manifest of what both arms share (command, env, settings, probe, limits,
+                    runtime); refuses if the arms differ in anything but the build. v2 pin needs it
   drive.py pin      --set S --fixtures DIR --index DIR --build DIR [--corpus-root DIR] --record NEW.json
                     (v2 also: --improved-build DIR --variant-freeze FREEZE.json)
                     index gate + write the run record
@@ -223,6 +226,13 @@ def check_variant_freeze(path, builds, base_commit):
 		sys.exit("shared dependencies differ from the variant freeze")
 	return v
 
+def host_tools():
+	node = os.path.realpath(shutil.which("node") or ""); bwrap = shutil.which("bwrap")
+	if not bwrap or not node.startswith("/nix/store/"): sys.exit("need bwrap and a /nix/store node (see README dependencies)")
+	return node, bwrap
+
+PROBE_ARGV = ["/work/probe.mjs", "/work/tasks.json"]
+
 class Box:
 	"""One throwaway sandbox root. Host requirements: bwrap, a /nix/store node, system CA bundle."""
 	def __init__(self, a, name, build, corpus, index=None):
@@ -236,8 +246,7 @@ class Box:
 		self.pi, self.name, self.build, self.corpus = pi_package(a), name, Path(build).resolve(), Path(corpus)
 
 	def argv(self, command):
-		node = os.path.realpath(shutil.which("node") or ""); bwrap = shutil.which("bwrap")
-		if not bwrap or not node.startswith("/nix/store/"): sys.exit("need bwrap and a /nix/store node (see README dependencies)")
+		node, bwrap = host_tools()
 		deps = self.pi.parent.parent
 		binds = [("/nix/store","/nix/store"), ("/etc/resolv.conf","/etc/resolv.conf"), ("/etc/ssl/certs/ca-certificates.crt","/etc/ssl/certs/ca-certificates.crt"),
 			(self.pi,"/pi"), (os.path.realpath(deps/"jiti"),"/node_modules/jiti"), (os.path.realpath(deps/"undici"),"/node_modules/undici"),
@@ -322,21 +331,70 @@ def boundary(a):
 		print(arm, "catalog rc", c.returncode, "pinned model listed:", listed, "| stderr:", c.stderr.strip()[:200]); ok &= listed and c.returncode == 0
 	if not ok: sys.exit("boundary check failed")
 
+def normalised_arm(a, name, build, arm):
+	"""The exact sandbox command, environment and settings of one arm, with host- and build-specific
+	paths replaced by placeholders. Two arms must be identical after this."""
+	box = Box(a, name, build, Path("/CORPUS"))
+	node, bwrap = host_tools(); deps = box.pi.parent.parent
+	names = [(os.path.realpath(box.build/"node_modules"),"<DEPS>"), (os.path.realpath(deps/"jiti"),"<JITI>"), (os.path.realpath(deps/"undici"),"<UNDICI>"),
+		(str(box.build),"<BUILD>"), (str(box.pi),"<PI>"), (str(Path(box.tmp.name)),"<BOX>"), (str(HERE),"<HARNESS>"), (node,"<NODE>"), (os.path.dirname(node),"<NODE_DIR>"), (bwrap,"<BWRAP>")]
+	def clean(x):
+		for real, label in sorted(names, key=lambda n: -len(n[0])): x = x.replace(real, label)
+		return x
+	out = {"agent": [clean(x) for x in box.argv(["/pi/dist/bundle/cli.js", *pi_args(name, arm, "<PROMPT>")])],
+		"probe": [clean(x) for x in box.argv(list(PROBE_ARGV))],
+		"agentSettings": json.loads((box.agent/"settings.json").read_text())}
+	box.tmp.cleanup()
+	return out
+
+def consumer_manifest_data(a, name, builds, variant_path):
+	"""Everything the consumer holds equal across the two arms. Deterministic and path-free."""
+	v = check_variant_freeze(variant_path, builds, SETS[name]["baseCommit"])
+	arms = {arm: normalised_arm(a, name, build, arm) for arm, build in builds.items()}
+	if arms["baseline"] != arms["improved"]: sys.exit("the two arms differ in more than the build")
+	shared = arms["baseline"]
+	if any(re.search(r"/(home|Users)/(?!fixture)", x) for x in shared["agent"] + shared["probe"]): sys.exit("a host path survived normalisation")
+	pi = pi_package(a); node, bwrap = host_tools(); deps = pi.parent.parent
+	here = HERE/name
+	return {"kind": "memeval-consumer-manifest-v1", "set": name, "variantFreezeSha256": sha_file(variant_path), "variantPins": v,
+		"freezeJsonSha256": SETS[name]["freezeJsonSha256"], "fixtures": SETS[name]["fixtures"],
+		"runtime": {"node": must_version(), "nodeBinarySha256": sha_file(node), "bwrapBinarySha256": sha_file(bwrap), "piVersion": PI_VERSION,
+			"piPackageTreeSha256": tree_hash(pi), "jitiTreeSha256": tree_hash(os.path.realpath(deps/"jiti")), "undiciTreeSha256": tree_hash(os.path.realpath(deps/"undici"))},
+		"embedding": {"profile": "ollama-bge-m3-1024", "endpoint": "http://127.0.0.1:11435", "digest": BGE_DIGEST},
+		"model": {"provider": PROVIDER, "id": MODEL, "thinking": THINKING, "systemPromptSha256": hashlib.sha256(SYSTEM.encode()).hexdigest(), "promptTemplateSha256": hashlib.sha256(prompt({"ask":"<ASK>","unrecorded":"<UNRECORDED>"}).encode()).hexdigest()},
+		"limits": {"timeoutS": TIMEOUT_S, "maxToolAttempts": SETS[name]["maxToolAttempts"], "retries": 0, "seed": SETS[name]["seed"],
+			"searchBudgetAndFilterPolicy": "enforced by guardSha256 identically for both arms (see the set rubric)"},
+		"index": {"rows": SETS[name]["rows"], "files": SETS[name]["files"], "forbiddenAxes": ["md","openclaw"]},
+		"code": {"driveSha256": sha_file(__file__), "setsSha256": sha_file(HERE/"sets.json"), "guardSha256": sha_file(here/"guard.mjs"), "probeSha256": sha_file(here/"probe.mjs"), "scoreSha256": sha_file(here/"score.py")},
+		"arms": {"identicalAfterNormalisation": True, "normalised": shared, "normalisedSha256": hashlib.sha256(json.dumps(shared, sort_keys=True).encode()).hexdigest()}}
+
+def consumer_manifest(a):
+	builds = {"baseline": str(Path(a.build).resolve()), "improved": str(Path(a.improved_build).resolve())}
+	data = consumer_manifest_data(a, "v2", builds, a.variant_freeze)
+	with open(a.record, "x") as f: json.dump(data, f, indent=1, sort_keys=True)
+	print("consumer manifest sha256", sha_file(a.record))
+
+def check_consumer_manifest(a, name, builds, variant_path, path):
+	if json.loads(Path(path).read_text()) != consumer_manifest_data(a, name, builds, variant_path): sys.exit("consumer manifest differs from what this host would run now")
+
 def pin(a):
 	fx = Path(a.fixtures).resolve(); name = a.set; check_fixtures(name, fx); corpus = corpus_root(a.corpus_root, fx)
 	idx = Path(a.index).resolve()
 	if "improved" in SETS[name]["arms"] and not (a.improved_build and a.variant_freeze): sys.exit(f"{name} pin needs --improved-build and --variant-freeze")
 	builds = {arm: str(Path(a.improved_build if arm == "improved" else a.build).resolve()) for arm in SETS[name]["arms"]}
-	variant = None
+	variant = manifest = None
 	if "improved" in builds:
+		if not a.consumer_manifest: sys.exit(f"{name} pin needs --consumer-manifest")
 		pins = check_variant_freeze(a.variant_freeze, builds, SETS[name]["baseCommit"])
+		check_consumer_manifest(a, name, builds, a.variant_freeze, a.consumer_manifest)
+		manifest = {"path": str(Path(a.consumer_manifest).resolve()), "sha256": sha_file(a.consumer_manifest)}
 		# The run record carries the pins themselves, not only a pointer to them.
 		variant = {"path": str(Path(a.variant_freeze).resolve()), "sha256": sha_file(a.variant_freeze), "pins": pins}
 	tasks = json.loads((fx/"tasks.json").read_text())
 	rec = {"set": name, "fixturesDir": str(fx), "fixtures": SETS[name]["fixtures"], "freezeJsonSha256": sha_file(fx/"freeze.json"),
 		"driveSha256": sha_file(__file__), "setsSha256": sha_file(HERE/"sets.json"), "scoreSha256": sha_file(HERE/name/"score.py"),
 		"index": str(idx), "indexTree": hashlib.sha256(json.dumps(tree(idx), sort_keys=True).encode()).hexdigest(), "gate": index_gate(a, name, idx, corpus, fx),
-		"corpusRoot": str(corpus), "variantFreeze": variant, "builds": builds, "dist": {k: dist_hash(v) for k, v in builds.items()},
+		"corpusRoot": str(corpus), "variantFreeze": variant, "consumerManifest": manifest, "builds": builds, "dist": {k: dist_hash(v) for k, v in builds.items()},
 		"model": f"{PROVIDER}/{MODEL}", "thinking": THINKING, "timeoutS": TIMEOUT_S, "maxToolAttempts": SETS[name]["maxToolAttempts"],
 		"order": [[t["id"], arm] for t, arm in plan(name, tasks, list(builds))]}
 	with open(a.record, "x") as f: json.dump(rec, f, indent=1)
@@ -354,6 +412,9 @@ def load_record(a):
 		if not v or sha_file(v["path"]) != v["sha256"]: sys.exit("variant freeze missing or changed after pin")
 		if check_variant_freeze(v["path"], rec["builds"], SETS[name]["baseCommit"]) != v["pins"]: sys.exit("run record pins differ from the variant freeze")
 		if v["pins"]["dist"] != rec["dist"]: sys.exit("run record dist differs from its variant pins")
+		m = rec.get("consumerManifest")
+		if not m or sha_file(m["path"]) != m["sha256"]: sys.exit("consumer manifest missing or changed after pin")
+		check_consumer_manifest(a, name, rec["builds"], v["path"], m["path"])
 	index_gate(a, name, idx, corpus, fx)
 	return rec, name, fx, corpus, idx
 
@@ -365,7 +426,7 @@ def retrieve(a):
 	for arm, build in rec["builds"].items():
 		box = Box(a, name, build, corpus, idx)
 		shutil.copy(HERE/name/"probe.mjs", box.work/"probe.mjs"); shutil.copy(fx/"tasks.json", box.work/"tasks.json")
-		p = box.call(["/work/probe.mjs", "/work/tasks.json"], timeout=TIMEOUT_S)
+		p = box.call(list(PROBE_ARGV), timeout=TIMEOUT_S)
 		(out/f"{arm}.probe.jsonl").write_text(p.stdout)
 		if p.returncode: sys.exit(f"probe failed for {arm}: {p.stderr[-300:]}")
 		for line in p.stdout.splitlines():
@@ -430,20 +491,20 @@ def run(a):
 
 def main(argv=None):
 	ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-	ap.add_argument("mode", choices=["dry-run","boundary","freeze-builds","pin","retrieve","run"])
+	ap.add_argument("mode", choices=["dry-run","boundary","freeze-builds","consumer-manifest","pin","retrieve","run"])
 	ap.add_argument("--set", choices=sorted(SETS))
-	for f in ("--fixtures","--index","--build","--improved-build","--corpus-root","--record","--go","--out","--andenken","--pi-package","--auth-file","--variant-freeze","--base-commit","--expect-patch-sha","--deps-ledger","--deps-links"): ap.add_argument(f)
+	for f in ("--fixtures","--index","--build","--improved-build","--corpus-root","--record","--go","--out","--andenken","--pi-package","--auth-file","--variant-freeze","--consumer-manifest","--base-commit","--expect-patch-sha","--deps-ledger","--deps-links"): ap.add_argument(f)
 	ap.add_argument("--allow-subscription-turns", action="store_true")
 	ap.add_argument("--patch", action="append", help="exactly one plain git diff")
 	a = ap.parse_args(argv)
-	need = {"dry-run": ("set","fixtures"), "boundary": ("set","fixtures","build"), "pin": ("set","fixtures","index","build","record"), "freeze-builds": ("build","improved_build","base_commit","patch","expect_patch_sha","deps_ledger","deps_links","record"), "retrieve": ("record","out"), "run": ()}[a.mode]
+	need = {"dry-run": ("set","fixtures"), "boundary": ("set","fixtures","build"), "pin": ("set","fixtures","index","build","record"), "freeze-builds": ("build","improved_build","base_commit","patch","expect_patch_sha","deps_ledger","deps_links","record"), "consumer-manifest": ("build","improved_build","variant_freeze","record"), "retrieve": ("record","out"), "run": ()}[a.mode]
 	missing = [n for n in need if not getattr(a, n)]
 	if missing: ap.error(f"{a.mode} needs " + " ".join("--"+n.replace("_","-") for n in missing))
 	if a.mode == "dry-run":
 		fx = Path(a.fixtures).resolve(); check_fixtures(a.set, fx)
 		for t, arm in plan(a.set, json.loads((fx/"tasks.json").read_text()), SETS[a.set]["arms"]): print(t["id"], arm)
 		print("model turns: 0 (dry run)")
-	else: {"boundary": boundary, "freeze-builds": freeze_builds, "pin": pin, "retrieve": retrieve, "run": run}[a.mode](a)
+	else: {"boundary": boundary, "freeze-builds": freeze_builds, "consumer-manifest": consumer_manifest, "pin": pin, "retrieve": retrieve, "run": run}[a.mode](a)
 
 if __name__ == "__main__":
 	main()
